@@ -573,13 +573,13 @@ class TestFeature(object):
 
         result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["non_existing_container", "104857600"], obj=db)
         print(result.output)
-        assert result.exit_code == 6
+        assert result.exit_code == 7
 
         db.cfgdb.delete_table("FEATURE")
 
         result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["lldp", "2048"], obj=db)
         print(result.output)
-        assert result.exit_code == 5
+        assert result.exit_code == 6
 
 
     def test_config_unknown_feature(self, get_cmd_module):
@@ -649,13 +649,13 @@ class TestFeatureMultiAsic(object):
         result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "disabled"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 4
+        assert result.exit_code == 5
         assert result.output == config_feature_high_memory_alert_bgp_inconsistent_output
 
         result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "enabled"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 4
+        assert result.exit_code == 5
         assert result.output == config_feature_high_memory_alert_bgp_inconsistent_output
 
     def test_config_feature_memory_threshold_bgp_inconsistent(self, get_cmd_module):
@@ -670,13 +670,13 @@ class TestFeatureMultiAsic(object):
         result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["bgp", "2048"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 7
+        assert result.exit_code == 9
         assert result.output == config_feature_memory_threshold_bgp_inconsistent_output
 
         result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["bgp", "2048"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 7
+        assert result.exit_code == 9
         assert result.output == config_feature_memory_threshold_bgp_inconsistent_output
 
 

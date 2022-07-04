@@ -188,13 +188,13 @@ def feature_high_memory_alert(db, feature_name):
         if feature_name in feature_table and "high_mem_alert" in feature_table[feature_name]:
             body.append([feature_name, feature_table[feature_name]['high_mem_alert']])
         else:
-            click.echo("failed to retrieve the 'high_mem_alert' field of feature '{}' from 'feature' table!"
+            click.echo("Failed to retrieve the 'high_mem_alert' field of feature '{}' from 'Feature' table!"
                        .format(feature_name))
             sys.exit(3)
     else:
         for feature_name in natsorted(list(feature_table.keys())):
             if "high_mem_alert" not in feature_table[feature_name]:
-                click.echo("failed to retrieve the 'high_mem_alert' field of feature '{}' from 'feature' table!"
+                click.echo("Failed to retrieve the 'high_mem_alert' field of feature '{}' from 'Feature' table!"
                            .format(feature_name))
                 sys.exit(4)
             body.append([feature_name, feature_table[feature_name]['high_mem_alert']])
@@ -224,11 +224,11 @@ def feature_memory_threshold(db, feature_name):
                        .format(feature_name))
             sys.exit(6)
     else:
-        for name in natsorted(list(feature_table.keys())):
+        for feature_name in natsorted(list(feature_table.keys())):
             if "mem_threshold" not in feature_table[feature_name]:
                 click.echo("Failed to retrieve the 'mem_threshold' field of feature '{}' from 'FEATURE' table!"
                            .format(feature_name))
                 sys.exit(7)
-            body.append([name, feature_table[name]['mem_threshold']])
+            body.append([feature_name, feature_table[feature_name]['mem_threshold']])
 
     click.echo(tabulate(body, header))
