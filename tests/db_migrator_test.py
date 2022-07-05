@@ -25,6 +25,8 @@ os.environ["PATH"] += os.pathsep + scripts_path
 def get_sonic_version_info_mlnx():
     return {'asic_type': 'mellanox'}
 
+def get_sonic_version_info_brcm():
+    return {'asic_type': 'broadcom'}
 
 class TestMellanoxBufferMigrator(object):
     @classmethod
@@ -288,6 +290,8 @@ class TestGlobalDscpToTcMapMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.asic_type = "broadcom"
+        dbmgtr.hwsku = "vs"
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_expected')
         expected_db = Db()
