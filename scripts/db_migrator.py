@@ -489,6 +489,9 @@ class DBMigrator():
         """
         Generate dscp_to_tc_map for switch.
         """
+        asics_require_global_dscp_to_tc_map = ["broadcom"]
+        if self.asic_type not in asics_require_global_dscp_to_tc_map:
+            return True
         dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
         if len(dscp_to_tc_map_table_names) == 0:
             return True
@@ -496,8 +499,8 @@ class DBMigrator():
         qos_maps = self.configDB.get_table('PORT_QOS_MAP')
         if 'global' not in qos_maps.keys():
             # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
-            self.configDB.set_entry('PORT_QOS_MAP', 'global', dscp_to_tc_map_table_names[0])
-            self.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+            self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
+            log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
     def version_unknown(self):
         """

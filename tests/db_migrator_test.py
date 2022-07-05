@@ -388,6 +388,8 @@ class TestGlobalDscpToTcMapMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.asic_type = "broadcom"
+        dbmgtr.hwsku = "vs"
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_expected')
         expected_db = Db()
@@ -397,4 +399,4 @@ class TestGlobalDscpToTcMapMigrator(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
-        
+
