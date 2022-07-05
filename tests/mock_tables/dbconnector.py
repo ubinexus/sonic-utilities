@@ -7,9 +7,8 @@ from unittest import mock
 
 import mockredis
 import redis
-import swsssdk
 from sonic_py_common import multi_asic
-from swsssdk import SonicDBConfig, SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector
+from swsscommon.swsscommon import SonicDBConfig, SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector
 from swsscommon import swsscommon
 
 
@@ -200,7 +199,7 @@ class CounterTable:
         return True, tuple(self.db.get("COUNTERS:" + key).items())
 
 
-swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
+swsscommon.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
 mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector

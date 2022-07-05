@@ -26,7 +26,6 @@ Currently, this list of dependencies is as follows:
 - libyang-cpp_1.0.73_amd64.deb
 - python3-yang_1.0.73_amd64.deb
 - redis_dump_load-1.1-py3-none-any.whl
-- swsssdk-2.0.1-py3-none-any.whl
 - sonic_py_common-1.0-py3-none-any.whl
 - sonic_config_engine-1.0-py3-none-any.whl
 - sonic_yang_mgmt-1.0-py3-none-any.whl
