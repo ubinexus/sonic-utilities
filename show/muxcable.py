@@ -503,6 +503,46 @@ def create_json_dump_per_port_config(db, port_status_dict, per_npu_configdb, asi
     if soc_ipv4_value is not None:
         port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
 
+def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db, asic_id, port):
+
+    mux_cfg_dict[asic_id] = per_npu_configdb[asic_id].get_all(
+    per_npu_configdb[asic_id].CONFIG_DB, 'MUX_CABLE|{}'.format(port))
+    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4"]
+
+    for name in dest_names:
+        dest_address = mux_cfg_dict[asic_id].get(name, None)
+
+        if dest_address is not None:
+            route_keys = per_npu_asic_db[asic_id].keys(
+                per_npu_asic_db[asic_id].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(dest_address))
+            
+            if route_keys is not None:
+                route_dict = per_npu_asic_db[asic_id].get_all(
+                    per_npu_asic_db[asic_id].ASIC_DB, route_keys[0])
+
+                port_tunnel_route["TUNNEL_ROUTE"][port] = port_tunnel_route["TUNNEL_ROUTE"].get(port, {})
+                port_tunnel_route["TUNNEL_ROUTE"][port][name] = {}
+                port_tunnel_route["TUNNEL_ROUTE"][port][name]['DEST'] = dest_address
+                port_tunnel_route["TUNNEL_ROUTE"][port][name]['NEXT_HOP_ID'] = route_dict.get("SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID", None)
+
+def create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db, asic_id, port):
+
+    get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db,  asic_id, port)
+
+def create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_asic_db, asic_id, port):
+
+    port_tunnel_route = {}
+    port_tunnel_route["TUNNEL_ROUTE"] = {}
+    get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db,  asic_id, port)
+
+    for port, route in port_tunnel_route["TUNNEL_ROUTE"].items():
+        for dest_name, values in route.items():
+            print_line = []
+            print_line.append(port)
+            print_line.append(dest_name)
+            print_line.append(values['DEST'])
+            print_line.append(values['NEXT_HOP_IP'])
+            print_data.append(print_line)
 
 @muxcable.command()
 @click.argument('port', required=False, default=None)
@@ -1764,7 +1804,6 @@ def tunnel_route(db, port, json_output):
     per_npu_asic_db = {}
     per_npu_configdb = {}
     mux_tbl_keys = {}
-    tunnel_route_table_keys = {}
     mux_cfg_dict = {}
 
     namespaces = multi_asic.get_front_end_namespaces()
@@ -1772,13 +1811,14 @@ def tunnel_route(db, port, json_output):
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
 
         per_npu_asic_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        per_npu_asic_db[asic_id] = swsscommon.connect(per_npu_asic_db[asic_id].ASIC_DB)
+        per_npu_asic_db[asic_id].connect(per_npu_asic_db[asic_id].ASIC_DB)
 
-        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=False, namespace=namespace)
-        per_npu_configdb[asic_id].connect()
+        per_npu_configdb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_configdb[asic_id].connect(per_npu_configdb[asic_id].CONFIG_DB) 
 
-        mux_tbl_keys[asic_id] = (per_npu_configdb[asic_id].get_table('MUX_CABLE')).keys()
-    
+        mux_tbl_keys[asic_id] = per_npu_configdb[asic_id].keys(
+            per_npu_configdb[asic_id].CONFIG_DB, "MUX_CABLE|*")
+
     if port is not None:
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
@@ -1801,60 +1841,51 @@ def tunnel_route(db, port, json_output):
                 click.echo("Got invalid asic index for port {}, cant retreive tunnel route status".format(port_name))
                 sys.exit(STATUS_FAIL)
         
-        if (mux_tbl_key[asic_index] is not None) and (port in mux_tbl_keys[asic_index]): 
-            server_ipv4 = get_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "server_ipv4", "MUX_CABLE")
-
-            tunnel_route_table_keys[asic_index] = per_npu_asic_db[asic_index].keys(
-                per_npu_asic_db[asic_index].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(server_ipv4))
-
-            output_dict[asic_index] = {
-                "IPinIP_ROUTE":{
-                    port:{
-                        "TUNNEL_ROUTE": tunnel_route_table_keys[asic_index] is not None
-                    }
-                }
-            }
-
-            ordered_dict = OrderedDict(sorted(output_dict[asic_index].items(), key=itemgetter(1)))
+        if mux_tbl_keys[asic_index] is not None and port in mux_tbl_keys[asic_index]:
             if json_output:
-                click.echo("{}".format(json.dumps(ordered_dict, indent=4)))
+                port_tunnel_route = {}
+                port_tunnel_route["TUNNEL_ROUTE"] = {}
+
+                create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db, asic_index, port)
+
+                click.echo("{}".format(json.dumps(port_tunnel_route, indent=4)))
+
             else:
-                data = [port, output_dict[asic_index]["IPinIP_ROUTE"][port]["TUNNEL_ROUTE"]]
-                headers = ['PORT', 'TUNNEL_ROUTE']
+                print_data = []
 
-            click.echo(tabulate(data, headers=headers))
+                create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_asic_db, asic_index, port)
 
-        else: 
-            click.echo("this is not a valid port present on dualtor config".format(port))
-            sys.exit(CONFIG_FAIL)
+                headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS', 'NEXT_HOP_ID']
+
+                click.echo(tabulate(print_data, headers=headers))
+        else:
+            click.echo("this is not a valid port present on mux_cable".format(port_name))
+            sys.exit(STATUS_FAIL)
     
     else:
-
-        output_dict = {}
-        output_dict["IPinIP_ROUTE"] = {}
-
-        for namespace in namespaces:
-            asic_index = multi_asic.get_asic_index_from_namespace(namespace)
-            for key in natsort(mux_tbl_keys[asic_index]):
-                server_ipv4 = get_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "server_ipv4", "MUX_CABLE")
-                tunnel_route_table_keys[asic_index] = per_npu_asic_db[asic_index].keys(
-                    per_npu_asic_db[asic_index].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(server_ipv4))
-
-                output_dict["IPinIP_ROUTE"][key] = {}
-                output_dict["IPinIP_ROUTE"][key]["TUNNEL_ROUTE"] = tunnel_route_table_keys[asic_index] is not None
-        
         if json_output:
-            click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
-        else: 
-            data = []
-            for key, value in output_dict["IPinIP_ROUTE"].items():
-                print_line = []
-                print_line.append(key)
-                print_line.append(value["TUNNEL_ROUTE"])
+            port_tunnel_route = {}
+            port_tunnel_route["TUNNEL_ROUTE"] = {}
+            for namespace in namespaces:
+                asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+                for key in natsorted(mux_tbl_keys[asic_id]):
+                    port = key.split("|")[1]
 
-                data.append(print_line)
+                    create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db, asic_index, port)
             
-            headers = ['PORT', 'TUNNEL_ROUTE']
-            click.echo(tabulate(data, headers=headers))
+            click.echo("{}".format(json.dumps(port_tunnel_route, indent=4)))
+        else:
+            print_data = []
 
+            for namespace in namespaces:
+                asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+                for key in natsorted(mux_tbl_keys[asic_id]):
+                    port = key.split("|")[1]
+            
+                    create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_asic_db, asic_index, port)
+
+            headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS', 'NEXT_HOP_ID']
+
+            click.echo(tabulate(print_data, headers=headers))
+            
     sys.exit(STATUS_SUCCESSFUL)
