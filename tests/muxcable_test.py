@@ -38,12 +38,12 @@ Ethernet32  active    active           healthy    inconsistent
 tabular_data_status_output_expected_alias = """\
 PORT    STATUS    SERVER_STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
 ------  --------  ---------------  ---------  ------------  ---------------------------
-etp1        active    active           healthy    inconsistent  2021-May-13 10:01:15.696728
-etp2        standby   standby          healthy    consistent
-etp3        standby   standby          unhealthy  consistent
-etp4        active    unknown          unhealthy  inconsistent
-etp5        standby   standby          healthy    consistent
-etp9        active    active           healthy    inconsistent
+etp1    active    active           healthy    inconsistent  2021-May-13 10:01:15.696728
+etp2    standby   standby          healthy    consistent
+etp3    standby   standby          unhealthy  consistent
+etp4    active    unknown          unhealthy  inconsistent
+etp5    standby   standby          healthy    consistent
+etp9    active    active           healthy    inconsistent
 """
 
 
