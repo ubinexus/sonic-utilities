@@ -30,7 +30,7 @@ PORT        STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
 Ethernet0   active    healthy    inconsistent  2021-May-13 10:01:15.696728
 Ethernet4   standby   healthy    consistent
 Ethernet8   standby   unhealthy  consistent
-Ethernet12  unknown   unhealthy  inconsistent
+Ethernet12  active    unhealthy  inconsistent
 Ethernet16  standby   healthy    consistent
 Ethernet32  active    healthy    inconsistent
 """
@@ -41,7 +41,7 @@ PORT    STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
 etp1    active    healthy    inconsistent  2021-May-13 10:01:15.696728
 etp2    standby   healthy    consistent
 etp3    standby   unhealthy  consistent
-etp4    unknown   unhealthy  inconsistent
+etp4    active    unhealthy  inconsistent
 etp5    standby   healthy    consistent
 etp9    active    healthy    inconsistent
 """
@@ -69,7 +69,7 @@ json_data_status_output_expected = """\
             "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet12": {
-            "STATUS": "unknown",
+            "STATUS": "active",
             "HEALTH": "unhealthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""
@@ -112,7 +112,7 @@ json_data_status_output_expected_alias = """\
             "LAST_SWITCHOVER_TIME": ""
         },
         "etp4": {
-            "STATUS": "unknown",
+            "STATUS": "active",
             "HEALTH": "unhealthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""

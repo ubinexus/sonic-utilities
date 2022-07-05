@@ -509,13 +509,15 @@ def status(db, port, json_output):
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
-    port_table_keys = {}
+    appl_db_muxcable_tbl_keys = {}
     port_health_table_keys = {}
     port_metrics_table_keys = {}
     per_npu_statedb = {}
+    per_npu_appl_db = {}
     muxcable_info_dict = {}
     muxcable_health_dict = {}
     muxcable_metrics_dict = {}
+
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -525,8 +527,11 @@ def status(db, port, json_output):
         per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
-        port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
-            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
+        per_npu_appl_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_appl_db[asic_id].connect(per_npu_appl_db[asic_id].APPL_DB)
+
+        appl_db_muxcable_tbl_keys[asic_id] = per_npu_appl_db[asic_id].keys(
+            per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:*')
         port_health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|*')
         port_metrics_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
@@ -546,17 +551,18 @@ def status(db, port, json_output):
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port_name))
                 sys.exit(STATUS_FAIL)
 
-        muxcable_info_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-            per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+        muxcable_info_dict[asic_index] = per_npu_appl_db[asic_id].get_all(
+            per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
         muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
         muxcable_metrics_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
+
         if muxcable_info_dict[asic_index] is not None:
-            logical_key = "MUX_CABLE_TABLE|{}".format(port)
+            logical_key = "MUX_CABLE_TABLE:{}".format(port)
             logical_health_key = "MUX_LINKMGR_TABLE|{}".format(port)
             logical_metrics_key = "MUX_METRICS_TABLE|{}".format(port)
-            if logical_key in port_table_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
+            if logical_key in appl_db_muxcable_tbl_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
                 
                 if logical_metrics_key not in port_metrics_table_keys[asic_index]: 
                     muxcable_metrics_dict[asic_index] = {}
@@ -595,10 +601,10 @@ def status(db, port, json_output):
             port_status_dict["MUX_CABLE"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for key in natsorted(port_table_keys[asic_id]):
-                    port = key.split("|")[1]
-                    muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
-                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+                for key in natsorted(appl_db_muxcable_tbl_keys[asic_id]):
+                    port = key.split(":")[1]
+                    muxcable_info_dict[asic_id] = per_npu_appl_db[asic_id].get_all(
+                        per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
                     muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
                     muxcable_metrics_dict[asic_id] = per_npu_statedb[asic_id].get_all(
@@ -613,12 +619,12 @@ def status(db, port, json_output):
             print_data = []
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for key in natsorted(port_table_keys[asic_id]):
-                    port = key.split("|")[1]
+                for key in natsorted(appl_db_muxcable_tbl_keys[asic_id]):
+                    port = key.split(":")[1]
+                    muxcable_info_dict[asic_id] = per_npu_appl_db[asic_id].get_all(
+                        per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
                     muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
-                    muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
-                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
                     muxcable_metrics_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
                     if not muxcable_metrics_dict[asic_id]: 
