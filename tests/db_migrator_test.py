@@ -25,8 +25,6 @@ os.environ["PATH"] += os.pathsep + scripts_path
 def get_sonic_version_info_mlnx():
     return {'asic_type': 'mellanox'}
 
-def get_sonic_version_info_brcm():
-    return {'asic_type': 'broadcom'}
 
 class TestMellanoxBufferMigrator(object):
     @classmethod
