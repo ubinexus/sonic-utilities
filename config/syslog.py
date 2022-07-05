@@ -221,8 +221,8 @@ def source_validator(ctx, server, source):
         source: source IP address
     """
     source_ip = ipaddress.ip_address(source)
-    if source_ip.is_loopback or source_ip.is_multicast:
-        raise click.UsageError("Invalid value for {}: {} is a loopback/multicast IP address".format(
+    if source_ip.is_loopback or source_ip.is_multicast or source_ip.is_link_local:
+        raise click.UsageError("Invalid value for {}: {} is a loopback/multicast/link-local IP address".format(
             get_param_hint(ctx, "source"), source), ctx
         )
 
@@ -409,7 +409,7 @@ def add(db, server_ip_address, source, port, vrf):
 
     try:
         add_entry(db.cfgdb, table, key, data)
-        clicommon.run_command("systemctl reset-failed rsyslog-config", display_cmd=True)
+        clicommon.run_command("systemctl reset-failed rsyslog-config rsyslog", display_cmd=True)
         clicommon.run_command("systemctl restart rsyslog-config", display_cmd=True)
         log.log_notice("Added remote syslog logging: server={},source={},port={},vrf={}".format(
             server_ip_address,
@@ -441,7 +441,7 @@ def delete(db, server_ip_address):
 
     try:
         del_entry(db.cfgdb, table, key)
-        clicommon.run_command("systemctl reset-failed rsyslog-config", display_cmd=True)
+        clicommon.run_command("systemctl reset-failed rsyslog-config rsyslog", display_cmd=True)
         clicommon.run_command("systemctl restart rsyslog-config", display_cmd=True)
         log.log_notice("Removed remote syslog logging: server={}".format(server_ip_address))
     except Exception as e:
