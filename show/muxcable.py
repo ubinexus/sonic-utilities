@@ -1751,3 +1751,110 @@ def packetloss(db, port, json_output):
 
             click.echo(tabulate(print_count, headers=count_headers))
             click.echo(tabulate(print_event, headers=event_headers))
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def tunnel_route(db, port, json_output):
+    """show muxcable tunnel-route <port_name>"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    per_npu_asic_db = {}
+    per_npu_configdb = {}
+    mux_tbl_keys = {}
+    tunnel_route_table_keys = {}
+    mux_cfg_dict = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+
+        per_npu_asic_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_asic_db[asic_id] = swsscommon.connect(per_npu_asic_db[asic_id].ASIC_DB)
+
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
+
+        mux_tbl_keys[asic_id] = (per_npu_configdb[asic_id].get_table('MUX_CABLE')).keys()
+    
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            port_name = platform_sfputil_helper.get_interface_alias(port, db)
+            click.echo(("ERR: Not a valid logical port for dualtor firmware {}".format(port_name)))
+            sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                port_name = platform_sfputil_helper.get_interface_alias(port, db)
+                click.echo("Got invalid asic index for port {}, cant retreive tunnel route status".format(port_name))
+                sys.exit(STATUS_FAIL)
+        
+        if (mux_tbl_key[asic_index] is not None) and (port in mux_tbl_keys[asic_index]): 
+            server_ipv4 = get_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "server_ipv4", "MUX_CABLE")
+
+            tunnel_route_table_keys[asic_index] = per_npu_asic_db[asic_index].keys(
+                per_npu_asic_db[asic_index].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(server_ipv4))
+
+            output_dict[asic_index] = {
+                "IPinIP_ROUTE":{
+                    port:{
+                        "TUNNEL_ROUTE": tunnel_route_table_keys[asic_index] is not None
+                    }
+                }
+            }
+
+            ordered_dict = OrderedDict(sorted(output_dict[asic_index].items(), key=itemgetter(1)))
+            if json_output:
+                click.echo("{}".format(json.dumps(ordered_dict, indent=4)))
+            else:
+                data = [port, output_dict[asic_index]["IPinIP_ROUTE"][port]["TUNNEL_ROUTE"]]
+                headers = ['PORT', 'TUNNEL_ROUTE']
+
+            click.echo(tabulate(data, headers=headers))
+
+        else: 
+            click.echo("this is not a valid port present on dualtor config".format(port))
+            sys.exit(CONFIG_FAIL)
+    
+    else:
+
+        output_dict = {}
+        output_dict["IPinIP_ROUTE"] = {}
+
+        for namespace in namespaces:
+            asic_index = multi_asic.get_asic_index_from_namespace(namespace)
+            for key in natsort(mux_tbl_keys[asic_index]):
+                server_ipv4 = get_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "server_ipv4", "MUX_CABLE")
+                tunnel_route_table_keys[asic_index] = per_npu_asic_db[asic_index].keys(
+                    per_npu_asic_db[asic_index].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(server_ipv4))
+
+                output_dict["IPinIP_ROUTE"][key] = {}
+                output_dict["IPinIP_ROUTE"][key]["TUNNEL_ROUTE"] = tunnel_route_table_keys[asic_index] is not None
+        
+        if json_output:
+            click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
+        else: 
+            data = []
+            for key, value in output_dict["IPinIP_ROUTE"].items():
+                print_line = []
+                print_line.append(key)
+                print_line.append(value["TUNNEL_ROUTE"])
+
+                data.append(print_line)
+            
+            headers = ['PORT', 'TUNNEL_ROUTE']
+            click.echo(tabulate(data, headers=headers))
+
+    sys.exit(STATUS_SUCCESSFUL)
