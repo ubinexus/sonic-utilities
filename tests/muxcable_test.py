@@ -477,6 +477,25 @@ show_muxcable_packetloss_expected_output_json="""\
 }
 """
 
+show_muxcable_tunnel_route_expected_output_json="""\
+{
+    "TUNNEL_ROUTE": {
+        "Ethernet4": {
+            "server_ipv4": {
+                "DEST": "10.3.1.1",
+                "NEXT_HOP_ID": "oid:0x40000000015d8"
+            }
+        }
+    }
+}
+"""
+
+show_muxcable_tunnel_route_expected_output="""\
+PORT       DEST_TYPE    DEST_ADDRESS    NEXT_HOP_ID
+---------  -----------  --------------  -------------------
+Ethernet4  server_ipv4  10.3.1.1        oid:0x40000000015d8
+"""
+
 class TestMuxcable(object):
     @classmethod
     def setup_class(cls):
@@ -2112,6 +2131,32 @@ class TestMuxcable(object):
                                ["Ethernet0", "--json"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_packetloss_expected_output_json
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet4"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet4"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route(self):
+        runner = CliRunner()
+        db = Db()
+        
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"],
+                               ["Ethernet4"], obj=db)
+
+        assert result.output == show_muxcable_tunnel_route_expected_output
+    
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet4"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet4"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route_json(self):
+        runner = CliRunner()
+        db = Db()
+        
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"],
+                               ["Ethernet4", "--json"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_tunnel_route_expected_output_json
 
     @classmethod
     def teardown_class(cls):
