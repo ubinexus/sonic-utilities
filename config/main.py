@@ -977,6 +977,12 @@ def _is_storage_device(cfg_db):
     device_metadata = cfg_db.get_entry("DEVICE_METADATA", "localhost")
     return device_metadata.get("storage_device", "Unknown") == "true"
 
+def _is_acl_table_present(cfg_db, acl_table_name):
+    """
+    Check if acl table exists
+    """
+    return acl_table_name in cfg_db.get_keys("ACL_TABLE")
+
 def load_backend_acl(cfg_db, device_type):
     """
     Load acl on backend storage device
@@ -985,7 +991,7 @@ def load_backend_acl(cfg_db, device_type):
     BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
     BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
 
-    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db):
+    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db) and _is_acl_table_present(cfg_db, "DATAACL"):
         if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
             clicommon.run_command(
                 "{} -d -t {},{}".format(
