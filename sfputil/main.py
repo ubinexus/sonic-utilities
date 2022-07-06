@@ -715,6 +715,7 @@ def presence(port):
 
         logical_port_list = [port]
 
+    logical_port_list = natsort.natsorted(logical_port_list)
     for logical_port_name in logical_port_list:
         ganged = False
         i = 1
