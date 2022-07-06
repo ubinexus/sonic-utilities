@@ -13,6 +13,7 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 from .mock_tables import dbconnector
+from .syslog_input import config_mock
 from .syslog_input import assert_show_output
 
 
@@ -25,10 +26,6 @@ ERROR_PATTERN_INVALID_PORT_RANGE = "is not in the valid range of 0 to 65535"
 
 ERROR_PATTERN_INVALID_VRF = "invalid choice"
 ERROR_PATTERN_NONEXISTENT_VRF = "VRF doesn't exist in Linux"
-
-VRF_LIST = ["mgmt", "Vrf-Data"]
-VRF_MEMBER_DICT = {"mgmt": ["eth0"], "Vrf-Data": ["Ethernet0"]}
-IP_ADDR_DICT = {"Ethernet0": ["1111::1111"], "Loopback0": ["1.1.1.1"], "eth0": ["3.3.3.3"]}
 
 SUCCESS = 0
 ERROR2 = 2
@@ -77,9 +74,7 @@ class TestSyslog:
         assert result.exit_code == SUCCESS
 
     @mock.patch("utilities_common.cli.run_command", mock.MagicMock(return_value=None))
-    @mock.patch("config.syslog.get_vrf_list", mock.MagicMock(return_value=VRF_LIST))
-    @mock.patch("config.syslog.get_vrf_member_dict", mock.MagicMock(return_value=VRF_MEMBER_DICT))
-    @mock.patch("config.syslog.get_ip_addr_dict", mock.MagicMock(return_value=IP_ADDR_DICT))
+    @mock.patch("config.syslog.exec_cmd", mock.MagicMock(side_effect=config_mock.exec_cmd_mock))
     @pytest.mark.parametrize("server_ip,source_ip,port,vrf", [
         ("2.2.2.2", "1.1.1.1", "514", "default"),
         ("4.4.4.4", "3.3.3.3", "514", "mgmt"),
