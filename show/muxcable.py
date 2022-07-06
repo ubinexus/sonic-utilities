@@ -598,8 +598,8 @@ def status(db, port, json_output):
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port_name))
                 sys.exit(STATUS_FAIL)
 
-        muxcable_info_dict[asic_index] = per_npu_appl_db[asic_id].get_all(
-            per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
+        muxcable_info_dict[asic_index] = per_npu_appl_db[asic_index].get_all(
+            per_npu_appl_db[asic_index].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
         muxcable_grpc_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
         muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
