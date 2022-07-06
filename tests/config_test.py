@@ -335,6 +335,12 @@ class TestLoadMinigraph(object):
         db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
         self.check_backend_acl(get_cmd_module, db, device_type='BackEndLeafRouter', condition=False)
 
+    def test_load_backend_acl_storage_no_dataacl(self, get_cmd_module, setup_single_broadcom_asic):
+        db = Db()
+        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
+        db.cfgdb.set_entry("ACL_TABLE", "DATAACL", None)
+        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
+
     def check_backend_acl(self, get_cmd_module, db, device_type='BackEndToRRouter', condition=True):
         def is_file_side_effect(filename):
             return True if 'backend_acl' in filename else False
