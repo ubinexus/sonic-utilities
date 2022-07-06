@@ -517,8 +517,6 @@ def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_a
                 per_npu_asic_db[asic_id].ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:*{}*'.format(dest_address))
             
             if route_keys is not None and len(route_keys):
-                route_dict = per_npu_asic_db[asic_id].get_all(
-                    per_npu_asic_db[asic_id].ASIC_DB, str(route_keys[0]))
 
                 port_tunnel_route["TUNNEL_ROUTE"][port] = port_tunnel_route["TUNNEL_ROUTE"].get(port, {})
                 port_tunnel_route["TUNNEL_ROUTE"][port][name] = {}
