@@ -86,3 +86,39 @@ class TestSonicBootchart:
 
         result = runner.invoke(sonic_bootchart.cli.commands["config"], ["--time", "2", "--frequency", "-5"])
         assert result.exit_code
+
+    def test_invalid_config_show(self, mock_run_command):
+        with open(sonic_bootchart.BOOTCHART_CONF, 'w') as config_file:
+            config_file.write("""
+            [Bootchart]
+            Samples=100
+            """)
+
+        runner = CliRunner()
+        result = runner.invoke(sonic_bootchart.cli.commands['show'], [])
+        assert result.exit_code
+        assert result.output == "Error: Failed to parse bootchart config: 'Frequency' not found\n"
+
+        with open(sonic_bootchart.BOOTCHART_CONF, 'w') as config_file:
+            config_file.write("""
+            [Bootchart]
+            Samples=abc
+            Frequency=def
+            """)
+
+        runner = CliRunner()
+        result = runner.invoke(sonic_bootchart.cli.commands['show'], [])
+        assert result.exit_code
+        assert result.output == "Error: Failed to parse bootchart config: invalid literal for int() with base 10: 'abc'\n"
+
+        with open(sonic_bootchart.BOOTCHART_CONF, 'w') as config_file:
+            config_file.write("""
+            [Bootchart]
+            Samples=100
+            Frequency=0
+            """)
+
+        runner = CliRunner()
+        result = runner.invoke(sonic_bootchart.cli.commands['show'], [])
+        assert result.exit_code
+        assert result.output == "Error: Invalid frequency value: 0\n"

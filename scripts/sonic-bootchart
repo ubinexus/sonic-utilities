@@ -108,9 +108,18 @@ def show():
     bootchart_config = BootChartConfigParser()
     bootchart_config.read(BOOTCHART_CONF)
 
-    samples = int(bootchart_config["Bootchart"]["Samples"])
-    frequency = int(bootchart_config["Bootchart"]["Frequency"])
-    time = samples // frequency
+    try:
+        samples = int(bootchart_config["Bootchart"]["Samples"])
+        frequency = int(bootchart_config["Bootchart"]["Frequency"])
+    except KeyError as key:
+        raise click.ClickException(f"Failed to parse bootchart config: {key} not found")
+    except ValueError as err:
+        raise click.ClickException(f"Failed to parse bootchart config: {err}")
+
+    try:
+        time = samples // frequency
+    except ZeroDivisionError:
+        raise click.ClickException(f"Invalid frequency value: {frequency}")
 
     field_values = {
             "Status": get_enabled_status(),
