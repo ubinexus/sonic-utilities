@@ -523,7 +523,6 @@ def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_a
                 port_tunnel_route["TUNNEL_ROUTE"][port] = port_tunnel_route["TUNNEL_ROUTE"].get(port, {})
                 port_tunnel_route["TUNNEL_ROUTE"][port][name] = {}
                 port_tunnel_route["TUNNEL_ROUTE"][port][name]['DEST'] = dest_address
-                port_tunnel_route["TUNNEL_ROUTE"][port][name]['NEXT_HOP_ID'] = route_dict.get("SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID", None)
 
 def create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_asic_db, asic_id, port):
 
@@ -541,7 +540,6 @@ def create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, pe
             print_line.append(port)
             print_line.append(dest_name)
             print_line.append(values['DEST'])
-            print_line.append(values['NEXT_HOP_ID'])
             print_data.append(print_line)
 
 @muxcable.command()
@@ -1829,7 +1827,7 @@ def tunnel_route(db, port, json_output):
 
         asic_index = None
         if platform_sfputil is not None:
-            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
         if asic_index is None:
             # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
             # is fully mocked
@@ -1837,7 +1835,7 @@ def tunnel_route(db, port, json_output):
             asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
             if asic_index is None:
                 port_name = platform_sfputil_helper.get_interface_alias(port, db)
-                click.echo("Got invalid asic index for port {}, cant retreive tunnel route status".format(port_name))
+                click.echo("Got invalid asic index for port {}, cant retreive tunnel route info".format(port_name))
                 sys.exit(STATUS_FAIL)
         
         if mux_tbl_keys[asic_index] is not None and "MUX_CABLE|{}".format(port) in mux_tbl_keys[asic_index]:
@@ -1854,7 +1852,7 @@ def tunnel_route(db, port, json_output):
 
                 create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_asic_db, asic_index, port)
 
-                headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS', 'NEXT_HOP_ID']
+                headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS']
 
                 click.echo(tabulate(print_data, headers=headers))
         else:
@@ -1883,7 +1881,7 @@ def tunnel_route(db, port, json_output):
             
                     create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_asic_db, asic_id, port)
 
-            headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS', 'NEXT_HOP_ID']
+            headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS']
 
             click.echo(tabulate(print_data, headers=headers))
 
