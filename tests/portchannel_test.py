@@ -1,7 +1,9 @@
 import os
 import traceback
+import mock
 
 from click.testing import CliRunner
+from mock import patch
 
 import config.main as config
 import show.main as show
@@ -12,7 +14,8 @@ class TestPortChannel(object):
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
-
+    
+    @mock.patch.object(ConfigDBConnector, 'set_entry', ValueError)
     def test_add_portchannel_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
