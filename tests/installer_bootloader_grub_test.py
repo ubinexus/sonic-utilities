@@ -24,3 +24,29 @@ def test_remove_image(open_patch, run_command_patch, re_search_patch):
 
     args, _ = args_list[0]
     assert exp_image_path in args[0]
+
+def test_set_fips_uboot():
+    cmdline = ""
+    def mock_get_linux_cmdline(image):
+        return cmdline
+
+    def mock_set_linux_cmdline(image, cmd):
+        nonlocal cmdline
+        cmdline = cmd
+
+    image = 'test-image'
+    bootloader = grub.GrubBootloader()
+
+    bootloader.get_linux_cmdline = mock_get_linux_cmdline
+    bootloader.set_linux_cmdline = mock_set_linux_cmdline
+
+    # The the default setting
+    assert not bootloader.get_fips(image)
+
+    # Test fips enabled
+    bootloader.set_fips(image, True)
+    assert bootloader.get_fips(image)
+
+    # Test fips disabled
+    bootloader.set_fips(image, False)
+    assert not bootloader.get_fips(image)

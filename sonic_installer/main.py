@@ -637,6 +637,35 @@ def set_next_boot(image):
         sys.exit(1)
     bootloader.set_next_image(image)
 
+# Set fips for image
+@sonic_installer.command('set-fips')
+@click.argument('image')
+@click.option('--disable-fips', is_flag=True,
+              help="Disable fips")
+def set_fips(image):
+    """ Set fips for the image """
+    bootloader = get_bootloader()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    enable_fips = not disable_fips
+    bootloader.set_fips(image, enable=enable_fips)
+    click.echo('Set fips for the image successfully')
+
+# Get fips for image
+@sonic_installer.command('get-fips')
+@click.argument('image')
+def get_fips(image):
+    """ Get the fips enabled or disabled status for the image """
+    bootloader = get_bootloader()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    enable = bootloader.get_fips(image)
+    if enable:
+       click.echo("Fips is enabled")
+    else:
+       click.echo("Fips is disabled")
 
 # Uninstall image
 @sonic_installer.command('remove')
