@@ -16,7 +16,7 @@ class TestPortChannel(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
     
-    @mock.patch.object(ConfigDBConnector, 'set_entry', ValueError)
+    @mock.patch.object(ConfigDBConnector, 'set_entry', side_effect=ValueError)
     def test_add_portchannel_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
