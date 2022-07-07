@@ -8,6 +8,7 @@ from mock import patch
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from swsscommon.swsscommon import ConfigDBConnector
 
 class TestPortChannel(object):
     @classmethod
