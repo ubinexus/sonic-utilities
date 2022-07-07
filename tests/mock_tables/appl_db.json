@@ -204,6 +204,7 @@
     },
     "TUNNEL_ROUTE_TABLE:10.3.1.1": {
         "alias": "Vlan1000"
+<<<<<<< HEAD
     },
     "VNET_ROUTE_TUNNEL_TABLE:test_v4_in_v4-0:160.163.191.1/32": {
         "endpoint":"100.251.7.1",
@@ -220,5 +221,7 @@
     "VNET_ROUTE_TUNNEL_TABLE:test_v4_in_v4-0:160.164.191.1/32": {
         "endpoint":"100.251.7.1",
         "endpoint_monitor":"100.251.7.1"
+=======
+>>>>>>> a0b04de... [show] add new CLI to show tunnel route objects (#2255)
     }
 }
