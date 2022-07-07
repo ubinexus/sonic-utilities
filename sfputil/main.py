@@ -738,7 +738,7 @@ def presence(port):
                 sys.exit(ERROR_NOT_IMPLEMENTED)
 
             if is_rj45_port_from_api(logical_port_name):
-                status_string = "Link Up" if presence else "Link Down"
+                status_string = "Port Up" if presence else "Port Down"
             else:
                 status_string = "Present" if presence else "Not present"
             output_table.append([port_name, status_string])

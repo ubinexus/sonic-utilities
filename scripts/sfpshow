@@ -434,13 +434,13 @@ class SFPShow(object):
         sfp_info_dict = state_db.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
         if sfp_info_dict:
             if sfp_info_dict['type'] == RJ45_PORT_TYPE:
-                output = 'Link Up'
+                output = 'Port Up'
             else:
                 output = 'Present'
         else:
             # We have to check whether it is an RJ45 port via calling platform API in case it is absent
             if is_rj45_port(interface_name):
-                output = 'Link Down'
+                output = 'Port Down'
             else:
                 output = 'Not present'
         return output
