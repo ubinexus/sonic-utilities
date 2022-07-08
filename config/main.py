@@ -1757,13 +1757,16 @@ def load_minigraph(db, no_service_restart, traffic_shift_away):
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
 
+    # Keep device isolated with TSA 
+    if traffic_shift_away:
+        clicommon.run_command("TSA", display_cmd=True)
+        if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+            log.log_warning("Golden configuration may override System Maintenance state. Please execute TSC to check the current System mode")
+            click.secho("[WARNING] Golden configuration may override Traffic-shift-away state. Please execute TSC to check the current System mode")
+
     # Load golden_config_db.json
     if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
         override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
-
-    # Keep device in maintenance with TSA 
-    if traffic_shift_away:
-        clicommon.run_command("TSA", display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
