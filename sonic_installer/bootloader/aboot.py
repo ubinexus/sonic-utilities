@@ -213,7 +213,7 @@ class AbootBootloader(Bootloader):
     def set_fips(self, image, enable):
         fips = "1" if enable else "0"
         cmdline = self._get_image_cmdline(image)
-        cmdline = re.sub(' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
         self._set_image_cmdline(image, cmdline)
         click.echo('Done')
 

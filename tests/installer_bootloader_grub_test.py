@@ -26,7 +26,7 @@ def test_remove_image(open_patch, run_command_patch, re_search_patch):
     args, _ = args_list[0]
     assert exp_image_path in args[0]
 
-@patch("sonic_installer.common.HOST_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), 'installer_bootloader_input/_tmp_host')
+@patch("sonic_installer.common.HOST_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), 'installer_bootloader_input/_tmp_host'))
 def test_set_fips_grub():
     # Prepare the grub.cfg in the _tmp_host folder
     current_path = os.path.dirname(os.path.abspath(__file__))

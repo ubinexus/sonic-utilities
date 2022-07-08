@@ -116,7 +116,7 @@ class GrubBootloader(OnieInstallerBootloader):
     def set_fips(self, image, enable):
         fips = "1" if enable else "0"
         cmdline = self.get_linux_cmdline(image)
-        cmdline = re.sub(' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
         self.set_linux_cmdline(image, cmdline)
         click.echo('Done')
 

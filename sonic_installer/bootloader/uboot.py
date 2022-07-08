@@ -88,7 +88,7 @@ class UbootBootloader(OnieInstallerBootloader):
         (out, _) = proc.communicate()
         cmdline = out.strip()
         cmdline = re.sub('^linuxargs=', '', cmdline)
-        cmdline = re.sub(' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
         run_command('/usr/bin/fw_setenv linuxargs ' +  cmdline)
         click.echo('Done')
 
