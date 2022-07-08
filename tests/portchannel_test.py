@@ -8,7 +8,6 @@ from mock import patch
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
-from swsscommon.swsscommon import ConfigDBConnector
 
 class TestPortChannel(object):
     @classmethod
@@ -22,7 +21,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # add a portchannel with invalid name
-        with mock.patch.object(ConfigDBConnector, 'set_entry', side_effect=ValueError) as mocked:
+        with mock.patch('config.main.ConfigDBConnector.set_entry', side_effect=ValueError):
             result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj)
             print(result.exit_code)
             print(result.output)
