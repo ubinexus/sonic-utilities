@@ -1,5 +1,6 @@
 import os
 import shutil
+import sonic_installer
 from unittest.mock import Mock, patch
 
 # Import test module
@@ -36,6 +37,8 @@ def test_set_fips_grub():
     tmp_grub_config = os.path.join(tmp_grub_path, 'grub.cfg')
     os.makedirs(tmp_grub_path, exist_ok=True)
     shutil.copy(grub_config, tmp_grub_path)
+
+    sonic_installer.common.HOST_PATH = tmp_host_path
 
     image = 'SONiC-OS-internal-202205.57377412-84a9a7f11b'
     bootloader = grub.GrubBootloader()
