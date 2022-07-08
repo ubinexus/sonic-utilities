@@ -299,7 +299,7 @@ def is_rj45_port_from_api(port_name):
         port_types = platform_chassis.get_port_or_cage_type(physical_port)
         return SfpBase.SFP_PORT_TYPE_BIT_RJ45 == port_types
     except NotImplementedError:
-        port_types = None
+        pass
 
     return False
 
