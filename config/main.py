@@ -6750,7 +6750,6 @@ def vlan_stacking(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @vlan_stacking.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -6802,7 +6801,6 @@ def vlan_translation(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @vlan_translation.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
