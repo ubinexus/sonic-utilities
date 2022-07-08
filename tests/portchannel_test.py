@@ -21,7 +21,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # add a portchannel with invalid name
-        with mock.patch.object('config.main.db.set_entry', side_effect=ValueError):
+        with mock.patch('config.main.db.set_entry', side_effect=ValueError):
             result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj)
             print(result.exit_code)
             print(result.output)
