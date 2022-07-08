@@ -95,6 +95,7 @@ def test_set_fips(get_bootloader):
     mock_bootloader.get_installed_images = Mock(return_value=[image, next_image])
     mock_bootloader.set_fips = Mock()
     mock_bootloader.get_fips = Mock(return_value=False)
+    get_bootloader.return_value=mock_bootloader
 
     runner = CliRunner()
 
@@ -110,5 +111,3 @@ def test_set_fips(get_bootloader):
     mock_bootloader.get_fips = Mock(return_value=True)
     result = runner.invoke(sonic_installer.commands["get-fips"], [next_image])
     assert "FIPS is enabled" in result.output
-
-    
