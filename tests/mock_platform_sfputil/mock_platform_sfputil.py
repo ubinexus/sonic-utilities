@@ -3,6 +3,7 @@ import os
 from sonic_platform_base.platform_base import PlatformBase
 from sonic_platform_base.chassis_base import ChassisBase
 from sonic_platform_base.sfp_base import SfpBase
+import utilities_common.platform_sfputil_helper as platform_sfputil_helper
 
 portMap = None
 RJ45Ports = None
@@ -38,3 +39,5 @@ def mock_platform_sfputil_helper(platform_sfputil_helper):
     platform_sfputil_helper.platform_porttab_mapping_read = False
     platform_sfputil_helper.platform_sfputil_read_porttab_mappings = mock_platform_sfputil_read_porttab_mappings
     platform_sfputil_helper.logical_port_name_to_physical_port_list = mock_logical_port_name_to_physical_port_list
+
+mock_platform_sfputil_helper(platform_sfputil_helper)
