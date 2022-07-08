@@ -1894,8 +1894,8 @@ def portchannel(db, ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
-    
-    db = validate(ctx.obj['db']) 
+    helper=ConfigDBConnector()
+    db = validate(helper) 
 
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
