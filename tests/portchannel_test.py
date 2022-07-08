@@ -16,18 +16,18 @@ class TestPortChannel(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
     
-    @mock.patch.object(ConfigDBConnector, 'set_entry', side_effect=ValueError)
     def test_add_portchannel_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
 
         # add a portchannel with invalid name
-        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
+        with mock.patch.object(ConfigDBConnector, 'set_entry', side_effect=ValueError) as mocked:
+            result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code != 0
+            assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
 
     def test_delete_portchannel_with_invalid_name(self):
         runner = CliRunner()
