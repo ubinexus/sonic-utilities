@@ -83,12 +83,7 @@ class UbootBootloader(OnieInstallerBootloader):
         return os.path.isfile(image_path)
 
     def set_fips(self, image, enable):
-        if enable:
-            click.echo('Enabling FIPS...')
-            fips = "1"
-        else:
-            click.echo('Disabling FIPS...')
-            fips = "0"
+        fips = "1" if enable else "0"
         proc = subprocess.Popen("/usr/bin/fw_printenv linuxargs", shell=True, text=True, stdout=subprocess.PIPE)
         (out, _) = proc.communicate()
         cmdline = out.strip()

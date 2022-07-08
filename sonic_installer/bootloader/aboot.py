@@ -211,12 +211,7 @@ class AbootBootloader(Bootloader):
         return self._verify_secureboot_image(image_path)
 
     def set_fips(self, image, enable):
-        if enable:
-            click.echo('Enabling FIPS...')
-            fips = "1"
-        else:
-            click.echo('Disabling FIPS...')
-            fips = "0"
+        fips = "1" if enable else "0"
         cmdline = self._get_image_cmdline(image)
         cmdline = re.sub(' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
         self._set_image_cmdline(image, cmdline)
