@@ -22,11 +22,11 @@ class TestPortChannel(object):
 
         mock_config_db_connector = mock.Mock()
         mock_config_db_connector.set_entry.side_effect = ValueError
-        config.main.is_portchannel_present_in_db.return_value = False
+        config.is_portchannel_present_in_db.return_value = False
 
 
         # add a portchannel with invalid name
-        with mock.patch('config.main.ConfigDBConnector', return_value=mock_config_db_connector):
+        with mock.patch('config.ConfigDBConnector', return_value=mock_config_db_connector):
             result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj, catch_exceptions=False)
             print(result.exit_code)
             print(result.output)
