@@ -737,10 +737,7 @@ def presence(port):
                 click.echo("This functionality is currently not implemented for this platform")
                 sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            if is_rj45_port_from_api(logical_port_name):
-                status_string = "Port Up" if presence else "Port Down"
-            else:
-                status_string = "Present" if presence else "Not present"
+            status_string = "Present" if presence else "Not present"
             output_table.append([port_name, status_string])
 
             i += 1

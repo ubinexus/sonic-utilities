@@ -432,16 +432,9 @@ class SFPShow(object):
     def convert_interface_sfp_presence_state_to_cli_output_string(self, state_db, interface_name):
         sfp_info_dict = state_db.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
         if sfp_info_dict:
-            if sfp_info_dict['type'] == RJ45_PORT_TYPE:
-                output = 'Port Up'
-            else:
-                output = 'Present'
+            output = 'Present'
         else:
-            # We have to check whether it is an RJ45 port via calling platform API in case it is absent
-            if is_rj45_port(interface_name):
-                output = 'Port Down'
-            else:
-                output = 'Not present'
+            output = 'Not present'
         return output
 
 
