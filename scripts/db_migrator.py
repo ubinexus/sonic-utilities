@@ -485,19 +485,15 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
     
-    def migrate_rename_entries(self, pattern, field, old_name, new_name):
+    def migrate_rename_entries(self, curr_db, curr_db_name, pattern, old_name, new_name):
         '''
-        This is to change for first time to remove field refernces of ABNF format
-        in APPL DB for warm boot.
-        i.e "[Tabale_name:name]" to string in APPL_DB. Reasons for doing this
-         - To consistent with all other SoNIC CONFIG_DB/APPL_DB tables and fields
-         - References in DB is not required, this will be taken care by YANG model leafref.
+        This renames entries in given db, old -> new
         '''
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, pattern)
+        keys = curr_db.keys(curr_db.curr_db_name, pattern)
         if keys is not None:
             for key in keys:
                 new_key = key.replace(old_name, new_name)
-                self.stateDB.rename_entry(self.stateDB.STATE_DB, old_name, new_key)
+                curr_db.rename_entry(curr_db.curr_db_name, old_name, new_key)
         return True
 
     def version_unknown(self):
@@ -701,11 +697,12 @@ class DBMigrator():
         """
         log.log_info('Handling version_2_0_5')
         
-        # Rename WARM to ADVANCED in the stateDB entries
+        # Rename WARM to ADVANCED in the stateDB/configDB entries
         old_name = "WARM"
         new_name = "ADVANCED"
-        self.migrate_rename_entries("WARM_RESTART_TABLE|*", "restore_count", old_name, new_name)
-        self.migrate_rename_entries("WARM_RESTART_ENABLE_TABLE|*", "enable", old_name, new_name)
+        self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_TABLE|*", old_name, new_name)
+        self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_ENABLE_TABLE|*", old_name, new_name)
+        self.migrate_rename_entries(self.configDB, self.configDB.CONFIG_DB, "WARM_RESTART|*", old_name, new_name)
         
         self.set_version('version_2_0_6')
         return 'version_2_0_6'

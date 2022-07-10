@@ -131,7 +131,7 @@ function clear_boot()
     teardown_control_plane_assistant
 
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
-        result=$(timeout 10s config advanced_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
+        result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
         debug "Cancel advanced-reboot: ${result}"
 
         TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -526,7 +526,7 @@ case "$REBOOT_TYPE" in
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
-        config advanced_restart enable system
+        config warm_restart enable system
         ;;
     "warm-reboot")
         check_advanced_restart_in_progress
@@ -540,7 +540,7 @@ case "$REBOOT_TYPE" in
             BOOT_TYPE_ARG="warm"
         fi
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        config advanced_restart enable system
+        config warm_restart enable system
         ;;
     *)
         error "Not supported reboot type: $REBOOT_TYPE"
