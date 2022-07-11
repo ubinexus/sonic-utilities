@@ -489,11 +489,11 @@ class DBMigrator():
         '''
         This renames entries in given db, old -> new
         '''
-        keys = curr_db.keys(curr_db.curr_db_name, pattern)
+        keys = curr_db.keys(curr_db_name, pattern)
         if keys is not None:
             for key in keys:
                 new_key = key.replace(old_name, new_name)
-                curr_db.rename_entry(curr_db.curr_db_name, old_name, new_key)
+                curr_db.rename_entry(curr_db_name, old_name, new_key)
         return True
 
     def version_unknown(self):
