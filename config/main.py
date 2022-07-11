@@ -551,12 +551,23 @@ def _get_disabled_services_list():
                 continue
 
             if state == "disabled":
+                print("disabled service is {}\n".format(feature_name))
                 disabled_services_list.append(feature_name)
     else:
         log.log_warning("Unable to retreive FEATURE table")
 
     return disabled_services_list
 
+def _get_not_loaded_services_list(services_list):
+    not_loaded_services_list = []
+    with open(os.devnull, 'w') as devnull:
+        for service in services_list:
+            command = "sudo systemctl show -p LoadState --value %s" % service
+            status = subprocess.check_output(command, shell=True).decode()
+            if status != "loaded\n":
+                not_loaded_services_list.append(service)
+
+    return not_loaded_services_list
 
 def _stop_services():
     # This list is order-dependent. Please add services in the order they should be stopped
@@ -576,6 +587,13 @@ def _stop_services():
         services_to_stop.remove('pmon')
 
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+
+def _remove_invalid_services(services_list):
+    invalid_services_list = _get_disabled_services_list()
+    invalid_services_list += _get_not_loaded_services_list(services_list)
+    for invalid_service in invalid_services_list:
+        if invalid_service in services_list:
+            services_list.remove(invalid_service)
 
 
 def _reset_failed_services():
@@ -601,6 +619,7 @@ def _reset_failed_services():
         'telemetry'
     ]
 
+    _remove_invalid_services(services_to_reset)
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
@@ -623,12 +642,7 @@ def _restart_services():
         'telemetry'
     ]
 
-    disable_services = _get_disabled_services_list()
-
-    for service in disable_services:
-        if service in services_to_restart:
-            services_to_restart.remove(service)
-
+    _remove_invalid_services(services_to_restart)
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
@@ -1036,6 +1050,7 @@ def load_minigraph(no_service_restart):
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
+    print("Should start reset-failed services and restart services: {}\n".format(not no_service_restart))
     if not no_service_restart:
         _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
