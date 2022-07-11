@@ -559,12 +559,11 @@ def _get_disabled_services_list():
 
 def _get_not_loaded_services_list(services_list):
     not_loaded_services_list = []
-    with open(os.devnull, 'w') as devnull:
-        for service in services_list:
-            command = "sudo systemctl show -p LoadState --value %s" % service
-            status = subprocess.check_output(command, shell=True).decode()
-            if status != "loaded\n":
-                not_loaded_services_list.append(service)
+    for service in services_list:
+        command = "sudo systemctl show -p LoadState --value %s" % service
+        status = subprocess.check_output(command, shell=True).decode()
+        if status != "loaded\n":
+            not_loaded_services_list.append(service)
 
     return not_loaded_services_list
 
