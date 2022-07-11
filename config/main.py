@@ -551,7 +551,6 @@ def _get_disabled_services_list():
                 continue
 
             if state == "disabled":
-                print("disabled service is {}\n".format(feature_name))
                 disabled_services_list.append(feature_name)
     else:
         log.log_warning("Unable to retreive FEATURE table")
@@ -1050,7 +1049,6 @@ def load_minigraph(no_service_restart):
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
-    print("Should start reset-failed services and restart services: {}\n".format(not no_service_restart))
     if not no_service_restart:
         _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
