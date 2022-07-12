@@ -1508,6 +1508,7 @@ class TestConfigRate(object):
             traceback.print_tb(result.exc_info[2])
 
             assert result.exit_code == 0
+            assert result.output == ""
 
     @classmethod
     def teardown_class(cls):
