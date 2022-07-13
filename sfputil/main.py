@@ -11,6 +11,7 @@ import natsort
 import ast
 import time
 import datetime
+import itertools
 
 import subprocess
 import click
@@ -279,6 +280,9 @@ platform_sfputil = None
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
+def is_backplane_port(port_name):
+    return "BP" in port_name
+
 def is_sfp_present(port_name):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
@@ -305,7 +309,8 @@ def is_rj45_port_from_db(port_name, db):
 def is_rj45_port_from_api(port_name):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
-
+    if not sfp.get_presence():
+        return False
     try:
         port_type = sfp.get_transceiver_info()['type']
     except NotImplementedError:
@@ -718,7 +723,7 @@ def presence(port):
 
     # Create a list containing the logical port names of all ports we're interested in
     if port is None:
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = [p for p in platform_sfputil.logical if not is_backplane_port(p)]
     else:
         if platform_sfputil.is_logical_port(port) == 0:
             click.echo("Error: invalid port '{}'\n".format(port))
@@ -753,7 +758,7 @@ def presence(port):
 
             i += 1
 
-    click.echo(tabulate(output_table, table_header, tablefmt="simple"))
+    click.echo(tabulate(natsorted(output_table), table_header, tablefmt="simple"))
 
 
 # 'error-status' subcommand
@@ -818,7 +823,6 @@ def fetch_error_status_from_platform_api(port):
     for logical_port_name in logical_port_list:
         physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
         port_name = get_physical_port_name(logical_port_name, 1, False)
-
         if is_rj45_port_from_api(logical_port_name):
             output.append([port_name, "N/A"])
         else:
@@ -879,17 +883,19 @@ def error_status(port, fetch_from_hardware):
     if fetch_from_hardware:
         output_table = fetch_error_status_from_platform_api(port)
     else:
-        # Connect to STATE_DB
-        state_db = SonicV2Connector(host='127.0.0.1')
-        if state_db is not None:
-            state_db.connect(state_db.STATE_DB)
-        else:
-            click.echo("Failed to connect to STATE_DB")
-            return
+        namespaces = itertools.chain.from_iterable(multi_asic.get_all_namespaces().values()) if multi_asic.is_multi_asic() else ['']
+        for ns in namespaces: 
+            # Connect to STATE_DB
+            state_db = SonicV2Connector(host='127.0.0.1', namespace=ns)
+            if state_db is not None:
+                state_db.connect(state_db.STATE_DB)
+            else:
+                click.echo(f"Failed to connect to {ns} - STATE_DB")
+                return
 
-        output_table = fetch_error_status_from_state_db(port, state_db)
+            output_table.extend(fetch_error_status_from_state_db(port, state_db))
 
-    click.echo(tabulate(output_table, table_header, tablefmt='simple'))
+    click.echo(tabulate(natsorted(output_table), table_header, tablefmt='simple'))
 
 
 # 'lpmode' subcommand
