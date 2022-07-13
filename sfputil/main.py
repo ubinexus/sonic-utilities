@@ -884,7 +884,7 @@ def error_status(port, fetch_from_hardware):
         output_table = fetch_error_status_from_platform_api(port)
     else:
         namespaces = itertools.chain.from_iterable(multi_asic.get_all_namespaces().values()) if multi_asic.is_multi_asic() else ['']
-        for ns in namespaces: 
+        for ns in namespaces:
             # Connect to STATE_DB
             state_db = SonicV2Connector(host='127.0.0.1', namespace=ns)
             if state_db is not None:
