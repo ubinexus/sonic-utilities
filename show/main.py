@@ -1554,12 +1554,24 @@ def show_run_snmp(db, ctx):
 # 'syslog' subcommand ("show runningconfiguration syslog")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@clicommon.pass_db
-def syslog(db, verbose):
+def syslog(verbose):
     """Show Syslog running configuration"""
 
     header = ["Syslog Servers"]
-    body = [ [key] for key in db.cfgdb.get_table("SYSLOG_SERVER").keys() ]
+    body = []
+
+    re_syslog = re.compile(r'^\*\.\* action\(.*target=\"{1}(.+?)\"{1}.*\)')
+
+    try:
+        with open("/etc/rsyslog.conf") as syslog_file:
+            data = syslog_file.readlines()
+    except Exception as e:
+        raise click.ClickException(str(e))
+
+    for line in data:
+        re_match = re_syslog.match(line)
+        if re_match:
+            body.append(["[{}]".format(re_match.group(1))])
 
     click.echo(tabulate(body, header, tablefmt="simple", stralign="left", missingval=""))
 
