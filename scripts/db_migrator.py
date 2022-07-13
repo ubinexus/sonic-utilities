@@ -485,15 +485,22 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
 
-    def migrate_rename_entries(self, curr_db, curr_db_name, pattern, old_name, new_name):
+    def migrate_rename_entries(self, db_name, pattern, old_name, new_name):
         '''
         This renames entries in given db, old -> new
         '''
-        keys = curr_db.keys(curr_db_name, pattern)
+        if db_name == self.stateDB.STATE_DB:
+            curr_db = self.stateDB
+        elif db_name == self.configDB.CONFIG_DB:
+            curr_db = self.configDB
+        else:
+            return False
+
+        keys = curr_db.keys(db_name, pattern)
         if keys is not None:
             for key in keys:
                 new_key = key.replace(old_name, new_name)
-                curr_db.rename_entry(curr_db_name, old_name, new_key)
+                curr_db.rename_entry(db_name, old_name, new_key)
         return True
 
     def version_unknown(self):
@@ -699,9 +706,9 @@ class DBMigrator():
         # Rename WARM to ADVANCED in the stateDB/configDB entries
         old_name = "WARM"
         new_name = "ADVANCED"
-        self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_TABLE|*", old_name, new_name)
-        self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_ENABLE_TABLE|*", old_name, new_name)
-        self.migrate_rename_entries(self.configDB, self.configDB.CONFIG_DB, "WARM_RESTART|*", old_name, new_name)
+        self.migrate_rename_entries(self.stateDB.STATE_DB, "WARM_RESTART_TABLE|*", old_name, new_name)
+        self.migrate_rename_entries(self.stateDB.STATE_DB, "WARM_RESTART_ENABLE_TABLE|*", old_name, new_name)
+        self.migrate_rename_entries(self.configDB.CONFIG_DB, "WARM_RESTART|*", old_name, new_name)
         self.set_version('version_2_0_6')
         return 'version_2_0_6'
 
