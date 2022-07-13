@@ -484,7 +484,7 @@ class DBMigrator():
         log.log_info("Remove CONFIG_DB QOS tables field reference ABNF format")
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
-    
+
     def migrate_rename_entries(self, curr_db, curr_db_name, pattern, old_name, new_name):
         '''
         This renames entries in given db, old -> new
@@ -696,17 +696,15 @@ class DBMigrator():
         Version 2_0_5
         """
         log.log_info('Handling version_2_0_5')
-        
         # Rename WARM to ADVANCED in the stateDB/configDB entries
         old_name = "WARM"
         new_name = "ADVANCED"
         self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_TABLE|*", old_name, new_name)
         self.migrate_rename_entries(self.stateDB, self.stateDB.STATE_DB, "WARM_RESTART_ENABLE_TABLE|*", old_name, new_name)
         self.migrate_rename_entries(self.configDB, self.configDB.CONFIG_DB, "WARM_RESTART|*", old_name, new_name)
-        
         self.set_version('version_2_0_6')
         return 'version_2_0_6'
-    
+
     def version_2_0_6(self):
         """
         Current latest version. Nothing to do here.
