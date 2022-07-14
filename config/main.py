@@ -1129,6 +1129,41 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
+def _is_storage_device(cfg_db):
+    """
+    Check if the device is a storage device or not
+    """
+    device_metadata = cfg_db.get_entry("DEVICE_METADATA", "localhost")
+    return device_metadata.get("storage_device", "Unknown") == "true"
+
+def _is_acl_table_present(cfg_db, acl_table_name):
+    """
+    Check if acl table exists
+    """
+    return acl_table_name in cfg_db.get_keys("ACL_TABLE")
+
+def load_backend_acl(cfg_db, device_type):
+    """
+    Load acl on backend storage device
+    """
+
+    BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
+    BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
+
+    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db) and _is_acl_table_present(cfg_db, "DATAACL"):
+        if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
+            clicommon.run_command(
+                "{} -d -t {},{}".format(
+                    SONIC_CFGGEN_PATH,
+                    BACKEND_ACL_TEMPLATE_FILE,
+                    BACKEND_ACL_FILE
+                ),
+                display_cmd=True
+            )
+        if os.path.isfile(BACKEND_ACL_FILE):
+            clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
+
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1629,24 +1664,34 @@ def load_mgmt_config(filename):
     config_data = parse_device_desc_xml(filename)
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
-    mgmt_conf = netaddr.IPNetwork(list(config_data['MGMT_INTERFACE'].keys())[0][1])
-    gw_addr = list(config_data['MGMT_INTERFACE'].values())[0]['gwaddr']
-    command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
-    clicommon.run_command(command, display_cmd=True)
-    command = "ip route add default via {} dev eth0 table default".format(gw_addr)
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    for key in list(config_data['MGMT_INTERFACE'].keys()):
+        # key: (eth0, ipprefix)
+        # value: { gwaddr: ip }
+        mgmt_conf = netaddr.IPNetwork(key[1])
+        gw_addr = config_data['MGMT_INTERFACE'][key]['gwaddr']
+        if mgmt_conf.version == 4:
+            command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            command = "ifconfig eth0 add {}".format(str(mgmt_conf))
+            # Ignore error for IPv6 configuration command due to it not allows config the same IP twice
+            clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} route add default via {} dev eth0 table default".format(" -6" if mgmt_conf.version == 6 else "", gw_addr)
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} rule add from {} table default".format(" -6" if mgmt_conf.version == 6 else "", str(mgmt_conf.ip))
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    if len(config_data['MGMT_INTERFACE'].keys()) > 0:
+        command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart):
+def load_minigraph(db, no_service_restart, traffic_shift_away):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
 
@@ -1688,6 +1733,12 @@ def load_minigraph(db, no_service_restart):
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
+    # get the device type
+    device_type = _get_device_type()
+
+    # Load backend acl
+    load_backend_acl(db.cfgdb, device_type)
+
     # Load port_config.json
     try:
         load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
@@ -1697,8 +1748,6 @@ def load_minigraph(db, no_service_restart):
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
-    # get the device type
-    device_type = _get_device_type()
     if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
@@ -1711,6 +1760,13 @@ def load_minigraph(db, no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+
+    # Keep device isolated with TSA 
+    if traffic_shift_away:
+        clicommon.run_command("TSA", display_cmd=True)
+        if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+            log.log_warning("Golden configuration may override System Maintenance state. Please execute TSC to check the current System mode")
+            click.secho("[WARNING] Golden configuration may override Traffic-shift-away state. Please execute TSC to check the current System mode")
 
     # Load golden_config_db.json
     if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
@@ -4164,7 +4220,7 @@ def fec(ctx, interface_name, interface_fec, verbose):
 @interface.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
 def ip(ctx):
-    """Add or remove IP address"""
+    """Set IP interface attributes"""
     pass
 
 #
@@ -4295,6 +4351,32 @@ def remove(ctx, interface_name, ip_addr):
         command = "ip neigh flush dev {} {}".format(interface_name, str(ip_address))
     clicommon.run_command(command)
 
+#
+# 'loopback-action' subcommand
+#
+
+@ip.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('action', metavar='<action>', required=True)
+@click.pass_context
+def loopback_action(ctx, interface_name, action):
+    """Set IP interface loopback action"""
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail('Interface {} is invalid'.format(interface_name))
+
+    if not clicommon.is_interface_in_config_db(config_db, interface_name):
+        ctx.fail('Interface {} is not an IP interface'.format(interface_name))
+
+    allowed_actions = ['drop', 'forward']
+    if action not in allowed_actions:
+        ctx.fail('Invalid action')
+
+    table_name = get_interface_table_name(interface_name)
+    config_db.mod_entry(table_name, interface_name, {"loopback_action": action})
 
 #
 # buffer commands and utilities
@@ -4815,7 +4897,6 @@ def unbind(ctx, interface_name):
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
     config_db.set_entry(table_name, interface_name, None)
-
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
@@ -6534,7 +6615,7 @@ def rate():
 @click.argument('rates_type', type=click.Choice(['all', 'port', 'rif', 'flowcnt-trap']), default='all')
 def smoothing_interval(interval, rates_type):
     """Set rates smoothing interval """
-    counters_db = swsssdk.SonicV2Connector()
+    counters_db = SonicV2Connector()
     counters_db.connect('COUNTERS_DB')
 
     alpha = 2.0/(interval + 1)
