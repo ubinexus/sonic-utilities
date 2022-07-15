@@ -329,11 +329,11 @@ def main():
             if args.tx_power:
                 d = decimal.Decimal(str(args.tx_power))
                 if d.as_tuple().exponent < -1:
-                    print("Error: tx power must be with single decimal place {}".format(d.as_tuple().exponent))
+                    print("Error: tx power must be with single decimal place")
                     sys.exit(1)
                 port.set_tx_power(args.port, args.tx_power)
             if args.laser_freq:
-                if args.laser_freq < 1:
+                if args.laser_freq <= 0:
                     print("Error: Frequency must be > 0")
                     sys.exit(1)
                 port.set_laser_freq(args.port, args.laser_freq)
