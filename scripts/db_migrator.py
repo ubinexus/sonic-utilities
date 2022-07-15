@@ -491,10 +491,10 @@ class DBMigrator():
         """
         asics_require_global_dscp_to_tc_map = ["broadcom"]
         if self.asic_type not in asics_require_global_dscp_to_tc_map:
-            return True
+            return
         dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
         if len(dscp_to_tc_map_table_names) == 0:
-            return True
+            return
         
         qos_maps = self.configDB.get_table('PORT_QOS_MAP')
         if 'global' not in qos_maps.keys():

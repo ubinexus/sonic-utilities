@@ -400,3 +400,12 @@ class TestGlobalDscpToTcMapMigrator(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+        # Check port_qos_map|global is not generated on mellanox asic
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
+        dbmgtr_mlnx = db_migrator.DBMigrator(None)
+        dbmgtr_mlnx.asic_type = "mellanox"
+        dbmgtr_mlnx.hwsku = "vs"
+        dbmgtr_mlnx.migrate()
+        resulting_table = dbmgtr_mlnx.configDB.get_table('PORT_QOS_MAP')
+        assert resulting_table == {}
+
