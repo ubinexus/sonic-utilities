@@ -32,14 +32,14 @@ class TestConfigXcvr(object):
         #self.basic_check("link-training", ["Ethernet0", "on"], ctx)
         result = self.basic_check("frequency", ["Ethernet0", "191300"], ctx)
         assert "Setting laser frequency" in result.output
-        result = self.basic_check("frequency", ["Invalid", "191300"], ctx, op=operator.ne)
-        result = self.basic_check("frequency", ["Ethernet0", "-191300"], ctx, op=operator.ne)
+        result = self.basic_check("frequency", ["Ethernet0", "--", "-1"], ctx, op=operator.ne)
+        assert "Error: Frequency must be > 0" in result.output
     
     def test_config_tx_power(self, ctx):
-        result = self.basic_check("tx_power", ["Ethernet0", "27.3"], ctx)
+        result = self.basic_check("tx_power", ["Ethernet0", "11.3"], ctx)
         assert "Setting target Tx output power" in result.output
-        result = self.basic_check("tx_power", ["Invalid", "27.3"], ctx, op=operator.ne)
-        result = self.basic_check("tx_power", ["Ethernet0", "27"], ctx)
+        result = self.basic_check("tx_power", ["Ethernet0", "11.34"], ctx, op=operator.ne)
+        assert "Error: tx power must be with single decimal place" in result.output
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
