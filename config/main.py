@@ -28,6 +28,7 @@ from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.general import load_db_config
+from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 
 from .utils import log
 
@@ -733,7 +734,7 @@ def _get_sonic_services():
     return (unit.strip() for unit in out.splitlines())
 
 
-def _get_delayed_sonic_services():
+def _get_delayed_sonic_units(get_timers=False):
     rc1 = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
     rc2 = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
     timer = [line.strip() for line in rc1.splitlines()]
@@ -741,12 +742,15 @@ def _get_delayed_sonic_services():
     services = []
     for unit in timer:
         if state[timer.index(unit)] == "enabled":
-            services.append(unit.rstrip(".timer"))
+            if not get_timers:
+                services.append(re.sub('\.timer$', '', unit, 1))
+            else:
+                services.append(unit)
     return services
 
 
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_services()):
+    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_units()):
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -765,12 +769,8 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-def _get_delay_timers():
-    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
-    return [timer.strip() for timer in out.splitlines()]
-
 def _delay_timers_elapsed():
-    for timer in _get_delay_timers():
+    for timer in _get_delayed_sonic_units(get_timers=True):
         out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
         if out.strip() == "0":
             return False
@@ -824,18 +824,36 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
-def interface_has_mirror_config(mirror_table, interface_name):
-    """ Check if port is already configured with mirror config """
+def check_mirror_direction_config(v, direction):
+    """ Check if port is already configured for mirror in same direction """
+    if direction:
+        direction=direction.upper()
+        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'BOTH'):
+            return True
+        if 'direction' in v and v['direction'] == direction:
+            return True
+    else:
+        return True
+
+def interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+    """ Check if dst/src port is already configured with mirroring in same direction """
     for _, v in mirror_table.items():
-        if 'src_port' in v and v['src_port'] == interface_name:
-            return True
-        if 'dst_port' in v and v['dst_port'] == interface_name:
-            return True
+        if src_port:
+            for port in src_port.split(","):
+                if 'dst_port' in v and v['dst_port'] == port:
+                    ctx.fail("Error: Source Interface {} already has mirror config".format(port))
+                if 'src_port' in v and re.search(port,v['src_port']):
+                    if check_mirror_direction_config(v, direction):
+                        ctx.fail("Error: Source Interface {} already has mirror config in same direction".format(port))
+        if dst_port:
+            if ('dst_port' in v and v['dst_port'] == dst_port) or ('src_port' in v and re.search(dst_port,v['src_port'])):
+                ctx.fail("Error: Destination Interface {} already has mirror config".format(dst_port))
 
     return False
 
 def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
     """ Check if SPAN mirror-session config is valid """
+    ctx = click.get_current_context()
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
         click.echo("Error: {} already exists".format(session_name))
         return False
@@ -846,41 +864,34 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     if dst_port:
         if not interface_name_is_valid(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is invalid".format(dst_port))
+
+        if is_portchannel_present_in_db(config_db, dst_port):
+            ctx.fail("Error: Destination Interface {} is not supported".format(dst_port))
 
         if interface_is_in_vlan(vlan_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has vlan config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has vlan config".format(dst_port))
 
-        if interface_has_mirror_config(mirror_table, dst_port):
-            click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
-            return False
 
         if interface_is_in_portchannel(portchannel_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has portchannel config".format(dst_port))
 
         if clicommon.is_port_router_interface(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is a L3 interface".format(dst_port))
 
     if src_port:
         for port in src_port.split(","):
             if not interface_name_is_valid(config_db, port):
-                click.echo("Error: Source Interface {} is invalid".format(port))
-                return False
+                ctx.fail("Error: Source Interface {} is invalid".format(port))
             if dst_port and dst_port == port:
-                click.echo("Error: Destination Interface cant be same as Source Interface")
-                return False
-            if interface_has_mirror_config(mirror_table, port):
-                click.echo("Error: Source Interface {} already has mirror config".format(port))
-                return False
+                ctx.fail("Error: Destination Interface cant be same as Source Interface")
+
+    if interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+        return False
 
     if direction:
         if direction not in ['rx', 'tx', 'both']:
-            click.echo("Error: Direction {} is invalid".format(direction))
-            return False
+            ctx.fail("Error: Direction {} is invalid".format(direction))
 
     return True
 
@@ -1356,18 +1367,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    CONFIG_RELOAD_NOT_READY = 1
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _delay_timers_elapsed():
             click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
             click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
     if filename is None:
         message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
@@ -1722,14 +1734,15 @@ def synchronous_mode(sync_mode):
 @click.option('-n', '--namespace', help='Namespace name',
              required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
-def portchannel(ctx, namespace):
+@clicommon.pass_db
+def portchannel(db, ctx, namespace):
     # Set namespace to default_namespace if it is None.
     if namespace is None:
         namespace = DEFAULT_NAMESPACE
 
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace), 'db_wrap': db}
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1770,6 +1783,11 @@ def remove_portchannel(ctx, portchannel_name):
     # Dont proceed if the port channel does not exist
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont let to remove port channel if vlan membership exists
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == portchannel_name:
+            ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(portchannel_name, str(k)))
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
@@ -1859,6 +1877,22 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         if port_tpid != DEFAULT_TPID:
             ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
+    # Don't allow a port to be a member of portchannel if already has ACL bindings
+    try:
+        acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace'])
+        if acl_bindings:
+            ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
+
+    # Don't allow a port to be a member of portchannel if already has PBH bindings
+    try:
+        pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE)
+        if pbh_bindings:
+            ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1945,7 +1979,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
     if policer:
         session_info['policer'] = policer
 
-    if queue:
+    if queue is not None:
         session_info['queue'] = queue
 
     if src_port:
@@ -1971,7 +2005,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
             "ttl": ttl
             }
 
-    if gre_type:
+    if gre_type is not None:
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
@@ -2017,7 +2051,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return
+            return False
 
     session_info = {
             "type" : "SPAN",
