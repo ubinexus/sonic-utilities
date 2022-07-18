@@ -642,7 +642,7 @@ def eeprom(port, dump_dom, namespace):
 
     # Create a list containing the logical port names of all ports we're interested in
     if port is None:
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = natsort.natsorted([p for p in platform_sfputil.logical if not is_backplane_port(p)])
     else:
         if platform_sfputil.is_logical_port(port) == 0:
             click.echo("Error: invalid port '{}'\n".format(port))
@@ -771,7 +771,7 @@ def fetch_error_status_from_platform_api(port):
         A string consisting of the error status of each port.
     """
     if port is None:
-        logical_port_list = natsort.natsorted(platform_sfputil.logical)
+        logical_port_list = natsort.natsorted([p for p in platform_sfputil.logical if not is_backplane_port(p)])
         # Create a list containing the logical port names of all ports we're interested in
         generate_sfp_list_code = \
             "sfp_list = chassis.get_all_sfps()\n"
@@ -909,7 +909,7 @@ def lpmode(port):
 
     # Create a list containing the logical port names of all ports we're interested in
     if port is None:
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = natsort.natsorted([p for p in platform_sfputil.logical if not is_backplane_port(p)])
     else:
         if platform_sfputil.is_logical_port(port) == 0:
             click.echo("Error: invalid port '{}'\n".format(port))
