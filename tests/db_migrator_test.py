@@ -345,7 +345,6 @@ class TestQosDBFieldValueReferenceRemoveMigrator(object):
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
         expected_appl_db = self.mock_dedicated_appl_db(db_after_migrate)
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_3_0_3')
-        # {'DATABASE': {'VERSION': 'version_3_0_4'}}
 
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         self.check_appl_db(dbmgtr.appDB, expected_appl_db)
