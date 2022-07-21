@@ -268,7 +268,7 @@ class TestSfputil(object):
         result = runner.invoke(sfputil.cli.commands['version'], [])
         assert result.output.rstrip() == 'sfputil version {}'.format(sfputil.VERSION)
 
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=False))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     def test_error_status_from_db(self):
         db = Db()
         expected_output = [['Ethernet0', 'Blocking Error|High temperature'],
@@ -285,7 +285,7 @@ class TestSfputil(object):
         output = sfputil.fetch_error_status_from_state_db('Ethernet0', db.db)
         assert output == expected_output_ethernet0
 
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_error_status_from_db_RJ45(self):
         db = Db()
         expected_output = [['Ethernet0', 'N/A'],
@@ -304,7 +304,7 @@ class TestSfputil(object):
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=False))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('subprocess.check_output', MagicMock(return_value="['0:OK']"))
     def test_fetch_error_status_from_platform_api(self):
         output = sfputil.fetch_error_status_from_platform_api('Ethernet0')
@@ -313,7 +313,7 @@ class TestSfputil(object):
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('subprocess.check_output', MagicMock(return_value="['0:OK']"))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_fetch_error_status_from_platform_api_RJ45(self):
         output = sfputil.fetch_error_status_from_platform_api('Ethernet0')
         assert output == [['Ethernet0', 'N/A']]
@@ -407,7 +407,7 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_show_eeprom_RJ45(self, mock_chassis):
         mock_sfp = MagicMock()
         mock_api = MagicMock()
@@ -418,14 +418,8 @@ Ethernet0  N/A
         expected_output = "Ethernet16: SFP EEPROM is not applicable for RJ45 port\n\n\n"
         assert result.output == expected_output
 
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
-    @patch('sys.exit', MagicMock(return_value=EXIT_FAIL))
-    def test_skip_if_port_is_rj45(self):
-        result = sfputil.skip_if_port_is_rj45('Ethernet0')
-        assert result == None
-
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_lpmode_set(self):
         runner = CliRunner()
@@ -434,7 +428,7 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_reset_RJ45(self):
         runner = CliRunner()
@@ -457,7 +451,7 @@ Ethernet0  N/A
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_show_fwversion_Rj45(self, mock_chassis):
         mock_sfp = MagicMock()
         mock_api = MagicMock()
@@ -494,7 +488,7 @@ Ethernet0  N/A
         assert status == 1
 
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_firmware_run_RJ45(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['run'], ["--mode", "0", "Ethernet0"])
@@ -502,7 +496,7 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_firmware_commit_RJ45(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['commit'], ["Ethernet0"])
@@ -510,7 +504,7 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=1))
     def test_firmware_upgrade_RJ45(self):
         runner = CliRunner()
@@ -519,7 +513,7 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
-    @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=1))
     def test_firmware_download_RJ45(self):
         runner = CliRunner()
