@@ -647,7 +647,7 @@ def set_fips(image, enable_fips):
     bootloader = get_bootloader()
     if not image:
         image =  bootloader.get_next_image()
-    if image not in bootloader.get_installed_images(): 
+    if image not in bootloader.get_installed_images():
         echo_and_log('Error: Image does not exist', LOG_ERR)
         sys.exit(1)
     bootloader.set_fips(image, enable=enable_fips)
@@ -743,7 +743,8 @@ DOCKER_CONTAINER_LIST = [
     "swss",
     "syncd",
     "teamd",
-    "telemetry"
+    "telemetry",
+    "mgmt-framework"
 ]
 
 # Upgrade docker image
