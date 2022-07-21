@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_0'
+        self.CURRENT_VERSION = 'version_2_0_1'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -575,9 +575,17 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_0.
         """
         log.log_info('Handling version_2_0_0')
+        self.migrate_port_qos_map_global()
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_1')
         return None
 
     def get_version(self):
@@ -631,8 +639,6 @@ class DBMigrator():
         
         # Migrate pfcwd_sw_enable table  
         self.migrate_pfcwd_sw_enable_table()
-        # Migrate entry for switch level DSCP_TO_TC_MAP
-        self.migrate_port_qos_map_global()
 
     def migrate(self):
         version = self.get_version()
