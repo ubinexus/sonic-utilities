@@ -272,7 +272,7 @@ def update_sonic_environment(bootloader, binary_image_version):
     SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
     SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
 
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
     env_dir = os.path.join(new_image_dir, "sonic-config")
@@ -327,7 +327,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     tmp_dir = "tmp"
     packages_file = "packages.json"
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
     new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)
@@ -637,6 +637,38 @@ def set_next_boot(image):
         sys.exit(1)
     bootloader.set_next_image(image)
 
+# Set fips for image
+@sonic_installer.command('set-fips')
+@click.argument('image', required=False)
+@click.option('--enable-fips/--disable-fips', is_flag=True, default=True,
+              help="Enable or disable FIPS, the default value is to enable FIPS")
+def set_fips(image, enable_fips):
+    """ Set fips for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images(): 
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    bootloader.set_fips(image, enable=enable_fips)
+    click.echo('Set FIPS for the image successfully')
+
+# Get fips for image
+@sonic_installer.command('get-fips')
+@click.argument('image', required=False)
+def get_fips(image):
+    """ Get the fips enabled or disabled status for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    enable = bootloader.get_fips(image)
+    if enable:
+       click.echo("FIPS is enabled")
+    else:
+       click.echo("FIPS is disabled")
 
 # Uninstall image
 @sonic_installer.command('remove')
