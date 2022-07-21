@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_3_0_5'
+        self.CURRENT_VERSION = 'version_3_0_6'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -698,9 +698,17 @@ class DBMigrator():
 
     def version_3_0_5(self):
         """
-        Current latest version. Nothing to do here.
+        Version 3_0_5
         """
         log.log_info('Handling version_3_0_5')
+        self.migrate_port_qos_map_global()
+        return 'version_3_0_6'
+
+    def version_3_0_6(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_3_0_6')
         return None
 
     def get_version(self):
@@ -741,8 +749,6 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
-        
-        self.migrate_port_qos_map_global()
 
     def migrate(self):
         version = self.get_version()
