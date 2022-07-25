@@ -21,7 +21,6 @@ from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
 from tabulate import tabulate
-from utilities_common.general import load_db_config
 
 VERSION = '3.0'
 
@@ -581,7 +580,6 @@ def load_sfputilhelper():
 
 def load_port_config():
     try:
-        load_db_config()
         if multi_asic.is_multi_asic():
             # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
             (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
