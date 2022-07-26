@@ -65,6 +65,27 @@ Vrf103  Ethernet4
         assert result.output == expected_output
 
         obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet4"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert 'Ethernet4' not in db.cfgdb.get_table('INTERFACE')
+        
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Loopback0"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert 'Loopback0' not in db.cfgdb.get_table('LOOPBACK_INTERFACE')
+        
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Vlan40"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert 'Vlan40' not in db.cfgdb.get_table('VLAN_INTERFACE')
+        
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["PortChannel0002"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert 'PortChannel002' not in db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
+        
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth32.10"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
