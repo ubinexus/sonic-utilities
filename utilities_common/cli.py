@@ -681,6 +681,13 @@ class UserCache:
         self.app_name = os.path.basename(sys.argv[0]) if app_name is None else app_name
         self.cache_directory_suffix = str(self.uid) if tag is None else f"{self.uid}-{tag}"
         self.cache_directory_app = os.path.join(self.CACHE_DIR, self.app_name)
+
+        prev_umask = os.umask(0)
+        try:
+            os.makedirs(self.cache_directory_app, exist_ok=True)
+        finally:
+            os.umask(prev_umask)
+
         self.cache_directory = os.path.join(self.cache_directory_app, self.cache_directory_suffix)
         os.makedirs(self.cache_directory, exist_ok=True)
 
