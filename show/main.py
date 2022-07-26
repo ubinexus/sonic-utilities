@@ -60,6 +60,7 @@ from . import vxlan
 from . import system_health
 from . import warm_restart
 from . import plugins
+from . import syslog
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -281,6 +282,9 @@ cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
 cli.add_command(warm_restart.warm_restart)
+
+# syslog module
+cli.add_command(syslog.syslog)
 
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():
@@ -933,15 +937,49 @@ def ip():
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
-@ip.command()
-@multi_asic_util.multi_asic_click_options
-def interfaces(namespace, display):
-    cmd = "sudo ipintutil -a ipv4"
-    if namespace is not None:
-        cmd += " -n {}".format(namespace)
 
-    cmd += " -d {}".format(display)
-    clicommon.run_command(cmd)
+@ip.group(invoke_without_command=True)
+@multi_asic_util.multi_asic_click_options
+@click.pass_context
+def interfaces(ctx, namespace, display):
+    if ctx.invoked_subcommand is None:
+        cmd = "sudo ipintutil -a ipv4"
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
+
+        cmd += " -d {}".format(display)
+        clicommon.run_command(cmd)
+
+#
+# 'show ip interfaces loopback-action' command
+#
+
+@interfaces.command()
+def loopback_action():
+    """show ip interfaces loopback-action"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Interface', 'Action']
+    body = []
+
+    if_tbl = config_db.get_table('INTERFACE')
+    vlan_if_tbl = config_db.get_table('VLAN_INTERFACE')
+    po_if_tbl = config_db.get_table('PORTCHANNEL_INTERFACE')
+    sub_if_tbl = config_db.get_table('VLAN_SUB_INTERFACE')
+
+    all_tables = {}
+    for tbl in [if_tbl, vlan_if_tbl, po_if_tbl, sub_if_tbl]:
+        all_tables.update(tbl)
+
+    if all_tables:
+        ifs_action = []
+        ifs = list(all_tables.keys())
+        for iface in ifs:
+            if 'loopback_action' in all_tables[iface]:
+                action = all_tables[iface]['loopback_action']
+                ifs_action.append([iface, action])
+        body = natsorted(ifs_action)
+    click.echo(tabulate(body, header))
 
 #
 # 'route' subcommand ("show ip route")
@@ -1551,34 +1589,25 @@ def show_run_snmp(db, ctx):
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syslog(verbose):
-    """Show Syslog running configuration
-    To match below cases(port is optional):
-    *.* @IPv4:port
-    *.* @@IPv4:port
-    *.* @[IPv4]:port
-    *.* @@[IPv4]:port
-    *.* @[IPv6]:port
-    *.* @@[IPv6]:port
-    """
-    syslog_servers = []
-    syslog_dict = {}
-    re_ipv4_1 = re.compile(r'^\*\.\* @{1,2}(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?')
-    re_ipv4_2 = re.compile(r'^\*\.\* @{1,2}\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\](:\d+)?')
-    re_ipv6 = re.compile(r'^\*\.\* @{1,2}\[([0-9a-fA-F:.]+)\](:\d+)?')
-    with open("/etc/rsyslog.conf") as syslog_file:
-        data = syslog_file.readlines()
+    """Show Syslog running configuration"""
+
+    header = ["Syslog Servers"]
+    body = []
+
+    re_syslog = re.compile(r'^\*\.\* action\(.*target=\"{1}(.+?)\"{1}.*\)')
+
+    try:
+        with open("/etc/rsyslog.conf") as syslog_file:
+            data = syslog_file.readlines()
+    except Exception as e:
+        raise click.ClickException(str(e))
+
     for line in data:
-        if re_ipv4_1.match(line):
-            server =  re_ipv4_1.match(line).group(1)
-        elif re_ipv4_2.match(line):
-            server =  re_ipv4_2.match(line).group(1)
-        elif re_ipv6.match(line):
-            server =  re_ipv6.match(line).group(1)
-        else:
-            continue
-        syslog_servers.append("[{}]".format(server))
-    syslog_dict['Syslog Servers'] = syslog_servers
-    print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
+        re_match = re_syslog.match(line)
+        if re_match:
+            body.append(["[{}]".format(re_match.group(1))])
+
+    click.echo(tabulate(body, header, tablefmt="simple", stralign="left", missingval=""))
 
 
 #

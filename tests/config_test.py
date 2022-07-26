@@ -6,6 +6,7 @@ import json
 import jsonpatch
 import sys
 import unittest
+import ipaddress
 from unittest import mock
 
 import click
@@ -42,6 +43,41 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
+load_mgmt_config_command_ipv4_only_output="""\
+Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
+parse dummy device_desc.xml
+change hostname to dummy
+Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
+Running command: ip route add default via 10.0.0.1 dev eth0 table default
+Running command: ip rule add from 10.0.0.100 table default
+Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+"""
+
+load_mgmt_config_command_ipv6_only_output="""\
+Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
+parse dummy device_desc.xml
+change hostname to dummy
+Running command: ifconfig eth0 add fc00:1::32/64
+Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
+Running command: ip -6 rule add from fc00:1::32 table default
+Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+"""
+
+load_mgmt_config_command_ipv4_ipv6_output="""\
+Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
+parse dummy device_desc.xml
+change hostname to dummy
+Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
+Running command: ip route add default via 10.0.0.1 dev eth0 table default
+Running command: ip rule add from 10.0.0.100 table default
+Running command: ifconfig eth0 add fc00:1::32/64
+Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
+Running command: ip -6 rule add from fc00:1::32 table default
+Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+"""
 
 RELOAD_CONFIG_DB_OUTPUT = """\
 Stopping SONiC target ...
@@ -316,6 +352,49 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
 
+    def test_load_backend_acl(self, get_cmd_module, setup_single_broadcom_asic):
+        db = Db()
+        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
+        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=True)
+
+    def test_load_backend_acl_not_storage(self, get_cmd_module, setup_single_broadcom_asic):
+        db = Db()
+        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
+
+    def test_load_backend_acl_storage_leaf(self, get_cmd_module, setup_single_broadcom_asic):
+        db = Db()
+        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
+        self.check_backend_acl(get_cmd_module, db, device_type='BackEndLeafRouter', condition=False)
+
+    def test_load_backend_acl_storage_no_dataacl(self, get_cmd_module, setup_single_broadcom_asic):
+        db = Db()
+        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
+        db.cfgdb.set_entry("ACL_TABLE", "DATAACL", None)
+        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
+
+    def check_backend_acl(self, get_cmd_module, db, device_type='BackEndToRRouter', condition=True):
+        def is_file_side_effect(filename):
+            return True if 'backend_acl' in filename else False
+        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+            with mock.patch('config.main._get_device_type', mock.MagicMock(return_value=device_type)):
+                with mock.patch(
+                    "utilities_common.cli.run_command",
+                    mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+                    (config, show) = get_cmd_module
+                    runner = CliRunner()
+                    result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
+                    print(result.exit_code)
+                    expected_output = ['Running command: acl-loader update incremental /etc/sonic/backend_acl.json',
+                                       'Running command: /usr/local/bin/sonic-cfggen -d -t /usr/share/sonic/templates/backend_acl.j2,/etc/sonic/backend_acl.json'
+                                      ]
+                    print(result.output)
+                    assert result.exit_code == 0
+                    output = result.output.split('\n')
+                    if condition:
+                        assert set(expected_output).issubset(set(output))
+                    else:
+                        assert not(set(expected_output).issubset(set(output)))
+
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
             return port_config
@@ -350,6 +429,34 @@ class TestLoadMinigraph(object):
             print(result.output)
             assert result.exit_code == 0
             assert expected_output in result.output
+
+    def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "TSA" in result.output
+
+    def test_load_minigraph_with_traffic_shift_away_with_golden_config(self, get_cmd_module):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            def is_file_side_effect(filename):
+                return True if 'golden_config' in filename else False
+            with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+                (config, show) = get_cmd_module
+                db = Db()
+                golden_config = {}
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert "TSA" in result.output
+                assert "[WARNING] Golden configuration may override Traffic-shift-away state" in result.output
 
     @classmethod
     def teardown_class(cls):
@@ -1351,3 +1458,125 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.assertTrue(expected_output in result.output)
         mock_generic_updater.list_checkpoints.assert_called_once()
         mock_generic_updater.list_checkpoints.assert_has_calls([expected_call])
+
+
+class TestConfigLoadMgmtConfig(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+
+        import config.main
+        importlib.reload(config.main)
+
+    def test_config_load_mgmt_config_ipv4_only(self, get_cmd_module, setup_single_broadcom_asic):
+        device_desc_result = {
+            'DEVICE_METADATA': {
+                'localhost': {
+                    'hostname': 'dummy'
+                }
+            },
+            'MGMT_INTERFACE': {
+                ('eth0', '10.0.0.100/24') : {
+                    'gwaddr': ipaddress.ip_address(u'10.0.0.1')
+                }
+            }
+        }
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_only_output, 5)
+
+    def test_config_load_mgmt_config_ipv6_only(self, get_cmd_module, setup_single_broadcom_asic):
+        device_desc_result = {
+            'DEVICE_METADATA': {
+                'localhost': {
+                    'hostname': 'dummy'
+                }
+            },
+            'MGMT_INTERFACE': {
+                ('eth0', 'FC00:1::32/64') : {
+                    'gwaddr': ipaddress.ip_address(u'fc00:1::1')
+                }
+            }
+        }
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv6_only_output, 5)
+    
+    def test_config_load_mgmt_config_ipv4_ipv6(self, get_cmd_module, setup_single_broadcom_asic):
+        device_desc_result = {
+            'DEVICE_METADATA': {
+                'localhost': {
+                    'hostname': 'dummy'
+                }
+            },
+            'MGMT_INTERFACE': {
+                ('eth0', '10.0.0.100/24') : {
+                    'gwaddr': ipaddress.ip_address(u'10.0.0.1')
+                },
+                ('eth0', 'FC00:1::32/64') : {
+                    'gwaddr': ipaddress.ip_address(u'fc00:1::1')
+                }
+            }
+        }
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_ipv6_output, 8)
+
+    def check_output(self, get_cmd_module, parse_device_desc_xml_result, expected_output, expected_command_call_count):
+        def parse_device_desc_xml_side_effect(filename):
+            print("parse dummy device_desc.xml")
+            return parse_device_desc_xml_result
+        def change_hostname_side_effect(hostname):
+            print("change hostname to {}".format(hostname))
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            with mock.patch('config.main.parse_device_desc_xml', mock.MagicMock(side_effect=parse_device_desc_xml_side_effect)):
+                with mock.patch('config.main._change_hostname', mock.MagicMock(side_effect=change_hostname_side_effect)):
+                    (config, show) = get_cmd_module
+                    runner = CliRunner()
+                    with runner.isolated_filesystem():
+                        with open('device_desc.xml', 'w') as f:
+                            f.write('dummy')
+                            result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
+                            print(result.exit_code)
+                            print(result.output)
+                            traceback.print_tb(result.exc_info[2])
+                            assert result.exit_code == 0
+                            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
+                            assert mock_run_command.call_count == expected_command_call_count
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
+
+class TestConfigRate(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+
+        import config.main
+        importlib.reload(config.main)
+
+    def test_config_rate(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["rate"], ["smoothing-interval", "500"])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert result.output == ""
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
