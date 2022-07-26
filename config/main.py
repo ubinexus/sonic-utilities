@@ -4961,12 +4961,21 @@ def unbind(ctx, interface_name):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
     if is_interface_bind_to_vrf(config_db, interface_name) is False:
         return
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
+        if 'vrf_name' in subintf_entry:
+            subintf_entry.pop('vrf_name')
+
     interface_ipaddresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
-    config_db.set_entry(table_name, interface_name, None)
+    if table_name == "VLAN_SUB_INTERFACE":
+        config_db.set_entry(table_name, interface_name, subintf_entry)
+    else:
+        config_db.set_entry(table_name, interface_name, None)
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
