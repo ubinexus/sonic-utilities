@@ -381,7 +381,6 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
     if sub_intf_sep_idx != -1:
         parent_port_name = get_intf_longname(sub_intf_name[:sub_intf_sep_idx])
 
-
         full_intf_table_name = "INTF_TABLE" + ":" + sub_intf_name
 
         if status_type == "vlan":
