@@ -6702,14 +6702,9 @@ def subintf_vlan_check(config_db, parent_intf, vlan):
 
 def is_subintf_shortname(intf):
     if VLAN_SUB_INTERFACE_SEPARATOR in intf:
-        if intf.startswith("Eth"):
-            if intf.startswith("Ethernet"):
-                return False
-            return True
-        elif intf.startswith("Po"):
-            if intf.startswith("PortChannel"):
-                return False
-            return True
+        if intf.startswith("Ethernet") or intf.startswith("PortChannel"):
+            return False
+        return True
     return False
 
 @subinterface.command('add')
