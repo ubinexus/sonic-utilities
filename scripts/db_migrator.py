@@ -445,27 +445,38 @@ class DBMigrator():
     def migrate_restapi(self):
         # RESTAPI - add missing key
         log.log_notice('Migrate RESTAPI configuration')
-        self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
-        self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+        config = self.configDB.get_entry('RESTAPI', 'config')
+        if not config:
+            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+        certs = self.configDB.get_entry('RESTAPI', 'certs')
+        if not certs:
+            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
         log.log_notice('Migrate TELEMETRY configuration')
-        self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
-        self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+        gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
+        if not gnmi:
+            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+        certs = self.configDB.get_entry('TELEMETRY', 'certs')
+        if not certs:
+            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
-        self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
-            CONSOLE_SWITCH.get("console_mgmt"))
+        console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
+        if not console_mgmt:
+            self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
+                CONSOLE_SWITCH.get("console_mgmt"))
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
         log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        metadata['synchronous_mode'] = 'enable'
-        self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
+        if 'synchronous_mode' not in metadata:
+            metadata['synchronous_mode'] = 'enable'
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
         """
