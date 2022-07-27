@@ -46,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_0'
+        self.CURRENT_VERSION = 'version_2_0_1'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -467,6 +467,23 @@ class DBMigrator():
         metadata['synchronous_mode'] = 'enable'
         self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
+    def migrate_port_qos_map_global(self):
+        """
+        Generate dscp_to_tc_map for switch.
+        """
+        asics_require_global_dscp_to_tc_map = ["broadcom"]
+        if self.asic_type not in asics_require_global_dscp_to_tc_map:
+            return
+        dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
+        if len(dscp_to_tc_map_table_names) == 0:
+            return
+
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        if 'global' not in qos_maps.keys():
+            # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
+            self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": "[DSCP_TO_TC_MAP|{}]".format(dscp_to_tc_map_table_names[0])})
+            log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -603,24 +620,34 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
+        Version 2_0_0.
+        """
+        log.log_info('Handling version_2_0_0')
+        self.migrate_port_qos_map_global()
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
         Handle and migrate missing config that results from cross branch upgrade to
         202012 as target.
         """
-        log.log_info('Handling version_2_0_0')
+        log.log_info('Handling version_2_0_1')
         self.migrate_vxlan_config()
         self.migrate_restapi()
         self.migrate_telemetry()
         self.migrate_console_switch()
         self.migrate_device_metadata()
 
-        self.set_version('version_2_0_1')
-        return 'version_2_0_1'
+        self.set_version('version_2_0_2')
 
-    def version_2_0_1(self):
+        log.log_info('Handling version_2_0_2')
+        return None
+
+    def version_2_0_2(self):
         """
         Current latest version. Nothing to do here.
         """
-        log.log_info('Handling version_2_0_1')
+        log.log_info('Handling version_2_0_2')
         return None
 
     def get_version(self):
