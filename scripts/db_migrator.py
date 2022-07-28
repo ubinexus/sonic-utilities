@@ -46,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_1'
+        self.CURRENT_VERSION = 'version_2_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -635,6 +635,7 @@ class DBMigrator():
         """
         log.log_info('Handling version_2_0_0')
         self.migrate_port_qos_map_global()
+        self.set_version('version_2_0_1')
         return 'version_2_0_1'
 
     def version_2_0_1(self):
@@ -650,9 +651,7 @@ class DBMigrator():
         self.migrate_device_metadata()
 
         self.set_version('version_2_0_2')
-
-        log.log_info('Handling version_2_0_2')
-        return None
+        return 'version_2_0_2'
 
     def version_2_0_2(self):
         """
