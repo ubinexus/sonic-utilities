@@ -1,9 +1,10 @@
-from getpass import getpass
 import time
-import os
-
 import paramiko
 from rich.console import Console
+
+from getpass import getpass
+from .utils import get_linecard_ip
+from . import interactive
 
 EMPTY_OUTPUTS = ['', '\x1b[?2004l\r']
 
@@ -46,39 +47,50 @@ class Linecard:
         pkey = paramiko.RSAKey.from_private_key_file(os.path.expanduser("~/.ssh/id_rsa"))
         self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        if password:
-            self.connection.connect(self.hostname, username=self.username, password=password)
-        else:
-            self.connection.connect(self.hostname, username=self.username, pkey=pkey)
+        self.connection.connect(self.ip, username=self.username, password=password)
+        self.channel = "hi"
 
         # Create channel for shell input/output
-        self.channel = self.connection.get_transport().open_session()
-        self.channel.get_pty()
-        self.channel.invoke_shell()
-        self.channel.send("stty -echo\n")
+        # self.channel = self.connection.get_transport().open_session()
+        # self.channel.get_pty()
+        # self.channel.invoke_shell()
+        # self.channel.send("stty -echo\n")
 
-        if print_login:
-            # Print initial SONiC login message
-            self.console.print(self.get_channel_output())
-        else:
-            # Flush output
-            self.get_channel_output()
+        # if print_login:
+        #     # Print initial SONiC login message
+        #     print(self.get_channel_output())
+        # else:
+        #     # Flush output
+        #     self.get_channel_output()
 
     def start_shell(self):
         """Continuously wait for a command to be inputted, execute that command on remote shell, and print output."""
-        command = None
-        while command != 'exit' and command !='quit':
-            command = self.console.input(f"{self.hostname}:$ ")
-            self.channel.send(command + "\n")
-            print(self.get_channel_output())
+        self.channel = self.connection.get_transport().open_session()
+        self.channel.get_pty()
+        self.channel.invoke_shell()
+        interactive.interactive_shell(self.channel)
+        # command = ""
+        # while command not in EXIT_KEYWORDS:
+        #     self.channel.send(command + "\n")
+        #     output = self.get_channel_output(with_prompt=True)
+        #     prompt_index = max(0, output.rfind("\n"))
+        #     prompt = output[prompt_index:]
+        #     print("{}".format(output[:prompt_index]))
+        #     command = input(prompt.replace("\n",""))
 
         self.connection.close()
 
 
     def execute_cmd(self, command):
         """Execute a single command on remote shell and return the output."""
-        self.channel.send(command + "\n")
-        return self.get_channel_output()
+        stdin, stdout, stderr = self.connection.exec_command(command + "\n")
+        output = stdout.read().decode('utf-8')
+        self.connection.close()
+        return output
+        self.connection.exec_command(command + "\n")
+        output = self.get_channel_output()
+        self.connection.close()
+        return output
 
 
     def get_channel_output(self):
