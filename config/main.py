@@ -30,7 +30,6 @@ import utilities_common.cli as clicommon
 from utilities_common.general import load_db_config
 
 from .utils import log
-from .yang_validation_service import YangValidationService
 
 from . import aaa
 from . import chassis_modules
@@ -1754,6 +1753,10 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
 
     if is_portchannel_present_in_db(db, portchannel_name):
@@ -1766,18 +1769,17 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
-    yvs = YangValidationService()
-    if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, fvs):
-        ctx.fail("Invalid configuration based on PortChannel YANG model")
-    else:
-        db.set_entry('PORTCHANNEL', portchannel_name, fvs)
-
+    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
 
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
 
     # Dont proceed if the port channel does not exist
@@ -1787,11 +1789,7 @@ def remove_portchannel(ctx, portchannel_name):
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        yvs = YangValidationService()
-        if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, None):
-            ctx.fail("Invalid configuration based on PortChannel YANG model")
-        else:
-            db.set_entry('PORTCHANNEL', portchannel_name, None)
+        db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
