@@ -18,7 +18,7 @@ def rshell(linecard_name, username):
             # If channel was created, connection exists. Otherwise, user will see an error message.
             lc.start_shell()
     except paramiko.ssh_exception.AuthenticationException:
-        print("Login failed on '{}' with username '{}'".format(linecard_name, username))    
+        click.echo("Login failed on '{}' with username '{}'".format(linecard_name, username))    
 
 
 if __name__=="__main__":

@@ -1,3 +1,5 @@
+import click
+
 from swsscommon.swsscommon import SonicV2Connector
 
 CHASSIS_MODULE_INFO_TABLE = 'CHASSIS_MODULE_TABLE'
@@ -21,13 +23,13 @@ def get_linecard_ip(linecard_name: str):
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
     if not keys:
-        print('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
+        click.echo('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
         return
 
     for key in keys:
         key_list = key.split('|')
         if len(key_list) != 2:  # error data in DB, log it and ignore
-            print('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
+            click.echo('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
             continue
 
         data_dict = state_db.get_all(state_db.STATE_DB, key)
@@ -49,7 +51,7 @@ def get_all_linecards(ctx, args, incomplete):
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
     if not keys:
-        print('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
+        click.echo('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
         return []
 
     linecards = []
@@ -57,7 +59,7 @@ def get_all_linecards(ctx, args, incomplete):
     for key in keys:
         key_list = key.split('|')
         if len(key_list) != 2:  # error data in DB, log it and ignore
-            print('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
+            click.echo('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
             continue
 
         data_dict = state_db.get_all(state_db.STATE_DB, key)

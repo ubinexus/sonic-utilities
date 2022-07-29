@@ -14,16 +14,16 @@ from getpass import getpass
 def rexec(linecards, command, username):
     """Execute a command on one (or many) linecards."""
     username = username if username else os.getlogin()
-    password = getpass("Password for '{}': ".format(username))
+    password = getpass("Password for username '{}': ".format(username))
     
     shells = []
     # Collect linecards
     for linecard_name in linecards:
         try:
-            lc = Linecard(linecard_name, username, password, print_login=False)
+            lc = Linecard(linecard_name, username, password)
             shells.append(lc)
         except paramiko.ssh_exception.AuthenticationException:
-            print("Login failed on '{}' with username '{}'".format(linecard_name, username))
+            click.echo("Login failed on '{}' with username '{}'".format(linecard_name, username))
     
     # Delay for linecards to flush output
     time.sleep(0.5)
@@ -32,8 +32,8 @@ def rexec(linecards, command, username):
     for linecard in shells:
         if linecard.channel:
             # If channel was created, connection exists. Otherwise, user will see an error message.
-            print("======== {} output: ========".format(linecard.linecard_name))
-            print(linecard.execute_cmd(command))
+            click.echo("======== {} output: ========".format(linecard.linecard_name))
+            click.echo(linecard.execute_cmd(command))
 
 if __name__=="__main__":
     rexec(prog_name='rexec')
