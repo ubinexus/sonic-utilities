@@ -27,11 +27,19 @@ Ethernet4      N/A        4  204.80 KB/s        N/A         0     1,000       N/
 """
 
 intf_counters_all = """\
-    IFACE    STATE    RX_OK        RX_BPS       RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS       TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR    FEC_CORR    FEC_UNCORR
----------  -------  -------  ------------  -----------  ---------  --------  --------  --------  -------  ------------  -----------  ---------  --------  --------  --------  ----------  ------------
-Ethernet0        D        8  2000.00 MB/s  247000.00/s     64.00%        10       100       N/A       10  1500.00 MB/s  183000.00/s     48.00%       N/A       N/A       N/A         N/A           N/A
-Ethernet4      N/A        4   204.80 KB/s     200.00/s        N/A         0     1,000       N/A       40   204.85 KB/s     201.00/s        N/A       N/A       N/A       N/A         N/A           N/A
-Ethernet8      N/A        6  1350.00 KB/s    9000.00/s        N/A       100        10       N/A       60    13.37 MB/s    9000.00/s        N/A       N/A       N/A       N/A         N/A           N/A
+    IFACE    STATE    RX_OK        RX_BPS       RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS       TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  -----------  ---------  --------  --------  --------  -------  ------------  -----------  ---------  --------  --------  --------
+Ethernet0        D        8  2000.00 MB/s  247000.00/s     64.00%        10       100       N/A       10  1500.00 MB/s  183000.00/s     48.00%       N/A       N/A       N/A
+Ethernet4      N/A        4   204.80 KB/s     200.00/s        N/A         0     1,000       N/A       40   204.85 KB/s     201.00/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6  1350.00 KB/s    9000.00/s        N/A       100        10       N/A       60    13.37 MB/s    9000.00/s        N/A       N/A       N/A       N/A
+"""
+
+intf_fec_counters = """\
+      IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
+-----------  -------  ----------  ------------  ----------------
+  Ethernet0        D     130,402             3                 4
+  Ethernet8      N/A     110,412             1                 0
+ Ethernet16      N/A     100,317             0                 0
 """
 
 intf_counters_period = """\
@@ -257,6 +265,21 @@ class TestPortStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_counters_all
+
+    def test_show_intf_fec_counters(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters
+
+        return_code, result = get_result_and_return_code('portstat -f')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_fec_counters
 
     def test_show_intf_counters_period(self):
         runner = CliRunner()
