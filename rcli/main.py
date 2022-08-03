@@ -6,8 +6,11 @@ import click
 #
 
 # This is our entrypoint - the main "show" command
-@click.group()
+@click.command()
 # @click.pass_context
 def cli():
-    """SONiC command line - 'rcli' command"""
-    pass
+    """ SONiC command line - 'rcli' command.
+
+        Usage: rexec LINECARDS -c \"COMMAND\"
+        or rshell LINECARD"""
+    print(cli.__doc__)
