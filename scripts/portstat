@@ -632,7 +632,7 @@ Examples:
 
     # Now decide what information to display
     if raw_stats:
-        portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only)
+        portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only)
         sys.exit(0)
 
     if save_fresh_stats:
