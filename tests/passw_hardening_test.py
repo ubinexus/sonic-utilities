@@ -67,16 +67,26 @@ class TestPasswHardening:
         runner = CliRunner()
 
         self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_default)
-        
+
     def test_passw_hardening_feature_enabled(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
         db = Db()
         runner = CliRunner()
-        
+
         self.passw_hardening_set_policy(runner, db, "state", "enabled")
-    
+
         self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_enabled)
-        
+
+    def test_passw_hardening_feature_disabled(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "state", "enabled")
+        self.passw_hardening_set_policy(runner, db, "state", "disabled")
+
+        self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_default)
+
     def test_passw_hardening_policies_classes_disabled(self):
         """Disable passw hardening classes & reject user passw match policies"""
 
@@ -95,7 +105,7 @@ class TestPasswHardening:
             self.passw_hardening_set_policy(runner, db, k, v)
 
         self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_classes_disabled)
-        
+
     def test_passw_hardening_policies_exp_time(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
         db = Db()
@@ -124,3 +134,89 @@ class TestPasswHardening:
         self.passw_hardening_set_policy(runner, db, "len-min", "30")
 
         self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_len_min)
+
+    def test_passw_hardening_bad_flow_len_min(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "state", "enabled")
+        self.passw_hardening_set_policy(runner, db, "len-min", "10000", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_history_cnt(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "state", "enabled")
+        self.passw_hardening_set_policy(runner, db, "history-cnt", "100000", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_state(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "state", "0", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_expiration(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "expiration", "####", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_expiration_warning(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "expiration-warning", "4000", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_upper_class(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "upper-class", "1", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_lower_class(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "lower-class", "1", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_special_class(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "special-class", "1", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_digits_class(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "digits-class", "1", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_reject_user_passw_match(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+
+        self.passw_hardening_set_policy(runner, db, "reject-user-passw-match", "1", EXP_BAD_FLOW)
+
+    def test_passw_hardening_bad_flow_policy(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
+        db = Db()
+        runner = CliRunner()
+        try:
+            self.passw_hardening_set_policy(runner, db, "no-exist-command", "1", EXP_BAD_FLOW)
+        except Exception as e:
+            # import pdb;pdb.set_trace()
+            if 'no-exist-command' in str(e):
+                pass
+            else:
+                raise e
+
