@@ -290,10 +290,7 @@ class Portstat(object):
                               format_util(rates.tx_bps, port_speed),
                               format_number_with_comma(data.tx_err),
                               format_number_with_comma(data.tx_drop),
-                              format_number_with_comma(data.tx_ovr),
-                              format_number_with_comma(data.fec_corr),
-                              format_number_with_comma(data.fec_uncorr),
-                              format_number_with_comma(data.fec_symbol_err)))
+                              format_number_with_comma(data.tx_ovr)))
             elif errors_only:
                 header = header_errors_only
                 table.append((key, self.get_port_state(key),
