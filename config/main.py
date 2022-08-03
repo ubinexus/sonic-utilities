@@ -5246,7 +5246,8 @@ def add_route(ctx, command_str):
 
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
-    if key in keys:
+    prefix_tuple = tuple(key.split('|'))
+    if key in keys or prefix_tuple in keys:
         # If exist update current entry
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 

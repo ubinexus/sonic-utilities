@@ -278,7 +278,39 @@ class TestStaticRoutes(object):
         ["prefix", "11.2.3.4/32", "nexthop", "vrf", "Vrf-BLUE", "30.0.0.6"], obj=obj)
         print(result.exit_code, result.output)
         assert not ('11.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
-   
+
+    def test_vrf_static_route_ECMP_nexthop(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix vrf Vrf-BLUE 15.2.3.4/32 nexthop 30.0.0.6
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "vrf", "Vrf-BLUE", "15.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('Vrf-BLUE', '15.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', 'Vrf-BLUE|15.2.3.4/32') == {'nexthop': '30.0.0.6', 'blackhole': 'false', 'distance': '0', 'ifname': '', 'nexthop-vrf': ''}
+
+        # config route add prefix vrf Vrf-BLUE 15.2.3.4/32 nexthop 30.0.0.7
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "vrf", "Vrf-BLUE", "15.2.3.4/32", "nexthop", "30.0.0.7"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('Vrf-BLUE', '15.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', 'Vrf-BLUE|15.2.3.4/32') == {'nexthop': '30.0.0.6,30.0.0.7', 'blackhole': 'false,false', 'distance': '0,0', 'ifname': ',', 'nexthop-vrf': ','}
+
+        # config route del prefix vrf Vrf-BLUE 15.2.3.4/32 nexthop 30.0.0.6
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "vrf", "Vrf-BLUE", "15.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('Vrf-BLUE', '15.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', 'Vrf-BLUE|15.2.3.4/32') == {'nexthop': '30.0.0.7', 'blackhole': 'false', 'distance': '0', 'ifname': '', 'nexthop-vrf': ''}
+
+        # config route del prefix vrf Vrf-BLUE 15.2.3.4/32 nexthop 30.0.0.7
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "vrf", "Vrf-BLUE", "15.2.3.4/32", "nexthop", "30.0.0.7"], obj=obj)
+        print(result.exit_code, result.output)
+        assert not ('Vrf-BLUE', '15.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+
     def test_static_route_ECMP_mixed_nextfop(self):
         db = Db()
         runner = CliRunner()
