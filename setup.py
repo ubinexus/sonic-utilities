@@ -211,7 +211,6 @@ setup(
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',
-        'rich>= 12.5.1',
         'sonic-config-engine',
         'sonic-platform-common',
         'sonic-py-common',
