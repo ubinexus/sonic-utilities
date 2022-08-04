@@ -1596,8 +1596,10 @@ class TestConfigPlatorm(object):
         importlib.reload(config.main)
 
     def test_config_platform_cisco(self, get_cmd_module, setup_single_cisco_asic):
+            from config.main import config
+            config()
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["platform"], ["cisco"])
+            result = runner.invoke(config.config.commands["platform"], ["-h"])
 
             print(result.exit_code)
             print(result.output)
