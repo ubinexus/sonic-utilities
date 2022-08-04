@@ -1596,9 +1596,6 @@ class TestConfigPlatorm(object):
         importlib.reload(config.main)
 
     def test_config_platform_cisco(self, get_cmd_module, setup_single_cisco_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            (config, show) = get_cmd_module
-
             runner = CliRunner()
             result = runner.invoke(config.config.commands["platform"], ["cisco"])
 
