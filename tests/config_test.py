@@ -1606,8 +1606,7 @@ class TestConfigPlatorm(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
 
-            assert result.exit_code == 0
-            assert result.output == ""
+            assert result.exit_code == 2
 
     @classmethod
     def teardown_class(cls):
