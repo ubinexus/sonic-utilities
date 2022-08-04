@@ -98,6 +98,24 @@ def setup_qos_mock_apis():
     )
 
 @pytest.fixture
+def set_cisco_mock_apis():
+    import config.main as config
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    config.asic_type = mock.MagicMock(return_value="cisco-8000")
+    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+
+@pytest.fixture
+def setup_single_cisco_asic():
+    import config.main as config
+    import show.main as show
+
+    set_cisco_mock_apis()
+    device_info.get_num_npus = mock.MagicMock(return_value=1)
+    config._get_sonic_generated_services = \
+        mock.MagicMock(return_value=(generated_services_list, []))
+
+
+@pytest.fixture
 def setup_single_broadcom_asic():
     import config.main as config
     import show.main as show

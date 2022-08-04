@@ -1585,3 +1585,31 @@ class TestConfigRate(object):
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+class TestConfigPlatorm(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+
+        import config.main
+        importlib.reload(config.main)
+
+    def test_config_platform_cisco(self, get_cmd_module, setup_single_cisco_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["platform"], ["cisco"])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert result.output == ""
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
