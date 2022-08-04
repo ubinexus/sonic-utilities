@@ -1184,9 +1184,9 @@ def config(ctx):
         print("Caught an exception: " + str(e))
         raise click.Abort()
 
-    if asic_type == 'cisco-8000':
-        from sonic_platform.cli.cisco import cisco
-        platform.add_command(cisco)
+    #if asic_type == 'cisco-8000':
+    #    from sonic_platform.cli.cisco import cisco
+    #    platform.add_command(cisco)
 
     # Load database config files
     load_db_config()
@@ -5865,6 +5865,10 @@ def size(db, size):
 @config.group(cls=clicommon.AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
+    global asic_type
+    if asic_type == 'cisco-8000':
+        from sonic_platform.cli.cisco import cisco
+        platform.add_command(cisco)
 
 # 'firmware' subgroup ("config platform firmware ...")
 @platform.group(cls=clicommon.AbbreviationGroup)
