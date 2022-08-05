@@ -1591,17 +1591,19 @@ class TestConfigPlatorm(object):
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
+        import config.main
+        importlib.reload(config.main)
 
 
-    def test_config_platform_cisco(self, get_cmd_module, setup_single_cisco_asic):
-            import config.main
-            importlib.reload(config.main)
+    def test_config_platform(self, get_cmd_module, setup_single_cisco_asic):
+            expected_output = "cisco"
             runner = CliRunner()
             result = runner.invoke(config.config.commands["platform"], ['--help'])
 
             print(result.exit_code)
             print(result.output)
             traceback.print_tb(result.exc_info[2])
+            self.assertTrue(expected_output in result.output)
 
     @classmethod
     def teardown_class(cls):
