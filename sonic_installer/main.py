@@ -787,16 +787,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         echo_and_log("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path), LOG_ERR)
         raise click.Abort()
 
-    warm_configured = False
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, container_name)
-    if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
-        warm_configured = True
-    state_db.close(state_db.STATE_DB)
+    warm_configured = hget_warm_restart_table('STATE_DB', 'WARM_RESTART_ENABLE_TABLE', container_name, 'enable') == "true"
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         if warm_configured is False and warm:
@@ -867,16 +859,12 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
     run_command("systemctl restart %s" % container_name)
 
-    # All images id under the image name
-    image_id_all = get_container_image_id_all(image_name)
-
-    # this is image_id for image with "latest" tag
-    image_id_latest = get_container_image_id(image_latest)
-
     if cleanup_image:
+        # All images id under the image name
+        image_id_all = get_container_image_id_all(image_name)
         # Unless requested, the previoud docker image will be preserved
         for id in image_id_all:
-            if id != image_id_latest and id == image_id_previous:
+            if id == image_id_previous:
                 run_command("docker rmi -f %s" % id)
                 break
 
@@ -939,7 +927,7 @@ def rollback_docker(container_name):
     version_tag = ""
     for id in image_id_all:
         if id != image_id_previous:
-            version_tag = run_command("docker images --format '{{{{.ID}}}} {{{{.Tag}}}}' | grep {} | awk '{{print $2}}'".format(id))
+            version_tag = get_docker_tag_name(id)
             break
 
     # make previous image as latest
