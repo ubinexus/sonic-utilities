@@ -1592,10 +1592,10 @@ class TestConfigPlatorm(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
-        import config.main
-        importlib.reload(config.main)
 
     def test_config_platform_cisco(self, get_cmd_module, setup_single_cisco_asic):
+            import config.main
+            importlib.reload(config.main)
             runner = CliRunner()
             result = runner.invoke(config.config.commands["platform"], ['--help'])
 
