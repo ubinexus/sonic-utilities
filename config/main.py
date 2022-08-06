@@ -1187,6 +1187,7 @@ def config(ctx):
     if asic_type == 'cisco-8000':
         from sonic_platform.cli.cisco import cisco
         platform.add_command(cisco)
+    from sonic_platform.cli.cisco2 import cisco2
 
     # Load database config files
     load_db_config()
