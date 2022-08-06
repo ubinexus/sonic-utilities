@@ -1586,6 +1586,7 @@ class TestConfigRate(object):
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
 
+import pytest
 @pytest.fixture(scope='module')
 def ctx(scope='module'):
     db = Db()
