@@ -1586,6 +1586,13 @@ class TestConfigRate(object):
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
 
+@pytest.fixture(scope='module')
+def ctx(scope='module'):
+    db = Db()
+    obj = {'config_db':db.cfgdb, 'namespace': ''}
+    yield obj
+
+
 class TestConfigPlatorm(object):
     @classmethod
     def setup_class(cls):
@@ -1595,8 +1602,9 @@ class TestConfigPlatorm(object):
         importlib.reload(config.main)
 
 
-    def test_config_platform(self, get_cmd_module, setup_single_cisco_asic):
+    def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
             expected_output = "cisco"
+            config.config(ctx)
             runner = CliRunner()
             result = runner.invoke(config.config.commands["platform"], ['--help'])
 
