@@ -2,7 +2,9 @@
     "VERSIONS|DATABASE": {
         "VERSION": "version_2_0_0"
     },
-    "DEVICE_METADATA|localhost": {
-        "synchronous_mode": "enable"
+    "DSCP_TO_TC_MAP|AZURE": {
+        "0": "0",
+        "1": "1"
     }
 }
+
