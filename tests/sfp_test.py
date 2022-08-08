@@ -496,8 +496,8 @@ Ethernet200  Not present
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_dom_all_output
 
     def test_is_rj45_port(self):
-        from utilities_common.platform_sfputil_helper import is_rj45_port
-        assert is_rj45_port(1) == False
+        import utilities_common.platform_sfputil_helper as platform_sfputil_helper
+        assert platform_sfputil_helper.is_rj45_port(1) == False
 
     @classmethod
     def teardown_class(cls):
