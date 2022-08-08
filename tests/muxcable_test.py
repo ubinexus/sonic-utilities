@@ -2224,7 +2224,7 @@ class TestMuxcable(object):
     @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.update_configdb_ycable_telemetry_data', mock.MagicMock(return_value=0))
-    def test_config_muxcable_telemetry_enable_without_patch(self):
+    def test_config_muxcable_telemetry_enable(self):
         runner = CliRunner()
         db = Db()
 
