@@ -1,21 +1,23 @@
 import click
+import os
 import paramiko
 
 from getpass import getpass
-from .utils import get_linecard_ip
+from .utils import get_linecard_ip, get_password
 from . import interactive
 
 EMPTY_OUTPUTS = ['', '\x1b[?2004l\r']
 
 class Linecard:
 
-    def __init__(self, linecard_name, username, password=None):
+    def __init__(self, linecard_name, username, password_filename=None, use_ssh_keys=False):
         """
         Initialize Linecard object and store credentials, connection, and channel
         
         :param linecard_name: The name of the linecard you want to connect to
         :param username: The username to use to connect to the linecard
-        :param password: The password for the username. If not provided, it will prompt the user for it
+        :param password_filename: The file containing the password. If not 
+            provided, it will prompt the user for it
         """
         self.ip = get_linecard_ip(linecard_name)
 
@@ -27,47 +29,68 @@ class Linecard:
         self.linecard_name = linecard_name
         self.username = username
 
-        password = password if password is not None else getpass(
-            "Password for username '{}': ".format(username),
-            # Pass in click stdout stream - this is similar to using click.echo
-            stream=click.get_text_stream('stdout')
+        if use_ssh_keys and os.environ.get("SSH_AUTH_SOCK"):
+            # The user wants to use SSH keys and the ssh agent is running
+            self.connection = paramiko.SSHClient()
+            # if ip address not in known_hosts, ignore known_hosts error
+            self.connection.load_system_host_keys()
+            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            
+            ssh_agent = paramiko.Agent()
+            available_keys = ssh_agent.get_keys()
+            if available_keys:
+                # Try to connect using all keys
+                connected = False
+                for key in available_keys:
+                    try:
+                        self.connection.connect(self.ip, username=username, pkey=key)
+                        # If we connected successfully without error, break out of loop
+                        connected = True
+                        break
+                    except paramiko.SSHException:
+                        pass
+                if not connected:
+                    self.ssh_copy_id(password_filename)
+            else:
+                # host does not trust this client, perform ssh-copy-id
+                self.ssh_copy_id(password_filename)
+
+        else:
+            password = get_password(password_filename, username)
+            self.connection = paramiko.SSHClient()
+            # if ip address not in known_hosts, ignore known_hosts error
+            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.connection.connect(self.ip, username=self.username, password=password)
+
+    def ssh_copy_id(self, password_filename:str) -> None:
+        """
+        This function generates a new ssh key, copies it to the remote server, 
+        and adds it to the ssh-agent for 15 minutes
+        
+        :param password_filename: The name of the file that contains the 
+            password for the user
+        :type password_filename: str
+        """
+        default_key_path = os.path.expanduser(os.path.join("~/",".ssh","id_rsa"))
+        os.system(
+            'ssh-keygen -f {} -N "" > /dev/null'.format(default_key_path)
         )
-        
-        self.connect(password)
-
-        # come back later for ssh-agent
-        #
-        # if not os.path.exists(os.path.expanduser(f"~/.ssh/id_rsa")):
-        #     os.system(f'ssh-keygen -f {os.path.expanduser(f"~/.ssh/id_rsa")} -N ""')
-
-        # try:
-        #     self.connect(print_login=print_login)
-        # except paramiko.ssh_exception.AuthenticationException:
-        #     # host does not trust this client, perform a ssh-copy-id
-        #     password = getpass(f"Password for '{hostname}': ")
-        #     pub_key = open(os.path.expanduser(f"~/.ssh/id_rsa.pub"), "rt")
-        #     pub_key_contents = pub_key.read()
-        #     pub_key.close()
-        #     self.connect(password, print_login=print_login)
-        #     self.channel.send(f'mkdir ~/.ssh \n')
-        #     self.get_channel_output()
-        #     self.channel.send(f'echo \'{pub_key_contents}\' >> ~/.ssh/authorized_keys \n')
-        #     self.get_channel_output()
-
-    def connect(self, password):
-        """
-        The function connects to a linecard using the IP address, username, and password provided
-        
-        :param password: the password for the user
-        """
-        # Create connection to server and initialize shell channel
-        self.connection = paramiko.SSHClient()
-        # self.connection.load_system_host_keys()
-        # pkey = paramiko.RSAKey.from_private_key_file(os.path.expanduser("~/.ssh/id_rsa"))
-        # if ip address not in known_hosts, ignore known_hosts error
-        self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+        pub_key = open(default_key_path + ".pub", "rt")
+        pub_key_contents = pub_key.read()
+        pub_key.close()
+        password = get_password(password_filename, self.username)
         self.connection.connect(self.ip, username=self.username, password=password)
+        self.connection.exec_command('mkdir ~/.ssh -p \n')
+        self.connection.exec_command(
+            'echo \'{}\' >> ~/.ssh/authorized_keys \n'
+            .format(pub_key_contents)
+        )
+        # Add key for 15 min
+        os.system('ssh-add -t 15m  {}'.format(default_key_path))
+
+        # Remove keys from disk
+        os.remove(default_key_path)
+        os.remove('{}.pub'.format(default_key_path))
 
     def start_shell(self):
         """
@@ -78,7 +101,6 @@ class Linecard:
         self.channel.get_pty()
         self.channel.invoke_shell()
         interactive.interactive_shell(self.channel)
-
         self.connection.close()
 
 
@@ -89,7 +111,11 @@ class Linecard:
         :param command: The command to execute on the remote shell
         :return: The output of the command.
         """
-        stdin, stdout, stderr = self.connection.exec_command(command + "\n")
+        _, stdout, stderr = self.connection.exec_command(command + "\n")
         output = stdout.read().decode('utf-8')
+        
+        if stderr:
+            output += stderr.read().decode('utf-8')
+
         self.connection.close()
         return output

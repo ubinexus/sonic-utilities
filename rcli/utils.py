@@ -1,4 +1,6 @@
 import click
+from getpass import getpass
+import os
 
 from swsscommon.swsscommon import SonicV2Connector
 
@@ -88,3 +90,24 @@ def get_all_linecards(ctx, args, incomplete):
     
     # Return a list of all matched linecards
     return [lc for lc in linecards if incomplete in lc]
+
+def get_password(password_filename: str, username: str) -> str:
+    """
+    If a password file is provided, read the password from the file, otherwise 
+    prompt the user for the password
+    
+    :param password_filename: The path to the file containing the password
+    :type password_filename: str
+    :param username: The username to use for authentication
+    :type username: str
+    :return: The password for the username
+    """
+    if password_filename is None:
+        return getpass(
+            "Password for username '{}': ".format(username),
+            # Pass in click stdout stream - this is similar to using click.echo
+            stream=click.get_text_stream('stdout')
+        )
+    else:
+        with open(os.path.expanduser(password_filename), "r") as file:
+            return file.read()
