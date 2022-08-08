@@ -44,7 +44,8 @@ def test_rollback_docker_no_extra_image():
 
 @pytest.mark.parametrize("container", ['bgp', 'swss', 'teamd', 'pmon'])
 @patch('sonic_installer.main.get_container_image_name', MagicMock(return_value='docker-fpm-frr'))
-@patch('sonic_installer.main.get_container_image_id', MagicMock(return_value=['1']))
+@patch('sonic_installer.main.get_container_image_id', MagicMock(return_value='1'))
+@patch('sonic_installer.main.get_container_image_id_all', MagicMock(return_value=['1', '2']))
 @patch('sonic_installer.main.validate_url_or_abort', MagicMock())
 @patch('sonic_installer.main.urlretrieve', MagicMock())
 @patch('os.path.isfile', MagicMock(return_value=True))
