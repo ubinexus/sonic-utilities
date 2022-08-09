@@ -60,7 +60,11 @@ class Linecard:
             self.connection = paramiko.SSHClient()
             # if ip address not in known_hosts, ignore known_hosts error
             self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.connection.connect(self.ip, username=self.username, password=password)
+            try:
+                self.connection.connect(self.ip, username=self.username, password=password)
+            except paramiko.ssh_exception.NoValidConnectionsError as e:
+                self.connection = None
+                print(e)
 
     def ssh_copy_id(self, password_filename:str) -> None:
         """
