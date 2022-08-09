@@ -33,7 +33,7 @@ def get_linecard_ip(linecard_name: str):
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
     if not keys:
-        click.echo('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
+        click.echo('{} table is empty'.format(CHASSIS_MIDPLANE_INFO_TABLE))
         return None
 
     for key in keys:
@@ -71,7 +71,7 @@ def get_all_linecards(ctx, args, incomplete):
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
     if not keys:
-        click.echo('{} table is empty'.format(key_pattern, CHASSIS_MIDPLANE_INFO_TABLE))
+        click.echo('{} table is empty'.format(CHASSIS_MIDPLANE_INFO_TABLE))
         return []
 
     linecards = []

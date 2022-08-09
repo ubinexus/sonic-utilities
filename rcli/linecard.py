@@ -2,7 +2,6 @@ import click
 import os
 import paramiko
 
-from getpass import getpass
 from .utils import get_linecard_ip, get_password
 from . import interactive
 
