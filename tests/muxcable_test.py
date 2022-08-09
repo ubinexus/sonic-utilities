@@ -2095,6 +2095,94 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == show_muxcable_packetloss_expected_output_json
 
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"], obj=db)
+
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_tunnel_route_expected_output
+    
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route_json(self):
+        runner = CliRunner()
+        db = Db()
+        
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"],
+                               ["--json"], obj=db)
+
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_tunnel_route_expected_output_json
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"],
+                               ["Ethernet0"], obj=db)
+
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_tunnel_route_expected_port_output
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_tunnel_route_json_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["tunnel-route"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_tunnel_route_expected_output_port_json
+
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    def test_config_muxcable_telemetry_enable_without_patch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["muxcable"].commands["telemetry"], [
+                               "enable"], obj=db)
+        assert result.exit_code == 1
+
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    def test_config_muxcable_telemetry_disable_without_patch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["muxcable"].commands["telemetry"], [
+                               "disable"], obj=db)
+        assert result.exit_code == 1
+
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_configdb_ycable_telemetry_data', mock.MagicMock(return_value=0))
+    def test_config_muxcable_telemetry_enable(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["muxcable"].commands["telemetry"], [
+                               "enable"], obj=db)
+        assert result.exit_code == 0
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
