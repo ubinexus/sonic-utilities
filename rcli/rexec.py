@@ -1,11 +1,9 @@
 import os
 import click
 import paramiko
-import time
 
 from .linecard import Linecard
-from .utils import get_all_linecards, get_password
-from getpass import getpass
+from .utils import get_all_linecards
 
 @click.command()
 @click.argument('linecard_names', nargs=-1, type=str, required=True, autocompletion=get_all_linecards)
