@@ -9,14 +9,15 @@ EMPTY_OUTPUTS = ['', '\x1b[?2004l\r']
 
 class Linecard:
 
-    def __init__(self, linecard_name, username, password_filename=None, use_ssh_keys=False):
+    def __init__(self, linecard_name, username, password=None, password_filename=None, use_ssh_keys=False):
         """
         Initialize Linecard object and store credentials, connection, and channel
         
         :param linecard_name: The name of the linecard you want to connect to
         :param username: The username to use to connect to the linecard
-        :param password_filename: The file containing the password. If not 
-            provided, it will prompt the user for it
+        :param password: The linecard password.
+        :param password_filename: The file containing the password. If password 
+            and password_filename not provided, it will prompt the user for it
         """
         self.ip = get_linecard_ip(linecard_name)
 
@@ -55,7 +56,9 @@ class Linecard:
                 self.ssh_copy_id(password_filename)
 
         else:
-            password = get_password(password_filename, username)
+            password = password if password is not None else get_password(
+                username, password_filename
+            )
             self.connection = paramiko.SSHClient()
             # if ip address not in known_hosts, ignore known_hosts error
             self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -63,7 +66,7 @@ class Linecard:
                 self.connection.connect(self.ip, username=self.username, password=password)
             except paramiko.ssh_exception.NoValidConnectionsError as e:
                 self.connection = None
-                print(e)
+                click.echo(e)
 
     def ssh_copy_id(self, password_filename:str) -> None:
         """
@@ -81,7 +84,7 @@ class Linecard:
         pub_key = open(default_key_path + ".pub", "rt")
         pub_key_contents = pub_key.read()
         pub_key.close()
-        password = get_password(password_filename, self.username)
+        password = get_password(self.username, password_filename)
         self.connection.connect(self.ip, username=self.username, password=password)
         self.connection.exec_command('mkdir ~/.ssh -p \n')
         self.connection.exec_command(

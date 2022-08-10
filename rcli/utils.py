@@ -85,21 +85,24 @@ def get_all_linecards(ctx, args, incomplete):
         data_dict = state_db.get_all(state_db.STATE_DB, key)
         linecard_name = key_list[1].lower().replace("-","")
         linecard_ip = data_dict[CHASSIS_MIDPLANE_INFO_IP_FIELD]
-        
-        linecards.append(linecard_name)
+        access = data_dict[CHASSIS_MIDPLANE_INFO_ACCESS_FIELD]
+
+        if access == "true":
+            linecards.append(linecard_name)
     
     # Return a list of all matched linecards
     return [lc for lc in linecards if incomplete in lc]
 
-def get_password(password_filename: str, username: str) -> str:
+def get_password(username: str, password_filename: str=None) -> str:
     """
     If a password file is provided, read the password from the file, otherwise 
     prompt the user for the password
     
-    :param password_filename: The path to the file containing the password
-    :type password_filename: str
     :param username: The username to use for authentication
     :type username: str
+    :param password_filename: The path to the file containing the password, if 
+        not provided the user will be prompted for password
+    :type password_filename: str
     :return: The password for the username
     """
     if password_filename is None:
@@ -110,4 +113,4 @@ def get_password(password_filename: str, username: str) -> str:
         )
     else:
         with open(os.path.expanduser(password_filename), "r") as file:
-            return file.read()
+            return file.read().replace("\n","")

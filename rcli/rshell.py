@@ -21,7 +21,7 @@ def rshell(linecard_name, use_ssh_keys=False,password_filename=None):
     """
     username = os.getlogin()
     try:
-        lc = Linecard(linecard_name, username, password_filename, use_ssh_keys)
+        lc = Linecard(linecard_name, username, password_filename=password_filename, use_ssh_keys=use_ssh_keys)
         if lc.connection:
             # If connection was created, connection exists. Otherwise, user will see an error message.
             lc.start_shell()

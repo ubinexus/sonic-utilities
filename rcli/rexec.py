@@ -1,9 +1,10 @@
+from getpass import getpass
 import os
 import click
 import paramiko
 
 from .linecard import Linecard
-from .utils import get_all_linecards
+from .utils import get_all_linecards, get_password
 
 @click.command()
 @click.argument('linecard_names', nargs=-1, type=str, required=True, autocompletion=get_all_linecards)
@@ -29,10 +30,11 @@ def rexec(linecard_names, command, use_ssh_keys=False, password_filename=None):
         # Get all linecard names using autocompletion helper
         linecard_names = get_all_linecards(None, None, "")
 
+    password = get_password(username, password_filename)
 
     for linecard_name in linecard_names:
         try:
-            lc = Linecard(linecard_name, username, password_filename, use_ssh_keys)
+            lc = Linecard(linecard_name, username, password=password, use_ssh_keys=use_ssh_keys)
             if lc.connection:
                 # If connection was created, connection exists. Otherwise, user will see an error message.
                 click.echo("======== {} output: ========".format(lc.linecard_name))
