@@ -1637,7 +1637,8 @@ class TestConfigPlatorm(object):
             expected_output = "cisco"
             config.config(ctx)
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["platform"], ['--help'])
+            #result = runner.invoke(config.config.commands["platform"], ['--help'])
+            result = runner.invoke(config.config.commands['--help'])
 
             print(result.exit_code)
             print(result.output)
