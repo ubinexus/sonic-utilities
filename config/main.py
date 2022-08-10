@@ -22,6 +22,7 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
+from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -47,6 +48,7 @@ from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 from . import mclag
+from . import syslog
 
 # mock masic APIs for unit test
 try:
@@ -667,7 +669,7 @@ def is_storm_control_supported(storm_type, namespace):
     supported = state_db.get(state_db.STATE_DB, entry_name,"supported")
     return supported
 
-#API to configure the PORT_STORM_CONTROL table 
+#API to configure the PORT_STORM_CONTROL table
 def storm_control_set_entry(port_name, kbps, storm_type, namespace):
 
     if storm_control_interface_validate(port_name) is False:
@@ -692,7 +694,7 @@ def storm_control_set_entry(port_name, kbps, storm_type, namespace):
 
     return True
 
-#API to remove an entry from PORT_STORM_CONTROL table 
+#API to remove an entry from PORT_STORM_CONTROL table
 def storm_control_delete_entry(port_name, storm_type):
 
     if storm_control_interface_validate(port_name) is False:
@@ -1218,6 +1220,9 @@ config.add_command(mclag.mclag)
 config.add_command(mclag.mclag_member)
 config.add_command(mclag.mclag_unique_ip)
 
+# syslog module
+config.add_command(syslog.syslog)
+
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Existing files will be overwritten, continue?')
@@ -1517,11 +1522,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     # single config_yang file for the multi asic device
     if multi_asic.is_multi_asic() and file_format == 'config_db':
         num_cfg_file += num_asic
-
-    # Remove cached PG drop counters data
-    dropstat_dir_prefix = '/tmp/dropstat'
-    command = "rm -rf {}-*".format(dropstat_dir_prefix)
-    clicommon.run_command(command, display_cmd=True)
 
     # If the user give the filename[s], extract the file names.
     if filename is not None:
@@ -1890,19 +1890,11 @@ def hostname(new_hostname):
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : new_hostname})
-    try:
-        command = "service hostname-config restart"
-        clicommon.run_command(command, display_cmd=True)
-    except SystemExit as e:
-        click.echo("Restarting hostname-config  service failed with error {}".format(e))
-        raise
+    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                        {'hostname': new_hostname})
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
-
-    click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+    click.echo('Please note loaded setting will be lost after system reboot. To'
+               ' preserve setting, run `config save`.')
 
 #
 # 'synchronous_mode' command ('config synchronous_mode ...')
@@ -1928,6 +1920,21 @@ def synchronous_mode(sync_mode):
     Option 2. systemctl restart swss""" % sync_mode)
     else:
         raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
+
+#
+# 'yang_config_validation' command ('config yang_config_validation ...')
+# 
+@config.command('yang_config_validation')
+@click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
+def yang_config_validation(yang_config_validation):
+    # Enable or disable YANG validation on updates to ConfigDB
+    if yang_config_validation == 'enable' or yang_config_validation == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.mod_entry('DEVICE_METADATA', 'localhost', {"yang_config_validation": yang_config_validation})
+        click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
 
 #
 # 'portchannel' group ('config portchannel ...')
@@ -2828,22 +2835,6 @@ def warm_restart_bgp_eoiu(ctx, enable):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
 
-def mvrf_restart_services():
-    """Restart interfaces-config service and NTP service when mvrf is changed"""
-    """
-    When mvrf is enabled, eth0 should be moved to mvrf; when it is disabled,
-    move it back to default vrf. Restarting the "interfaces-config" service
-    will recreate the /etc/network/interfaces file and restart the
-    "networking" service that takes care of the eth0 movement.
-    NTP service should also be restarted to rerun the NTP service with or
-    without "cgexec" accordingly.
-    """
-    cmd="service ntp stop"
-    os.system (cmd)
-    cmd="systemctl restart interfaces-config"
-    os.system (cmd)
-    cmd="service ntp start"
-    os.system (cmd)
 
 def vrf_add_management_vrf(config_db):
     """Enable management vrf in config DB"""
@@ -2853,22 +2844,7 @@ def vrf_add_management_vrf(config_db):
         click.echo("ManagementVRF is already Enabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
-    mvrf_restart_services()
-    """
-    The regular expression for grep in below cmd is to match eth0 line in /proc/net/route, sample file:
-    $ cat /proc/net/route
-        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
-         eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
-    """
-    cmd = r"cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    output = proc.communicate()
-    if int(output[0]) >= 1:
-        cmd="ip -4 route del default dev eth0 metric 202"
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        proc.communicate()
-        if proc.returncode != 0:
-            click.echo("Could not delete eth0 route")
+
 
 def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
@@ -2878,7 +2854,7 @@ def vrf_delete_management_vrf(config_db):
         click.echo("ManagementVRF is already Disabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "false"})
-    mvrf_restart_services()
+
 
 @config.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
@@ -4114,20 +4090,6 @@ def _get_all_mgmtinterface_keys():
     config_db.connect()
     return list(config_db.get_table('MGMT_INTERFACE').keys())
 
-def mgmt_ip_restart_services():
-    """Restart the required services when mgmt inteface IP address is changed"""
-    """
-    Whenever the eth0 IP address is changed, restart the "interfaces-config"
-    service which regenerates the /etc/network/interfaces file and restarts
-    the networking service to make the new/null IP address effective for eth0.
-    "ntp-config" service should also be restarted based on the new
-    eth0 IP address since the ntp.conf (generated from ntp.conf.j2) is
-    made to listen on that particular eth0 IP address or reset it back.
-    """
-    cmd="systemctl restart interfaces-config"
-    os.system (cmd)
-    cmd="systemctl restart ntp-config"
-    os.system (cmd)
 
 #
 # 'mtu' subcommand
@@ -4198,8 +4160,6 @@ def fec(ctx, interface_name, interface_fec, verbose):
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 
-    if interface_fec not in ["rs", "fc", "none"]:
-        ctx.fail("'fec not in ['rs', 'fc', 'none']!")
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
@@ -4275,7 +4235,6 @@ def add(ctx, interface_name, ip_addr, gw):
             config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), {"NULL": "NULL"})
         else:
             config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), {"gwaddr": gw})
-        mgmt_ip_restart_services()
 
         return
 
@@ -4315,7 +4274,6 @@ def remove(ctx, interface_name, ip_addr):
 
     if interface_name == 'eth0':
         config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), None)
-        mgmt_ip_restart_services()
         return
 
     table_name = get_interface_table_name(interface_name)
@@ -4721,6 +4679,67 @@ def transceiver(ctx):
     pass
 
 #
+# 'frequency' subcommand ('config interface transceiver frequency ...')
+#
+@transceiver.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('frequency', metavar='<frequency>', required=True, type=int)
+def frequency(ctx, interface_name, frequency):
+    """Set transciever (only for 400G-ZR) frequency"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    log.log_info("{} Setting transceiver frequency {} GHz".format(interface_name, frequency))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -F {}".format(interface_name, frequency)
+    else:
+        command = "portconfig -p {} -F {} -n {}".format(interface_name, frequency, ctx.obj['namespace'])
+
+    clicommon.run_command(command)
+
+
+#
+# 'tx_power' subcommand ('config interface transceiver tx_power ...')
+# For negative float use:-
+# config interface transceiver tx_power Ethernet0 -- -27.4"
+#
+@transceiver.command('tx_power')
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('tx-power', metavar='<tx-power>', required=True, type=float)
+def tx_power(ctx, interface_name, tx_power):
+    """Set transciever (only for 400G-ZR) Tx laser power"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    log.log_info("{} Setting transceiver power {} dBm".format(interface_name, tx_power))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -P {}".format(interface_name, tx_power)
+    else:
+        command = "portconfig -p {} -P {} -n {}".format(interface_name, tx_power, ctx.obj['namespace'])
+
+    clicommon.run_command(command)
+
+#
 # 'lpmode' subcommand ('config interface transceiver lpmode ...')
 #
 
@@ -5061,6 +5080,12 @@ def del_vrf(ctx, vrf_name):
         ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
+    syslog_table = config_db.get_table("SYSLOG_SERVER")
+    syslog_vrf_dev = "mgmt" if vrf_name == "management" else vrf_name
+    for syslog_entry, syslog_data in syslog_table.items():
+        syslog_vrf = syslog_data.get("vrf")
+        if syslog_vrf == syslog_vrf_dev:
+            ctx.fail("Failed to remove VRF device: {} is in use by SYSLOG_SERVER|{}".format(syslog_vrf, syslog_entry))
     if (vrf_name == 'mgmt' or vrf_name == 'management'):
         vrf_delete_management_vrf(config_db)
     else:
@@ -6086,58 +6111,6 @@ def enable(enable):
     """Administratively Enable ZTP."""
     command = "ztp enable"
     clicommon.run_command(command, display_cmd=True)
-
-#
-# 'syslog' group ('config syslog ...')
-#
-@config.group(cls=clicommon.AbbreviationGroup, name='syslog')
-@click.pass_context
-def syslog_group(ctx):
-    """Syslog server configuration tasks"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {'db': config_db}
-
-@syslog_group.command('add')
-@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
-@click.pass_context
-def add_syslog_server(ctx, syslog_ip_address):
-    """ Add syslog server IP """
-    if not clicommon.is_ipaddress(syslog_ip_address):
-        ctx.fail('Invalid ip address')
-    db = ctx.obj['db']
-    syslog_servers = db.get_table("SYSLOG_SERVER")
-    if syslog_ip_address in syslog_servers:
-        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
-        return
-    else:
-        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
-        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
-        try:
-            click.echo("Restarting rsyslog-config service...")
-            clicommon.run_command("systemctl restart rsyslog-config", display_cmd=False)
-        except SystemExit as e:
-            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
-
-@syslog_group.command('del')
-@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
-@click.pass_context
-def del_syslog_server(ctx, syslog_ip_address):
-    """ Delete syslog server IP """
-    if not clicommon.is_ipaddress(syslog_ip_address):
-        ctx.fail('Invalid IP address')
-    db = ctx.obj['db']
-    syslog_servers = db.get_table("SYSLOG_SERVER")
-    if syslog_ip_address in syslog_servers:
-        db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
-        click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
-    else:
-        ctx.fail("Syslog server {} is not configured.".format(syslog_ip_address))
-    try:
-        click.echo("Restarting rsyslog-config service...")
-        clicommon.run_command("systemctl restart rsyslog-config", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
 
 #
 # 'ntp' group ('config ntp ...')
