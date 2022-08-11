@@ -1176,7 +1176,6 @@ def config(ctx):
     #
     global asic_type
 
-    exit("psss")
     try:
         version_info = device_info.get_sonic_version_info()
         if version_info:
