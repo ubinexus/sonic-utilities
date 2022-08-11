@@ -138,14 +138,12 @@ function clear_boot()
     teardown_control_plane_assistant
 
     #clear_warm_boot
-    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
-        result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
-        debug "Cancel warm-reboot: ${result}"
+    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
+    debug "Cancel warm-reboot: ${result}"
 
-        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-        if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
-            mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
-        fi
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
+        mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
 
     #clear_fast_boot
