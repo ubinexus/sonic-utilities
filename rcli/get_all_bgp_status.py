@@ -6,5 +6,4 @@ child = subprocess.Popen(
 )
 
 output = child.stdout.read().decode()
-
 print(output)

@@ -1,4 +1,3 @@
-from getpass import getpass
 import os
 import click
 import paramiko
@@ -30,7 +29,10 @@ def rexec(linecard_names, command, use_ssh_keys=False, password_filename=None):
         # Get all linecard names using autocompletion helper
         linecard_names = get_all_linecards(None, None, "")
 
-    password = get_password(username, password_filename)
+    if not use_ssh_keys:
+        password = get_password(username, password_filename)
+    else:
+        password = None
 
     for linecard_name in linecard_names:
         try:
