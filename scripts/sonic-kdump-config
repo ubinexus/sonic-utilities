@@ -97,10 +97,11 @@ def get_crash_kernel_size():
 
 ## Search which SONiC image is the Next image
 def get_next_image():
-    (rc, img, err_str) = run_command("sonic-installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
-    if type(img) == list and len(img) == 1:
-        return img[0]
-    print_err("Unable to locate current SONiC image")
+    bootloader = get_bootloader()
+    nextimage = bootloader.get_next_image()
+    if IMAGE_PREFIX in nextimage:
+        return nextimage[len(IMAGE_PREFIX):]
+    print_err("Unable to locate next SONiC image")
     sys.exit(1)
 
 ## Search for Current/Next SONiC image in grub configuration
