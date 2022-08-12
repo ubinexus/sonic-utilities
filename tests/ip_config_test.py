@@ -190,19 +190,6 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
-    def test_intf_vrf_bind_unbind(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
-
-        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "Vrf1"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-
-        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet64"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
