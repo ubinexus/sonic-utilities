@@ -141,6 +141,69 @@ class TestSubinterface(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
 
+    def test_subintf_vrf_bind_unbind(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Ethernet0.102"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Ethernet0.102') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+        assert db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']['admin_status'] == 'up'
+
+        vrf_obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet0.102", "Vrf1"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']['vrf_name']
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet0.102"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Ethernet0.102"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Ethernet0.102') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+        #shut name subintf vrf bind unbind check
+        result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Eth0.1002", "2002"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Eth0.1002') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Eth0.1002", "Vrf1"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth0.1002']['vrf_name']
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth0.1002"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth0.1002']
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Eth0.1002"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Eth0.1002') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+        #Po subintf vrf bind unbind check
+        result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Po0004.1004", "2004"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Po0004.1004') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Po0004.1004", "Vrf1"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Po0004.1004']['vrf_name']
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Po0004.1004"], obj=vrf_obj)
+        assert result.exit_code == 0
+        assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Po0004.1004']
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Po0004.1004"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Po0004.1004') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
