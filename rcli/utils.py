@@ -87,7 +87,7 @@ def get_all_linecards(ctx, args, incomplete):
         linecard_ip = data_dict[CHASSIS_MIDPLANE_INFO_IP_FIELD]
         access = data_dict[CHASSIS_MIDPLANE_INFO_ACCESS_FIELD]
 
-        if access == "true":
+        if access == "True":
             linecards.append(linecard_name)
     
     # Return a list of all matched linecards
