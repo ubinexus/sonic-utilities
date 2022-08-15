@@ -9,7 +9,7 @@ from .utils import get_all_linecards
 @click.argument('linecard_name', type=str, autocompletion=get_all_linecards)
 @click.option('-k','--use-ssh-keys/--no-keys', default=False)
 @click.option('-p','--password-filename', type=str)
-def rshell(linecard_name, use_ssh_keys=False,password_filename=None):
+def cli(linecard_name, use_ssh_keys=False,password_filename=None):
     """
     Open interactive shell for one linecard
     
@@ -30,4 +30,4 @@ def rshell(linecard_name, use_ssh_keys=False,password_filename=None):
 
 
 if __name__=="__main__":
-    rshell(prog_name='rshell')
+    cli(prog_name='rshell')

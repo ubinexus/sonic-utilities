@@ -10,7 +10,7 @@ from .utils import get_all_linecards, get_password
 @click.option('-c', '--command', type=str, required=True)
 @click.option('-k','--use-ssh-keys/--no-keys', default=False)
 @click.option('-p','--password-filename', type=str)
-def rexec(linecard_names, command, use_ssh_keys=False, password_filename=None):
+def cli(linecard_names, command, use_ssh_keys=False, password_filename=None):
     """
     Executes a command on one or many linecards
     
@@ -45,4 +45,4 @@ def rexec(linecard_names, command, use_ssh_keys=False, password_filename=None):
             click.echo("Login failed on '{}' with username '{}'".format(linecard_name, username))
 
 if __name__=="__main__":
-    rexec(prog_name='rexec')
+    cli(prog_name='rexec')
