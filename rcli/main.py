@@ -9,8 +9,10 @@ import click
 @click.command()
 # @click.pass_context
 def cli():
-    """ SONiC command line - 'rcli' command.
+    """
+    SONiC command line - 'rcli' command.
 
-        Usage: rexec LINECARDS -c \"COMMAND\"
-        or rshell LINECARD"""
+    Usage: rexec LINECARDS -c \"COMMAND\"
+    or rshell LINECARD
+    """
     print(cli.__doc__)

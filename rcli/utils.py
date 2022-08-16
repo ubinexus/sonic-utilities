@@ -51,7 +51,7 @@ def get_linecard_ip(linecard_name: str):
     # Not able to find linecard in table
     return None
 
-def get_all_linecards(ctx, args, incomplete):
+def get_all_linecards(ctx, args, incomplete) -> list:
     """
     Return a list of all accessible linecard names. This function is used to 
     autocomplete linecard names in the CLI.
@@ -105,7 +105,7 @@ def get_password_from_file(password_filename: str) -> str:
     with open(os.path.expanduser(password_filename), "r") as file:
         return file.read().replace("\n","")
 
-def get_password(username: str):
+def get_password(username: str) -> str:
     """
     Prompts the user for a password, and returns the password
     

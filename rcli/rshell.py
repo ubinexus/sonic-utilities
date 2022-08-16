@@ -32,7 +32,7 @@ def cli(linecard_name, use_ssh_keys=False,password_filename=None):
         password = get_password(username)
             
     try:
-        lc = Linecard(linecard_name, username, password=password, use_ssh_keys=use_ssh_keys)
+        lc = Linecard(linecard_name, username, password, use_ssh_keys)
         if lc.connection:
             # If connection was created, connection exists. Otherwise, user will see an error message.
             lc.start_shell()

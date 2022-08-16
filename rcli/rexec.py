@@ -39,9 +39,10 @@ def cli(linecard_names, command, use_ssh_keys=False, password_filename=None):
         # Password filename was not provided, read password from user input
         password = get_password(username)
 
+    # Iterate through each linecard, execute command, and gather output
     for linecard_name in linecard_names:
         try:
-            lc = Linecard(linecard_name, username, password=password, use_ssh_keys=use_ssh_keys)
+            lc = Linecard(linecard_name, username, password, use_ssh_keys)
             if lc.connection:
                 # If connection was created, connection exists. Otherwise, user will see an error message.
                 click.echo("======== {} output: ========".format(lc.linecard_name))
