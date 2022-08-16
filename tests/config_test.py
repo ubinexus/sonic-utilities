@@ -1635,8 +1635,10 @@ class TestConfigPlatorm(object):
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
             expected_output = "cisco"
             (config, show) = get_cmd_module
+            db = Db()
             runner = CliRunner()
-            config.config(ctx)
+            obj = {'config_db': db.cfgdb}
+            config.config(obj=obj)
             result = runner.invoke(config.config.commands["platform"], ['--help'])
 
             print(result.exit_code)
