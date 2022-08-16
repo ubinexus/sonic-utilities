@@ -3,7 +3,7 @@ import click
 import paramiko
 
 from .linecard import Linecard
-from .utils import get_all_linecards, get_password
+from .utils import get_all_linecards, get_password, get_password_from_file
 
 @click.command()
 @click.argument('linecard_names', nargs=-1, type=str, required=True, autocompletion=get_all_linecards)
@@ -29,10 +29,15 @@ def cli(linecard_names, command, use_ssh_keys=False, password_filename=None):
         # Get all linecard names using autocompletion helper
         linecard_names = get_all_linecards(None, None, "")
 
-    if not use_ssh_keys:
-        password = get_password(username, password_filename)
+    if use_ssh_keys:
+        # If we want to use ssh keys, check if the user provided a password
+        password = None if not password_filename else get_password_from_file(password_filename)
+    elif password_filename:
+        # Don't use ssh keys and read password from file
+        password = get_password_from_file(password_filename)
     else:
-        password = None
+        # Password filename was not provided, read password from user input
+        password = get_password(username)
 
     for linecard_name in linecard_names:
         try:

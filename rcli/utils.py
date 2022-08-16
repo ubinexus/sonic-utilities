@@ -93,24 +93,28 @@ def get_all_linecards(ctx, args, incomplete):
     # Return a list of all matched linecards
     return [lc for lc in linecards if incomplete in lc]
 
-def get_password(username: str, password_filename: str=None) -> str:
+def get_password_from_file(password_filename: str) -> str:
     """
-    If a password file is provided, read the password from the file, otherwise 
-    prompt the user for the password
+    Read the password from the file and return
     
-    :param username: The username to use for authentication
-    :type username: str
     :param password_filename: The path to the file containing the password, if 
         not provided the user will be prompted for password
     :type password_filename: str
     :return: The password for the username
     """
-    if password_filename is None:
-        return getpass(
-            "Password for username '{}': ".format(username),
-            # Pass in click stdout stream - this is similar to using click.echo
-            stream=click.get_text_stream('stdout')
-        )
-    else:
-        with open(os.path.expanduser(password_filename), "r") as file:
-            return file.read().replace("\n","")
+    with open(os.path.expanduser(password_filename), "r") as file:
+        return file.read().replace("\n","")
+
+def get_password(username: str):
+    """
+    Prompts the user for a password, and returns the password
+    
+    :param username: The username that we want to get the password for
+    :type username: str
+    :return: The password for the username.
+    """
+    return getpass(
+        "Password for username '{}': ".format(username),
+        # Pass in click stdout stream - this is similar to using click.echo
+        stream=click.get_text_stream('stdout')
+    )

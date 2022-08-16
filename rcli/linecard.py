@@ -2,6 +2,7 @@ import click
 import os
 import paramiko
 
+from getpass import getpass
 from .utils import get_linecard_ip, get_password
 from . import interactive
 
@@ -9,15 +10,15 @@ EMPTY_OUTPUTS = ['', '\x1b[?2004l\r']
 
 class Linecard:
 
-    def __init__(self, linecard_name, username, password=None, password_filename=None, use_ssh_keys=False):
+    def __init__(self, linecard_name, username, password=None, use_ssh_keys=False):
         """
         Initialize Linecard object and store credentials, connection, and channel
         
         :param linecard_name: The name of the linecard you want to connect to
         :param username: The username to use to connect to the linecard
-        :param password: The linecard password.
-        :param password_filename: The file containing the password. If password 
-            and password_filename not provided, it will prompt the user for it
+        :param password: The linecard password. If password not provided, it 
+            will prompt the user for it
+        :param use_ssh_keys: Whether or not to use SSH keys to authenticate.
         """
         self.ip = get_linecard_ip(linecard_name)
 
@@ -47,17 +48,23 @@ class Linecard:
                         # If we connected successfully without error, break out of loop
                         connected = True
                         break
-                    except paramiko.SSHException:
-                        pass
+                    except paramiko.ssh_exception.AuthenticationException:
+                        # key didn't work
+                        continue
                 if not connected:
-                    self.ssh_copy_id(password_filename)
+                    # None of the available keys worked, copy new keys over
+                    password = password if password is not None else get_password(username)
+                    self.ssh_copy_id(password)
             else:
                 # host does not trust this client, perform ssh-copy-id
-                self.ssh_copy_id(password_filename)
+                password = password if password is not None else get_password(username)
+                self.ssh_copy_id(password)
 
         else:
-            password = password if password is not None else get_password(
-                username, password_filename
+            password = password if password is not None else getpass(
+                "Password for username '{}': ".format(username),
+                # Pass in click stdout stream - this is similar to using click.echo
+                stream=click.get_text_stream('stdout')
             )
             self.connection = paramiko.SSHClient()
             # if ip address not in known_hosts, ignore known_hosts error
@@ -68,23 +75,23 @@ class Linecard:
                 self.connection = None
                 click.echo(e)
 
-    def ssh_copy_id(self, password_filename:str) -> None:
+    def ssh_copy_id(self, password:str) -> None:
         """
         This function generates a new ssh key, copies it to the remote server, 
         and adds it to the ssh-agent for 15 minutes
         
-        :param password_filename: The name of the file that contains the 
-            password for the user
-        :type password_filename: str
+        :param password: The password for the user
+        :type password: str
         """
         default_key_path = os.path.expanduser(os.path.join("~/",".ssh","id_rsa"))
-        os.system(
-            'ssh-keygen -f {} -N "" > /dev/null'.format(default_key_path)
-        )
+        if not os.path.exists(default_key_path):
+            # If ssh keys don't exist, create them
+            os.system(
+                'ssh-keygen -f {} -N "" > /dev/null'.format(default_key_path)
+            )
         pub_key = open(default_key_path + ".pub", "rt")
         pub_key_contents = pub_key.read()
         pub_key.close()
-        password = get_password(self.username, password_filename)
         self.connection.connect(self.ip, username=self.username, password=password)
         self.connection.exec_command('mkdir ~/.ssh -p \n')
         self.connection.exec_command(

@@ -3,7 +3,7 @@ import click
 import paramiko
 
 from .linecard import Linecard
-from .utils import get_all_linecards
+from .utils import get_all_linecards, get_password, get_password_from_file
 
 @click.command()
 @click.argument('linecard_name', type=str, autocompletion=get_all_linecards)
@@ -20,8 +20,19 @@ def cli(linecard_name, use_ssh_keys=False,password_filename=None):
         user will be prompted for password
     """
     username = os.getlogin()
+
+    if use_ssh_keys:
+        # If we want to use ssh keys, check if the user provided a password
+        password = None if not password_filename else get_password_from_file(password_filename)
+    elif password_filename:
+        # Don't use ssh keys and read password from file
+        password = get_password_from_file(password_filename)
+    else:
+        # Password filename was not provided, read password from user input
+        password = get_password(username)
+            
     try:
-        lc = Linecard(linecard_name, username, password_filename=password_filename, use_ssh_keys=use_ssh_keys)
+        lc = Linecard(linecard_name, username, password=password, use_ssh_keys=use_ssh_keys)
         if lc.connection:
             # If connection was created, connection exists. Otherwise, user will see an error message.
             lc.start_shell()
