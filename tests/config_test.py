@@ -1629,15 +1629,15 @@ class TestConfigPlatorm(object):
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
-        import config.main
-        importlib.reload(config.main)
+        #import config.main
+        #importlib.reload(config.main)
 
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
             expected_output = "cisco"
             (config, show) = get_cmd_module
             runner = CliRunner()
-            #result = runner.invoke(config.config.commands["platform"], ['--help'])
-            result = runner.invoke(config.config.commands['--help'])
+            config.config(ctx)
+            result = runner.invoke(config.config.commands["platform"], ['--help'])
 
             print(result.exit_code)
             print(result.output)
