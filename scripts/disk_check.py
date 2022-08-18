@@ -68,7 +68,7 @@ def log_debug(m):
 def event_pub():
     param_dict = FieldValueMap()
     param_dict["fail_type"] = "read_only"
-    rc = event_publish(events_handle, EVENTS_PUBLISHER_TAG, param_dict)
+    event_publish(events_handle, EVENTS_PUBLISHER_TAG, param_dict)
 
 
 def test_writable(dirs): 
