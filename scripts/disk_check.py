@@ -35,7 +35,6 @@ import syslog
 import subprocess
 from swsscommon.swsscommon import events_init_publisher, events_deinit_publisher, event_publish
 from swsscommon.swsscommon import Logger, FieldValueMap
-from sonic_py_common import logger
 
 UPPER_DIR = "/run/mount/upper"
 WORK_DIR = "/run/mount/work"
