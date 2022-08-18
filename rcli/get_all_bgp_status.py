@@ -1,9 +1,8 @@
-import subprocess
+from click.testing import CliRunner
+from rcli import rexec
 
-child = subprocess.Popen(
-    ['rexec','all','-c','show ip bgp summary','-p','password.txt'], 
-    stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-)
+runner = CliRunner()
 
-output = child.stdout.read().decode()
-print(output)
+result = runner.invoke(rexec.cli,  ["all", "-c", "show ip bgp summary", "-p","password.txt"])
+
+print(result.output.strip("\n"))
