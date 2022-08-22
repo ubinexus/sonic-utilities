@@ -22,7 +22,7 @@ sonic-db-cli APPL_DB hmset "NEIGH_TABLE:Vlan1000:fc02:1000::99" "neigh" "00:00:0
 sonic-db-cli ASIC_DB hmset 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY:{"dest":"fc02:1000::99/128","switch_id":"oid:0x21000000000000","vr":"oid:0x300000000007c"}' "SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID" "oid:0x400000000167d" "SAI_ROUTE_ENTRY_ATTR_PACKET_ACTION" "SAI_PACKET_ACTION_FORWARD" > /dev/null
 
 echo "------"
-echo "expect success!"
+echo "expect success on dualtor, expect error on all other devices!"
 echo "Running Route Check..."
 ./route_check.py
 echo "return value: $?"

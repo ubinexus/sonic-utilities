@@ -451,8 +451,16 @@ def filter_out_vnet_routes(routes):
 
 
 def filter_out_standalone_tunnel_routes(routes):
-    db = swsscommon.DBConnector('APPL_DB', 0)
-    neigh_table = swsscommon.Table(db, 'NEIGH_TABLE')
+    config_db = swsscommon.ConfigDBConnector()
+    config_db.connect()
+    device_metadata = config_db.get_table('DEVICE_METADATA')
+    subtype = device_metadata['localhost'].get('subtype', '')
+
+    if subtype.lower() != 'dualtor':
+        return routes
+
+    app_db = swsscommon.DBConnector('APPL_DB', 0)
+    neigh_table = swsscommon.Table(app_db, 'NEIGH_TABLE')
     neigh_keys = neigh_table.getKeys()
     standalone_tunnel_route_ips = []
     updated_routes = []
