@@ -450,6 +450,34 @@ def filter_out_vnet_routes(routes):
     return updated_routes
 
 
+def filter_out_standalone_tunnel_routes(routes):
+    db = swsscommon.DBConnector('APPL_DB', 0)
+    neigh_table = swsscommon.Table(db, 'NEIGH_TABLE')
+    neigh_keys = neigh_table.getKeys()
+    standalone_tunnel_route_ips = []
+    updated_routes = []
+
+    for neigh in neigh_keys:
+        _, mac = neigh_table.hget(neigh, 'neigh')
+        if mac == '00:00:00:00:00:00':
+            # remove preceding 'VlanXXXX' to get just the neighbor IP
+            neigh_ip = ':'.join(neigh.split(':')[1:])
+            standalone_tunnel_route_ips.append(neigh_ip)
+
+    for route in routes:
+        ip, subnet = route.split('/')
+        ip_version = ipaddress.ip_address(ip).version
+
+        # we want to keep the route if it is not a standalone tunnel route.
+        # if the route subnet contains more than one address, it is not a
+        # standalone tunnel route
+        if (ip not in standalone_tunnel_route_ips) or \
+           ((ip_version == 6 and subnet != '128') or (ip_version == 4 and subnet != '32')):
+            updated_routes.append(route)
+
+    return updated_routes
+
+
 def check_routes():
     """
     The heart of this script which runs the checks.
@@ -486,6 +514,7 @@ def check_routes():
     _, rt_asic_miss = diff_sorted_lists(intf_appl, rt_asic_miss)
     rt_asic_miss = filter_out_default_routes(rt_asic_miss)
     rt_asic_miss = filter_out_vnet_routes(rt_asic_miss)
+    rt_asic_miss = filter_out_standalone_tunnel_routes(rt_asic_miss)
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
