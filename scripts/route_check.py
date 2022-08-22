@@ -472,6 +472,9 @@ def filter_out_standalone_tunnel_routes(routes):
             neigh_ip = ':'.join(neigh.split(':')[1:])
             standalone_tunnel_route_ips.append(neigh_ip)
 
+    if not standalone_tunnel_route_ips:
+        return routes
+
     for route in routes:
         ip, subnet = route.split('/')
         ip_version = ipaddress.ip_address(ip).version
