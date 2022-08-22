@@ -717,17 +717,10 @@ class DBMigrator():
             if 'pfc_enable' in v:
                 v['pfcwd_sw_enable'] = v['pfc_enable']
                 self.configDB.set_entry('PORT_QOS_MAP', k, v)
-<<<<<<< HEAD
         self.set_version('version_3_0_5')
         return 'version_3_0_5'
 
     def version_3_0_5(self):
-=======
-        self.set_version('version_2_0_5')
-        return 'version_2_0_5'
-
-    def version_2_0_5(self):
->>>>>>> update
         """
         Version 3_0_5
         """
@@ -749,15 +742,9 @@ class DBMigrator():
                         logoutput = key[logoutput_field]
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-<<<<<<< HEAD
                     self.loglevelDB.del(self.loglevelDB.LOGLEVEL_DB, key)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
-=======
-                    self.loglevelDB.del_table(self.loglevelDB.LOGLEVEL_DB, key)
-        self.set_version('version_2_0_6')
-        return 'version_2_0_6'
->>>>>>> update
 
 
     def version_3_0_6(self):
