@@ -495,9 +495,15 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_dom_all_output
 
-    def test_is_rj45_port(self):
+    def test_is_rj45_port_sad(self):
         import utilities_common.platform_sfputil_helper as platform_sfputil_helper
+        from sonic_py_common.interface import front_panel_prefix, SONIC_INTERFACE_PREFIXES
+
         platform_sfputil_helper.platform_chassis = None
+
+        for _, prefix in SONIC_INTERFACE_PREFIXES.items():
+            assert prefix == front_panel_prefix() or not platform_sfputil_helper.is_rj45_port(prefix + '0')
+
         if 'sonic_platform' in sys.modules:
             sys.modules.pop('sonic_platform')
         assert platform_sfputil_helper.is_rj45_port("Ethernet0") == False

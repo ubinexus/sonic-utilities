@@ -4,6 +4,7 @@ import click
 
 from . import cli as clicommon
 from sonic_py_common import multi_asic, device_info
+from sonic_py_common.interface import front_panel_prefix, SONIC_INTERFACE_PREFIXES
 
 platform_sfputil = None
 platform_chassis = None
@@ -110,6 +111,12 @@ def is_rj45_port(port_name):
     global platform_chassis
     global platform_sfp_base
     global platform_sfputil_loaded
+
+    if not port_name or not port_name.startswith(front_panel_prefix()):
+        return False
+    for _, prefix in SONIC_INTERFACE_PREFIXES.items():
+        if prefix != front_panel_prefix() and port_name.startswith(prefix):
+            return False
 
     try:
         if not platform_chassis:
