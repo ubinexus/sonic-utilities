@@ -742,7 +742,7 @@ class DBMigrator():
                         logoutput = key[logoutput_field]
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                    self.loglevelDB.del(self.loglevelDB.LOGLEVEL_DB, key)
+                    self.loglevelDB.del_table(self.loglevelDB.LOGLEVEL_DB, key)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
