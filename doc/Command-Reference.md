@@ -2,190 +2,168 @@
 
 ## Table of Contents
 
-* [Document History](#document-history)
-* [Introduction](#introduction)
-* [Basic Tasks](#basic-tasks)
-  * [SSH Login](#ssh-login)
-  * [Show Management Interface](#show-management-interface)
-  * [Configuring Management Interface](#configuring-management-interface)
-* [Getting Help](#getting-help)
-  * [Help for Config Commands](#help-for-config-commands)
-  * [Help for Show Commands](#help-for-show-commands)
-* [Basic Show Commands](#basic-show-commands)
-  * [Show Versions](#show-versions)
-  * [Show System Status](#show-system-status)
-  * [Show Hardware Platform](#show-hardware-platform)
-    * [Transceivers](#transceivers)
-* [AAA & TACACS+](#aaa--tacacs)
-  * [AAA](#aaa)
-    * [AAA show commands](#aaa-show-commands)
-    * [AAA config commands](#aaa-config-commands)
-  * [TACACS+](#tacacs)
-    * [TACACS+ show commands](#tacacs-show-commands)
-    * [TACACS+ config commands](#tacacs-config-commands)
-* [ACL](#acl)
-  * [ACL show commands](#acl-show-commands)
-  * [ACL config commands](#acl-config-commands)
-* [ARP & NDP](#arp--ndp)
-  * [ARP show commands](#arp-show-commands)
-  * [NDP show commands](#ndp-show-commands)
-* [BFD](#bfd)
-  * [BFD show commands](#bfd-show-commands)
-* [BGP](#bgp)
-  * [BGP show commands](#bgp-show-commands)
-  * [BGP config commands](#bgp-config-commands)
-* [Console](#console)
-  * [Console show commands](#console-show-commands)
-  * [Console config commands](#console-config-commands)
-  * [Console connect commands](#console-connect-commands)
-  * [Console clear commands](#console-clear-commands)
-* [DHCP Relay](#dhcp-relay)
-  * [DHCP Relay config commands](#dhcp-relay-config-commands)
-* [Drop Counters](#drop-counters)
-  * [Drop Counter show commands](#drop-counters-show-commands)
-  * [Drop Counter config commands](#drop-counters-config-commands)
-  * [Drop Counter clear commands](#drop-counters-clear-commands)
-* [Dynamic Buffer Management](#dynamic-buffer-management)
-  * [Configuration commands](#configuration-commands)
-  * [Show commands](#show-commands)
-* [ECN](#ecn)
-  * [ECN show commands](#ecn-show-commands)
-  * [ECN config commands](#ecn-config-commands)
-* [Feature](#feature)
-  * [Feature show commands](#feature-show-commands)
-  * [Feature config commands](#feature-config-commands)
-* [Flow Counters](#flow-counters)
-  * [Flow Counters show commands](#flow-counters-show-commands)
-  * [Flow Counters clear commands](#flow-counters-clear-commands)
-  * [Flow Counters config commands](#flow-counters-config-commands)
-* [Gearbox](#gearbox)
-  * [Gearbox show commands](#gearbox-show-commands)
-* [Interfaces](#interfaces)
-  * [Interface Show Commands](#interface-show-commands)
-  * [Interface Config Commands](#interface-config-commands)
-* [Interface Naming Mode](#interface-naming-mode)
-  * [Interface naming mode show commands](#interface-naming-mode-show-commands)
-  * [Interface naming mode config commands](#interface-naming-mode-config-commands)
- * [Interface Vrf binding](#interface-vrf-binding)
-      * [Interface vrf bind & unbind config commands](#interface-vrf-bind-&-unbind-config-commands)
-      * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
-* [IP / IPv6](#ip--ipv6)
-  * [IP show commands](#ip-show-commands)
-  * [IPv6 show commands](#ipv6-show-commands)
-* [IPv6 Link Local](#ipv6-link-local)
-  * [IPv6 Link Local config commands](#ipv6-link-local-config-commands)
-  * [IPv6 Link Local show commands](#ipv6-link-local-show-commands)
-* [Kubernetes](#Kubernetes)
-  * [Kubernetes show commands](#Kubernetes-show-commands)
-  * [Kubernetes config commands](#Kubernetes-config-commands)
-* [Linux Kernel Dump](#kdump)
-  * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
-  * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-command)
-* [LLDP](#lldp)
-  * [LLDP show commands](#lldp-show-commands)
-* [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
-  * [Loading configuration from JSON file](#loading-configuration-from-json-file)
-  * [Loading configuration from minigraph (XML) file](#loading-configuration-from-minigraph-xml-file)
-  * [Reloading Configuration](#reloading-configuration)
-  * [Loading Management Configuration](#loading-management-configuration)
-  * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
- * [Loopback Interfaces](#loopback-interfaces)
-    * [Loopback show commands](#loopback-show-commands)
-    * [Loopback config commands](#loopback-config-commands)
-* [VRF Configuration](#vrf-configuration)
-    * [VRF show commands](#vrf-show-commands)
-    * [VRF config commands](#vrf-config-commands)
-* [Management VRF](#Management-VRF)
-  * [Management VRF Show commands](#management-vrf-show-commands)
-  * [Management VRF Config commands](#management-vrf-config-commands)
-* [Mirroring](#mirroring)
-  * [Mirroring Show commands](#mirroring-show-commands)
-  * [Mirroring Config commands](#mirroring-config-commands)
-* [Muxcable](#muxcable)
-  * [Muxcable Show commands](#muxcable-show-commands)
-  * [Muxcable Config commands](#muxcable-config-commands)
-* [NAT](#nat)
-  * [NAT Show commands](#nat-show-commands)
-  * [NAT Config commands](#nat-config-commands)
-  * [NAT Clear commands](#nat-clear-commands)
-* [NTP](#ntp)
-  * [NTP show commands](#ntp-show-commands)
-  * [NTP config commands](#ntp-config-commands)
-* [NVGRE](#nvgre)
-  * [NVGRE show commands](#nvgre-show-commands)
-  * [NVGRE config commands](#nvgre-config-commands)
-* [PBH](#pbh)
-  * [PBH show commands](#pbh-show-commands)
-  * [PBH config commands](#pbh-config-commands)
-* [PFC Watchdog Commands](#pfc-watchdog-commands)
-* [Platform Component Firmware](#platform-component-firmware)
-  * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
-  * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
-  * [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
-* [Platform Specific Commands](#platform-specific-commands)
-  * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
-  * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
-* [PortChannels](#portchannels)
-  * [PortChannel Show commands](#portchannel-show-commands)
-  * [PortChannel Config commands](#portchannel-config-commands)
-* [QoS](#qos)
-  * [QoS Show commands](#qos-show-commands)
-    * [PFC](#pfc)
-    * [Queue And Priority-Group](#queue-and-priority-group)
-    * [Buffer Pool](#buffer-pool)
-  * [QoS config commands](#qos-config-commands)
-* [Radius](#radius)
-  * [radius show commands](#show-radius-commands)
-  * [radius config commands](#Radius-config-commands)  
-* [sFlow](#sflow)
-  * [sFlow Show commands](#sflow-show-commands)
-  * [sFlow Config commands](#sflow-config-commands)
-* [SNMP](#snmp)
-  * [SNMP Show commands](#snmp-show-commands)
-  * [SNMP Config commands](#snmp-config-commands)
-* [Startup & Running Configuration](#startup--running-configuration)
-  * [Startup Configuration](#startup-configuration)
-  * [Running Configuration](#running-configuration)
-* [Static routing](#static-routing)
-* [Subinterfaces](#subinterfaces)
-  * [Subinterfaces Show Commands](#subinterfaces-show-commands)
-  * [Subinterfaces Config Commands](#subinterfaces-config-commands)
-* [Syslog](#syslog)
-  * [Syslog show commands](#syslog-show-commands)
-  * [Syslog config commands](#syslog-config-commands)
-* [System State](#system-state)
-  * [Processes](#processes)
-  * [Services & Memory](#services--memory)
-* [System-Health](#System-Health)
-* [VLAN & FDB](#vlan--fdb)
-  * [VLAN](#vlan)
-    * [VLAN show commands](#vlan-show-commands)
-    * [VLAN Config commands](#vlan-config-commands)
-  * [FDB](#fdb)
-    * [FDB show commands](#fdb-show-commands)
-* [VxLAN & Vnet](#vxlan--vnet)
-  * [VxLAN](#vxlan)
-    * [VxLAN show commands](#vxlan-show-commands)
-  * [Vnet](#vnet)
-    * [Vnet show commands](#vnet-show-commands)
-* [Warm Reboot](#warm-reboot)
-* [Warm Restart](#warm-restart)
-  * [Warm Restart show commands](#warm-restart-show-commands)
-  * [Warm Restart Config commands](#warm-restart-config-commands)
-* [Watermark](#watermark)
-  * [Watermark Show commands](#watermark-show-commands)
-  * [Watermark Config commands](#watermark-config-commands)
-* [Software Installation and Management](#software-installation-and-management)
-  * [SONiC Package Manager](#sonic-package-manager)
-  * [SONiC Installer](#sonic-installer)
-* [Troubleshooting Commands](#troubleshooting-commands)
-  * [Debug Dumps](#debug-dumps)
-  * [Event Driven Techsupport Invocation](#event-driven-techsupport-invocation)
-* [Routing Stack](#routing-stack)
-* [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
-* [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
-  * [ ZTP show commands](#ztp-show-commands)
-  * [ZTP configuration commands](#ztp-configuration-commands)
+- [SONiC Command Line Interface Guide](#sonic-command-line-interface-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Document History](#document-history)
+  - [Introduction](#introduction)
+  - [Basic Tasks](#basic-tasks)
+    - [SSH Login](#ssh-login)
+    - [Show Management Interface](#show-management-interface)
+    - [Configuring Management Interface](#configuring-management-interface)
+  - [Getting Help](#getting-help)
+    - [Help for Config Commands](#help-for-config-commands)
+    - [Help For Show Commands](#help-for-show-commands)
+  - [Basic Show Commands](#basic-show-commands)
+    - [Show Versions](#show-versions)
+    - [Show System Status](#show-system-status)
+    - [Show Hardware Platform](#show-hardware-platform)
+      - [Transceivers](#transceivers)
+  - [AAA & TACACS+](#aaa--tacacs)
+    - [AAA](#aaa)
+      - [AAA show commands](#aaa-show-commands)
+      - [AAA config commands](#aaa-config-commands)
+    - [TACACS+](#tacacs)
+      - [TACACS+ show commands](#tacacs-show-commands)
+      - [TACACS+ config commands](#tacacs-config-commands)
+  - [ACL](#acl)
+    - [ACL show commands](#acl-show-commands)
+    - [ACL config commands](#acl-config-commands)
+  - [ARP & NDP](#arp--ndp)
+    - [ARP show commands](#arp-show-commands)
+    - [NDP show commands](#ndp-show-commands)
+  - [BFD](#bfd)
+    - [BFD show commands](#bfd-show-commands)
+  - [BGP](#bgp)
+    - [BGP show commands](#bgp-show-commands)
+    - [BGP config commands](#bgp-config-commands)
+  - [Console](#console)
+    - [Console show commands](#console-show-commands)
+  - [Console config commands](#console-config-commands)
+    - [Console connect commands](#console-connect-commands)
+    - [Console clear commands](#console-clear-commands)
+  - [DHCP Relay](#dhcp-relay)
+    - [DHCP Relay config commands](#dhcp-relay-config-commands)
+  - [Drop Counters](#drop-counters)
+    - [Drop Counters show commands](#drop-counters-show-commands)
+    - [Drop Counters config commands](#drop-counters-config-commands)
+    - [Drop Counters clear commands](#drop-counters-clear-commands)
+  - [Dynamic Buffer Management](#dynamic-buffer-management)
+    - [Configuration commands](#configuration-commands)
+    - [Show commands](#show-commands)
+  - [ECN](#ecn)
+    - [ECN show commands](#ecn-show-commands)
+    - [ECN config commands](#ecn-config-commands)
+  - [Feature](#feature)
+    - [Feature show commands](#feature-show-commands)
+    - [Feature config commands](#feature-config-commands)
+  - [Flow Counters](#flow-counters)
+    - [Flow Counters show commands](#flow-counters-show-commands)
+    - [Flow Counters clear commands](#flow-counters-clear-commands)
+    - [Flow Counters config commands](#flow-counters-config-commands)
+  - [Gearbox](#gearbox)
+    - [Gearbox show commands](#gearbox-show-commands)
+  - [Update Device Hostname Configuration Commands](#update-device-hostname-configuration-commands)
+  - [Interfaces](#interfaces)
+    - [Interface Show Commands](#interface-show-commands)
+    - [Interface Config Commands](#interface-config-commands)
+  - [Interface Naming Mode](#interface-naming-mode)
+    - [Interface naming mode show commands](#interface-naming-mode-show-commands)
+    - [Interface naming mode config commands](#interface-naming-mode-config-commands)
+  - [Interface Vrf binding](#interface-vrf-binding)
+    - [Interface vrf bind & unbind config commands](#interface-vrf-bind--unbind-config-commands)
+    - [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
+  - [IP / IPv6](#ip--ipv6)
+    - [IP show commands](#ip-show-commands)
+      - [show ip route](#show-ip-route)
+  - [Protocol    : route-map](#protocol-----route-map)
+  - [Protocol    : route-map](#protocol-----route-map-1)
+  - [eth0         swtor-b2lab2-1610  GigabitEthernet 0/2  OBR](#eth0---------swtor-b2lab2-1610--gigabitethernet-02--obr)
+  - [admin@sonic:~$ show lldp neighbors](#adminsonic-show-lldp-neighbors)
+  - [LLDP neighbors:](#lldp-neighbors)
+  - [show lldp neighbors Ethernet112](#show-lldp-neighbors-ethernet112)
+  - [LLDP neighbors:](#lldp-neighbors-1)
+    - [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
+    - [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
+      - [Mellanox](#mellanox)
+  - [Platform Specific Commands](#platform-specific-commands)
+    - [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
+    - [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
+  - [PortChannels](#portchannels)
+    - [PortChannel Show commands](#portchannel-show-commands)
+    - [PortChannel Config commands](#portchannel-config-commands)
+  - [NVGRE](#nvgre)
+    - [NVGRE show commands](#nvgre-show-commands)
+    - [NVGRE config commands](#nvgre-config-commands)
+  - [PBH](#pbh)
+    - [PBH show commands](#pbh-show-commands)
+    - [PBH config commands](#pbh-config-commands)
+  - [QoS](#qos)
+    - [QoS Show commands](#qos-show-commands)
+      - [PFC](#pfc)
+      - [Queue And Priority-Group](#queue-and-priority-group)
+      - [Buffer Pool](#buffer-pool)
+    - [QoS config commands](#qos-config-commands)
+  - [Radius](#radius)
+    - [show radius commands](#show-radius-commands)
+    - [Radius config commands](#radius-config-commands)
+  - [sFlow](#sflow)
+    - [sFlow Show commands](#sflow-show-commands)
+    - [sFlow Config commands](#sflow-config-commands)
+  - [SNMP](#snmp)
+    - [SNMP Show commands](#snmp-show-commands)
+    - [SNMP Config commands](#snmp-config-commands)
+  - [Startup & Running Configuration](#startup--running-configuration)
+    - [Startup Configuration](#startup-configuration)
+    - [Running Configuration](#running-configuration)
+  - [Static routing](#static-routing)
+    - [Static routing Config Commands](#static-routing-config-commands)
+  - [Subinterfaces](#subinterfaces)
+    - [Subinterfaces Show Commands](#subinterfaces-show-commands)
+    - [Subinterfaces Config Commands](#subinterfaces-config-commands)
+  - [Syslog](#syslog)
+    - [Syslog Show Commands](#syslog-show-commands)
+    - [Syslog Config Commands](#syslog-config-commands)
+  - [System State](#system-state)
+    - [Processes](#processes)
+    - [Services & Memory](#services--memory)
+    - [System-Health](#system-health)
+  - [VLAN & FDB](#vlan--fdb)
+    - [VLAN](#vlan)
+      - [VLAN show commands](#vlan-show-commands)
+      - [VLAN Config commands](#vlan-config-commands)
+    - [FDB](#fdb)
+      - [FDB show commands](#fdb-show-commands)
+  - [VxLAN & Vnet](#vxlan--vnet)
+    - [VxLAN](#vxlan)
+      - [VxLAN show commands](#vxlan-show-commands)
+    - [Vnet](#vnet)
+      - [Vnet show commands](#vnet-show-commands)
+  - [Warm Reboot](#warm-reboot)
+  - [Warm Restart](#warm-restart)
+    - [Warm Restart show commands](#warm-restart-show-commands)
+    - [Warm Restart Config commands](#warm-restart-config-commands)
+  - [Watermark](#watermark)
+    - [Watermark Show commands](#watermark-show-commands)
+    - [Watermark Config commands](#watermark-config-commands)
+  - [Software Installation and Management](#software-installation-and-management)
+    - [SONiC Package Manager](#sonic-package-manager)
+    - [SONiC Installer](#sonic-installer)
+  - [Troubleshooting Commands](#troubleshooting-commands)
+    - [Debug Dumps](#debug-dumps)
+    - [Event Driven Techsupport Invocation](#event-driven-techsupport-invocation)
+      - [config auto-techsupport global commands](#config-auto-techsupport-global-commands)
+      - [config auto-techsupport-feature commands](#config-auto-techsupport-feature-commands)
+      - [Show CLI:](#show-cli)
+  - [Routing Stack](#routing-stack)
+  - [Quagga BGP Show Commands](#quagga-bgp-show-commands)
+- [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
+  - [ZTP show commands](#ztp-show-commands)
+  - [ZTP configuration commands](#ztp-configuration-commands)
+- [MACsec Commands](#macsec-commands)
+  - [MACsec config command](#macsec-config-command)
+  - [MACsec show command](#macsec-show-command)
+  - [MACsec clear command](#macsec-clear-command)
+
 
 ## Document History
 
@@ -11022,3 +11000,240 @@ Running command: ztp run -y
 ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
+
+# MACsec Commands
+
+This sub-section explains the list of the configuration options available for MACsec. MACsec feature is as a plugin to SONiC, So please install MACsec package before using MACsec commands.
+
+## MACsec config command
+
+- Add MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile add --help
+Usage: config macsec profile add [OPTIONS] <profile_name>
+
+  Add MACsec profile
+
+Options:
+  --priority <priority>           For Key server election. In 0-255 range with
+                                  0 being the highest priority.  [default:
+                                  255]
+  --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
+                                  AES-128]
+  --primary_cak <primary_cak>     Primary Connectivity Association Key.
+                                  [required]
+  --primary_ckn <primary_cak>     Primary CAK Name.  [required]
+  --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
+                                  except EAPOL, will be converted to MACsec
+                                  packets without encryption.  SECURITY: All
+                                  traffic, except EAPOL, will be encrypted by
+                                  SecY.  [default: security]
+  --enable_replay_protect / --disable_replay_protect
+                                  Whether enable replay protect.  [default:
+                                  False]
+  --replay_window <enable_replay_protect>
+                                  Replay window size that is the number of
+                                  packets that could be out of order. This
+                                  field works only if ENABLE_REPLAY_PROTECT is
+                                  true.  [default: 0]
+  --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
+                                  [default: True]
+  --rekey_period <rekey_period>   The period of proactively refresh (Unit
+                                  second).  [default: 0]
+  -?, -h, --help                  Show this message and exit.
+```
+
+- Delete MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile del --help
+Usage: config macsec profile del [OPTIONS] <profile_name>
+
+  Delete MACsec profile
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Enable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port add --help
+Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
+
+  Add MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+
+- Disable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port del --help
+Usage: config macsec port del [OPTIONS] <port_name>
+
+  Delete MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+
+```
+
+
+## MACsec show command
+
+- Show MACsec
+
+```
+admin@vlab-02:~$ show macsec --help
+Usage: show macsec [OPTIONS] [INTERFACE_NAME]
+
+Options:
+  -d, --display [all]  Show internal interfaces  [default: all]
+  -n, --namespace []   Namespace name or all
+  -h, -?, --help       Show this message and exit.
+
+```
+
+```
+admin@vlab-02:~$ show macsec
+MACsec port(Ethernet0)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  2
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
+		next_pn                                1
+		sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+		MACsec Egress SA (2)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               5A8B8912139551D3678B43DD0F10FFA5
+		next_pn                                1
+		sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
+		lowest_acceptable_pn                     1
+		sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+		MACsec Ingress SA (2)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
+		lowest_acceptable_pn                     1
+		sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+MACsec port(Ethernet1)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  1
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
+		next_pn                                1
+		sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
+		lowest_acceptable_pn                     1
+		sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+```
+
+## MACsec clear command
+
+Clear MACsec counters which is to reset all MACsec counters to ZERO.
+
+```
+sonic-clear macsec
+```
+
+
+
