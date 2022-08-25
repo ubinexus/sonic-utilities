@@ -333,7 +333,7 @@ test_data = {
             },
             ASIC_DB: {
                 RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99/128" + RT_ENTRY_KEY_SUFFIX: {},
                 }
             }
         }
@@ -418,6 +418,11 @@ class Table:
     def get(self, key):
         ret = copy.deepcopy(self.data.get(key, {}))
         return (True, ret)
+
+
+    def hget(self, key, field):
+        ret = copy.deepcopy(self.data.get(key, {}).get(field, {}))
+        return True, ret
 
 
 db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB}
