@@ -100,7 +100,7 @@ def status(index):
         power = 'N/A'
         led_color = 'N/A'
         power_critical_threshold = 'N/A'
-        power_threshold = 'N/A'
+        power_warning_threshold = 'N/A'
 
         if psu.get_presence():
             try:
@@ -109,13 +109,13 @@ def status(index):
                     power = psu.get_power()
                     try:
                         power_critical_threshold = psu.get_psu_power_critical_threshold()
-                        power_threshold = psu.get_psu_power_warning_threshold()
+                        power_warning_threshold = psu.get_psu_power_warning_threshold()
                     except NotImplementedError:
                         pass
                     if power_critical_threshold is None:
                         power_critical_threshold = 'N/A'
-                    if power_threshold is None:
-                        power_threshold = 'N/A'
+                    if power_warning_threshold is None:
+                        power_warning_threshold = 'N/A'
                     status = 'OK'
             except NotImplementedError:
                 status = 'UNKNOWN'
@@ -155,7 +155,7 @@ def status(index):
             except NotImplementedError:
                 pass
 
-        status_table.append([psu_name, model, serial, revision, voltage, current, power, power_threshold, power_critical_threshold, status, led_color])
+        status_table.append([psu_name, model, serial, revision, voltage, current, power, power_warning_threshold, power_critical_threshold, status, led_color])
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt='simple', floatfmt='.2f'))
