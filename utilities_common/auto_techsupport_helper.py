@@ -68,11 +68,14 @@ EVENT_TYPE_MEMORY = "memory"
 
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
+TS_GLOBAL_TIMEOUT = "60"
 
 # Explicity Pass this to the subprocess invoking techsupport
 ENV_VAR = os.environ
-PATH_PREV = ENV_VAR["PATH"] if "PATH" in ENV_VAR else ""
-ENV_VAR["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:" + PATH_PREV
+if ('CROSS_BUILD_ENVIRON' not in ENV_VAR) or (ENV_VAR['CROSS_BUILD_ENVIRON'] != 'y'):
+	# Add native system directories to PATH variable only if it is not cross-compilation build 
+	PATH_PREV = ENV_VAR["PATH"] if "PATH" in ENV_VAR else ""
+	ENV_VAR["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:" + PATH_PREV
 
 # Techsupport Exit Codes
 EXT_LOCKFAIL = 2
@@ -229,8 +232,7 @@ def parse_ts_dump_name(ts_stdout):
 def invoke_ts_cmd(db, num_retry=0):
     """Invoke techsupport generation command"""
     since_cfg = get_since_arg(db)
-    since_cfg = "'" + since_cfg + "'"
-    cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
+    cmd_opts = ["show", "techsupport", "--silent", "--global-timeout", TS_GLOBAL_TIMEOUT, "--since", since_cfg]
     cmd  = " ".join(cmd_opts)
     rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
     new_dump = ""
@@ -257,7 +259,7 @@ def get_ts_map(db):
     ts_map = {}
     ts_keys = db.keys(STATE_DB, TS_MAP+"*")
     if not ts_keys:
-        return
+        return ts_map
     for ts_key in ts_keys:
         data = db.get_all(STATE_DB, ts_key)
         if not data:

@@ -134,7 +134,7 @@ def get_docker_tag_name(image):
 
 
 def echo_and_log(msg, priority=LOG_NOTICE, fg=None):
-    if priority >= LOG_ERR:
+    if priority == LOG_ERR:
         # Print to stderr if priority is error
         click.secho(msg, fg=fg, err=True)
     else:
@@ -272,7 +272,7 @@ def update_sonic_environment(bootloader, binary_image_version):
     SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
     SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
 
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
     env_dir = os.path.join(new_image_dir, "sonic-config")
@@ -327,7 +327,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     tmp_dir = "tmp"
     packages_file = "packages.json"
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
     new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)
@@ -637,6 +637,38 @@ def set_next_boot(image):
         sys.exit(1)
     bootloader.set_next_image(image)
 
+# Set fips for image
+@sonic_installer.command('set-fips')
+@click.argument('image', required=False)
+@click.option('--enable-fips/--disable-fips', is_flag=True, default=True,
+              help="Enable or disable FIPS, the default value is to enable FIPS")
+def set_fips(image, enable_fips):
+    """ Set fips for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    bootloader.set_fips(image, enable=enable_fips)
+    click.echo('Set FIPS for the image successfully')
+
+# Get fips for image
+@sonic_installer.command('get-fips')
+@click.argument('image', required=False)
+def get_fips(image):
+    """ Get the fips enabled or disabled status for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    enable = bootloader.get_fips(image)
+    if enable:
+       click.echo("FIPS is enabled")
+    else:
+       click.echo("FIPS is disabled")
 
 # Uninstall image
 @sonic_installer.command('remove')
@@ -711,7 +743,8 @@ DOCKER_CONTAINER_LIST = [
     "swss",
     "syncd",
     "teamd",
-    "telemetry"
+    "telemetry",
+    "mgmt-framework"
 ]
 
 # Upgrade docker image
@@ -754,16 +787,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         echo_and_log("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path), LOG_ERR)
         raise click.Abort()
 
-    warm_configured = False
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, container_name)
-    if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
-        warm_configured = True
-    state_db.close(state_db.STATE_DB)
+    warm_configured = hget_warm_restart_table('STATE_DB', 'WARM_RESTART_ENABLE_TABLE', container_name, 'enable') == "true"
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         if warm_configured is False and warm:
@@ -834,23 +859,19 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
     run_command("systemctl restart %s" % container_name)
 
-    # All images id under the image name
-    image_id_all = get_container_image_id_all(image_name)
-
-    # this is image_id for image with "latest" tag
-    image_id_latest = get_container_image_id(image_latest)
-
-    for id in image_id_all:
-        if id != image_id_latest:
-            # Unless requested, the previoud docker image will be preserved
-            if not cleanup_image and id == image_id_previous:
-                continue
-            run_command("docker rmi -f %s" % id)
+    if cleanup_image:
+        # All images id under the image name
+        image_id_all = get_container_image_id_all(image_name)
+        # Unless requested, the previoud docker image will be preserved
+        for id in image_id_all:
+            if id == image_id_previous:
+                run_command("docker rmi -f %s" % id)
+                break
 
     exp_state = "reconciled"
     state = ""
     # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
-    if warm_configured is True or warm:
+    if warm_app_names and (warm_configured is True or warm):
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
@@ -907,6 +928,7 @@ def rollback_docker(container_name):
     for id in image_id_all:
         if id != image_id_previous:
             version_tag = get_docker_tag_name(id)
+            break
 
     # make previous image as latest
     run_command("docker tag %s:%s %s:latest" % (image_name, version_tag, image_name))
