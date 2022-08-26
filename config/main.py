@@ -49,6 +49,7 @@ from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 from . import mclag
 from . import syslog
+from . import switchport
 
 # mock masic APIs for unit test
 try:
@@ -93,6 +94,8 @@ CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
 PORT_MTU = "mtu"
+PORT_MODE= "switchport_mode"
+
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
@@ -1227,6 +1230,7 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+config.add_command(switchport.switchport)
 
 #add mclag commands
 config.add_command(mclag.mclag)
