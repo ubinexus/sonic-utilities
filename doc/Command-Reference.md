@@ -11232,7 +11232,18 @@ send_sci               true
 Clear MACsec counters which is to reset all MACsec counters to ZERO.
 
 ```
-sonic-clear macsec
+admin@sonic:~$ sonic-clear macsec --help
+Usage: sonic-clear macsec [OPTIONS]
+
+  Clear MACsec counts. This clear command will generated a cache for next
+  show commands which will base on this cache as the zero baseline to show
+  the increment of counters.
+
+Options:
+  --clean-cache BOOLEAN  If the option of clean cache is true, next show
+                         commands will show the raw counters which based on
+                         the service booted instead of the last clear command.
+  -h, -?, --help         Show this message and exit.
 ```
 
 
