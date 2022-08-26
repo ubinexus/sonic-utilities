@@ -250,7 +250,7 @@ def tunnel():
 @click.argument('poll_interval', type=click.IntRange(100, 30000))
 def interval(poll_interval):
     """ Set tunnel counter query interval """
-    configdb = ConfigDBConnector()
+    configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     tunnel_info = {}
     tunnel_info['POLL_INTERVAL'] = poll_interval
@@ -259,7 +259,7 @@ def interval(poll_interval):
 @tunnel.command()
 def enable():
     """ Enable tunnel counter query """
-    configdb = ConfigDBConnector()
+    configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     tunnel_info = {}
     tunnel_info['FLEX_COUNTER_STATUS'] = ENABLE
@@ -268,7 +268,7 @@ def enable():
 @tunnel.command()
 def disable():
     """ Disable tunnel counter query """
-    configdb = ConfigDBConnector()
+    configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     tunnel_info = {}
     tunnel_info['FLEX_COUNTER_STATUS'] = DISABLE
