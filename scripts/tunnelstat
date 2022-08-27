@@ -90,7 +90,7 @@ class Tunnelstat(object):
             for pos, name in enumerate(rates_key_list):
                 full_table_id = RATES_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, name)
-                if counter_data is None:
+                if not counter_data:
                     fields[pos] = STATUS_NA
                 elif fields[pos] != STATUS_NA:
                     fields[pos] = float(counter_data)
