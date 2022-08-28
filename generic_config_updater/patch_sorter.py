@@ -562,31 +562,8 @@ class FullConfigMoveValidator:
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
-        return self.config_wrapper.validate_config_db_config(simulated_config)
-
-# TODO: Add this validation to YANG models instead
-class UniqueLanesMoveValidator:
-    """
-    A class to validate lanes and any port are unique between all ports.
-    """
-    def validate(self, move, diff):
-        simulated_config = move.apply(diff.current_config)
-
-        if "PORT" not in simulated_config:
-            return True
-
-        ports = simulated_config["PORT"]
-        existing = set()
-        for port in ports:
-            attrs = ports[port]
-            if "lanes" in attrs:
-                lanes_str = attrs["lanes"]
-                lanes = lanes_str.split(", ")
-                for lane in lanes:
-                    if lane in existing:
-                        return False
-                    existing.add(lane)
-        return True
+        is_valid, error = self.config_wrapper.validate_config_db_config(simulated_config)
+        return is_valid
 
 class CreateOnlyMoveValidator:
     """
@@ -1506,7 +1483,6 @@ class SortAlgorithmFactory:
         move_validators = [DeleteWholeConfigMoveValidator(),
                            FullConfigMoveValidator(self.config_wrapper),
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
-                           UniqueLanesMoveValidator(),
                            CreateOnlyMoveValidator(self.path_addressing),
                            RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
@@ -1543,8 +1519,9 @@ class StrictPatchSorter:
 
         # Validate target config
         self.logger.log_info("Validating target config according to YANG models.")
-        if not(self.config_wrapper.validate_config_db_config(target_config)):
-            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
+        is_valid, error = self.config_wrapper.validate_config_db_config(target_config)
+        if not is_valid:
+            raise ValueError(f"Given patch will produce invalid config. Error: {error}")
 
         # Generate list of changes to apply
         self.logger.log_info("Sorting patch updates.")
@@ -1731,8 +1708,9 @@ class NonStrictPatchSorter:
 
         # Validate YANG covered target config
         self.logger.log_info("Validating YANG covered target config according to YANG models.")
-        if not(self.config_wrapper.validate_config_db_config(target_config_yang)):
-            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
+        is_valid, error = self.config_wrapper.validate_config_db_config(target_config_yang)
+        if not is_valid:
+            raise ValueError(f"Given patch will produce invalid config. Error: {error}")
 
         # Generating changes associated with non-YANG covered configs
         self.logger.log_info("Sorting non-YANG covered configs patch updates.")

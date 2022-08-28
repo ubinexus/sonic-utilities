@@ -70,11 +70,11 @@
         "alias": "etp5",
         "description": "Servers3:eth0",
         "index": "4",
-        "lanes": "45,46,47,48",
+        "lanes": "16",
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "100"
     },
     "PORT|Ethernet20": {
         "admin_status": "up",
@@ -96,7 +96,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -107,7 +107,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet32": {
         "admin_status": "up",
@@ -129,7 +129,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "10"
     },
     "PORT|Ethernet40": {
         "admin_status": "up",
@@ -373,9 +373,16 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
+    "VLAN_SUB_INTERFACE|Ethernet0.10|10.11.12.13/24": {
+        "NULL" : "NULL"
+    },
     "VLAN_SUB_INTERFACE|Eth32.10": {
         "admin_status": "up",
+        "loopback_action": "drop",
         "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Eth32.10|32.10.11.12/24": {
+        "NULL" : "NULL"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
@@ -532,6 +539,10 @@
         "services@": "SSH",
         "type": "CTRLPLANE"
     },
+    "PBH_TABLE|pbh_table1": {
+        "description": "NVGRE",
+        "interface_list@": "Ethernet8,Ethernet60"
+    },
     "VLAN|Vlan1000": {
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "1000"
@@ -551,6 +562,9 @@
     },
     "VLAN_INTERFACE|Vlan2000": {
         "proxy_arp": "enabled"
+    },
+    "VLAN_INTERFACE|Vlan3000": {
+        "loopback_action": "forward"
     },
     "VLAN_INTERFACE|Vlan1000|192.168.0.1/21": {
         "NULL": "NULL"
@@ -636,7 +650,8 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "drop"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
@@ -672,7 +687,8 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "forward"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
@@ -1571,6 +1587,24 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "PORT_STORM_CONTROL|Ethernet0|broadcast": {
+        "kbps":"100000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-unicast": {
+        "kbps":"200000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-multicast": {
+        "kbps":"300000"
+    },
+    "PORT_STORM_CONTROL|Ethernet4|broadcast": {
+        "kbps":"400000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-unicast": {
+        "kbps":"500000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-multicast": {
+        "kbps":"600000"
+    },
     "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
         "admin_status": "up",
         "asn": "65100",
@@ -1618,6 +1652,10 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|FLOW_CNT_ROUTE": {
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
@@ -1708,11 +1746,14 @@
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-active",
+	"soc_ipv4": "10.1.1.2",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-standby",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {
@@ -2549,5 +2590,10 @@
     },
     "QUEUE|Ethernet96|6": {
         "scheduler": "[SCHEDULER|scheduler.0]"
+    },
+    "MIRROR_SESSION|test_session_db1": {
+        "dst_port": "Ethernet44",
+        "src_port": "Ethernet40,Ethernet48",
+        "direction": "RX"
     }
 }

@@ -13,7 +13,11 @@ EXT_RECVSIG=3
 EXT_RETRY=4
 EXT_TAR_FAILED=5
 EXT_PROCFS_SAVE_FAILED=6
+EXT_INTERRUPTED=7
+EXT_TERMINATED=8
 EXT_INVALID_ARGUMENT=10
+
+TIMEOUT_EXIT_CODE=124
 
 TAR=tar
 MKDIR=mkdir
@@ -61,6 +65,8 @@ rm_lock_and_exit()
 handle_exit()
 {
     ECODE=$?
+    echo "Cleaning up working directory $TARDIR"
+    $RM -rf $TARDIR
     echo "Removing lock. Exit: $ECODE" >&2
     $RM $V -rf ${LOCKDIR}
     # Echo the filename as the last statement if the generation succeeds
@@ -69,11 +75,16 @@ handle_exit()
     fi
 }
 
-handle_signal()
+handle_sigint()
 {
     echo "Generate Dump received interrupt" >&2
-    $RM $V -rf $TARDIR
-    exit $EXT_RECVSIG
+    exit $EXT_INTERRUPTED
+}
+
+handle_sigterm() {
+    echo "Dump generation terminated" >&2
+    finalize
+    exit $EXT_TERMINATED
 }
 
 handle_error() {
@@ -81,6 +92,10 @@ handle_error() {
         echo "ERR: RC:-$1 observed on line $2" >&2
         RETURN_CODE=$EXT_GENERAL
     fi
+}
+
+escape_quotes() {
+    echo $1 | sed 's/\"/\\\"/g'
 }
 
 save_bcmcmd() {
@@ -93,6 +108,7 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local cmd=$(escape_quotes "$cmd")
     if [ ! -d $LOGDIR ]; then
         $MKDIR $V -p $LOGDIR
     fi
@@ -106,12 +122,12 @@ save_bcmcmd() {
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
     if $NOOP; then
-        echo "${timeout_cmd} $cmd &> '${filepath}'"
+        echo "${timeout_cmd} bash -c \"${cmd}\" &> '${filepath}'"
     else
         ret=0
-        eval "${timeout_cmd} $cmd" &> "${filepath}" || ret=$?
+        eval "${timeout_cmd} bash -c \"${cmd}\" &> '${filepath}'" || ret=$?
         if [ $ret -ne 0 ]; then
-            if [ $ret -eq 124 ]; then
+            if [ $ret -eq $TIMEOUT_EXIT_CODE ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             else
                 RC=0
@@ -207,6 +223,8 @@ save_cmd() {
         redirect_eval=""
     fi
 
+    local cmd=$(escape_quotes "$cmd")
+    local cleanup_method_declration=$(declare -f $cleanup_method)
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
@@ -215,25 +233,29 @@ save_cmd() {
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         # cleanup_method will run in a sub-shell, need declare it first
-        local cleanup_method_declration=$(declare -f $cleanup_method)
         local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
             RC=0
             eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
-            if [ $RC -ne 0 ]; then
+            if [ $RC -eq $TIMEOUT_EXIT_CODE ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
+            elif [ $RC -ne 0 ]; then
+                echo "Command: $cmds failed with RC $RC"
             fi
         fi
     else
+        local cmds="$cleanup_method_declration; $cmd | $cleanup_method $redirect '$filepath'"
         if $NOOP; then
-            echo "${timeout_cmd} $cmd | $cleanup_method $redirect '$filepath'"
+            echo "${timeout_cmd} bash -c \"${cmds}\""
         else
             RC=0
-            eval "${timeout_cmd} $cmd | $cleanup_method" "$redirect" "$filepath" || RC=$?
-            if [ $RC -ne 0 ]; then
-                echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
+            if [ $RC -eq $TIMEOUT_EXIT_CODE ]; then
+                echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
+            elif [ $RC -ne 0 ]; then
+                echo "Command: $cmds failed with RC $RC"
             fi
         fi
     fi
@@ -484,20 +506,20 @@ save_bgp_neighbor() {
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
 
-    neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    neighbor_list_v4=$(${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'")
     for word in $neighbor_list_v4; do
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
     done
-    neighbor_list_v6=$(vtysh $ns -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
+    neighbor_list_v6=$(${timeout_cmd} bash -c "vtysh $ns -c 'show bgp ipv6 neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}' | fgrep ':'")
     for word in $neighbor_list_v6; do
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
     done
 
-    vrf_list=`${timeout_cmd} vtysh $ns -c "show vrf" | awk -F" " '{print $2}'`
+    vrf_list=`${timeout_cmd} bash -c "vtysh $ns -c 'show vrf' | awk -F" " '{print \$2}'"`
     for vrf in $vrf_list; do
-        neighbor_list=`${timeout_cmd} vtysh $ns -c "show ip bgp vrf $vrf neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
+        neighbor_list=`${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp vrf $vrf neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'"`
         for word in $neighbor_list; do
             save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word advertised-routes\"" "ip.bgp.neighbor.$vrf.$word.adv$asic_id"
             save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word routes\"" "ip.bgp.neighbor.$vrf.$word.rcv$asic_id"
@@ -737,7 +759,7 @@ save_platform_info() {
         save_cmd "show platform psustatus" "psustatus"
         save_cmd "show platform ssdhealth" "ssdhealth"
         save_cmd "show platform temperature" "temperature"
-        save_cmd "show platform fan" "fan" 
+        save_cmd "show platform fan" "fan"
     fi
 }
 
@@ -856,6 +878,7 @@ enable_logrotate() {
 ###############################################################################
 collect_mellanox() {
     trap 'handle_error $? $LINENO' ERR
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
@@ -865,12 +888,12 @@ collect_mellanox() {
     copy_from_docker syncd $sai_dump_folder $sai_dump_folder
     echo "$sai_dump_folder"
     for file in `ls $sai_dump_folder`; do
-        save_file ${sai_dump_folder}/${file} sai_sdk_dump true 
+        save_file ${sai_dump_folder}/${file} sai_sdk_dump true
     done
 
     ${CMD_PREFIX}rm -rf $sai_dump_folder
     ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
-    
+
     # Save SDK error dumps
     local sdk_dump_path=`${CMD_PREFIX}docker exec syncd cat /tmp/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
     if [[ -d $sdk_dump_path ]]; then
@@ -880,6 +903,26 @@ collect_mellanox() {
         done
         rm -rf /tmp/sdk-dumps
     fi
+
+    # run 'hw-management-generate-dump.sh' script and save the result file
+    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
+    if [ -f "$HW_DUMP_FILE" ]; then
+      ${CMD_PREFIX}${timeout_cmd} /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
+      ret=$?
+      if [ $ret -ne 0 ]; then
+        if [ $ret -eq $TIMEOUT_EXIT_CODE ]; then
+          echo "hw-management dump timedout after ${TIMEOUT_MIN} minutes."
+        else
+          echo "hw-management dump failed ..."
+        fi
+      else
+        save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
+        rm -f /tmp/hw-mgmt-dump*
+      fi
+    else
+      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
+    fi
+
 }
 
 ###############################################################################
@@ -942,32 +985,103 @@ collect_broadcom() {
     save_bcmcmd_all_ns "-t5 version" "broadcom.version"
     save_bcmcmd_all_ns "-t5 soc" "broadcom.soc"
     save_bcmcmd_all_ns "-t5 ps" "broadcom.ps"
-    save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
-    save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
-    save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
-    save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
-    save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
-    save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
-    save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
-    save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
-    save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
-    save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
-    save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
-    save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
-    save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
-    save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
-    save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
-    save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
-    save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
-    save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
-    save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
-    save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
-    save_bcmcmd_all_ns "\"port *\"" "port.summary"
-    save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
+    if [ -e /usr/share/sonic/device/${platform}/platform_asic ]; then
+       bcm_family=`cat /usr/share/sonic/device/${platform}/platform_asic`
+    else
+       echo "'/usr/share/sonic/device/${platform}/platform_asic' does not exist" > /tmp/error
+       save_file /tmp/error sai false
+       return
+    fi
+
+    if [ "$bcm_family" == "broadcom-dnx" ]; then
+       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+       save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
+       total_fp_groups=34
+       for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
+       do
+         save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
+       done
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
+       save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
+       save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
+       save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
+       save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+       save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
+       save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
+       save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
+       save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
+       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+       for group in {a..f}
+       do
+          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+       done
+       save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
+       save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
+    else
+       save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
+       save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
+       save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
+       save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
+       save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
+       save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
+       save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
+       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+       save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
+       save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
+       save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
+       save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
+       save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
+       save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
+       save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
+       save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
+       save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
+       save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
+       save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
+       save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
+       save_bcmcmd_all_ns "\"port *\"" "port.summary"
+       save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
+    fi
 
     copy_from_masic_docker "syncd" "/var/log/diagrun.log" "/var/log/diagrun.log"
     copy_from_masic_docker "syncd" "/var/log/bcm_diag_post" "/var/log/bcm_diag_post"
 }
+
+###############################################################################
+# Collect Barefoot specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_barefoot() {
+    local bf_logs="/tmp/bf_logs"
+    $( rm -rf ${bf_logs} )
+    $( mkdir  ${bf_logs} )
+    unset array
+    array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
+    for y in "${array[@]}"; do
+        itstr=`echo ${y} | tr -d "\r\n"`
+        copy_from_masic_docker "syncd" "/${itstr}" "${bf_logs}"
+    done
+
+    for file in $(find /tmp/bf_logs -type f); do
+        save_file "${file}" log true true
+    done
+} 
 
 ###############################################################################
 # Save log file
@@ -1087,12 +1201,11 @@ save_crash_files() {
 get_asic_count() {
     trap 'handle_error $? $LINENO' ERR
     local redirect_eval="2>&1"
-    if ! $SAVE_STDERR 
+    if ! $SAVE_STDERR
     then
          redirect_eval=""
     fi
-    local cmd="show platform summary --json | python -c 'import sys, json; \
-               print(json.load(sys.stdin)[\"asic_count\"])'"
+    local cmd="python -c 'from sonic_py_common.multi_asic import get_num_asics; print(get_num_asics())'"
     echo `eval ${cmd} ${redirect_eval}`
 }
 
@@ -1265,14 +1378,14 @@ main() {
     save_bfd_info
     save_redis_info
 
-    if $DEBUG_DUMP 
+    if $DEBUG_DUMP
     then
         save_dump_state_all_ns
     fi
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
-    
+
     if [[ -d ${PLUGINS_DIR} ]]; then
         local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
         for plugin in $dump_plugins; do
@@ -1282,6 +1395,10 @@ main() {
     fi
 
     save_saidump
+
+    if [ "$asic" = "barefoot" ]; then
+        collect_barefoot
+    fi
 
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox
@@ -1334,23 +1451,18 @@ main() {
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
     save_log_files
-    save_warmboot_files
     save_crash_files
+    save_warmboot_files
 
-    # run 'hw-management-generate-dump.sh' script and save the result file
-    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
-    if [ -f "$HW_DUMP_FILE" ]; then
-      /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
-      save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
-      rm -f /tmp/hw-mgmt-dump*
-    else
-      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
-    fi
+    finalize
+}
+
+###############################################################################
+# Finalize dump generation
+###############################################################################
+finalize() {
     # Save techsupport timing profile info
     save_file $TECHSUPPORT_TIME_INFO log false
-
-    # clean up working tar dir before compressing
-    $RM $V -rf $TARDIR
 
     if $DO_COMPRESS; then
         RC=0
@@ -1364,12 +1476,13 @@ main() {
 
     # Invoke the TechSupport Cleanup Hook
     setsid python3 /usr/local/bin/techsupport_cleanup.py ${TARFILE} &> /tmp/techsupport_cleanup.log &
-    
+
     if ! $SAVE_STDERR
     then
     	exit $RETURN_CODE
     fi
 }
+
 
 ###############################################################################
 # Remove secret from pipeline inout and output result to pipeline.
@@ -1416,7 +1529,7 @@ remove_secret_from_etc_files() {
 
     # Remove snmp community string from snmp.yml
     sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1****/g' $dumppath/etc/sonic/snmp.yml
-    
+
     # Remove secret from /etc/sonic/config_db.json
     cat $dumppath/etc/sonic/config_db.json | remove_secret_from_config_db_dump > $dumppath/etc/sonic/config_db.json.temp
     mv $dumppath/etc/sonic/config_db.json.temp $dumppath/etc/sonic/config_db.json
@@ -1475,9 +1588,9 @@ OPTIONS
         "24 March", "yesterday", etc.
     -t TIMEOUT_MINS
         Command level timeout in minutes
-    -r 
+    -r
         Redirect any intermediate errors to STDERR
-    -d 
+    -d
         Collect the output of debug dump cli
 EOF
 }
@@ -1527,7 +1640,7 @@ while getopts ":xnvhzas:t:r:d" opt; do
         r)
             SAVE_STDERR=false
             ;;
-        d) 
+        d)
             DEBUG_DUMP=true
             ;;
         /?)
@@ -1553,7 +1666,8 @@ if $MKDIR "${LOCKDIR}" &>/dev/null; then
     echo "$$" > "${PIDFILE}"
     # This handler will exit the script upon receiving these interrupts
     # Trap configured on EXIT will be triggered by the exit from handle_signal function
-    trap 'handle_signal' SIGINT SIGHUP SIGQUIT SIGTERM
+    trap 'handle_sigterm' SIGHUP SIGQUIT SIGTERM
+    trap 'handle_sigint' SIGINT
     echo "Lock succesfully accquired and installed signal handlers"
     # Proceed with the actual code
     if [[ ! -z "${V}" ]]; then

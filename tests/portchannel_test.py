@@ -1,4 +1,5 @@
 import os
+import pytest
 import traceback
 
 from click.testing import CliRunner
@@ -60,7 +61,32 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
-        
+
+    @pytest.mark.parametrize("fast_rate", ["False", "True", "false", "true"])
+    def test_add_portchannel_with_fast_rate(self, fast_rate):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+    @pytest.mark.parametrize("fast_rate", ["Fls", "tru"])
+    def test_add_portchannel_with_invalid_fast_rate(self, fast_rate):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with invalid fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert 'Invalid value for "--fast-rate"'  in result.output
+
     def test_add_portchannel_member_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
@@ -156,6 +182,40 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet116 is not a member of portchannel PortChannel1001" in result.output
+
+    def test_add_portchannel_member_with_acl_bindngs(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb, 'db_wrap':db, 'namespace':''}
+
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0002", "Ethernet100"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Port Ethernet100 is already bound to following ACL_TABLES:" in result.output
+
+    def test_add_portchannel_member_with_pbh_bindngs(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb, 'db_wrap':db, 'namespace':''}
+
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0002", "Ethernet60"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Port Ethernet60 is already bound to following PBH_TABLES:" in result.output
+
+    def test_delete_portchannel_which_is_member_of_a_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # try to delete the portchannel when its member of a vlan
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel1001"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "PortChannel1001 has vlan Vlan4000 configured, remove vlan membership to proceed" in result.output
 
     @classmethod
     def teardown_class(cls):

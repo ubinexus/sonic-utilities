@@ -4,9 +4,11 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 
 import click
 import json
+import lazy_object_proxy
 import netaddr
 
 from natsort import natsorted
@@ -183,8 +185,8 @@ class InterfaceAliasConverter(object):
         # interface_alias not in port_dict. Just return interface_alias
         return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
-# Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = InterfaceAliasConverter()
+# Lazy global class instance for SONiC interface name to alias conversion
+iface_alias_converter = lazy_object_proxy.Proxy(lambda: InterfaceAliasConverter())
 
 def get_interface_naming_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
@@ -577,11 +579,11 @@ def json_dump(data):
         data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
 
-    
+
 def interface_is_untagged_member(db, interface_name):
-    """ Check if interface is already untagged member"""    
+    """ Check if interface is already untagged member"""
     vlan_member_table = db.get_table('VLAN_MEMBER')
-    
+
     for key,val in vlan_member_table.items():
         if(key[1] == interface_name):
             if (val['tagging_mode'] == 'untagged'):
@@ -593,6 +595,7 @@ def is_interface_in_config_db(config_db, interface_name):
     if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
         not interface_name in config_db.get_keys('INTERFACE') and
         not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name in config_db.get_keys('VLAN_SUB_INTERFACE') and
         not interface_name == 'null'):
             return False
 
@@ -628,3 +631,74 @@ class MutuallyExclusiveOption(click.Option):
                         "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
                         )
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
+
+
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower().strip()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")
+
+
+class UserCache:
+    """ General purpose cache directory created per user """
+
+    CACHE_DIR = "/tmp/cache/"
+
+    def __init__(self, app_name=None, tag=None):
+        """ Initialize UserCache and create a cache directory if it does not exist.
+
+        Args:
+            tag (str): Tag the user cache. Different tags correspond to different cache directories even for the same user.
+        """
+        self.uid = os.getuid()
+        self.app_name = os.path.basename(sys.argv[0]) if app_name is None else app_name
+        self.cache_directory_suffix = str(self.uid) if tag is None else f"{self.uid}-{tag}"
+        self.cache_directory_app = os.path.join(self.CACHE_DIR, self.app_name)
+
+        prev_umask = os.umask(0)
+        try:
+            os.makedirs(self.cache_directory_app, exist_ok=True)
+        finally:
+            os.umask(prev_umask)
+
+        self.cache_directory = os.path.join(self.cache_directory_app, self.cache_directory_suffix)
+        os.makedirs(self.cache_directory, exist_ok=True)
+
+    def get_directory(self):
+        """ Return the cache directory path """
+        return self.cache_directory
+
+    def remove(self):
+        """ Remove the content of the cache directory """
+        shutil.rmtree(self.cache_directory)
+
+    def remove_all(self):
+        """ Remove the content of the cache for all users """
+        shutil.rmtree(self.cache_directory_app)
