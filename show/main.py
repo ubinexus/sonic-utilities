@@ -1368,6 +1368,7 @@ def acl(verbose):
     cmd = "sonic-cfggen -d --var-json ACL_TABLE"
     run_command(cmd, display_cmd=verbose)
 
+
 # 'ports' subcommand ("show runningconfiguration ports <portname>")
 @runningconfiguration.command()
 @click.argument('portname', required=False)
