@@ -218,6 +218,22 @@ test_data = {
         }
     },
     "6": {
+        DESCR: "dualtor standalone tunnel route case",
+        ARGS: "route_check",
+        PRE: {
+            APPL_DB: {
+                NEIGH_TABLE: {
+                    "Vlan1000:fc02:1000::99": { "neigh": "00:00:00:00:00:00", "family": "IPv6"}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99/128" + RT_ENTRY_KEY_SUFFIX: {},
+                }
+            }
+        }
+    },
+    "7": {
         DESCR: "Good one with VNET routes",
         ARGS: "route_check",
         PRE: {
@@ -252,22 +268,6 @@ test_data = {
                     RT_ENTRY_KEY_PREFIX + "30.1.10.0/24" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "50.1.1.0/24" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "50.2.2.0/24" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "7": {
-        DESCR: "dualtor standalone tunnel route case",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                NEIGH_TABLE: {
-                    "Vlan1000:fc02:1000::99": { "neigh": "00:00:00:00:00:00", "family": "IPv6"}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99/128" + RT_ENTRY_KEY_SUFFIX: {},
                 }
             }
         }
