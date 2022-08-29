@@ -228,7 +228,7 @@ def all():
 
     click.echo()
 
-    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni', status']
+    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni', 'status']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
     vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
