@@ -1,6 +1,7 @@
 import pytest
 
 import config.main as config
+import show.main as show
 
 from click.testing import CliRunner
 from config.main import expand_vlan_ports, parse_acl_table_info
@@ -80,13 +81,13 @@ class TestConfigAcl(object):
         assert result.exit_code != 0
         assert "Cannot bind empty VLAN Vlan3000" in result.output
 
-def test_acl_show_runningconfiguration(self):
-	runner = CliRunner()
+    def test_acl_show_runningconfiguration(self):
+        runner = CliRunner()
 
-	result = runner.invoke(
-		config.config.commands["acl"].commands["add"].commands["table"],
-		["TEST", "L3", "-p", "Ethernet20"])
+        result = runner.invoke(
+            config.config.commands["acl"].commands["add"].commands["table"],
+            ["TEST", "L3", "-p", "Ethernet20"])
 
-	assert result.exit_code == 0
-	result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [])
-	assert "TEST" in result.output
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [])
+        assert "TEST" in result.output
