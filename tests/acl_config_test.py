@@ -90,4 +90,5 @@ class TestConfigAcl(object):
 
         assert result.exit_code == 0
         result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [])
+        print(result.output)
         assert "TEST" in result.output
