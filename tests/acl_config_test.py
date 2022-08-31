@@ -5,7 +5,7 @@ import show.main as show
 
 from click.testing import CliRunner
 from config.main import expand_vlan_ports, parse_acl_table_info
-
+from utilities_common.db import Db
 
 class TestConfigAcl(object):
     def test_expand_vlan(self):
@@ -83,12 +83,12 @@ class TestConfigAcl(object):
 
     def test_acl_show_runningconfiguration(self):
         runner = CliRunner()
-
+        db = Db()
         result = runner.invoke(
             config.config.commands["acl"].commands["add"].commands["table"],
             ["TEST", "L3", "-p", "Ethernet20"])
 
         assert result.exit_code == 0
-        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [])
+        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [], obj=db)
         print(result.output)
         assert "TEST" in result.output
