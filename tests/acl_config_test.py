@@ -84,11 +84,10 @@ class TestConfigAcl(object):
     def test_acl_show_runningconfiguration(self):
         runner = CliRunner()
         db = Db()
-        result = runner.invoke(
-            config.config.commands["acl"].commands["add"].commands["table"],
-            ["TEST", "L3", "-p", "Ethernet20"], obj=db)
+        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet20", "ingress")
+        db.cfgdb.set_entry("ACL_TABLE", "TEST", table_info)
 
-        assert result.exit_code == 0
         result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [], obj=db)
+        assert result.exit_code == 0
         print(result.output)
         assert "TEST" in result.output
