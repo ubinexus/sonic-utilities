@@ -86,7 +86,7 @@ class TestConfigAcl(object):
         db = Db()
         result = runner.invoke(
             config.config.commands["acl"].commands["add"].commands["table"],
-            ["TEST", "L3", "-p", "Ethernet20"])
+            ["TEST", "L3", "-p", "Ethernet20"], obj=db)
 
         assert result.exit_code == 0
         result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], [], obj=db)
