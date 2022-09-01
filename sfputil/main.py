@@ -1112,6 +1112,51 @@ def run_firmware(port_name, mode):
 
     return status
 
+def is_fw_switch_done(port_name):
+    """
+        Make sure the run_firmware cmd is done
+        @port_name:
+        Returns 1 on success, and exit_code = -1 on failure
+    """
+    status = 0
+    physical_port = logical_port_to_physical_port_index(port_name)
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    try:
+        api = sfp.get_xcvr_api()
+    except NotImplementedError:
+        click.echo("This functionality is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    try:
+        MAX_WAIT = 600 # 60s timeout.
+        fw_info = api.get_module_fw_info()
+        cnt = 0
+        is_busy = 1 if (fw_info['status'] == False) and (fw_info['result'] is not None) else 0
+        while is_busy and cnt < MAX_WAIT:
+            time.sleep(0.1)
+            fw_info = api.get_module_fw_info()
+            is_busy = 1 if (fw_info['status'] == False) and (fw_info['result'] is not None) else 0
+            cnt += 1
+
+        if fw_info['status'] == True:
+            (ImageA, ImageARunning, ImageACommitted, ImageAValid,
+             ImageB, ImageBRunning, ImageBCommitted, ImageBValid) = fw_info['result']
+
+            if (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
+                status = 1  # run_firmware is done. 
+            elif (ImageBRunning == 1) and (ImageBCommitted == 0): # ImageB is running, but not committed.
+                status = 1  # run_firmware is done. 
+            else:                                                 # No image is running, or running and committed image is same.
+                status = -1 # Failure for Switching images.
+        else:
+            status = -1     # Timeout or check code error or CDB not supported.
+
+    except NotImplementedError:
+        click.echo("This functionality is not applicable for this transceiver")
+
+    return status
+
 def commit_firmware(port_name):
     status = 0
     physical_port = logical_port_to_physical_port_index(port_name)
@@ -1279,6 +1324,13 @@ def upgrade(port_name, filepath):
         sys.exit(EXIT_FAIL)
 
     click.echo("Firmware run in mode 1 successful")
+
+    status = is_fw_switch_done(port_name)
+    if status != 1:
+        click.echo('Failed to switch firmware images!')
+        sys.exit(EXIT_FAIL)
+
+    click.echo("Firmware images switch successful")
 
     status = commit_firmware(port_name)
     if status != 1:
