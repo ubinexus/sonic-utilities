@@ -1481,7 +1481,7 @@ main() {
     rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
     if [ ! -z "$rm_list" ]
     then
-        rm $rm_list
+        rm -f $rm_list
     fi
 
     # Remove secret from /etc files before tar
