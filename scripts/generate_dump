@@ -602,6 +602,7 @@ save_ip_info() {
     save_ip "route show table all" "route"
     save_ip "neigh" "neigh"
     save_ip "-s neigh show nud noarp" "neigh.noarp"
+    save_ip "-s link" "link.stats"
 }
 
 ###############################################################################
@@ -701,6 +702,59 @@ save_proc() {
 }
 
 ###############################################################################
+# Dump io stats for processes
+# Globals:
+#  V
+#  TARDIR
+#  MKDIR
+#  CP
+#  DUMPDIR
+#  TAR
+#  RM
+#  BASE
+#  TARFILE
+#  NOOP
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_proc_stats() {
+    trap 'handle_error $? $LINENO' ERR
+    $MKDIR $V -p $TARDIR/proc_stats
+
+    local stats_file=/tmp/stats
+    echo > $stats_file
+    for pid in /proc/[[:digit:]]*
+    do
+        pid_num=${pid//[!0-9]/}
+        cmdline=`eval ps -p $pid_num -o args --no-headers`
+        if test -n "$cmdline"; then
+            echo pid $pid
+            echo cmdline: $cmdline
+            cat $pid/io; echo
+        else
+            #Dump also internal kernel processes if they perform writes
+            write_bytes=$(cat $pid/io | grep -w write_bytes: | cut -b 14-)
+            if [ "$write_bytes" != "0" ]; then
+                echo pid $pid - `cat $pid/comm`:
+                cat $pid/io; echo
+            fi
+        fi
+    done >> $stats_file 2>&1
+
+    if $NOOP; then
+        echo "$CP $V -r $stats_file $TARDIR/proc_stats"
+    else
+        ( $CP $V -r $stats_file $TARDIR/proc_stats ) || echo "$stats_file error" > $TARDIR/$stats_file
+    fi
+
+    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc_stats
+    $RM $V -rf $TARDIR/proc_stats
+    $RM -rf $stats_file
+}
+
+###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
 #  DB name: DB name
@@ -757,7 +811,7 @@ save_platform_info() {
     if [[ ! $PLATFORM =~ .*(mlnx|nvidia).*simx.* ]]; then
         save_cmd "show platform syseeprom" "syseeprom"
         save_cmd "show platform psustatus" "psustatus"
-        save_cmd "show platform ssdhealth" "ssdhealth"
+        save_cmd "show platform ssdhealth --vendor" "ssdhealth"
         save_cmd "show platform temperature" "temperature"
         save_cmd "show platform fan" "fan"
     fi
@@ -1309,6 +1363,7 @@ main() {
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
         /proc/zoneinfo \
         || abort "${EXT_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
+    save_proc_stats
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
@@ -1332,6 +1387,7 @@ main() {
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
     save_cmd "cat /host/machine.conf" "machine.conf"
+    save_cmd "cat /boot/config-$(uname -r)" "boot.conf"
     save_cmd "docker stats --no-stream" "docker.stats"
 
     save_cmd "sensors" "sensors"
@@ -1393,6 +1449,12 @@ main() {
             save_cmd "$plugin" "$(basename $plugin)" true
         done
     fi
+
+    save_cmd "dpkg -l" "dpkg"
+    save_cmd "who -a" "who"
+    save_cmd "swapon -s" "swapon"
+    save_cmd "hdparm -i /dev/sda" "hdparm"
+    save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended"
 
     save_saidump
 
