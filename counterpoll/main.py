@@ -308,7 +308,7 @@ def show():
     if buffer_pool_wm_info:
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_60_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if tunnel_info:
-        data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["TUNNEL_STAT", tunnel_info.get("POLL_INTERVAL", DEFLT_10_SEC), tunnel_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
