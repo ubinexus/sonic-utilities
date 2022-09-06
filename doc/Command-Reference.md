@@ -60,6 +60,13 @@
   * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Generic Configuration Update and Rollback](#Generic-Configuration-Update-and-Rollback)  
+  * [Apply-patch command](#Apply-patch-command)
+  * [Replace Command](#Replace-Command)
+  * [Rollback Command](#Rollback-Command)
+  * [Checkpoint Command](#Checkpoint-Command)
+  * [Delete-checkpoint Command](#Delete-checkpoint-Command)
+  * [List-checkpoints Command](#List-checkpoints-Command)  
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -3374,6 +3381,151 @@ This command is used to change device hostname without traffic being impacted.
   admin@sonic:~$ sudo config hostname CSW06
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
+
+
+## Generic Configuration Update and Rollback
+
+The below command displays the brief summary of apply-patch, rollback, replace, checkpoint, delete-checkpoint, list-checkpoints functionality. This GCU feature is an initial version in 202111 release and may not function properly.
+
+### Apply-patch command
+
+Usage:
+
+```
+
+admin@sonic:~$ sudo config apply-patch --help
+Usage: config apply-patch [OPTIONS] PATCH_FILE_PATH
+
+  Apply given patch of updates to Config. A patch is a JsonPatch which
+  follows rfc6902. This command can be used do partial updates to the config
+  with minimum disruption to running processes. It allows addition as well
+  as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+  format or SonicYang format.
+
+  <patch-file-path>: Path to the patch file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of config of the patch is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Replace Command
+
+
+Usage :
+
+```
+
+admin@sonic:~$ sudo config replace --help
+Usage: config replace [OPTIONS] TARGET_FILE_PATH
+
+  Replace the whole config with the specified config. The config is replaced
+  with minimum disruption e.g. if ACL config is different between current
+  and target config only ACL config is updated, and other config/services
+  such as DHCP will not be affected. **WARNING** The target config file
+  should be the whole config, not just the part intended to be updated.
+
+  <target-file-path>: Path to the target file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of target config is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Rollback Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config rollback --help
+Usage: config rollback [OPTIONS] CHECKPOINT_NAME
+
+  Rollback the whole config to the specified checkpoint. The config is
+  rolled back with minimum disruption e.g. if ACL config is different
+  between current and checkpoint config only ACL config is updated, and
+  other config/services such as DHCP will not be affected.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -d, --dry-run   test out the command without affecting config state
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+
+```
+
+### Checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config checkpoint --help
+Usage: config checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Take a checkpoint of the whole current config with the specified
+  checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### Delete-checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config delete-checkpoint --help
+Usage: config delete-checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Delete a checkpoint with the specified checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### List-checkpoints Command
+
+Usage :
+
+```
+admin@sonic:~$ sudo config list-checkpoints --help
+Usage: config list-checkpoints [OPTIONS]
+
+  List the config checkpoints available.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+		
+```
 
 ## Interfaces
 
