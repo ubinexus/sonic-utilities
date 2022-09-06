@@ -10,6 +10,7 @@ import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
 from sonic_py_common import multi_asic
+from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_db_config
 import time
@@ -84,8 +85,7 @@ class AclLoader(object):
     ACL_ACTIONS_CAPABILITY_FIELD = "action_list"
     ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
     DEFAULT_RULE = "DEFAULT_RULE"
-
-    STATE_DB_ACL_TTL_TABLE = "ACL_TTL_TABLE"
+    CONFIG_DB_DYNAMIC_ACL_RULE_TABLE = "DYNAMIC_ACL_RULE_TABLE"
 
     min_priority = 1
     max_priority = 10000
@@ -612,35 +612,22 @@ class AclLoader(object):
         
         return rule_props
 
-    def add_state_db_ttl_entry(self, table_name, entry_name, ttl):
+    def add_config_db_dynamic_acl_rule_entry(self, table, rule, entry, ttl):
         """
-        Insert entry to STATE_DB for dynamic ACL
+        Insert entry to CONFIG_DB for dynamic ACL
         """
-        key_name = self.STATE_DB_ACL_TTL_TABLE + '|' + table_name + '|' + entry_name
+        key = table + '|' + rule
         try:
             timenow = int(time.time())
-            values = {
-                "ttl": str(ttl),
-                "creation_time": str(timenow),
-                "expiration_time": str(timenow + ttl)
-            }
-            self.statedb.hmset(self.statedb.STATE_DB, key_name, values)
-            info("Added STATE_DB entry for rule {} ttl = {}".format(entry_name, ttl))
+            entry['ttl'] = str(ttl)
+            entry['creation_time'] = str(timenow)
+            entry['expiration_time'] = str(timenow + ttl)
+            self.configdb.mod_entry(self.CONFIG_DB_DYNAMIC_ACL_RULE_TABLE, key, entry)
+            info("Added CONFIG_DB entry for rule {}".format(rule))
+            info(str(entry))
         except Exception as e:
-            raise AclLoaderException("Failed to add STATE_DB entry for {}; error is {}".format(entry_name, str(e)))
+            raise AclLoaderException("Failed to add CONFIG_DB entry for {}; error is {}".format(rule, str(e)))
     
-    def remove_state_db_ttl_entry(self, table_name, entry_name):
-        """
-        Insert entry to STATE_DB for dynamic ACL
-        """
-        key_name = self.STATE_DB_ACL_TTL_TABLE + '|' + table_name + '|' + entry_name
-        try:
-            
-            self.statedb.delete(self.statedb.STATE_DB, key_name)
-            info("Removed STATE_DB entry for rule {}".format(entry_name))
-        except Exception as e:
-            raise AclLoaderException("Failed to remove STATE_DB entry for {}; error is {}".format(entry_name, str(e)))
-
     def handle_dynamic_acl_config(self, table_name, rule):
         if not rule.dynamic_acl.config.ttl:
             return
@@ -853,33 +840,16 @@ class AclLoader(object):
         for key, entry in self.rules_info.items():
             if key[1] == self.DEFAULT_RULE:
                 continue
-            if key in self.rules_db_info:
-                if not self.is_db_rule_dynamic(key):
-                    warning("Attempting to overwrite a non-dynamic rule {}".format(key))
-                    continue
-            else:
-                self.configdb.mod_entry(self.ACL_RULE, key, entry)
-                info("Added a new dynamic ACL rule {}".format(key))
+            self.add_config_db_dynamic_acl_rule_entry(table=key[0], rule=key[1], entry=entry, ttl=self.rules_ttl[key])
 
-            self.add_state_db_ttl_entry(table_name=key[0], entry_name=key[1], ttl=self.rules_ttl[key])
-
-    def remove_dynamic_acl_rules(self):
+    def remove_dynamic_acl_rules(self, table=None, rule=None):
         """
-        Remove dynamic ACL rule specified by input json file.
-        1. Remove entry from CONFIG_DB (must be dynamic)
-        2. Remove TTL entry from STATE_DB
+        Remove entry from CONFIG_DB (must be dynamic)
         :return:
         """
-        for key, entry in self.rules_info.items():
-            if key[1] == self.DEFAULT_RULE:
-                continue
-            if key in self.rules_db_info:
-                if not self.is_db_rule_dynamic(key):
-                    warning("Attempting to remove a non-dynamic rule {}".format(key))
-                    continue
-                self.configdb.mod_entry(self.ACL_RULE, key, None)
-                info("Removed a dynamic ACL rule {}".format(key))
-            self.remove_state_db_ttl_entry(table_name=key[0], entry_name=key[1])
+        key = str(table) + '|' + "DYNAMIC_RULE_" + str(rule)
+        self.configdb.set_entry(self.CONFIG_DB_DYNAMIC_ACL_RULE_TABLE, key, None)
+        info("Removed a dynamic ACL rule {}".format(key))
 
     def delete(self, table=None, rule=None):
         """
@@ -1186,10 +1156,9 @@ def incremental(ctx, filename, session_name, mirror_stage, max_priority):
 @click.option('--table_name', type=click.STRING, required=False)
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def dynamic(ctx, filename, table_name, max_priority):
+def time_based_acl(ctx, filename, table_name, max_priority):
     """
-    Create dynamic ACL rule, or renew the TTL of an existing dynamic ACL rule
-    If a table_name is provided, the operation will be restricted in the specified table.
+    Create time-based ACL rule, or renew the TTL of an existing ACL rule.
     """
     acl_loader = ctx.obj["acl_loader"]
 
@@ -1214,23 +1183,17 @@ def delete(ctx, table, rule):
 
     acl_loader.delete(table, rule)
 
-
 @cli.command()
-@click.argument('filename', type=click.Path(exists=True))
-@click.option('--table_name', type=click.STRING, required=False)
+@click.argument('table', type=click.STRING, required=True)
+@click.argument('rule', type=click.STRING, required=True)
 @click.pass_context
-def delete_dynamic(ctx, filename, table_name):
+def delete_time_based_acl(ctx, table, rule):
     """
-    Delete dynamic ACL rules.
-    If a table_name is provided, the operation will be restricted in the specified table.
+    Delete time-based ACL rules.
     """
     acl_loader = ctx.obj["acl_loader"]
 
-    if table_name:
-        acl_loader.set_table_name(table_name)
-
-    acl_loader.load_rules_from_file(filename, True)
-    acl_loader.remove_dynamic_acl_rules()
+    acl_loader.remove_dynamic_acl_rules(table, rule)
 
 if __name__ == "__main__":
     try:
