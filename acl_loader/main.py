@@ -10,7 +10,6 @@ import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
 from sonic_py_common import multi_asic
-from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_db_config
 import time
@@ -596,7 +595,7 @@ class AclLoader(object):
             if 'is_dynamic' in data and data['is_dynamic'].lower() == 'true':
                 return True
             return False
-        except:
+        except BaseException as e:
             return False
         
     def is_dynamic_rule(self, rule):
