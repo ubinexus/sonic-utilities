@@ -85,7 +85,7 @@ class AclLoader(object):
     ACL_ACTIONS_CAPABILITY_FIELD = "action_list"
     ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
     DEFAULT_RULE = "DEFAULT_RULE"
-    CONFIG_DB_DYNAMIC_ACL_RULE_TABLE = "DYNAMIC_ACL_RULE_TABLE"
+    DYNAMIC_ACL_RULE_TABLE = "DYNAMIC_ACL_RULE"
 
     min_priority = 1
     max_priority = 10000
@@ -622,7 +622,7 @@ class AclLoader(object):
             entry['ttl'] = str(ttl)
             entry['creation_time'] = str(timenow)
             entry['expiration_time'] = str(timenow + ttl)
-            self.configdb.mod_entry(self.CONFIG_DB_DYNAMIC_ACL_RULE_TABLE, key, entry)
+            self.configdb.mod_entry(self.DYNAMIC_ACL_RULE_TABLE, key, entry)
             info("Added CONFIG_DB entry for rule {}".format(rule))
             info(str(entry))
         except Exception as e:
@@ -848,7 +848,7 @@ class AclLoader(object):
         :return:
         """
         key = str(table) + '|' + "DYNAMIC_RULE_" + str(rule)
-        self.configdb.set_entry(self.CONFIG_DB_DYNAMIC_ACL_RULE_TABLE, key, None)
+        self.configdb.set_entry(self.DYNAMIC_ACL_RULE_TABLE, key, None)
         info("Removed a dynamic ACL rule {}".format(key))
 
     def delete(self, table=None, rule=None):
