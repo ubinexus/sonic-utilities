@@ -595,7 +595,7 @@ class AclLoader(object):
             if 'is_dynamic' in data and data['is_dynamic'].lower() == 'true':
                 return True
             return False
-        except BaseException as e:
+        except Exception as e:
             return False
         
     def is_dynamic_rule(self, rule):
