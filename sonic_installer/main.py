@@ -955,5 +955,9 @@ def verify_next_image():
 def test(m):
     print(msg)
 
+def test(m):
+    print(undefinedValue)
+
+
 if __name__ == '__main__':
     sonic_installer()
