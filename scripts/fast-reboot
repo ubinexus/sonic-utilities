@@ -41,8 +41,6 @@ EXIT_FILE_SYSTEM_FULL=3
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
-EXIT_FAST_REBOOT_DUMP_FAILURE=12
-EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_COUNTERPOLL_DELAY_FAILURE=14
 EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
@@ -603,28 +601,6 @@ else
     load_kernel
 fi
 
-if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
-    # into /host/fast-reboot
-    DUMP_DIR=/host/fast-reboot
-    mkdir -p $DUMP_DIR
-    FAST_REBOOT_DUMP_RC=0
-    /usr/local/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
-    if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
-        error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
-        unload_kernel
-        exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
-    fi
-    FILTER_FDB_ENTRIES_RC=0
-    # Filter FDB entries using MAC addresses from ARP table
-    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
-    if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
-        error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
-        unload_kernel
-        exit "${EXIT_FILTER_FDB_ENTRIES_FAILURE}"
-    fi
-fi
-
 init_warm_reboot_states
 
 setup_control_plane_assistant
@@ -655,6 +631,15 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
         unload_kernel
         exit "${EXIT_COUNTERPOLL_DELAY_FAILURE}"
     fi
+
+    # Clear all routes except of default routes for faster reconciliation time.
+    sonic-db-cli APPL_DB eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if string.match(k, 'ROUTE_TABLE:') and not string.match(k, 'ROUTE_TABLE:0.0.0.0/0') and not string.match(k, 'ROUTE_TABLE:::/0') then \
+                redis.call('del', k)
+            end
+        end
+    " 0 > /dev/null
 fi
 
 # We are fully committed to reboot from this point on because critical
