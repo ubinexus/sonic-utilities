@@ -11,6 +11,7 @@ import natsort
 import ast
 import time
 import datetime
+import itertools
 
 import subprocess
 import click
@@ -864,15 +865,16 @@ def error_status(port, fetch_from_hardware):
     if fetch_from_hardware:
         output_table = fetch_error_status_from_platform_api(port)
     else:
-        # Connect to STATE_DB
-        state_db = SonicV2Connector(host='127.0.0.1')
-        if state_db is not None:
-            state_db.connect(state_db.STATE_DB)
-        else:
-            click.echo("Failed to connect to STATE_DB")
-            return
-
-        output_table = fetch_error_status_from_state_db(port, state_db)
+        namespaces = itertools.chain.from_iterable(multi_asic.get_all_namespaces().values()) if multi_asic.is_multi_asic() else ['']
+        for ns in namespaces:
+            # Connect to STATE_DB
+            state_db = SonicV2Connector(host='127.0.0.1', namespace=ns)
+            if state_db is not None:
+                state_db.connect(state_db.STATE_DB)
+            else:
+                click.echo(f"Failed to connect to {ns} - STATE_DB")
+                return
+            output_table.extend(fetch_error_status_from_state_db(port, state_db))
 
     click.echo(tabulate(output_table, table_header, tablefmt='simple'))
 
