@@ -131,11 +131,13 @@ def is_rj45_port(port_name):
         if not platform_porttab_mapping_read:
             platform_sfputil_read_porttab_mappings()
 
-        physical_port = logical_port_name_to_physical_port_list(port_name)[0]
+        port_type = None
         try:
-            port_type = platform_chassis.get_port_or_cage_type(physical_port)
-        except NotImplementedError as e:
-            port_type = None
+            physical_port = platform_sfputil.logical_port_name_to_physical_port_list(port_name)
+            if physical_port:
+                port_type = platform_chassis.get_port_or_cage_type(physical_port[0])
+        except Exception as e:
+            pass
 
         return port_type == platform_sfp_base.SFP_PORT_TYPE_BIT_RJ45
 

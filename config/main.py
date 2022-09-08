@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import itertools
+import copy
 
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
@@ -46,7 +47,7 @@ from . import nat
 from . import vlan
 from . import vxlan
 from . import plugins
-from .config_mgmt import ConfigMgmtDPB
+from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
 
@@ -368,6 +369,19 @@ def get_interface_ipaddresses(config_db, interface_name):
                 ipaddresses.add(ipaddress.ip_interface(interface_ip))
 
     return ipaddresses
+
+def is_vrf_exists(config_db, vrf_name):
+    """Check if VRF exists
+    """
+    keys = config_db.get_keys("VRF")
+    if vrf_name in keys:
+        return True
+    elif vrf_name == "mgmt":
+        entry = config_db.get_entry("MGMT_VRF_CONFIG", "vrf_global")
+        if entry and entry.get("mgmtVrfEnabled") == "true":
+           return True
+
+    return False
 
 def is_interface_bind_to_vrf(config_db, interface_name):
     """Get interface if bind to vrf or not
@@ -986,6 +1000,7 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     nexthop_str = None
     config_entry = {}
     vrf_name = ""
+    config_db = ctx.obj['config_db']
 
     if "nexthop" in command_str:
         idx = command_str.index("nexthop")
@@ -998,6 +1013,8 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
         if 'prefix' in prefix_str and 'vrf' in prefix_str:
             # prefix_str: ['prefix', 'vrf', Vrf-name, ip]
             vrf_name = prefix_str[2]
+            if not is_vrf_exists(config_db, vrf_name):
+                ctx.fail("VRF %s does not exist!"%(vrf_name))
             ip_prefix = prefix_str[3]
         elif 'prefix' in prefix_str:
             # prefix_str: ['prefix', ip]
@@ -1009,6 +1026,8 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
         if 'nexthop' in nexthop_str and 'vrf' in nexthop_str:
             # nexthop_str: ['nexthop', 'vrf', Vrf-name, ip]
             config_entry["nexthop"] = nexthop_str[3]
+            if not is_vrf_exists(config_db, nexthop_str[2]):
+                ctx.fail("VRF %s does not exist!"%(nexthop_str[2]))
             config_entry["nexthop-vrf"] = nexthop_str[2]
         elif 'nexthop' in nexthop_str and 'dev' in nexthop_str:
             # nexthop_str: ['nexthop', 'dev', ifname]
@@ -1365,6 +1384,20 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             text = fh.read()
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
+
+        # convert IPv6 addresses to lowercase
+        for patch_line in patch:
+            if 'remove' == patch_line['op']:
+                match = re.search(r"(?P<prefix>/INTERFACE/\w+\|)(?P<ipv6_address>([a-fA-F0-9]{0,4}[:~]|::){1,7}[a-fA-F0-9]{0,4})"
+                                    "(?P<suffix>.*)", str.format(patch_line['path']))
+                if match:
+                    prefix = match.group('prefix')
+                    ipv6_address_str = match.group('ipv6_address')
+                    suffix = match.group('suffix')
+                    ipv6_address_str = ipv6_address_str.lower()
+                    click.secho("converted ipv6 address to lowercase {} with prefix {} in value: {}"
+                                .format(ipv6_address_str, prefix, patch_line['path']))
+                    patch_line['path'] = prefix + ipv6_address_str + suffix
 
         config_format = ConfigFormat[format.upper()]
         GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
@@ -1857,27 +1890,66 @@ def override_config_table(db, input_config_db, dry_run):
 
     config_db = db.cfgdb
 
+    # Read config from configDB
+    current_config = config_db.get_config()
+    # Serialize to the same format as json input
+    sonic_cfggen.FormatConverter.to_serialized(current_config)
+
+    updated_config = update_config(current_config, config_input)
+
+    yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
+    if yang_enabled:
+        # The ConfigMgmt will load YANG and running
+        # config during initialization.
+        try:
+            cm = ConfigMgmt()
+            cm.validateConfigData()
+        except Exception as ex:
+            click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
+            sys.exit(1)
+
+        # Validate input config
+        validate_config_by_cm(cm, config_input, "config_input")
+        # Validate updated whole config
+        validate_config_by_cm(cm, updated_config, "updated_config")
+
     if dry_run:
-        # Read config from configDB
-        current_config = config_db.get_config()
-        # Serialize to the same format as json input
-        sonic_cfggen.FormatConverter.to_serialized(current_config)
-        # Override current config with golden config
-        for table in config_input:
-            current_config[table] = config_input[table]
-        print(json.dumps(current_config, sort_keys=True,
+        print(json.dumps(updated_config, sort_keys=True,
                          indent=4, cls=minigraph_encoder))
     else:
-        # Deserialized golden config to DB recognized format
-        sonic_cfggen.FormatConverter.to_deserialized(config_input)
-        # Delete table from DB then mod_config to apply golden config
-        click.echo("Removing configDB overriden table first ...")
-        for table in config_input:
-            config_db.delete_table(table)
-        click.echo("Overriding input config to configDB ...")
-        data = sonic_cfggen.FormatConverter.output_to_db(config_input)
-        config_db.mod_config(data)
-        click.echo("Overriding completed. No service is restarted.")
+        override_config_db(config_db, config_input)
+
+
+def validate_config_by_cm(cm, config_json, jname):
+    tmp_config_json = copy.deepcopy(config_json)
+    try:
+        cm.loadData(tmp_config_json)
+        cm.validateConfigData()
+    except Exception as ex:
+        click.secho("Failed to validate {}. Error: {}".format(jname, ex), fg="magenta")
+        sys.exit(1)
+
+
+def update_config(current_config, config_input):
+    updated_config = copy.deepcopy(current_config)
+    # Override current config with golden config
+    for table in config_input:
+        updated_config[table] = config_input[table]
+    return updated_config
+
+
+def override_config_db(config_db, config_input):
+    # Deserialized golden config to DB recognized format
+    sonic_cfggen.FormatConverter.to_deserialized(config_input)
+    # Delete table from DB then mod_config to apply golden config
+    click.echo("Removing configDB overriden table first ...")
+    for table in config_input:
+        config_db.delete_table(table)
+    click.echo("Overriding input config to configDB ...")
+    data = sonic_cfggen.FormatConverter.output_to_db(config_input)
+    config_db.mod_config(data)
+    click.echo("Overriding completed. No service is restarted.")
+
 
 #
 # 'hostname' command
@@ -1957,8 +2029,11 @@ def portchannel(db, ctx, namespace):
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
+@click.option('--fast-rate', default='false',
+              type=click.Choice(['true', 'false'],
+                                case_sensitive=False))
 @click.pass_context
-def add_portchannel(ctx, portchannel_name, min_links, fallback):
+def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     """Add port channel"""
     if is_portchannel_name_valid(portchannel_name) != True:
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
@@ -1969,9 +2044,12 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
 
-    fvs = {'admin_status': 'up',
-           'mtu': '9100',
-           'lacp_key': 'auto'}
+    fvs = {
+        'admin_status': 'up',
+        'mtu': '9100',
+        'lacp_key': 'auto',
+        'fast_rate': fast_rate.lower(),
+    }
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
@@ -4867,6 +4945,9 @@ def bind(ctx, interface_name, vrf_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if not is_vrf_exists(config_db, vrf_name):
+        ctx.fail("VRF %s does not exist!"%(vrf_name))
+
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
@@ -4877,6 +4958,11 @@ def bind(ctx, interface_name, vrf_name):
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_addresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
+        if 'vrf_name' in subintf_entry:
+            subintf_entry.pop('vrf_name')
+
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
@@ -4888,7 +4974,11 @@ def bind(ctx, interface_name, vrf_name):
     while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
-    config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry['vrf_name'] = vrf_name
+        config_db.set_entry(table_name, interface_name, subintf_entry)
+    else:
+        config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
 #
 # 'unbind' subcommand
@@ -4910,12 +5000,21 @@ def unbind(ctx, interface_name):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
     if is_interface_bind_to_vrf(config_db, interface_name) is False:
         return
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
+        if 'vrf_name' in subintf_entry:
+            subintf_entry.pop('vrf_name')
+
     interface_ipaddresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
-    config_db.set_entry(table_name, interface_name, None)
+    if table_name == "VLAN_SUB_INTERFACE":
+        config_db.set_entry(table_name, interface_name, subintf_entry)
+    else:
+        config_db.set_entry(table_name, interface_name, None)
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
@@ -6640,6 +6739,13 @@ def subintf_vlan_check(config_db, parent_intf, vlan):
                     return True
     return False
 
+def is_subintf_shortname(intf):
+    if VLAN_SUB_INTERFACE_SEPARATOR in intf:
+        if intf.startswith("Ethernet") or intf.startswith("PortChannel"):
+            return False
+        return True
+    return False
+
 @subinterface.command('add')
 @click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
 @click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
@@ -6685,6 +6791,8 @@ def add_subinterface(ctx, subinterface_name, vid):
     subintf_dict = {}
     if vid is not None:
         subintf_dict.update({"vlan" : vid})
+    elif is_subintf_shortname(subinterface_name):
+        ctx.fail("{} Encap vlan is mandatory for short name subinterfaces".format(subinterface_name))
 
     if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
         ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
