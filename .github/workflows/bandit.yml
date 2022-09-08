@@ -15,6 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: bandit
-      uses: jpetrucciani/bandit-check/bandit-check@master
+      uses: jpetrucciani/bandit-check@master
       with:
         path: '.'
