@@ -720,29 +720,38 @@ class DBMigrator():
         self.set_version('version_3_0_5')
         return 'version_3_0_5'
 
+
+
+
+
     def version_3_0_5(self):
         """
         Version 3_0_5
         """
-        log.log_info('Handling version_3_0_5')
+        log.log_notice('Handling version_3_0_5')
         # Removing LOGLEVEL DB and moving it's content to CONFIG DB
         # Removing Jinja2_cache
-        log.log_info('Handling version_3_0_5')
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
-        table_name = "LOGGER"
-        loglevel_field = 'LOGLEVEL'
-        logoutput_field = 'LOGOUTPUT'
         if warmreboot_state == 'true':
+            table_name = "LOGGER"
+            loglevel_field = "LOGLEVEL"
+            logoutput_field = "LOGOUTPUT"
+            log.log_notice('Warm reboot 3_0_5')
             keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
             if keys is not None:
                 for key in keys:
-                    if key != "JINJA2_CACHE":
-                        component = key.split(":")[1]
-                        loglevel = key[loglevel_field]
-                        logoutput = key[logoutput_field]
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                    self.loglevelDB.del_table(self.loglevelDB.LOGLEVEL_DB, key)
+                    log.log_notice('Migrating key: ' + key)
+                    if key == "JINJA2_CACHE":
+                        continue
+                    fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                    component = key.split(":")[1]
+                    loglevel = fvs[loglevel_field]
+                    logoutput = fvs[logoutput_field]
+                    log.log_notice("Setting loglevel: " + loglevel + " output: " + logoutput)
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    log.log_notice("Deleting key: " +key)
+                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key) ## todo: move outside the if to remove all keys.
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
