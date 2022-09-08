@@ -10785,7 +10785,7 @@ Optionally, you can specify an IP address in order to display only that particul
 
 **show ipv6 bgp summary**
 
-This command displays the summary of all IPv4 bgp neighbors that are configured and the corresponding states.
+This command displays the summary of all IPv6 bgp neighbors that are configured and the corresponding states.
 
 - Usage:
   ```
