@@ -211,9 +211,9 @@ def get_vnet_routes_from_app_db():
     vnet_routes = {}
 
     for vnet_route_db_key in vnet_routes_db_keys:
-        vnet_route_list = vnet_route_db_key.split(':')
+        vnet_route_list = vnet_route_db_key.split(':',1)
         vnet_name = vnet_route_list[0]
-        vnet_route = vnet_route_list[1]
+        vnet_route = vnet_route_list[1:]
 
         if vnet_name not in vnet_routes:
             vnet_routes[vnet_name] = {}
@@ -292,6 +292,21 @@ def get_vnet_routes_from_asic_db():
     return vnet_routes
 
 
+def check_routes_with_default_vrf(vnet_name, vnet_attrs, routes_1, routes):
+    for vnet_route in vnet_attrs['routes']:
+        ispresent = False
+        for vnet_name_other, vnet_attrs_other in routes_1.items():
+            if vnet_route[0] in vnet_attrs_other['routes']:
+                ispresent = True
+        if not ispresent:
+            if vnet_name not in routes:
+                routes[vnet_name] = {}
+                routes[vnet_name]['routes'] = []
+            routes[vnet_name]['routes'].append(vnet_route)
+
+    return
+
+
 def get_vnet_routes_diff(routes_1, routes_2, verify_default_vrf_routes = False):
     ''' Returns all routes present in routes_2 dictionary but missed in routes_1
     Format: { <vnet_name>: { 'routes': [ <pfx/pfx_len> ] } }
@@ -302,16 +317,9 @@ def get_vnet_routes_diff(routes_1, routes_2, verify_default_vrf_routes = False):
     for vnet_name, vnet_attrs in routes_2.items():
         if vnet_attrs['vrf_oid'] == default_vrf_oid:
             if verify_default_vrf_routes:
-                for vnet_route in vnet_attrs['routes']:
-                    ispresent = False
-                    for vnet_name_other, vnet_attrs_other in routes_1.items():
-                        if vnet_route in vnet_attrs_other['routes']:
-                            ispresent = True
-                    if not ispresent:
-                        if vnet_name not in routes:
-                            routes[vnet_name] = {}
-                            routes[vnet_name]['routes'] = []
-                        routes[vnet_name]['routes'].append(vnet_route)
+                check_routes_with_default_vrf(vnet_name, vnet_attrs, routes_1, routes)
+            else:
+                continue
         else:
             if vnet_name not in routes_1:
                 routes[vnet_name] =  vnet_attrs['routes'].copy()
