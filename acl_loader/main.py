@@ -656,7 +656,10 @@ class AclLoader(object):
         """
         rule_props = {}
         if is_dynamic and not self.is_dynamic_rule(rule):
-            warning("Attempting to insert a dynamic ACL rule without TTL, refused")
+            warning("Attempting to insert time-based ACL rule without TTL, refused")
+            return {}
+        if not is_dynamic and self.is_dynamic_rule(rule):
+            warning("Attempting to insert time-based ACL rule to non-time-based ACL table, refused")
             return {}
         rule_idx = int(rule.config.sequence_id)
         if not rule_name:
@@ -722,7 +725,7 @@ class AclLoader(object):
                 try:
                     acl_name_to_use = None
                     if is_dynamic:
-                        acl_name_to_use = "DYNAMIC_RULE_" + acl_entry_name
+                        acl_name_to_use = "TIME_BASED_RULE_" + acl_entry_name
                     rule = self.convert_rule_to_db_schema(table_name=table_name,
                                                           rule=acl_entry,
                                                           rule_name=acl_name_to_use,
@@ -846,7 +849,7 @@ class AclLoader(object):
         Remove entry from CONFIG_DB (must be dynamic)
         :return:
         """
-        key = str(table) + '|' + "DYNAMIC_RULE_" + str(rule)
+        key = str(table) + '|' + "TIME_BASED_RULE_" + str(rule)
         self.configdb.set_entry(self.DYNAMIC_ACL_RULE_TABLE, key, None)
         info("Removed a dynamic ACL rule {}".format(key))
 
