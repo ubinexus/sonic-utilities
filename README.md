@@ -1,7 +1,7 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/context:python)
 
-[![Build](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-utilities-build/badge/icon)](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-utilities-build/)
+[![Build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=master&label=sonic-utilities)](https://dev.azure.com/mssonic/build/_build?definitionId=55)
 
 # SONiC: Software for Open Networking in the Cloud
 
