@@ -1638,7 +1638,8 @@ class TestConfigPlatorm(object):
             db = Db()
             runner = CliRunner()
             obj = {'config_db': db.cfgdb}
-            #config.config(ctx)
+            ctx = None
+            config.config(ctx)
             result = runner.invoke(config.config.commands["platform"], ['--help'])
 
             print(result.exit_code)
