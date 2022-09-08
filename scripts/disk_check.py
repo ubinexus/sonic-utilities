@@ -34,7 +34,7 @@ import sys
 import syslog
 import subprocess
 from swsscommon.swsscommon import events_init_publisher, events_deinit_publisher, event_publish
-from swsscommon.swsscommon import Logger, FieldValueMap
+from swsscommon.swsscommon import FieldValueMap
 
 UPPER_DIR = "/run/mount/upper"
 WORK_DIR = "/run/mount/work"
@@ -44,7 +44,6 @@ EVENTS_PUBLISHER_SOURCE = "sonic-events-host"
 EVENTS_PUBLISHER_TAG = "event-disk"
 events_handle = None
 
-Logger.setMinPrio(Logger.SWSS_INFO)
 chk_log_level = syslog.LOG_ERR
 
 def _log_msg(lvl, pfx, msg):
