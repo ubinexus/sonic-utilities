@@ -1205,6 +1205,7 @@ def config(ctx):
         print("Caught an exception: " + str(e))
         raise click.Abort()
 
+    exit("ut exit")
     if asic_type == 'cisco-8000':
         from sonic_platform.cli.cisco import cisco
         platform.add_command(cisco)

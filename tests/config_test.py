@@ -1633,7 +1633,7 @@ class TestConfigPlatorm(object):
         #importlib.reload(config.main)
 
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
-            expected_output = "cisco"
+            expected_output = "firmware"
             (config, show) = get_cmd_module
             db = Db()
             runner = CliRunner()
@@ -1644,7 +1644,7 @@ class TestConfigPlatorm(object):
             print(result.exit_code)
             print(result.output)
             traceback.print_tb(result.exc_info[2])
-            #assert expected_output in result.output
+            assert expected_output in result.output
     
     @classmethod
     def teardown_class(cls):
