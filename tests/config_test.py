@@ -1633,14 +1633,15 @@ class TestConfigPlatorm(object):
         #importlib.reload(config.main)
 
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
-            expected_output = "firmware"
+            expected_output = "Enabling TX"
             (config, show) = get_cmd_module
             db = Db()
             runner = CliRunner()
             obj = {'config_db': db.cfgdb}
-            ctx = None
-            config.config(ctx)
-            result = runner.invoke(config.config.commands["platform"], ['--help'])
+            #ctx = None
+            #config.config(ctx)
+            #result = runner.invoke(config.config.commands["platform"], ['--help'])
+            result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
 
             print(result.exit_code)
             print(result.output)
