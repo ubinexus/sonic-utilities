@@ -952,5 +952,8 @@ def verify_next_image():
         sys.exit(1)
     click.echo('Image successfully verified')
 
+def test(m):
+    print(msg)
+
 if __name__ == '__main__':
     sonic_installer()
