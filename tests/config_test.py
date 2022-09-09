@@ -1644,7 +1644,7 @@ class TestConfigPlatorm(object):
             #result = runner.invoke(config.config.commands["platform"], ['--help'])
             #result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
             config.asic_type = mock.MagicMock(return_value="cisco-8000")
-            result = runner.invoke(config.config.commands["platform"].commands['cisco'], ['--help'])
+            result = runner.invoke(config.config.commands["platform"], ['--help'])
 
             print(result.exit_code)
             print(result.output)
