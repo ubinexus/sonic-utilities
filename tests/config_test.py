@@ -1634,7 +1634,7 @@ class TestConfigPlatorm(object):
 
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
             #expected_output = "Enabling TX"
-            expected_output = "update"
+            expected_output = "interface"
             (config, show) = get_cmd_module
             db = Db()
             runner = CliRunner()
@@ -1643,7 +1643,8 @@ class TestConfigPlatorm(object):
             #config.config(ctx)
             #result = runner.invoke(config.config.commands["platform"], ['--help'])
             #result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
-            result = runner.invoke(config.config.commands["platform"].commands['firmware'], ['--help'])
+            config.asic_type = mock.MagicMock(return_value="cisco-8000")
+            result = runner.invoke(config.config.commands["platform"].commands['cisco'], ['--help'])
 
             print(result.exit_code)
             print(result.output)
