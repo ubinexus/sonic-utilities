@@ -1633,7 +1633,8 @@ class TestConfigPlatorm(object):
         #importlib.reload(config.main)
 
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
-            expected_output = "Enabling TX"
+            #expected_output = "Enabling TX"
+            expected_output = "component"
             (config, show) = get_cmd_module
             db = Db()
             runner = CliRunner()
@@ -1641,7 +1642,9 @@ class TestConfigPlatorm(object):
             #ctx = None
             #config.config(ctx)
             #result = runner.invoke(config.config.commands["platform"], ['--help'])
-            result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
+            #result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
+            udo config platform firmware update chassis
+            result = runner.invoke(config.config.commands["platform"].commands['firmware'].commands['update'].commands['chassis'], [])
 
             print(result.exit_code)
             print(result.output)
