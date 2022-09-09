@@ -1643,7 +1643,6 @@ class TestConfigPlatorm(object):
             #config.config(ctx)
             #result = runner.invoke(config.config.commands["platform"], ['--help'])
             #result = runner.invoke(config.config.commands["platform"].commands['cisco'].commands['interface'].commands['tx'].commands['enable'], ['Ethernet60'])
-            udo config platform firmware update chassis
             result = runner.invoke(config.config.commands["platform"].commands['firmware'].commands['update'].commands['chassis'], [])
 
             print(result.exit_code)
