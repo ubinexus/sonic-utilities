@@ -618,7 +618,8 @@ class AclLoader(object):
         key = table + '|' + rule
         try:
             timenow = int(time.time())
-            entry['ttl'] = str(ttl)
+            del entry['is_dynamic']
+            #entry['ttl'] = str(ttl)
             entry['creation_time'] = str(timenow)
             entry['expiration_time'] = str(timenow + ttl)
             self.configdb.mod_entry(self.TIME_BASED_ACL_RULE_TABLE, key, entry)
