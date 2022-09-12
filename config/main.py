@@ -5989,10 +5989,6 @@ def size(db, size):
 @config.group(cls=clicommon.AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
-    if asic_type == 'cisco-8000':
-        from sonic_platform.cli.cisco import cisco
-        platform.add_command(cisco)
-
 
 # 'firmware' subgroup ("config platform firmware ...")
 @platform.group(cls=clicommon.AbbreviationGroup)

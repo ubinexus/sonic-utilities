@@ -1635,7 +1635,7 @@ class TestConfigPlatorm(object):
     def test_config_platform(self, ctx, get_cmd_module, setup_single_cisco_asic):
             #expected_output = "Enabling TX"
             expected_output = "interface"
-            (config, show) = get_cmd_module
+            #(config, show) = get_cmd_module
             db = Db()
             runner = CliRunner()
             obj = {'config_db': db.cfgdb}
