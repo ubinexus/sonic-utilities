@@ -631,7 +631,13 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
         unload_kernel
         exit "${EXIT_COUNTERPOLL_DELAY_FAILURE}"
     fi
+fi
 
+# We are fully committed to reboot from this point on because critical
+# service will go down and we cannot recover from it.
+set +e
+
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Clear all routes except of default routes for faster reconciliation time.
     sonic-db-cli APPL_DB eval "
         for _, k in ipairs(redis.call('keys', '*')) do
@@ -641,10 +647,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
         end
     " 0 > /dev/null
 fi
-
-# We are fully committed to reboot from this point on because critical
-# service will go down and we cannot recover from it.
-set +e
 
 # disable trap-handlers which were set before
 trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
