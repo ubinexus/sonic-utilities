@@ -70,7 +70,6 @@ class DBMigrator():
         if self.stateDB is not None:
             self.stateDB.connect(self.stateDB.STATE_DB)
 
-        # todo check
         self.loglevelDB = SonicV2Connector(host='127.0.0.1')
         if self.loglevelDB is not None:
             self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
@@ -739,15 +738,14 @@ class DBMigrator():
             keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
             if keys is not None:
                 for key in keys:
-                    if key == "JINJA2_CACHE":
-                        continue
-                    fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
-                    component = key.split(":")[1]
-                    loglevel = fvs[loglevel_field]
-                    logoutput = fvs[logoutput_field]
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key) ## todo: move outside the if to remove all keys.
+                    if key != "JINJA2_CACHE":
+                        fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                        component = key.split(":")[1]
+                        loglevel = fvs[loglevel_field]
+                        logoutput = fvs[logoutput_field]
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                        self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key) ## todo: When we will remove the Jinja2 chace, this line need to get outside from the if scope outside the if scope.
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
