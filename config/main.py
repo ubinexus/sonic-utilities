@@ -1019,6 +1019,7 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
         elif 'prefix' in prefix_str:
             # prefix_str: ['prefix', ip]
             ip_prefix = prefix_str[1]
+            vrf_name = "default"
         else:
             ctx.fail("prefix is not in pattern!")
 
