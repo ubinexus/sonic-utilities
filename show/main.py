@@ -334,6 +334,42 @@ def vrf(vrf_name):
     click.echo(tabulate(body, header))
 
 #
+# 'vrflite' command ("show vrflite")
+#
+def get_vrflite_table():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    vrf_dict = config_db.get_table('VRF')
+    vrflite_dict ={}
+    for key in list(vrf_dict.keys()):
+        if "Vrflite" in key:
+            vrflite_dict[key] = vrf_dict[key]
+    return vrflite_dict
+
+@cli.command()
+@click.argument('vrflite_name', required=False)
+def vrflite(vrflite_name):
+    """Show vrflite config"""
+    header = ['VRF-LITE', 'Interfaces']
+    body = []
+    vrflite_dict = get_vrflite_table()
+    if vrflite_dict:
+        vrfs = []
+        if vrflite_name is None:
+            vrfs = list(vrflite_dict.keys())
+        elif vrflite_name in vrflite_dict:
+            vrfs = [vrflite_name]
+        for vrf in vrfs:
+            intfs = get_interface_bind_to_vrf(config_db, vrf)
+            if len(intfs) == 0:
+                body.append([vrf, ""])
+            else:
+                body.append([vrf, intfs[0]])
+                for intf in intfs[1:]:
+                    body.append(["", intf])
+    click.echo(tabulate(body, header))
+
+#
 # 'arp' command ("show arp")
 #
 

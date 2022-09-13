@@ -394,6 +394,15 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return True
     return False
 
+def is_interface_bind_to_vrf_lite(config_db, interface_name):
+    """Get interface if bind to vrf-lite or not
+    """
+    if is_interface_bind_to_vrf(config_db, interface_name):
+        entry = config_db.get_entry(get_interface_table_name(interface_name), interface_name)
+        if entry and "Vrflite" in entry.get("vrf_name"):
+            return True
+    return False
+
 def is_portchannel_name_valid(portchannel_name):
     """Port channel name validation
     """
@@ -5021,6 +5030,91 @@ def unbind(ctx, interface_name):
         config_db.set_entry(table_name, interface_name, None)
 
 #
+# 'vrflite' subgroup ('config interface vrf ...')
+#
+
+
+@interface.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def vrflite(ctx):
+    """Bind or unbind VRF Lite"""
+    pass
+
+#
+# 'bind' subcommand
+#
+@vrflite.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('vrflite_name', metavar='<vrflite_name>', required=True)
+@click.pass_context
+def bind(ctx, interface_name, vrflite_name):
+    """Bind the interface to VRF LITE"""
+    # Get the config_db connector
+    config_db = ctx.obj["config_db"]
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if not clicommon.is_interface_in_config_db(config_db, interface_name):
+        ctx.fail('interface {} doesn`t exist'.format(interface_name))
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+    config_db.set_entry(table_name, interface_name, {"mpls": "disable"})
+
+    if is_interface_bind_to_vrf(config_db, interface_name) is True and \
+        config_db.get_entry(table_name, interface_name).get('vrf_name') == vrflite_name:
+        return
+    # Clean ip addresses if interface configured
+    if vrflite_name.startswith("Vrflite"):
+        interface_addresses = get_interface_ipaddresses(config_db, interface_name)
+        for ipaddress in interface_addresses:
+            remove_router_interface_ip_address(config_db, interface_name, ipaddress)
+        config_db.set_entry(table_name, interface_name, None)
+        # When config_db del entry and then add entry with same key, the DEL will lost.
+        if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+            state_db = SonicV2Connector(use_unix_socket_path=True)
+        else:
+            state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
+        state_db.connect(state_db.STATE_DB, False)
+        _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
+        while state_db.exists(state_db.STATE_DB, _hash):
+            time.sleep(0.01)
+        state_db.close(state_db.STATE_DB)
+        config_db.set_entry(table_name, interface_name, {"vrf_name": vrflite_name})
+    else:
+        ctx.fail("Invalid Vrflite name")
+
+#
+# 'unbind' subcommand
+#
+
+@vrflite.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def unbind(ctx, interface_name):
+    """Unbind the interface to VRF LITE"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("interface is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    if is_interface_bind_to_vrf_lite(config_db, interface_name) is False:
+        ctx.fail("Interface is not bound to Vrflite")
+        return
+    interface_ipaddresses = get_interface_ipaddresses(config_db, interface_name)
+    for ipaddress in interface_ipaddresses:
+        remove_router_interface_ip_address(config_db, interface_name, ipaddress)
+    config_db.set_entry(table_name, interface_name, None)
+
+#
 # 'ipv6' subgroup ('config interface ipv6 ...')
 #
 
@@ -5245,6 +5339,51 @@ def del_vrf_vni_map(ctx, vrfname):
 
     config_db.mod_entry('VRF', vrfname, {"vni": 0})
 
+#
+# 'vrflite' group ('config vrflite ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup, name='vrflite')
+@click.pass_context
+def vrflite(ctx):
+    """VRFLITE configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
+
+@vrflite.command('add')
+@click.argument('vrflite_name', metavar='<vrflite_name>', required=True)
+@click.pass_context
+def add_vrflite(ctx, vrflite_name):
+    """Add vrflite"""
+    config_db = ctx.obj['config_db']
+    if not vrflite_name.startswith("Vrflite"):
+        ctx.fail("'vrflite_name' is not start with Vrflite!")
+    if len(vrflite_name) > 19:
+        ctx.fail("'vrf_name' is too long!")
+    else:
+        config_db.set_entry('VRF', vrflite_name, {"NULL": "NULL"})
+
+@vrflite.command('del')
+@click.argument('vrflite_name', metavar='<vrflite_name>', required=True)
+@click.pass_context
+def del_vrflite(ctx, vrflite_name):
+    """Del vrflite"""
+    config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrflite"):
+        ctx.fail("'vrflite_name' is not start with Vrflite!")
+    if len(vrflite_name) > 19:
+        ctx.fail("'vrflite_name' is too long!")
+    syslog_table = config_db.get_table("SYSLOG_SERVER")
+    syslog_vrf_dev = vrflite_name
+    for syslog_entry, syslog_data in syslog_table.items():
+        syslog_vrf = syslog_data.get("vrf")
+        if syslog_vrf == syslog_vrf_dev:
+            ctx.fail("Failed to remove VRF device: {} is in use by SYSLOG_SERVER|{}".format(syslog_vrf, syslog_entry))
+    if vrflite_name == 'Vrflite':
+        del_interface_bind_to_vrf(config_db, vrflite_name)
+        config_db.set_entry('VRF', vrflite_name, None)
+ 
 #
 # 'route' group ('config route ...')
 #
