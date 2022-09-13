@@ -719,10 +719,6 @@ class DBMigrator():
         self.set_version('version_3_0_5')
         return 'version_3_0_5'
 
-
-
-
-
     def version_3_0_5(self):
         """
         Version 3_0_5
@@ -745,10 +741,9 @@ class DBMigrator():
                         logoutput = fvs[logoutput_field]
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                        self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key) ## todo: When we will remove the Jinja2 chace, this line need to get outside from the if scope outside the if scope.
+                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
-
 
     def version_3_0_6(self):
         """
