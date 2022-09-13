@@ -618,12 +618,11 @@ class AclLoader(object):
         key = table + '|' + rule
         try:
             timenow = int(time.time())
-            del entry['is_dynamic']
-            #entry['ttl'] = str(ttl)
+            entry.pop('is_dynamic', None)
             entry['creation_time'] = str(timenow)
             entry['expiration_time'] = str(timenow + ttl)
             self.configdb.mod_entry(self.TIME_BASED_ACL_RULE_TABLE, key, entry)
-            info("Added CONFIG_DB entry for rule {}".format(rule))
+            info("Added CONFIG_DB entry: time-based ACL rule {}".format(key))
             info(str(entry))
         except Exception as e:
             raise AclLoaderException("Failed to add CONFIG_DB entry for {}; error is {}".format(rule, str(e)))
@@ -852,7 +851,7 @@ class AclLoader(object):
         """
         key = str(table) + '|' + "TIME_BASED_RULE_" + str(rule)
         self.configdb.set_entry(self.TIME_BASED_ACL_RULE_TABLE, key, None)
-        info("Removed a dynamic ACL rule {}".format(key))
+        info("Removed CONFIG_DB entry: time-based ACL rule {}".format(key))
 
     def delete(self, table=None, rule=None):
         """
