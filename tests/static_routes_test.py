@@ -408,7 +408,7 @@ class TestStaticRoutes(object):
         ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth36.10"], obj=obj)
         print(result.exit_code, result.output)
         assert ('default', '2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
-        assert db.cfgdb.get_entry('STATIC_ROUTE', 'default|2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Eth32.10', 'nexthop-vrf': ''}
+        assert db.cfgdb.get_entry('STATIC_ROUTE', 'default|2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Eth36.10', 'nexthop-vrf': ''}
 
         # config route del prefix 2.2.3.5/32 nexthop dev Eth36.10
         result = runner.invoke(config.config.commands["route"].commands["del"], \
