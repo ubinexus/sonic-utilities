@@ -1,7 +1,16 @@
+*static analysis:*
+
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/context:python)
 
-[![Build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=master&label=sonic-utilities)](https://dev.azure.com/mssonic/build/_build?definitionId=55)
+*sonic-utilities builds:*
+
+[![master build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=master&label=master)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=master)
+
+[![202205 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=202205&label=202205)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=202205)
+
+[![202012 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=202012&label=202012)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=202012)
+
 
 # SONiC: Software for Open Networking in the Cloud
 
