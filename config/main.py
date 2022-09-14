@@ -5315,7 +5315,7 @@ def add_route(ctx, command_str):
 
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
-    if key in keys:
+    if tuple(key.split("|")) in keys:
         # If exist update current entry
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 
@@ -5340,7 +5340,7 @@ def del_route(ctx, command_str):
     key, route = cli_sroute_to_config(ctx, command_str, strict_nh=False)
     keys = config_db.get_keys('STATIC_ROUTE')
     prefix_tuple = tuple(key.split('|'))
-    if not key in keys and not prefix_tuple in keys:
+    if not tuple(key.split("|")) in keys and not prefix_tuple in keys:
         ctx.fail('Route {} doesnt exist'.format(key))
     else:
         # If not defined nexthop or intf name remove entire route
