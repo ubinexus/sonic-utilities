@@ -244,7 +244,8 @@ def all():
         r.append(val.get('endpoint'))
         r.append(val.get('mac_address'))
         r.append(val.get('vni'))
-        r.append(val_state.get('state'))
+        if val_state:
+            r.append(val_state.get('state'))
         table.append(r)
 
     click.echo(tabulate(table, header))
