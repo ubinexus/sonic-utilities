@@ -118,7 +118,6 @@ class AclLoader(object):
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
-        self.rules_ttl = {}
 
         # Load database config files
         load_db_config()
