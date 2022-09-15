@@ -908,6 +908,5 @@
         "rx_interval" : "500",
         "multiplier" : "3",
         "multihop": "true"
-
     }
 }
