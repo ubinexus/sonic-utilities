@@ -224,8 +224,11 @@ def endpoint(args):
         table = []
         for k in vnet_rt_keys:
             val = appl_db.get_all(appl_db.APPL_DB, k)
-            endpoints = val.get('endpoint').split(',')
-            monitors = val.get('endpoint_monitor').split(',')
+            endpoints = val.get('endpoint').split(',') if 'endpoint' in val else []
+            if 'endpoint_monitor' in val:
+                monitors = val.get('endpoint_monitor').split(',')
+            else:
+                continue
             for idx, endpoint in enumerate(endpoints):
                 monitor_dict[endpoint] = monitors[idx]
                 if endpoint not in prefix_count:
