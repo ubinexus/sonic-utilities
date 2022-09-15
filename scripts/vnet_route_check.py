@@ -213,7 +213,7 @@ def get_vnet_routes_from_app_db():
     for vnet_route_db_key in vnet_routes_db_keys:
         vnet_route_list = vnet_route_db_key.split(':',1)
         vnet_name = vnet_route_list[0]
-        vnet_route = vnet_route_list[1:]
+        vnet_route = vnet_route_list[1]
 
         if vnet_name not in vnet_routes:
             vnet_routes[vnet_name] = {}
@@ -296,7 +296,7 @@ def check_routes_with_default_vrf(vnet_name, vnet_attrs, routes_1, routes):
     for vnet_route in vnet_attrs['routes']:
         ispresent = False
         for vnet_name_other, vnet_attrs_other in routes_1.items():
-            if vnet_route[0] in vnet_attrs_other['routes']:
+            if vnet_route in vnet_attrs_other['routes']:
                 ispresent = True
         if not ispresent:
             if vnet_name not in routes:
