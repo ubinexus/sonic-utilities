@@ -12,8 +12,6 @@ from natsort import natsorted
 from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_db_config
-import time
-
 
 def info(msg):
     click.echo(click.style("Info: ", fg='cyan') + click.style(str(msg), fg='green'))
