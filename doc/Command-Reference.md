@@ -10397,6 +10397,38 @@ This command removes all unused images from the device, leaving only the current
   No image(s) to remove
   ```
 
+**sonic-install get-fips**
+
+This command is used to get the fips status.
+
+- Usage:
+  ```
+  sonic-installer get-fips [<image_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer get-fips
+  FIPS is enabled
+  ```
+
+**sonic-install set-fips**
+
+The command is used to enable or disable the fips.
+
+- Usage:
+  ```
+  sonic-installer set-fips [--enable-fips|--disable-fips] [<image_name>]
+  ```
+If the option --enable-fips or --disable-fips is not specified, the default behavior is to enable fips.
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer set-fips --enable-fips
+  Done
+  Set FIPS for the image successfully
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#software-installation-and-management)
 
 
