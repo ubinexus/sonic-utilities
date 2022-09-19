@@ -3,6 +3,7 @@ import utilities_common.cli as clicommon
 from natsort import natsorted
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
+import ipaddress
 
 
 #
@@ -12,6 +13,74 @@ from tabulate import tabulate
 def vnet():
     """Show vnet related information"""
     pass
+
+
+@vnet.group()
+def advertised_routes():
+    """Show vnet Advertised-routes"""
+    pass
+
+
+def process_advertised_route(args, version):
+    state_db = SonicV2Connector()
+    state_db.connect(state_db.STATE_DB)
+    appl_db = SonicV2Connector()
+    appl_db.connect(appl_db.APPL_DB)
+    community_filter = ''
+    profile_filter = ''
+    if args and len(args) > 0:
+        community_filter = args
+
+    bgp_profile_keys = appl_db.keys(appl_db.APPL_DB, "BGP_PROFILE_TABLE:*")
+    bgp_profile_keys = natsorted(bgp_profile_keys) if bgp_profile_keys else []
+    profiles = {}
+    for  profilekey in bgp_profile_keys:
+        val = appl_db.get_all(appl_db.APPL_DB, profilekey)
+        if val:
+            community_id = val.get('community_id')
+            profiles[profilekey.split(':')[1]] = community_id
+            if community_filter and community_filter == community_id:
+                profile_filter = profilekey.split(':')[1]
+                break;
+
+    adv_table_keys = state_db.keys(state_db.STATE_DB, "ADVERTISE_NETWORK_TABLE|*")
+    adv_table_keys = natsorted(adv_table_keys) if adv_table_keys else []
+    header = ['Prefix', 'Profile', 'Community Id']
+    table = []
+    for k in adv_table_keys:
+        ip = k.split('|')[1]
+        if ipaddress.ip_network(ip).version != version:
+            continue
+        val = state_db.get_all(appl_db.STATE_DB, k)
+        profile = val.get('profile') if val else ''
+        if community_filter:
+            if profile == profile_filter:
+                r = []
+                r.append(ip)
+                r.append(profile)
+                r.append(community_filter)
+                table.append(r)
+        else:
+            r = []
+            r.append(ip)
+            r.append(profile)
+            r.append(profiles[profile])
+            table.append(r)
+    click.echo(tabulate(table, header))
+
+
+@advertised_routes.command()
+@click.argument('args', metavar='[community:string]', nargs=1, required=False)
+def ip(args):
+    """Show vnet advertised-routes ip [community string XXXX:XXXX]"""
+    process_advertised_route(args, 4)
+
+
+@advertised_routes.command()
+@click.argument('args', metavar='[community:string]', nargs=1, required=False)
+def ipv6(args):
+    """Show vnet advertised-routes ipv6 [community string XXXX:XXXX]"""
+    process_advertised_route(args, 6)
 
 
 @vnet.command()
