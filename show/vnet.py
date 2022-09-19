@@ -218,8 +218,8 @@ def endpoint(args):
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
     bfd_keys = state_db.keys(state_db.STATE_DB, "BFD_SESSION_TABLE|*")
     if not filter_by_ip:
-        header = ['Endpoint', 'prefix count', 'status']
-        prefix_count ={}
+        header = ['Endpoint', 'Endpoint Monitor', 'prefix count', 'status']
+        prefix_count = {}
         monitor_dict = {}
         table = []
         for k in vnet_rt_keys:
@@ -232,11 +232,12 @@ def endpoint(args):
             for idx, endpoint in enumerate(endpoints):
                 monitor_dict[endpoint] = monitors[idx]
                 if endpoint not in prefix_count:
-                    prefix_count[endpoint] =0
+                    prefix_count[endpoint] = 0
                 prefix_count[endpoint] += 1
         for endpoint in prefix_count:
             r = []
             r.append(endpoint)
+            r.append(monitor_dict[endpoint])
             r.append(prefix_count[endpoint])
             bfd_session_key = "BFD_SESSION_TABLE|default|default|" + monitor_dict[endpoint]
             if bfd_session_key in bfd_keys:
@@ -247,14 +248,15 @@ def endpoint(args):
             table.append(r)
     else:
         table = []
-        header = ['Endpoint', 'prefix', 'status']
+        header = ['Endpoint', 'Endpoint Monitor', 'prefix', 'status']
         state = 'Unknown'
-        prefix =[]
+        prefix = []
+        monitor_list = []
         have_status = False
         for k in vnet_rt_keys:
             val = appl_db.get_all(appl_db.APPL_DB, k)
             endpoints = val.get('endpoint').split(',')
-            monitors =  val.get('endpoint_monitor').split(',')
+            monitors = val.get('endpoint_monitor').split(',')
             for idx, endpoint in enumerate(endpoints):
                 if args == endpoint:
                     prefix.append(k.split(":", 2)[2]) 
@@ -264,10 +266,12 @@ def endpoint(args):
                             val_state = state_db.get_all(state_db.STATE_DB, bfd_session_key)
                             state = val_state.get('state')
                             have_status = True
+                            monitor_list.append( monitors[idx])
                             break
         if prefix:
             r = []
             r.append(args)
+            r.append(monitor_list)
             r.append(prefix)
             r.append(state)
             table.append(r)

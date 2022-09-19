@@ -41,11 +41,11 @@ test_v4_in_v4-0  160.164.191.1/32          100.251.7.1
         result = runner.invoke(show.cli.commands['vnet'].commands['endpoint'], [], obj=db)
         assert result.exit_code == 0
         expected_output = """\
-Endpoint                 prefix count  status
----------------------  --------------  --------
-fddd:a100:a251::a10:1               1  Unknown
-fddd:a101:a251::a10:1               1  Down
-100.251.7.1                         3  Up
+Endpoint               Endpoint Monitor         prefix count  status
+---------------------  ---------------------  --------------  --------
+fddd:a100:a251::a10:1  fddd:a100:a251::a10:1               1  Unknown
+fddd:a101:a251::a10:1  fddd:a101:a251::a10:1               1  Down
+100.251.7.1            100.251.7.1                         3  Up
 """
         assert result.output == expected_output
 
@@ -55,9 +55,9 @@ fddd:a101:a251::a10:1               1  Down
         result = runner.invoke(show.cli.commands['vnet'].commands['endpoint'], ['100.251.7.1'], obj=db)
         assert result.exit_code == 0
         expected_output = """\
-Endpoint     prefix                                                        status
------------  ------------------------------------------------------------  --------
-100.251.7.1  ['160.162.191.1/32', '160.163.191.1/32', '160.164.191.1/32']  Up
+Endpoint     Endpoint Monitor    prefix                                                        status
+-----------  ------------------  ------------------------------------------------------------  --------
+100.251.7.1  ['100.251.7.1']     ['160.162.191.1/32', '160.163.191.1/32', '160.164.191.1/32']  Up
 """
         assert result.output == expected_output
 
@@ -67,8 +67,8 @@ Endpoint     prefix                                                        statu
         result = runner.invoke(show.cli.commands['vnet'].commands['endpoint'], ['fddd:a101:a251::a10:1'], obj=db)
         assert result.exit_code == 0
         expected_output = """\
-Endpoint               prefix                        status
----------------------  ----------------------------  --------
-fddd:a101:a251::a10:1  ['fddd:a156:a251::a6:1/128']  Down
+Endpoint               Endpoint Monitor           prefix                        status
+---------------------  -------------------------  ----------------------------  --------
+fddd:a101:a251::a10:1  ['fddd:a101:a251::a10:1']  ['fddd:a156:a251::a6:1/128']  Down
 """
         assert result.output == expected_output
