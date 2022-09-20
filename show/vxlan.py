@@ -41,7 +41,7 @@ def name(vxlan_name):
                 r.append(' ')
                 r.append(' ')
                 r.append(' ')
-        else
+        else:
             table.append(r)
 
     click.echo(tabulate(table, header))
@@ -75,7 +75,7 @@ def tunnel():
                 r.append(' ')
                 r.append(' ')
                 r.append(' ')
-        else
+        else:
             table.append(r)
 
     click.echo(tabulate(table, header))
