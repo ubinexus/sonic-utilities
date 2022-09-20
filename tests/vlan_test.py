@@ -316,6 +316,13 @@ class TestVlan(object):
         db = Db()
         obj = {'config_db':db.cfgdb}
 
+        # attempt to del vlan with vxlan map, should fail
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["200"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: vlan: 200 can not be removed. First remove vxlan mapping 'vtep1|map_200_Vlan200' assigned to VLAN" in result.output
+	
         # del vlan with IP
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
