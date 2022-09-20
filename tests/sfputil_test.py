@@ -478,15 +478,19 @@ Ethernet0  N/A
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @pytest.mark.parametrize("mock_response, expected", [
-        ({'status': False, 'info': "CDB Not supported", 'result': None}, -1),
-        ({'status': False, 'info': "Reply payload check code error\n", 'result': None} , -1),
-        ({'status': True, 'info': "", 'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0)} , -1),
-        ({'status': True, 'info': "", 'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0)} , -1),
-        ({'status': True, 'info': "", 'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0)} , 1),
-        ({'status': True, 'info': "", 'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 0)} , 1),
+        ({'status': False, 'result': None}                                 , -1),
+        ({'status': False, 'result': None}                                 , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0)} ,  1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 0)} ,  1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 1, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 1, "1.0.2", 0, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 1)} , -1),
 
         # "is_fw_switch_done" function will waiting until timeout under below condition, so that this test will spend around 1min.
-        # ({'status': False, 'info': "Interface fail", 'result': 0} , -1),
+        ({'status': False, 'result': 0}                                    , -1),
     ])
     def test_is_fw_switch_done(self, mock_chassis, mock_response, expected):
         mock_sfp = MagicMock()
