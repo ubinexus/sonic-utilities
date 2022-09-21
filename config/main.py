@@ -1567,6 +1567,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     if cache_arp_table:
         cache_arp_entries()
 
+    log_info("Delete portstat data file to ensure accuracy after reload")
+    os.system("rm -rf /tmp/portstat-*")
+
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'reload' stopping services...")
