@@ -482,14 +482,14 @@ class AclLoader(object):
 
         if rule.ip.config.source_ip_address:
             source_ip_address = rule.ip.config.source_ip_address
-            if ipaddress.ip_network(source_ip_address).version == 4:
+            if ipaddress.ip_network(source_ip_address, strict=False).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
             destination_ip_address = rule.ip.config.destination_ip_address
-            if ipaddress.ip_network(destination_ip_address).version == 4:
+            if ipaddress.ip_network(destination_ip_address, strict=False).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
                 rule_props["DST_IPV6"] = destination_ip_address
@@ -698,12 +698,6 @@ class AclLoader(object):
         modifications.
         :return:
         """
-
-        # TODO: Until we test ASIC behavior, we cannot assume that we can insert
-        # dataplane ACLs and shift existing ACLs. Therefore, we perform a full
-        # update on dataplane ACLs, and only perform an incremental update on
-        # control plane ACLs.
-
         new_rules = set(self.rules_info.keys())
         new_dataplane_rules = set()
         new_controlplane_rules = set()
@@ -724,14 +718,6 @@ class AclLoader(object):
                 current_controlplane_rules.add(key)
             else:
                 current_dataplane_rules.add(key)
-
-        # Remove all existing dataplane rules
-        for key in current_dataplane_rules:
-            self.configdb.mod_entry(self.ACL_RULE, key, None)
-            # Program for per-asic namespace also if present
-            for namespace_configdb in self.per_npu_configdb.values():
-                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
-
 
         # Add all new dataplane rules
         for key in new_dataplane_rules:

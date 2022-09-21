@@ -1395,17 +1395,6 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 This command is used to perform incremental update of ACL rule table. This command gets existing rules from Config DB and compares with rules specified in input file and performs corresponding modifications.
 
-With respect to DATA ACLs, the command does not assume that new dataplane ACLs can be inserted in betweeen by shifting existing ACLs in all ASICs. Therefore, this command performs a full update on dataplane ACLs.
-With respect to control plane ACLs, this command performs an incremental update.
-If we assume that "file1.json" is the already loaded ACL rules file and if "file2.json" is the input file that is passed as parameter for this command, the following requirements are valid for the input file.
-1) First copy the file1.json to file2.json.
-2) Remove the unwanted ACL rules from file2.json
-3) Add the newly required ACL rules into file2.json.
-4) Modify the existing ACL rules (that require changes) in file2.json.
-
-NOTE: If any ACL rule that is already available in file1.json is required even after this command execution, such rules should remain unalterted in file2.json. Don't remove them.
-Note that "incremental" is working like "full".
-
 When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
 
 When "--mirror_stage" optional argument is specified, command sets the mirror action to ingress/egress based on this parameter. By default command sets ingress mirror action in case argument is not specified.
