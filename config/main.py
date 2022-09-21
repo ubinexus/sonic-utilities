@@ -34,6 +34,7 @@ from utilities_common.general import load_db_config, load_module_from_source
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
+from .yang_validation_service import YangValidationService
 
 from . import aaa
 from . import chassis_modules
@@ -2040,10 +2041,6 @@ def portchannel(db, ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     """Add port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
-
     db = ctx.obj['db']
 
     if is_portchannel_present_in_db(db, portchannel_name):
@@ -2059,7 +2056,12 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
-    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    
+    yvs = YangValidationService()
+    if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, fvs):
+        ctx.fail("Invalid configuration based on PortChannel YANG model")
+    else:
+        db.set_entry('PORTCHANNEL', portchannel_name, fvs)
 
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -2084,7 +2086,11 @@ def remove_portchannel(ctx, portchannel_name):
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        db.set_entry('PORTCHANNEL', portchannel_name, None)
+        yvs = YangValidationService()
+        if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, None):
+            ctx.fail("Invalid configuration based on PortChannel YANG model")
+        else:
+            db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
