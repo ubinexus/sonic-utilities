@@ -30,3 +30,5 @@
 
 #### New command output (if the output of a command-line utility has changed)
 
+#### Ensure to add label/tag for the feature raised. example - [PR#2174](https://github.com/sonic-net/sonic-utilities/pull/2174) where, Generic Config and Update feature has been labelled as GCU.
+
