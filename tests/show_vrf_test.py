@@ -112,9 +112,9 @@ VRF     Interfaces
 ------  ---------------
 Vrf1
 Vrf101  Ethernet0.10
-Vrf102  PortChannel0002
+Vrf102  Eth36.10
         Vlan40
-        Eth36.10
+        PortChannel0002
 Vrf103  Ethernet4
         Loopback0
         Po0002.101
