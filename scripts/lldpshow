@@ -24,7 +24,7 @@ import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-
+from shlex import split
 from sonic_py_common import device_info
 from swsscommon.swsscommon import ConfigDBConnector
 from utilities_common.general import load_db_config
@@ -80,9 +80,11 @@ class Lldpshow(object):
             lldp_interface_list = lldp_port if lldp_port is not None else self.lldp_interface[lldp_instace_num]
             # In detail mode we will pass interface list (only front ports) and get O/P as plain text
             # and in table format we will get xml output
-            lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + (
-                '-f xml' if not lldp_detail_info else lldp_interface_list)
-            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True, text=True)
+            lldp_list = split("lldp{}".format(self.lldp_instance[lldp_instace_num]) + ('-f xml' \
+                    if not lldp_detail_info else lldp_interface_list))
+
+            lldp_cmd = ['sudo', 'docker', 'exec', '-i'] + lldp_list + ['lldpctl']
+            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, text=True)
             (output, err) = p.communicate()
             ## Wait for end of command. Get return returncode ##
             returncode = p.wait()

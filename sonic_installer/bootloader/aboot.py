@@ -126,8 +126,8 @@ class AbootBootloader(Bootloader):
         return True
 
     def install_image(self, image_path):
-        run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
-        run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+        run_command(["/usr/bin/unzip", "-od", "/tmp", "%s" % image_path, "boot0"])
+        run_command(["swipath=%s" % image_path, "target_path=/host sonic_upgrade=1", ".", "/tmp/boot0"])
 
     def remove_image(self, image):
         nextimage = self.get_next_image()

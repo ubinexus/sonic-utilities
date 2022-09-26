@@ -1,10 +1,10 @@
-import os
 import subprocess
 import sys
 
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import device_info
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 
 #
 # Helper functions
@@ -104,7 +104,8 @@ def psustatus(index, json, verbose):
 def ssdhealth(device, verbose, vendor):
     """Show SSD Health information"""
     if not device:
-        device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
+        _, stdout = getstatusoutput_noshell_pipe(["lsblk", "-o", "NAME,TYPE", "-p"], ["grep", "disk"])
+        device = stdout.readline().strip().split()[0]
     cmd = "sudo ssdutil -d " + device
     options = " -v" if verbose else ""
     options += " -e" if vendor else ""
@@ -148,9 +149,9 @@ def temperature():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def firmware(args):
     """Show firmware information"""
-    cmd = "sudo fwutil show {}".format(" ".join(args))
+    cmd = ["sudo", "fwutil", "show"] + args
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)

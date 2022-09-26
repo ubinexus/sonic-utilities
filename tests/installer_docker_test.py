@@ -20,7 +20,7 @@ def test_rollback_docker_basic(mock_run_cmd):
         )
 
     assert result.exit_code == SUCCESS
-    expect_docker_tag_command = 'docker tag docker-fpm-frr:some_tag docker-fpm-frr:latest'
+    expect_docker_tag_command = ['docker', 'tag', 'docker-fpm-frr:some_tag', 'docker-fpm-frr:latest']
     mock_run_cmd.assert_called_with(expect_docker_tag_command)
 
     mock_run_cmd.reset()
@@ -29,7 +29,7 @@ def test_rollback_docker_basic(mock_run_cmd):
         )
 
     assert result.exit_code == SUCCESS
-    mock_run_cmd.assert_any_call('systemctl restart snmp')
+    mock_run_cmd.assert_any_call(['systemctl', 'restart', 'snmp'])
 
 
 @patch('sonic_installer.main.get_container_image_name', MagicMock(return_value='docker-fpm-frr'))

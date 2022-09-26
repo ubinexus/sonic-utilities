@@ -4,6 +4,7 @@ import jsondiff
 import importlib
 import os
 import tempfile
+import subprocess
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
@@ -164,7 +165,8 @@ class ChangeApplier:
 
     def _get_running_config(self):
         (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
-        os.system("sonic-cfggen -d --print-data > {}".format(fname))
+        with open(fname, 'w') as f:
+            subprocess.call(["sonic-cfggen", "-d", "--print-data"], stdout=f)
         run_data = {}
         with open(fname, "r") as s:
             run_data = json.load(s)

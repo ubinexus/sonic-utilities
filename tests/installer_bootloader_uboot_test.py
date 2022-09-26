@@ -45,6 +45,7 @@ def test_set_fips_uboot(run_command_patch, popen_patch):
 
     def mock_run_command(cmd):
         # Remove leading string "/usr/bin/fw_setenv linuxargs " -- the 29 characters
+        cmd = ' '.join(cmd)
         MockProc.commandline = 'linuxargs=' + cmd[29:]
 
     run_command_patch.side_effect = mock_run_command

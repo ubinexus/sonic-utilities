@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import subprocess
 from unittest import mock
 
 import pytest
@@ -84,7 +85,7 @@ def breakout_cfg_file():
         json.dump(BRKOUT_CFG_FILE_JSON, f, indent=4)
     yield file
 
-    os.system("rm /tmp/breakout_cfg_file.json")
+    subprocess.call(["rm", "/tmp/breakout_cfg_file.json"])
     return
 
 @pytest.fixture(scope='module')
@@ -703,8 +704,8 @@ class TestConfigDPB(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        os.system("rm /tmp/startConfigDb.json")
-        os.system("rm /tmp/portBreakOutConfigDb.json")
+        subprocess.call(["rm", "/tmp/startConfigDb.json"])
+        subprocess.call(["rm", "/tmp/portBreakOutConfigDb.json"])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         return
 

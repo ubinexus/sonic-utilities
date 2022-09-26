@@ -5,7 +5,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 from flow_counter_util.route import exit_if_route_flow_counter_not_support
 from utilities_common import util_base
 from show.plugins.pbh import read_pbh_counters
@@ -79,16 +79,14 @@ class AliasedGroup(click.Group):
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    cmd0 = ["sudo", "docker", "ps"]
+    cmd1 = ["grep", "bgp"]
+    cmd2 = ["awk", '{print$2}']
+    cmd3 = ["cut", "-d", '-', "-f3"]
+    cmd4 = ["cut", "-d", ':', "-f1"]
 
     try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        result = stdout.rstrip('\n')
+        _, result = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2, cmd3, cmd4)
 
     except OSError as e:
         raise OSError("Cannot detect routing-stack")

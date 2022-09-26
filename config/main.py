@@ -217,7 +217,7 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
     deps, ret = cm.breakOutPort(delPorts=delPorts,  portJson=portJson, \
                     force=force, loadDefConfig=loadDefConfig)
     # check if DPB failed
-    if ret == False:
+    if not ret:
         if not force and deps:
             click.echo("Dependecies Exist. No further action will be taken")
             click.echo("*** Printing dependecies ***")
@@ -241,8 +241,8 @@ def _get_device_type():
     TODO: move to sonic-py-common
     """
 
-    command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    command = [SONIC_CFGGEN_PATH, "-m", "-v", "DEVICE_METADATA.localhost.type"]
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     device_type, err = proc.communicate()
     if err:
         click.echo("Could not get the device type from minigraph, setting device type to Unknown")
@@ -812,7 +812,7 @@ def _get_disabled_services_list(config_db):
 
 def _stop_services():
     try:
-        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(["sudo", "monit", "status"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Disabling container monitoring ...")
         clicommon.run_command("sudo monit unmonitor container_checker")
     except subprocess.CalledProcessError as err:
@@ -852,7 +852,7 @@ def _restart_services():
     clicommon.run_command("sudo systemctl restart sonic.target")
 
     try:
-        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(["sudo", "monit", "status"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Enabling container monitoring ...")
         clicommon.run_command("sudo monit monitor container_checker")
     except subprocess.CalledProcessError as err:
@@ -892,7 +892,7 @@ def _swss_ready():
             list_of_swss.append(service)
 
     for service_name in list_of_swss:
-        if _per_namespace_swss_ready(service_name) == False:
+        if not _per_namespace_swss_ready(service_name):
             return False
 
     return True
@@ -1085,8 +1085,8 @@ def cache_arp_entries():
     if not os.path.exists(cache_dir):
         os.mkdir(cache_dir)
 
-    arp_cache_cmd = '/usr/local/bin/fast-reboot-dump.py -t {}'.format(cache_dir)
-    cache_proc = subprocess.Popen(arp_cache_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    arp_cache_cmd = ['/usr/local/bin/fast-reboot-dump.py', '-t', cache_dir]
+    cache_proc = subprocess.Popen(arp_cache_cmd, text=True, stdout=subprocess.PIPE)
     _, cache_err = cache_proc.communicate()
     if cache_err:
         click.echo("Could not cache ARP and FDB info prior to reloading")
@@ -1095,8 +1095,8 @@ def cache_arp_entries():
     if not cache_err:
         fdb_cache_file = os.path.join(cache_dir, 'fdb.json')
         arp_cache_file = os.path.join(cache_dir, 'arp.json')
-        fdb_filter_cmd = '/usr/local/bin/filter_fdb_entries -f {} -a {} -c /etc/sonic/configdb.json'.format(fdb_cache_file, arp_cache_file)
-        filter_proc = subprocess.Popen(fdb_filter_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+        fdb_filter_cmd = ['/usr/local/bin/filter_fdb_entries', '-f', fdb_cache_file, '-a', arp_cache_file, '-c', '/etc/sonic/configdb.json']
+        filter_proc = subprocess.Popen(fdb_filter_cmd, text=True, stdout=subprocess.PIPE)
         _, filter_err = filter_proc.communicate()
         if filter_err:
             click.echo("Could not filter FDB entries prior to reloading")
@@ -1601,8 +1601,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
         if load_sysinfo:
             try:
-                command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
-                proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+                command = [SONIC_CFGGEN_PATH, "-j", file, '-v', "DEVICE_METADATA.localhost.hwsku"]
+                proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
                 output, err = proc.communicate()
 
             except FileNotFoundError as e:
@@ -1991,7 +1991,7 @@ def portchannel(db, ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     """Add port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
+    if not is_portchannel_name_valid(portchannel_name):
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                  .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
@@ -2017,7 +2017,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
+    if not is_portchannel_name_valid(portchannel_name):
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                  .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
@@ -2948,8 +2948,8 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     config_db.set_entry('SNMP_AGENT_ADDRESS_CONFIG', key, {})
 
     #Restarting the SNMP service will regenerate snmpd.conf and rerun snmpd
-    cmd="systemctl restart snmp"
-    os.system (cmd)
+    cmd = ["systemctl", "restart", "snmp"]
+    subprocess.call(cmd)
 
 @snmpagentaddress.command('del')
 @click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
@@ -2967,8 +2967,8 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
         key = key+vrf
     config_db = ctx.obj['db']
     config_db.set_entry('SNMP_AGENT_ADDRESS_CONFIG', key, None)
-    cmd="systemctl restart snmp"
-    os.system (cmd)
+    cmd = ["systemctl", "restart", "snmp"]
+    subprocess.call(cmd)
 
 @config.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
@@ -2998,8 +2998,8 @@ def modify_snmptrap_server(ctx, ver, serverip, port, vrf, comm):
     else:
         config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
 
-    cmd="systemctl restart snmp"
-    os.system (cmd)
+    cmd = ["systemctl", "restart", "snmp"]
+    subprocess.call (cmd)
 
 @snmptrap.command('del')
 @click.argument('ver', metavar='<SNMP Version>', type=click.Choice(['1', '2', '3']), required=True)
@@ -3014,8 +3014,8 @@ def delete_snmptrap_server(ctx, ver):
         config_db.mod_entry('SNMP_TRAP_CONFIG', "v2TrapDest", None)
     else:
         config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", None)
-    cmd="systemctl restart snmp"
-    os.system (cmd)
+    cmd = ["systemctl", "restart", "snmp"]
+    subprocess.call (cmd)
 
 
 
@@ -5435,7 +5435,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
     else:
         table_info["policy_desc"] = table_name
 
-    if not ports and ports != None:
+    if not ports and ports is not None:
         raise ValueError("Cannot bind empty list of ports")
 
     port_list = []
@@ -5555,7 +5555,7 @@ def dropcounters():
 
 
 #
-# 'install' subcommand ('config dropcounters install')
+# ' + argsinstall' subcommand ('config dropcounters install')
 #
 @dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
@@ -5963,10 +5963,10 @@ def firmware():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def install(args):
     """Install platform firmware"""
-    cmd = "fwutil install {}".format(" ".join(args))
+    cmd = ["fwutil", "install"] + args
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
@@ -5981,10 +5981,10 @@ def install(args):
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def update(args):
     """Update platform firmware"""
-    cmd = "fwutil update {}".format(" ".join(args))
+    cmd = ["fwutil", "update"] + args
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
@@ -6247,7 +6247,7 @@ def enable(ctx):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
     try:
-        proc = subprocess.Popen("systemctl is-active sflow", shell=True, text=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["systemctl", "is-active", "sflow"], text=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
     except SystemExit as e:
         ctx.fail("Unable to check sflow status {}".format(e))

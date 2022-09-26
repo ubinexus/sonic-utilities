@@ -774,11 +774,11 @@ def fetch_error_status_from_platform_api(port):
         "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
         "print(errors)\n"
 
-    get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
-        init_chassis_code, generate_sfp_list_code, get_error_status_code)
+    get_error_status_command = ["docker", "exec", "pmon", "python3", "-c", "{}{}{}".format(
+        init_chassis_code, generate_sfp_list_code, get_error_status_code)]
     # Fetch error status from pmon docker
     try:
-        output = subprocess.check_output(get_error_status_command, shell=True, universal_newlines=True)
+        output = subprocess.check_output(get_error_status_command, universal_newlines=True)
     except subprocess.CalledProcessError as e:
         click.Abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
         return None
@@ -1151,7 +1151,7 @@ def download_firmware(port_name, filepath):
 
     try:
         fwinfo = api.get_module_fw_mgmt_feature()
-        if fwinfo['status'] == True:
+        if fwinfo['status']:
             startLPLsize, maxblocksize, lplonly_flag, autopaging_flag, writelength = fwinfo['feature']
         else:
             click.echo("Failed to fetch CDB Firmware management features")

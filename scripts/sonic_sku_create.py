@@ -37,6 +37,7 @@ from collections import OrderedDict
 from tabulate import tabulate
 from lxml import etree as ET
 from lxml.etree import QName
+from sonic_py_common.general import check_output_pipe
 
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
@@ -246,7 +247,7 @@ class SkuCreate(object):
         meta_dict = data['DEVICE_METADATA']['localhost']
         self.sku_name = meta_dict.get("hwsku")
         self.new_sku_dir = self.default_sku_path+"/"+self.sku_name+ '/'
-        if self.remove_mode == True:
+        if self.remove_mode:
             self.remove_sku_dir()
             return
         self.create_sku_dir()
@@ -269,7 +270,7 @@ class SkuCreate(object):
 
             if port_idx%self.base_lanes == 0:
                 result = self.check_json_lanes_with_bko(data, port_idx)
-                if result != None:
+                if result is not None:
                     self.write_json_lanes_to_pi_list(data, port_idx, result, pi_list)
             else:
                 continue
@@ -278,11 +279,11 @@ class SkuCreate(object):
     
         for port_info in pi_list: 
             out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(port_info[0],port_info[1],port_info[2],str(port_info[3]),str(port_info[4]))
-            if self.print_mode == True:
+            if self.print_mode:
                 print(out_str)
             else:
                 f_out.write(out_str)
-            if self.verbose and (self.print_mode == False):
+            if self.verbose and (not self.print_mode):
                 print(out_str)
         f_out.close()
         self.port_config_split_analyze(self.ini_file)
@@ -441,7 +442,7 @@ class SkuCreate(object):
                     out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(port_str,lanes_str,alias_str,index_str,str(speed))
                     f_out.write(out_str)
             else:
-                if port_found == True:
+                if port_found:
                     if alias_index == matched_alias_index:
                         continue
                     else:
@@ -476,7 +477,7 @@ class SkuCreate(object):
         for port_index in range (port_idx,port_idx+self.base_lanes):
             port_str = "Ethernet" + str(port_index)
                 
-            if data['PORT'].get(port_str) != None:
+            if data['PORT'].get(port_str) is not None:
                 port_instance = data['PORT'].get(port_str)
                 if "mtu" in port_instance:
                     mtu = port_instance.get("mtu")
@@ -759,7 +760,7 @@ def main(argv):
             sku.default_sku_path = args.default_sku_path[0]
         else:
             try:
-                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True, text=True) #self.metadata['platform']
+                sku.platform = subprocess.check_output(["sonic-cfggen", "-H", "-v", "DEVICE_METADATA.localhost.platform"], text=True) #self.metadata['platform']
                 sku.platform = sku.platform.rstrip()
             except KeyError:
                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
@@ -803,7 +804,7 @@ def main(argv):
                 sku.parse_platform_from_config_db_file(sku.cfg_file)
             else:
                 try:
-                    sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+                    sku_name = check_output_pipe(["show", "platform", "summary"], ["grep", "HwSKU"]).rstrip().split()[1]
                 except KeyError:
                     print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
                     exit(1)

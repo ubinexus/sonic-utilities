@@ -96,10 +96,10 @@ class TestSkuCreate(object):
             if (os.path.exists(output_xml_dir_path)):
                 shutil.rmtree(output_xml_dir_path)
 
-            my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
+            my_command = [sku_create_script, "-f", sku_def_file, "-d", xml_input_path]
 
             #Test case execution without stdout
-            result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+            result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
             print(result)
 
             #Check if the Output file exists
@@ -109,7 +109,7 @@ class TestSkuCreate(object):
                 pytest.fail("Output file: {} does not exist. FAILURE!".format(output_xml_file_path))
 
             #Check if the Output file and the model file have same contents
-            if self.are_file_contents_same(output_xml_file_path, model_xml_file_path) == True:
+            if self.are_file_contents_same(output_xml_file_path, model_xml_file_path):
                 print("Output file: ",output_xml_file_path, " and model file: ",model_xml_file_path, "contents are same. SUCCESS!")
             else:
                 pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
@@ -118,10 +118,10 @@ class TestSkuCreate(object):
         if (os.path.exists(output_minigraph_dir_path)):
             shutil.rmtree(output_minigraph_dir_path)
 
-        my_command = sku_create_script + " -m "  + minigraph_file  + " -d " + minigraph_input_path
+        my_command = [sku_create_script, "-m", minigraph_file, "-d", minigraph_input_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Check if the Output file exists
@@ -131,7 +131,7 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} does not exist. FAILURE!".format(output_minigraph_file_path))
 
         #Check if the Output file and the model file have same contents
-        if self.are_file_contents_same(output_minigraph_file_path, model_minigraph_file_path) == True:
+        if self.are_file_contents_same(output_minigraph_file_path, model_minigraph_file_path):
             print("Output file: ",output_minigraph_file_path, " and model file: ",model_minigraph_file_path, "contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_minigraph_file_path, model_minigraph_file_path))
@@ -140,10 +140,10 @@ class TestSkuCreate(object):
         if (os.path.exists(output_config_db_dir_path)):
             shutil.rmtree(output_config_db_dir_path)
 
-        my_command = sku_create_script + " -j "  + config_db_file  + " -d " + config_db_input_path
+        my_command = [sku_create_script, "-j", config_db_file, "-d", config_db_input_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Check if the Output file exists
@@ -153,7 +153,7 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} does not exist. FAILURE!".format(output_config_db_file_path))
 
         #Check if the Output file and the model file have same contents
-        if self.are_file_contents_same(output_config_db_file_path, model_config_db_file_path) == True:
+        if self.are_file_contents_same(output_config_db_file_path, model_config_db_file_path):
             print("Output file: ",output_config_db_file_path, " and model file: ",model_config_db_file_path, "contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_config_db_file_path, model_config_db_file_path))
@@ -171,10 +171,10 @@ class TestSkuCreate(object):
         else:
              shutil.copyfile(model_config_db_file_path, port_split_pc_ini_file_output_path)
            
-        my_command = sku_create_script + " -s Ethernet16 2x50 -d " + port_split_input_path + " -q " + port_split_output_path
+        my_command = [sku_create_script, "-s", "Ethernet16", "2x50", "-d", port_split_input_path, "-q", port_split_output_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Verify the output of port_config.ini file
@@ -242,10 +242,10 @@ class TestSkuCreate(object):
         else:
              shutil.copyfile(model_config_db_file_path, port_unsplit_pc_ini_file_output_path)
            
-        my_command = sku_create_script + " -s Ethernet112 1x100 -d " + port_unsplit_input_path + " -q " + port_unsplit_output_path
+        my_command = [sku_create_script, "-s", "Ethernet112", "1x100", "-d", port_unsplit_input_path, "-q", port_unsplit_output_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Verify the output of port_config.ini file

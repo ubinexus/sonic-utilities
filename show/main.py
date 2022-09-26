@@ -19,6 +19,7 @@ from utilities_common.db import Db
 from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 
 # mock the redis for unit test purposes #
 try:
@@ -381,9 +382,9 @@ def ndp(ip6address, iface, verbose):
 def is_mgmt_vrf_enabled(ctx):
     """Check if management VRF is enabled"""
     if ctx.invoked_subcommand is None:
-        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+        cmd = ['sonic-cfggen', '-d', '--var-json', "MGMT_VRF_CONFIG"]
 
-        p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
@@ -1249,8 +1250,8 @@ def version(verbose):
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
 
-    sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    sys_uptime_cmd = ["uptime"]
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, text=True, stdout=subprocess.PIPE)
 
     sys_date = datetime.now()
 
@@ -1270,8 +1271,8 @@ def version(verbose):
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
-    cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    cmd = ['sudo', 'docker', 'images', '--format', "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"]
+    p = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
 #
@@ -1625,9 +1626,13 @@ def startupconfiguration():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP startup configuration"""
-    cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    result = proc.stdout.read().rstrip()
+    cmd0 = ['sudo', 'docker', 'ps']
+    cmd1 = ['grep', 'bgp']
+    cmd2 = ['awk', '{print$2}']
+    cmd3 = ['cut', '-d', '-', '-f3']
+    cmd4 = ['cut', '-d', ':', "-f1"]
+    _, stdout = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2, cmd3, cmd4)
+    result = stdout.rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
         run_command('sudo docker exec bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
@@ -1693,16 +1698,17 @@ def system_memory(verbose):
 @cli.command('services')
 def services():
     """Show all daemon services"""
-    cmd = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["sudo", "docker", "ps", "--format", '{{.Names}}']
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
-                cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-                print(proc1.stdout.read())
+                cmd0 = ["sudo", "docker", "exec", line.rstrip(), "ps", "aux"]
+                cmd1 = ["sed", '$d']
+                _, stdout = getstatusoutput_noshell_pipe(cmd0, cmd1)
+                print(stdout)
         else:
                 break
 
@@ -1869,8 +1875,8 @@ def ecn(verbose):
 @cli.command('boot')
 def boot():
     """Show boot configuration"""
-    cmd = "sudo sonic-installer list"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["sudo", "sonic-installer", "list"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     click.echo(proc.stdout.read())
 
 

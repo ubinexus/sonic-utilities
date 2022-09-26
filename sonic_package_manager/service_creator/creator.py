@@ -109,7 +109,6 @@ def run_command(command: str):
     log.debug(f'running command: {command}')
 
     proc = subprocess.Popen(command,
-                            shell=True,
                             executable='/bin/bash',
                             stdout=subprocess.PIPE)
     (_, _) = proc.communicate()
@@ -647,4 +646,4 @@ class ServiceCreator:
         """ Common operations executed after service is created/removed. """
 
         if not in_chroot():
-            run_command('systemctl daemon-reload')
+            run_command(['systemctl', 'daemon-reload'])

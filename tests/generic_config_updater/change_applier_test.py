@@ -3,7 +3,7 @@ import json
 import jsondiff
 import os
 import unittest
-from collections import defaultdict
+import subprocess
 from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
@@ -73,12 +73,12 @@ def debug_print(msg):
     print(msg)
 
 
-# Mimics os.system call for sonic-cfggen -d --print-data > filename
+# Mimics subprocess.call call for sonic-cfggen -d --print-data > filename
 #
-def os_system_cfggen(cmd):
+def subprocess_call_cfggen(cmd, stdout):
     global running_config
 
-    fname = cmd.split(">")[-1].strip()
+    fname = stdout.name
     with open(fname, "w") as s:
         s.write(json.dumps(running_config, indent=4))
     debug_print("File created {} type={} cfg={}".format(fname,
@@ -95,12 +95,12 @@ def set_entry(config_db, tbl, key, data):
     debug_print("set_entry: {} {} {}".format(tbl, key, str(data)))
 
     json_change = json_changes[json_change_index]
-    change_data = json_change["update"] if data != None else json_change["remove"]
+    change_data = json_change["update"] if data is not None else json_change["remove"]
 
     assert tbl in change_data
     assert key in change_data[tbl]
 
-    if data != None:
+    if data is not None:
         if tbl not in running_config:
             running_config[tbl] = {}
         running_config[tbl][key] = data
@@ -155,7 +155,7 @@ def system_health(old_cfg, new_cfg, keys):
             jsondiff.diff(old_cfg, new_cfg))))
         assert False, "No change expected"
     svcs = json_changes[json_change_index].get("services_validated", None)
-    if svcs != None:
+    if svcs is not None:
         assert svc_name in svcs
         svcs.remove(svc_name)
     return True
@@ -194,7 +194,7 @@ def _validate_svc(svc_name, old_cfg, new_cfg, keys):
     # None provides a chance for test data to skip services_validated
     # verification
     svcs = json_changes[json_change_index].get("services_validated", None)
-    if svcs != None:
+    if svcs is not None:
         assert svc_name in svcs
         svcs.remove(svc_name)
 
@@ -213,14 +213,14 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.change_applier.os.system")
+    @patch("generic_config_updater.change_applier.subprocess.call")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
     def test_change_apply(self, mock_set, mock_db, mock_os_sys):
         global read_data, running_config, json_changes, json_change_index
         global start_running_config
 
-        mock_os_sys.side_effect = os_system_cfggen
+        mock_os_sys.side_effect = subprocess_call_cfggen
         mock_db.return_value = DB_HANDLE
         mock_set.side_effect = set_entry
 
