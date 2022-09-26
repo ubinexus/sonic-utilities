@@ -83,7 +83,7 @@ def test_writable(dirs):
 
 
 def run_cmd(cmd):
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE)
+    proc = subprocess.run(cmd, shell=False, stdout=subprocess.PIPE)
     ret = proc.returncode
     if ret:
         log_err("failed: ret={} cmd={}".format(ret, cmd))

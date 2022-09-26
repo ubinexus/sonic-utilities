@@ -250,8 +250,8 @@ class TestIntfutil(TestCase):
           "--------------------  -------  -----  ------  -------  --------------------\n"
           "            Eth36.10      10M   9100     100       up  802.1q-encapsulation"
         )
-        # Test 'intfutil status Eth32.10'
-        output = subprocess.check_output(['intfutil', '-c', 'status', '-i', 'Eth32.10'], stderr=subprocess.STDOUT, text=True)
+        # Test 'intfutil status Eth36.10'
+        output = subprocess.check_output(['intfutil', '-c', 'status', '-i', 'Eth36.10'], stderr=subprocess.STDOUT, text=True)
         print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 

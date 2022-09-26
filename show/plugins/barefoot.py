@@ -39,7 +39,7 @@ def profile():
     
     # Print profile list
     click.echo('Available profile(s):')
-    cmd0 = ['docker', 'exec', '-it', 'syncd', 'find', '/opt/bfn', '-mindepth', '1'\
+    cmd0 = ['docker', 'exec', '-it', 'syncd', 'find', '/opt/bfn', '-mindepth', '1',\
             r'-maxdepth', '1', '-type', 'd', '-name', 'install_\*_profile', r'{}' % opts]
     cmd1 = ["sed", r's%/opt/bfn/install_\\\(.\*\\\)_profile%\\1%']
     check_output_pipe(cmd0, cmd1)

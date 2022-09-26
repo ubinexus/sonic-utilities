@@ -94,7 +94,7 @@ class proc:
 def mock_subproc_run(cmd, shell, stdout):
     global cmds
 
-    assert shell == True
+    assert shell == False
     assert stdout == subprocess.PIPE
 
     upd = (current_tc["proc"][len(cmds)]
