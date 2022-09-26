@@ -20,7 +20,7 @@ class MockSonicDBConfig:
         return False
 
 @mock.patch("swsscommon.swsscommon.SonicDBConfig", MockSonicDBConfig)
-def test_sonic_installer_not_depends_on_database_docker():
+def test_sonic_installer_not_depends_on_database_container():
     runner = CliRunner()
     result = runner.invoke(
             sonic_installer.sonic_installer.commands['list']
