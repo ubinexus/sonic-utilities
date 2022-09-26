@@ -27,7 +27,7 @@ test_data = {
         "workdir": "/tmp/tmpy",
         "mounts": "overlay_tmpx blahblah",
         "err": "/tmpx is not read-write|READ-ONLY: Mounted ['/tmpx'] to make Read-Write",
-        "cmds": ['mount -t overlay overlay_tmpx -o lowerdir=/tmpx,upperdir=/tmp/tmpx/tmpx,workdir=/tmp/tmpy/tmpx /tmpx']
+        "cmds": [['mount', '-t', 'overlay', 'overlay_tmpx', '-o', 'lowerdir=/tmpx,upperdir=/tmp/tmpx/tmpx,workdir=/tmp/tmpy/tmpx', '/tmpx']]
     },
     "3": {
         "desc": "Not good as /tmpx is not read-write; mount fail as create of upper fails",
