@@ -34,4 +34,4 @@ def test_sonic_installer_not_depends_on_database_docker():
     except RuntimeError:
         exception_happen = True
 
-    assert result.exception_happen == True
+    assert exception_happen == True
