@@ -4,6 +4,7 @@ from jsonpointer import JsonPointer
 from sonic_py_common import device_info
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from generic_config_updater.gu_common import EmptyTableError, genericUpdaterLogging
+from swsscommon.swsscommon import ConfigDBConnector
 
 def ValidatedConfigDBConnector(config_db_connector):
     yang_enabled = device_info.is_yang_config_validation_enabled(config_db_connector) 
