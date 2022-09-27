@@ -7,10 +7,14 @@ from generic_config_updater.gu_common import EmptyTableError, genericUpdaterLogg
 
 def ValidatedConfigDBConnector(config_db_connector):
     yang_enabled = device_info.is_yang_config_validation_enabled(config_db_connector) 
-    if yang_enabled:
-        config_db_connector.set_entry = validated_set_entry
-        config_db_connector.delete_table = validated_delete_table
-    return config_db_connector
+    if not yang_enabled:
+        return config_db_connector
+
+    validated_config_db_connector = ConfigDBConnector()
+    validated_config_db_connector.connect()
+    validated_config_db_connector.set_entry = validated_set_entry
+    validated_config_db_connector.delete_table = validated_delete_table
+    return valudated_config_db_connector
 
 def make_path_value_jsonpatch_compatible(table, key, value):
     if type(key) == tuple:
