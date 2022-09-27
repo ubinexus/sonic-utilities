@@ -15,7 +15,7 @@ def ValidatedConfigDBConnector(config_db_connector):
     validated_config_db_connector.connect()
     validated_config_db_connector.set_entry = validated_set_entry
     validated_config_db_connector.delete_table = validated_delete_table
-    return valudated_config_db_connector
+    return validated_config_db_connector
 
 def make_path_value_jsonpatch_compatible(table, key, value):
     if type(key) == tuple:
