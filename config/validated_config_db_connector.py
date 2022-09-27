@@ -1,4 +1,5 @@
 import jsonpatch
+import types
 from jsonpointer import JsonPointer
 
 from sonic_py_common import device_info
@@ -13,8 +14,8 @@ def ValidatedConfigDBConnector(config_db_connector):
 
     validated_config_db_connector = ConfigDBConnector()
     validated_config_db_connector.connect()
-    validated_config_db_connector.set_entry = validated_set_entry
-    validated_config_db_connector.delete_table = validated_delete_table
+    validated_config_db_connector.set_entry = types.MethodType(validated_set_entry, validated_config_db_connector)
+    validated_config_db_connector.delete_table = types.MethodType(validated_delete_table, validated_config_db_connector)
     return validated_config_db_connector
 
 def make_path_value_jsonpatch_compatible(table, key, value):
@@ -42,7 +43,7 @@ def create_gcu_patch(op, table, key=None, value=None):
     gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
     return gcu_patch
 
-def validated_delete_table(table):
+def validated_delete_table(self, table):
     gcu_patch = create_gcu_patch("remove", table)
     format = ConfigFormat.CONFIGDB.name
     config_format = ConfigFormat[format.upper()]
@@ -52,7 +53,7 @@ def validated_delete_table(table):
         logger = genericUpdaterLogging.get_logger(title="Patch Applier", print_all_to_console=True)
         logger.log_notice("Unable to remove entry, as doing so will result in invalid config. Error: {}".format(e))
 
-def validated_set_entry(table, key, value):
+def validated_set_entry(self, table, key, value):
     if value is not None:
         op = "add"
     else:
