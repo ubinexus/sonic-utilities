@@ -1,7 +1,7 @@
 *static analysis:*
 
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/context:python)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sonic-net/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-utilities/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sonic-net/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-utilities/context:python)
 
 *sonic-utilities builds:*
 
@@ -42,7 +42,7 @@ Currently, this list of dependencies is as follows:
 - python-swsscommon_1.0.0_amd64.deb
 
 
-A convenient alternative is to let the SONiC build system configure a build enviroment for you. This can be done by cloning the [sonic-buildimage](https://github.com/Azure/sonic-buildimage) repo, building the sonic-utilities package inside the Debian Buster slave container, and staying inside the container once the build finishes. During the build process, the SONiC build system will build and install all the necessary dependencies inside the container. After following the instructions to clone and initialize the sonic-buildimage repo, this can be done as follows:
+A convenient alternative is to let the SONiC build system configure a build enviroment for you. This can be done by cloning the [sonic-buildimage](https://github.com/sonic-net/sonic-buildimage) repo, building the sonic-utilities package inside the Debian Buster slave container, and staying inside the container once the build finishes. During the build process, the SONiC build system will build and install all the necessary dependencies inside the container. After following the instructions to clone and initialize the sonic-buildimage repo, this can be done as follows:
 
 1. Configure the build environment for an ASIC type (any type will do, here we use `generic`)
     ```
@@ -80,7 +80,7 @@ A Debian package, containing data files needed by the utilities (bash_completion
 
 #### To build
 
-Instructions for building the sonic-utilities-data package can be found in [sonic-utilities-data/README.md](https://github.com/Azure/sonic-utilities/blob/master/sonic-utilities-data/README.md)
+Instructions for building the sonic-utilities-data package can be found in [sonic-utilities-data/README.md](https://github.com/sonic-net/sonic-utilities/blob/master/sonic-utilities-data/README.md)
 
 ---
 
