@@ -5628,7 +5628,7 @@ def dropcounters():
 
 
 #
-# ' + argsinstall' subcommand ('config dropcounters install')
+# 'install' subcommand ('config dropcounters install')
 #
 @dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
