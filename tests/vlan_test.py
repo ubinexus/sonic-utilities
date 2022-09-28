@@ -339,7 +339,7 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
-	
+
         # del vlan with IP
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
