@@ -312,8 +312,8 @@ class TestVlan(object):
         assert "Error: PortChannel0001 is a router interface!" in result.output
 
     def test_config_vlan_with_vxlanmap_del_vlan(self):
-	runner = CliRunner()
-	db = Db()
+        runner = CliRunner()
+        db = Db()
 	obj = {'config_db': db.cfgdb}
 
 	# create vlan
@@ -338,7 +338,7 @@ class TestVlan(object):
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
         db = Db()
-        obj = {'config_db':db.cfgdb}
+	obj = {'config_db':db.cfgdb}
 
         # del vlan with IP
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
