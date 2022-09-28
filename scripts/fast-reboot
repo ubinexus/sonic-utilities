@@ -344,6 +344,25 @@ function unload_kernel()
     fi
 }
 
+function check_warm_restart_state()
+{
+    debug "Check orchagent warm restart state ..."
+    TABLE="WARM_RESTART_TABLE|orchagent"
+    STATE=`/usr/bin/redis-cli -n 6 hget "${TABLE}" state`
+    if [[ -n "$STATE" ]]; then
+        if [[ ${STATE} == "disabled" || ${STATE} == "reconciled" ]]; then
+            debug "orchagent warm restart state is ${STATE}"
+        else
+            debug "Failed to exec warm-reboot, orchagent warm restart state is ${STATE}"
+            exit ${EXIT_FAILURE}
+        fi
+    else
+        debug "Failed to exec warm-reboot, orchagent is not ready"
+        exit ${EXIT_FAILURE}
+    fi
+}
+
+
 # main starts here
 parseOptions $@
 
@@ -374,6 +393,7 @@ case "$REBOOT_TYPE" in
         else
             BOOT_TYPE_ARG="warm"
         fi
+        check_warm_restart_state
         trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         config warm_restart enable system
         ;;
@@ -442,8 +462,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     fi
 fi
 
-init_warm_reboot_states
-
 setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -462,6 +480,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
         fi
     fi
 fi
+
+init_warm_reboot_states
 
 # We are fully committed to reboot from this point on because critical
 # service will go down and we cannot recover from it.
