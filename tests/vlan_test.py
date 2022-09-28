@@ -314,21 +314,21 @@ class TestVlan(object):
     def test_config_vlan_with_vxlanmap_del_vlan(self):
         runner = CliRunner()
         db = Db()
-	obj = {'config_db': db.cfgdb}
+        obj = {'config_db': db.cfgdb}
 
-	# create vlan
-	result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1027"], obj=db)
+        # create vlan
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1027"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code = 0
 
-	# create vxlan map
-	result = runner.invoke(config.config.commands["vxlan"]commands["map"].commands["add"], ["vtep", "1027", "11027"], obj=db)
+        # create vxlan map
+        result = runner.invoke(config.config.commands["vxlan"]commands["map"].commands["add"], ["vtep", "1027", "11027"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code = 0
 
-	# attempt to del vlan with vxlan map, should fail
+        # attempt to del vlan with vxlan map, should fail
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1027"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -338,7 +338,7 @@ class TestVlan(object):
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
         db = Db()
-	obj = {'config_db':db.cfgdb}
+        obj = {'config_db':db.cfgdb}
 
         # del vlan with IP
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
