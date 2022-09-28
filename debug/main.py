@@ -61,9 +61,10 @@ if 'FRRouting' in p:
     @click.argument('prefix_or_iface', required=False)
     def keepalives(prefix_or_iface):
         """BGP Neighbor Keepalives"""
-        command = vtysh_cmd + ["debug bgp keepalives"]
+        bgp_cmd = ["debug bgp keepalives"]
+        command = vtysh_cmd + bgp_cmd
         if prefix_or_iface is not None:
-            command = vtysh_cmd + ["debug bgp keepalives " + prefix_or_iface]
+            command = vtysh_cmd + bgp_cmd + [prefix_or_iface]
         run_command(command)
 
     @bgp.command('neighbor-events')
