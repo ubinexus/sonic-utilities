@@ -70,9 +70,10 @@ if 'FRRouting' in p:
     @click.argument('prefix_or_iface', required=False)
     def neighbor_events(prefix_or_iface):
         """BGP Neighbor Events"""
-        command = vtysh_cmd + ["debug bgp neighbor-events"]
+        bgp_cmd = ["debug bgp neighbor-events"]
+        command = vtysh_cmd + bgp_cmd
         if prefix_or_iface is not None:
-            command = vtysh_cmd + ["debug bgp neighbor-events " + prefix_or_iface]
+            command = vtysh_cmd + bgp_cmd + [prefix_or_iface]
         run_command(command)
 
     @bgp.command()
