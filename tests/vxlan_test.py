@@ -63,7 +63,6 @@ vtep1                1.1.1.1                        map_100_Vlan100    100 -> Vl
                                                     map_101_Vlan101    101 -> Vlan101
                                                     map_102_Vlan102    102 -> Vlan102
                                                     map_200_Vlan200    200 -> Vlan200
-
 """
 
 show_vxlan_remotevni_output="""\
