@@ -59,7 +59,7 @@ Total count : 3
 show_vxlan_name_output="""\
 vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
 -------------------  -----------  ----------------  -----------------  ---------------------------------
-vtep1                1.1.1.1      2.2.2.2           map_100_Vlan100    100 -> Vlan100
+vtep1                1.1.1.1                        map_100_Vlan100    100 -> Vlan100
                                                     map_101_Vlan101    101 -> Vlan101
                                                     map_102_Vlan102    102 -> Vlan102
                                                     map_200_Vlan200    200 -> Vlan200
@@ -153,6 +153,7 @@ class TestVxlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+        assert result.output == show_vxlan_name_output
 
     def test_show_vxlan_name_vtep(self):
         runner = CliRunner()
