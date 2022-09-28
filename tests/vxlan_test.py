@@ -146,7 +146,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_name_vtep(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["name"].commands["vtep1"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["name"],["vtep1"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
