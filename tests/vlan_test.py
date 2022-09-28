@@ -323,7 +323,7 @@ class TestVlan(object):
         assert result.exit_code == 0
 
         # create vxlan map
-        result = runner.invoke(config.config.commands["vxlan"].commands["map"].commands["add"], ["vtep", "1027", "11027"], obj=db)
+        result = runner.invoke(config.config.commands["vxlan"].commands["map"].commands["add"], ["vtep1", "1027", "11027"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
