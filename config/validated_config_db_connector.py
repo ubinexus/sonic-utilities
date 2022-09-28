@@ -66,4 +66,4 @@ def validated_set_entry(self, table, key, value):
     try:
         GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
     except EmptyTableError:
-        validated_delete_table(table)
+        validated_delete_table(self, table)
