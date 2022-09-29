@@ -21,5 +21,5 @@ class TestConfigInterfaceMtu(object):
         
         result = runner.invoke(
             config.config.commands["interface"].commands["mtu"],
-            ["Ethernet0", 9216])
+            ["Ethernet0", 9217])
         assert not "Error: Invalid value" in result.output
