@@ -4,9 +4,9 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 class TestConfigInterfaceMtu(object):
-    runner = CliRunner()
-    db = Db()
     def test_interface_mtu_check(self):
+        runner = CliRunner()
+        db = Db()
         result = runner.invoke(config.config.commands["interface"].commands["mtu"],
             ["Ethernet0", "68"], obj=db)
         assert result.exit_code != 0
@@ -16,6 +16,8 @@ class TestConfigInterfaceMtu(object):
         assert result1.exit_code != 0
 
     def test_interface_invalid_mtu_check(self):
+        runner = CliRunner()
+        db = Db()
         result = runner.invoke(config.config.commands["interface"].commands["mtu"],
             ["Ethernet0", "67"], obj=db)
         assert not "Error: Invalid value" in result.output
