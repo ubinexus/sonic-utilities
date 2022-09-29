@@ -1,25 +1,25 @@
 import pytest
 import config.main as config
+from click.testing import CliRunner
+from utilities_common.db import Db
 
 class TestConfigInterfaceMtu(object):
+    runner = CliRunner()
+    db = Db()
     def test_interface_mtu_check():
-        result = runner.invoke(
-            config.config.commands["interface"].commands["mtu"],
-            ["Ethernet0", "68"])
+        result = runner.invoke(config.config.commands["interface"].commands["mtu"],
+            ["Ethernet0", "68"], obj=db)
         assert result.exit_code != 0
         
-        result1 = runner.invoke(
-            config.config.commands["interface"].commands["mtu"],
-            ["Ethernet0", "9216"])
+        result1 = runner.invoke(config.config.commands["interface"].commands["mtu"],
+            ["Ethernet0", "9216"], obj=db)
         assert result1.exit_code != 0
         
     def test_interface_invalid_mtu_check():
-        result = runner.invoke(
-            config.config.commands["interface"].commands["mtu"],
-            ["Ethernet0", "67"])
+        result = runner.invoke(config.config.commands["interface"].commands["mtu"],
+            ["Ethernet0", "67"], obj=db)
         assert not "Error: Invalid value" in result.output
         
-        result1 = runner.invoke(
-            config.config.commands["interface"].commands["mtu"],
-            ["Ethernet0", "9217"])
+        result1 = runner.invoke(config.config.commands["interface"].commands["mtu"],
+            ["Ethernet0", "9217"], obj=db)
         assert not "Error: Invalid value" in result1.output
