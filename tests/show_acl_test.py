@@ -15,7 +15,7 @@ class TestShowAcl(object):
     def test_show_ctrl_table(self):
         runner = CliRunner()
         aclloader = AclLoader()
-        aclloader.configdb.set_entry("ACL_TABLE", "CTRL_TEST", {"type": "CTRLPLANE", "policy_desc": "CTRL_TEST", "services@": ["SNMP","NTP"]})
+        aclloader.configdb.set_entry("ACL_TABLE", "CTRL_TEST", {"type": "CTRLPLANE", "policy_desc": "CTRL_TEST", "services": ["SNMP","NTP"]})
         aclloader.read_tables_info()
         context = {
             "acl_loader": aclloader
