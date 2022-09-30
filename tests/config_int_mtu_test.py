@@ -20,7 +20,7 @@ class TestConfigInterfaceMtu(object):
         db = Db()
         result = runner.invoke(config.config.commands["interface"].commands["mtu"],
             ["Ethernet0", "67"], obj=db)
-        assert result.exit_code == 0
+        assert "Error: Invalid value" in result.output
         result1 = runner.invoke(config.config.commands["interface"].commands["mtu"],
             ["Ethernet0", "9217"], obj=db)
-        assert result1.exit_code == 0
+        assert "Error: Invalid value" in result1.output
