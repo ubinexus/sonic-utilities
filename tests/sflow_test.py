@@ -206,6 +206,17 @@ class TestShowSflow(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
+        #set to 301
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["polling-interval"], ["301"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        # run show and check
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert result.output == show_sflow_output
+
         return
 
     def test_config_sflow_intf_enable_disable(self):

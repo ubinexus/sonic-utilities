@@ -1144,6 +1144,9 @@ def validate_gre_type(ctx, _, value):
     """A validator for validating input gre_type
     """
     try:
+        if value is None:
+            return
+
         base = 10
         if value.lower().startswith('0x'):
             base = 16
@@ -4642,7 +4645,7 @@ def buffer(ctx):
 
 
 #
-# 'priority_group' subgroup ('config interface buffer priority_group ...')
+# 'priority_group' subgroup ('config interface buffer priority-group ...')
 #
 @buffer.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
@@ -4652,7 +4655,7 @@ def priority_group(ctx):
 
 
 #
-# 'lossless' subgroup ('config interface buffer priority_group lossless ...')
+# 'lossless' subgroup ('config interface buffer priority-group lossless ...')
 #
 @priority_group.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
@@ -4751,7 +4754,7 @@ def remove_queue(db, interface_name, queue_map):
 # 'cable_length' subcommand
 #
 
-@interface.command()
+@interface.command("cable_length")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('length', metavar='<length>', required=True)
 @click.pass_context
@@ -5367,8 +5370,7 @@ def del_route(ctx, command_str):
     config_db = ctx.obj['config_db']
     key, route = cli_sroute_to_config(ctx, command_str, strict_nh=False)
     keys = config_db.get_keys('STATIC_ROUTE')
-    prefix_tuple = tuple(key.split('|'))
-    if not tuple(key.split("|")) in keys and not prefix_tuple in keys:
+    if not tuple(key.split("|")) in keys:
         ctx.fail('Route {} doesnt exist'.format(key))
     else:
         # If not defined nexthop or intf name remove entire route
@@ -6373,7 +6375,7 @@ def disable(ctx):
 def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
     if interval not in range(5, 301) and interval != 0:
-        click.echo("Polling interval must be between 5-300 (0 to disable)")
+        ctx.fail("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
