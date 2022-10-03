@@ -1140,26 +1140,23 @@ def is_fw_switch_done(port_name):
             cnt += 1
 
         if fw_info['status'] == True:
-            (ImageA, ImageARunning, ImageACommitted, ImageAValid,
-             ImageB, ImageBRunning, ImageBCommitted, ImageBValid) = fw_info['result']
+            (ImageA, ImageARunning, ImageACommitted, ImageAInvalid,
+             ImageB, ImageBRunning, ImageBCommitted, ImageBInvalid) = fw_info['result']
 
-            if (ImageARunning == 1) and (ImageBRunning == 1):       # Both imageA and B is running.
-                click.echo("FW info error : Both imageA and B show running!")
-                status = -1 # Abnormal status.
-            elif (ImageACommitted == 1) and (ImageBCommitted == 1): # Both imageA and B is committed.
-                click.echo("FW info error : Both imageA and B show committed!")
-                status = -1 # Abnormal status.
-            elif (ImageARunning == 1) and (ImageAValid == 1):       # ImageA is running, but also invalid.
+            if (ImageARunning == 1) and (ImageAInvalid == 1):       # ImageA is running, but also invalid.
                 click.echo("FW info error : ImageA shows running, but also shows invalid!")
                 status = -1 # Abnormal status.
-            elif (ImageBRunning == 1) and (ImageBValid == 1):       # ImageB is running, but also invalid.
+            elif (ImageBRunning == 1) and (ImageBInvalid == 1):     # ImageB is running, but also invalid.
                 click.echo("FW info error : ImageB shows running, but also shows invalid!")
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
+                click.echo("FW images switch successful : ImageA is running")
                 status = 1  # run_firmware is done. 
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
+                click.echo("FW images switch successful : ImageB is running")
                 status = 1  # run_firmware is done. 
             else:                                                   # No image is running, or running and committed image is same.
+                click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
         else:
             click.echo("FW switch : Timeout!")
@@ -1338,11 +1335,9 @@ def upgrade(port_name, filepath):
 
     click.echo("Firmware run in mode 1 successful")
 
-    if status != is_fw_switch_done(port_name):
+    if is_fw_switch_done(port_name) != 1:
         click.echo('Failed to switch firmware images!')
         sys.exit(EXIT_FAIL)
-
-    click.echo("Firmware images switch successful")
 
     status = commit_firmware(port_name)
     if status != 1:
