@@ -431,7 +431,7 @@ Ethernet0  N/A
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_show_eeprom_hexdump_invalid_page(self, mock_chassis):
         runner = CliRunner()
-        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet1", "-r", "INVALID"])
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet1", "-n", "INVALID"])
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
     @patch('sfputil.main.platform_chassis')
@@ -542,7 +542,7 @@ Ethernet0  N/A
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
         mock_sfp.read_eeprom = MagicMock(side_effect=side_effect)
         runner = CliRunner()
-        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet0", "-r", "0"])
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet0", "-n", "0"])
         assert result.exit_code == 0
         assert result.output == expected_output
 
@@ -573,7 +573,7 @@ Ethernet0  N/A
         000000e0 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 |................|
         000000f0 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 |................|
 
-        A2h dump (Lower 128 bytes)
+        A2h dump (lower 128 bytes)
         00000000 4e 00 f3 00 49 00 f8  00 90 88 71 48 8c a0 75 30 |N...I.....qH..u0|
         00000010 19 c8 07 d0 18 9c 09  c4 27 10 09 d0 1f 07 0c 5a |........'......Z|
         00000020 27 10 00 64 1f 07 00  9e 00 00 00 00 00 00 00 00 |'..d............|
@@ -607,7 +607,7 @@ Ethernet0  N/A
         mock_sfp.get_presence.return_value = True
         mock_sfp.read_eeprom = MagicMock(side_effect=side_effect)
         runner = CliRunner()
-        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet256", "-r", "0"])
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet256", "-n", "0"])
         assert result.exit_code == 0
         assert result.output == expected_output
 

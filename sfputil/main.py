@@ -696,7 +696,7 @@ def eeprom(port, dump_dom, namespace):
 # 'eeprom-hexdump' subcommand
 @show.command()
 @click.option('-p', '--port', metavar='<port_name>', required=True, help="Display SFP EEPROM hexdump for port <port_name>")
-@click.option('-r', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
+@click.option('-n', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
 def eeprom_hexdump(port, page):
     """Display EEPROM hexdump of SFP transceiver(s) for a given port name and page number"""
     output = ""
@@ -761,7 +761,7 @@ def eeprom_hexdump_sff8472(port, physical_port, page):
             click.echo("Error: Failed to read EEPROM for A2h!")
             sys.exit(ERROR_NOT_IMPLEMENTED)
         else:
-            output += '\n\n{}A2h dump (Lower 128 bytes)'.format(indent)
+            output += '\n\n{}A2h dump (lower 128 bytes)'.format(indent)
             output += hexdump(indent, page_dump, 0)
 
         page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(SFF8472_A0_SIZE + PAGE_OFFSET + (int(page, base=16) * PAGE_SIZE), PAGE_SIZE)
