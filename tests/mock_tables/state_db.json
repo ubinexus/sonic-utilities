@@ -902,5 +902,9 @@
     },
     "ADVERTISE_NETWORK_TABLE|fddd:a150:a251::a6:1/128": {
         "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
+        "profile": ""
     }
+
 }

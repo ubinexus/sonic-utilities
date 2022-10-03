@@ -15,19 +15,16 @@ def vnet():
     pass
 
 
-@vnet.group()
-def advertised_routes():
-    """Show vnet Advertised-routes"""
-    pass
-
-
-def process_advertised_route(args, version):
+@vnet.command()
+@click.argument('args', metavar='[community:string]', required=False)
+def advertised_routes(args):
+    """Show vnet advertised-routes [community string XXXX:XXXX]"""
     state_db = SonicV2Connector()
     state_db.connect(state_db.STATE_DB)
     appl_db = SonicV2Connector()
     appl_db.connect(appl_db.APPL_DB)
     community_filter = ''
-    profile_filter = ''
+    profile_filter = 'NO_PROFILE'
     if args and len(args) > 0:
         community_filter = args
 
@@ -49,10 +46,8 @@ def process_advertised_route(args, version):
     table = []
     for k in adv_table_keys:
         ip = k.split('|')[1]
-        if ipaddress.ip_network(ip).version != version:
-            continue
         val = state_db.get_all(appl_db.STATE_DB, k)
-        profile = val.get('profile') if val else ''
+        profile = val.get('profile') if val else 'NA'
         if community_filter:
             if profile == profile_filter:
                 r = []
@@ -64,23 +59,10 @@ def process_advertised_route(args, version):
             r = []
             r.append(ip)
             r.append(profile)
-            r.append(profiles[profile])
+            if profile in profiles.keys():
+                r.append(profiles[profile])
             table.append(r)
     click.echo(tabulate(table, header))
-
-
-@advertised_routes.command()
-@click.argument('args', metavar='[community:string]', nargs=1, required=False)
-def ip(args):
-    """Show vnet advertised-routes ip [community string XXXX:XXXX]"""
-    process_advertised_route(args, 4)
-
-
-@advertised_routes.command()
-@click.argument('args', metavar='[community:string]', nargs=1, required=False)
-def ipv6(args):
-    """Show vnet advertised-routes ipv6 [community string XXXX:XXXX]"""
-    process_advertised_route(args, 6)
 
 
 @vnet.command()
