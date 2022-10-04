@@ -4597,7 +4597,7 @@ def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=Tr
 
 
 def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
-    config_db = ValidatedConfigDBConnector(db.cfgdb)
+    config_db = db.cfgdb
 
     # Fetch the original pfc_enable
     qosmap = config_db.get_entry("PORT_QOS_MAP", interface_name)
