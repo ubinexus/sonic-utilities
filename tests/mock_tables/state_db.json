@@ -891,6 +891,24 @@
         "active_endpoints":"fddd:a100:a251::a10:1,fddd:a101:a251::a10:1",
         "state":"active"
     },
+    "BFD_SESSION_TABLE|default|default|100.251.7.1": {
+        "state":"Up",
+        "type": "async_active",
+        "local_addr" : "10.0.0.1",
+        "tx_interval" :"300",
+        "rx_interval" : "500",
+        "multiplier" : "3",
+        "multihop": "true"
+    },
+    "BFD_SESSION_TABLE|default|default|fddd:a101:a251::a10:1": {
+        "state":"Down",
+        "type": "async_active",
+        "local_addr" : "fddd:c101:a251::a10:2",
+        "tx_interval" :"300",
+        "rx_interval" : "500",
+        "multiplier" : "3",
+        "multihop": "true"
+    },
     "ADVERTISE_NETWORK_TABLE|160.63.191.1/32": {
         "profile": "FROM_SDN_SLB_ROUTES"
     },
@@ -906,5 +924,4 @@
     "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
         "profile": ""
     }
-
 }

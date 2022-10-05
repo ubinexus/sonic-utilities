@@ -14,6 +14,7 @@ import time
 import itertools
 import copy
 
+from jsonpatch import JsonPatchConflict
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from minigraph import parse_device_desc_xml, minigraph_encoder
@@ -31,6 +32,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
+from .validated_config_db_connector import ValidatedConfigDBConnector
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
@@ -104,6 +106,7 @@ DSCP_RANGE = click.IntRange(min=0, max=63)
 TTL_RANGE = click.IntRange(min=0, max=255)
 QUEUE_RANGE = click.IntRange(min=0, max=255)
 GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
+ADHOC_VALIDATION = True
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -1206,6 +1209,10 @@ def config(ctx):
         print("Caught an exception: " + str(e))
         raise click.Abort()
 
+    if asic_type == 'cisco-8000':
+        from sonic_platform.cli.cisco import cisco
+        platform.add_command(cisco)
+
     # Load database config files
     load_db_config()
 
@@ -1720,9 +1727,10 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
-@click.option('-p', '--golden_config_path', help='The path of golden config file')
+@click.option('-o', '--override_config', default=False, is_flag=True, help='Enable config override. Proceed with default path.')
+@click.option('-p', '--golden_config_path', help='Provide golden config path to override. Use with --override_config')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart, traffic_shift_away, golden_config_path):
+def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, golden_config_path):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
 
@@ -1795,20 +1803,19 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, golden_config_pat
     # Keep device isolated with TSA 
     if traffic_shift_away:
         clicommon.run_command("TSA", display_cmd=True)
-        if golden_config_path or not golden_config_path and os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+        if override_config:
             log.log_warning("Golden configuration may override System Maintenance state. Please execute TSC to check the current System mode")
             click.secho("[WARNING] Golden configuration may override Traffic-shift-away state. Please execute TSC to check the current System mode")
 
     # Load golden_config_db.json
-    if golden_config_path:
+    if override_config:
+        if golden_config_path is None:
+            golden_config_path = DEFAULT_GOLDEN_CONFIG_DB_FILE
         if not os.path.isfile(golden_config_path):
             click.secho("Cannot find '{}'!".format(golden_config_path),
                         fg='magenta')
             raise click.Abort()
         override_config_by(golden_config_path)
-    else:
-        if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
-            override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -2040,51 +2047,60 @@ def portchannel(db, ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     """Add port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
-
-    db = ctx.obj['db']
-
-    if is_portchannel_present_in_db(db, portchannel_name):
-        ctx.fail("{} already exists!".format(portchannel_name))
-
+    
     fvs = {
         'admin_status': 'up',
         'mtu': '9100',
         'lacp_key': 'auto',
         'fast_rate': fast_rate.lower(),
     }
+
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
-    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
-
+    
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if is_portchannel_name_valid(portchannel_name) != True:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                    .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+        if is_portchannel_present_in_db(db, portchannel_name):
+            ctx.fail("{} already exists!".format(portchannel_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+    
+    try:
+        db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    except ValueError:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+ 
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+    
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if is_portchannel_name_valid(portchannel_name) != True:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                    .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-    db = ctx.obj['db']
+        # Don't proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
 
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
+        # Dont let to remove port channel if vlan membership exists
+        for k,v in db.get_table('VLAN_MEMBER'): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if v == portchannel_name:
+                ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(portchannel_name, str(k)))
 
-    # Dont let to remove port channel if vlan membership exists
-    for k,v in db.get_table('VLAN_MEMBER'):
-        if v == portchannel_name:
-            ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(portchannel_name, str(k)))
-
-    if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
-        click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
-    else:
+        if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0: # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
+    
+    try:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
+    except JsonPatchConflict:
+        ctx.fail("{} is not present.".format(portchannel_name))
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
@@ -2113,8 +2129,8 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont proceed if the port channel does not exist
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
-
-    # Dont allow a port to be member of port channel if it is configured with an IP address
+ 
+    # Don't allow a port to be member of port channel if it is configured with an IP address
     for key,value in db.get_table('INTERFACE').items():
         if type(key) == tuple:
             continue
@@ -6157,36 +6173,44 @@ def loopback(ctx, redis_unix_socket_path):
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def add_loopback(ctx, loopback_name):
-    config_db = ctx.obj['db']
-    if is_loopback_name_valid(loopback_name) is False:
-        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
-                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if is_loopback_name_valid(loopback_name) is False:
+            ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                    .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
-    lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
-    if loopback_name in lo_intfs:
-        ctx.fail("{} already exists".format(loopback_name))
-
-    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+        lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
+        if loopback_name in lo_intfs:
+            ctx.fail("{} already exists".format(loopback_name)) # TODO: MISSING CONSTRAINT IN YANG VALIDATION
+    
+    try:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+    except ValueError:
+        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' ".format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
 @loopback.command('del')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def del_loopback(ctx, loopback_name):
-    config_db = ctx.obj['db']
-    if is_loopback_name_valid(loopback_name) is False:
-        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
-                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
-
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
-    lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
-    if loopback_name not in lo_intfs:
-        ctx.fail("{} does not exists".format(loopback_name))
+
+    if ADHOC_VALIDATION:
+        if is_loopback_name_valid(loopback_name) is False:
+            ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                    .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+        lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
+        if loopback_name not in lo_intfs:
+            ctx.fail("{} does not exist".format(loopback_name))
 
     ips = [ k[1] for k in lo_config_db if type(k) == tuple and k[0] == loopback_name ]
     for ip in ips:
         config_db.set_entry('LOOPBACK_INTERFACE', (loopback_name, ip), None)
-
-    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
+    
+    try:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
+    except JsonPatchConflict:
+        ctx.fail("{} does not exist".format(loopback_name))
 
 
 @config.group(cls=clicommon.AbbreviationGroup)
