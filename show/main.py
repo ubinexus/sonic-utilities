@@ -19,7 +19,6 @@ from utilities_common.db import Db
 from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
-import utilities_common.bgp_util as bgp_util
 
 # mock the redis for unit test purposes #
 try:
@@ -1391,8 +1390,12 @@ def bgp(verbose):
     ns_list = multi_asic.get_namespace_list()
     output = ""
     for ns in ns_list:
-        output += "------------Showing running config bgp on {}------------".format(ns)
-        output += bgp_utils.run_bgp_show_command("show runningconfiguration bgp")
+        output += "------------Showing running config bgp on {}------------".format(ns)        
+        ns_id = ''
+        if ns is not multi_asic.DEFAULT_NAMESPACE:
+        ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
+        cmd = 'sudo {} {} -c "show runningconfiguration bgp"'.format(vtysh_shell_cmd, ns_id)
+        run_command(cmd, display_cmd=verbose)
         output += "--------------------------------------------------------"
 
 
