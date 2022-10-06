@@ -1386,7 +1386,6 @@ def ports(portname, verbose):
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
-
 def bgp(verbose, namespace):
     """Show BGP running configuration"""
     if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
@@ -1398,8 +1397,8 @@ def bgp(verbose, namespace):
         output += "------------Showing running config bgp on {}------------".format(ns)        
         ns_id = ''
         if ns is not multi_asic.DEFAULT_NAMESPACE:
-        ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
-        cmd = 'sudo {} {} -c "show runningconfiguration bgp"'.format(vtysh_shell_cmd, ns_id)
+            ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
+        cmd = 'sudo {} {} -c "show runningconfiguration bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
         run_command(cmd, display_cmd=verbose)
         output += "--------------------------------------------------------"
 
