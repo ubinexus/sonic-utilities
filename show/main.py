@@ -1385,22 +1385,25 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
-def bgp(verbose, namespace):
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, help='Namespace name or all')
+def bgp(namespace, verbose):
     """Show BGP running configuration"""
-    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
-        ctx = click.get_current_context()
-        ctx.fail('-n/--namespace option required. provide namespace from list {}'.format(multi_asic.get_namespace_list()))
-    ns_list = multi_asic.get_namespace_list()
     output = ""
-    for ns in ns_list:
-        output += "------------Showing running config bgp on {}------------".format(ns)        
-        ns_id = ''
-        if ns is not multi_asic.DEFAULT_NAMESPACE:
-            ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
-        cmd = 'sudo {} {} -c "show runningconfiguration bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
-        run_command(cmd, display_cmd=verbose)
-        output += "--------------------------------------------------------"
+    if namespace:
+        output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
+        ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(namespace))
+        cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
+        output += run_command(cmd, display_cmd = False, return_cmd=True)
+    else:
+        ns_list = multi_asic.get_namespace_list()
+        for ns in ns_list:
+            output += "\n------------Showing running config bgp on {}------------\n".format(ns)
+            ns_id = ''
+            if ns is not multi_asic.DEFAULT_NAMESPACE:
+                ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
+            cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
+            output += run_command(cmd, display_cmd = False, return_cmd=True)
+    print(output)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
