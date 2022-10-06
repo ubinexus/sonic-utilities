@@ -19,6 +19,7 @@ from utilities_common.db import Db
 from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
+import utilities_common.bgp_util as bgp_util
 
 # mock the redis for unit test purposes #
 try:
@@ -1387,8 +1388,12 @@ def ports(portname, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP running configuration"""
-    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+    ns_list = multi_asic.get_namespace_list()
+    output = ""
+    for ns in ns_list:
+        output += "------------Showing running config bgp on {}------------".format(ns)
+        output += bgp_utils.run_bgp_show_command("show runningconfiguration bgp")
+        output += "--------------------------------------------------------"
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
