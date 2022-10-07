@@ -1385,12 +1385,18 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, 
-              help='Namespace name or all', 
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, help='Namespace name or all')
 def bgp(namespace, verbose):
     """Show BGP running configuration"""
+    if multi_asic.is_multi_asic() and (namespace not in multi_asic.get_namespace_list() or namespace != 'all'):
+        ctx = click.get_current_context()
+        ctx.fail("-n/--namespace option required. provide namespace from list {}, or give '-n all'".format(multi_asic.get_namespace_list()))
+    if not multi_asic.is_multi_asic() and namespace:
+        ctx = click.get_current_context()                
+        ctx.fail("-n/--namespace is not available for single asic")
+
     output = ""
+    #sigle-asic duts will not enter this condition, they cannot take '-n' option
     if namespace:
         if namespace == 'all':
             ns_list = multi_asic.get_namespace_list()
@@ -1404,16 +1410,11 @@ def bgp(namespace, verbose):
             ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(namespace))
             cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
             output += run_command(cmd, display_cmd = False, return_cmd=True)
+    # multi-asic duts will not enter this condition, they have to be given '-n' option
     else:
-        try:
-            if multi_asic.is_multi_asic:
-                ctx = click.get_current_context()
-                ctx.fail("-n/--namespace option required. provide namespace from list {}, or give '-n all'".format(multi_asic.get_namespace_list()))
-        finally:
-            cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
-            output += run_command(cmd, display_cmd = False, return_cmd=True)
+        cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
+        output += run_command(cmd, display_cmd = False, return_cmd=True)
     print(output)
-
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
