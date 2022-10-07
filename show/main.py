@@ -1403,9 +1403,15 @@ def bgp(namespace, verbose):
             cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
             output += run_command(cmd, display_cmd = False, return_cmd=True)
     else:
-        cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
-        output += run_command(cmd, display_cmd = False, return_cmd=True)
+        try:
+            if multi_asic.is_multi_asic:
+                ctx = click.get_current_context()
+                ctx.fail("-n/--namespace option required. provide namespace from list {}, or give '-n all'".format(multi_asic.get_namespace_list()))
+        finally:
+            cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
+            output += run_command(cmd, display_cmd = False, return_cmd=True)
     print(output)
+
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
