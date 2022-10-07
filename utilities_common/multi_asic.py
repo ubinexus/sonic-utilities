@@ -112,7 +112,7 @@ _multi_asic_click_options = [
 ]
 
 def multi_asic_namespace_validation_callback(ctx, param, value):
-    if not multi_asic.is_multi_asic:
+    if not multi_asic.is_multi_asic():
         click.echo("-n/--namespace is not available for single asic")
         ctx.abort()
     return value
