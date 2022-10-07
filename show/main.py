@@ -1385,7 +1385,8 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, help='Namespace name or all')
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, 
+              help='Option needed for multi-asic only - provide namespace name or all')
 def bgp(namespace, verbose):
     """Show BGP running configuration"""
     if multi_asic.is_multi_asic() and (namespace not in multi_asic.get_namespace_list() or namespace != 'all'):
