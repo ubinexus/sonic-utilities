@@ -1,4 +1,5 @@
 import jsonpatch
+import subprocess
 from jsonpointer import JsonPointer
 
 from sonic_py_common import device_info
@@ -12,6 +13,15 @@ def ValidatedConfigDBConnector(config_db_connector):
         config_db_connector.delete_table = validated_delete_table
     return config_db_connector
 
+def is_table_present_config_db(table):
+    cmd = "sonic-cfggen -d --print-data"
+    result = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    text, err = result.communicate()
+    return_code = result.returncode
+    if return_code: # non-zero means failure
+        raise Exception(f"Failed to get running config, Return code: {return_code}, Error: {err}")
+    return table in text
+
 def make_path_value_jsonpatch_compatible(table, key, value):
     if type(key) == tuple:
         path = JsonPointer.from_parts([table, '|'.join(key)]).path
@@ -22,6 +32,13 @@ def make_path_value_jsonpatch_compatible(table, key, value):
     return path, value
 
 def create_gcu_patch(op, table, key=None, value=None):
+    gcu_json_input = []
+    if op == "add" and not is_table_present_config_db(table):
+        gcu_json = {"op": "{}".format(op),
+                    "path": "/{}".format(table),
+                    "value": {}}
+        gcu_json_input.append(gcu_json)
+
     if key:
         path, value = make_path_value_jsonpatch_compatible(table, key, value)
     else: 
