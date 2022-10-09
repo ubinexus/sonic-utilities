@@ -14,15 +14,15 @@ sys.modules['sonic_platform'] = mock.MagicMock()
 import psuutil.main as psuutil
 
 STATUS_OUTPUT = '''\
-PSU    Model        Serial    HW Rev      Voltage (V)    Current (A)    Power (W)    Power Warn Thres (W)    Power Crit Thres (W)  Status    LED
------  -----------  --------  --------  -------------  -------------  -----------  ----------------------  ----------------------  --------  -----
-PSU 1  SampleModel  S001      Rev A             12.00          10.00       120.00                   90.00                  100.00  OK        green
+PSU    Model        Serial    HW Rev      Voltage (V)    Current (A)    Power (W)    Power Warn-supp Thres (W)    Power Crit Thres (W)  Status    LED
+-----  -----------  --------  --------  -------------  -------------  -----------  ---------------------------  ----------------------  --------  -----
+PSU 1  SampleModel  S001      Rev A             12.00          10.00       120.00                        90.00                  100.00  OK        green
 '''
 
 STATUS_OUTPUT_NOT_IMPLEMENT = '''\
-PSU    Model        Serial    HW Rev      Voltage (V)    Current (A)    Power (W)  Power Warn Thres (W)    Power Crit Thres (W)    Status    LED
------  -----------  --------  --------  -------------  -------------  -----------  ----------------------  ----------------------  --------  -----
-PSU 1  SampleModel  S001      N/A               12.00          10.00       120.00  N/A                     N/A                     OK        green
+PSU    Model        Serial    HW Rev      Voltage (V)    Current (A)    Power (W)  Power Warn-supp Thres (W)    Power Crit Thres (W)    Status    LED
+-----  -----------  --------  --------  -------------  -------------  -----------  ---------------------------  ----------------------  --------  -----
+PSU 1  SampleModel  S001      N/A               12.00          10.00       120.00  N/A                          N/A                     OK        green
 '''
 
 class TestPsuutil(object):
@@ -40,7 +40,7 @@ class TestPsuutil(object):
         psu.get_presence = mock.MagicMock(return_value=True)
         psu.get_powergood_status = mock.MagicMock(return_value=True)
         psu.get_psu_power_critical_threshold = mock.MagicMock(return_value=100.0)
-        psu.get_psu_power_warning_threshold = mock.MagicMock(return_value=90.0)
+        psu.get_psu_power_warning_suppress_threshold = mock.MagicMock(return_value=90.0)
         psu.get_model = mock.MagicMock(return_value='SampleModel')
         psu.get_serial = mock.MagicMock(return_value='S001')
         psu.get_revision = mock.MagicMock(return_value='Rev A')
