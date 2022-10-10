@@ -10397,7 +10397,7 @@ This command removes all unused images from the device, leaving only the current
   No image(s) to remove
   ```
 
-**sonic-install get-fips**
+**sonic-installer get-fips**
 
 This command is used to get the fips status.
 
@@ -10412,7 +10412,7 @@ This command is used to get the fips status.
   FIPS is enabled
   ```
 
-**sonic-install set-fips**
+**sonic-installer set-fips**
 
 The command is used to enable or disable the fips.
 
