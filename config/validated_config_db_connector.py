@@ -24,7 +24,7 @@ class ValidatedConfigDBConnector(object):
         if name == "delete_table":
             return validated_delete_table
 
-    def make_path_value_jsonpatch_compatible(table, key, value):
+    def make_path_value_jsonpatch_compatible(self, table, key, value):
         if type(key) == tuple:
             path = JsonPointer.from_parts([table, '|'.join(key)]).path
         else:
@@ -33,7 +33,7 @@ class ValidatedConfigDBConnector(object):
             value = {}
         return path, value
 
-    def create_gcu_patch(op, table, key=None, value=None):
+    def create_gcu_patch(self, op, table, key=None, value=None):
         if key:
             path, value = make_path_value_jsonpatch_compatible(table, key, value)
         else: 
@@ -72,4 +72,4 @@ class ValidatedConfigDBConnector(object):
         try:
             GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
         except EmptyTableError:
-            validated_delete_table(self, table)
+            validated_delete_table(table)

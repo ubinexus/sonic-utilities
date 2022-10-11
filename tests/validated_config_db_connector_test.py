@@ -26,5 +26,5 @@ class TestValidatedConfigDBConnector(TestCase):
         mock_generic_updater = mock.Mock()
         mock_generic_updater.apply_patch = mock.Mock(side_effect=EmptyTableError)
         with mock.patch('validated_config_db_connector.GenericUpdater', return_value=mock_generic_updater):
-            remove_entry_success = validated_config_db_connector.validated_set_entry(mock_generic_updater, SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_EMPTY)
+            remove_entry_success = validated_config_db_connector.validated_set_entry(SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_EMPTY)
             assert not remove_entry_success
