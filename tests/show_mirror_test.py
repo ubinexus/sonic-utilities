@@ -1,5 +1,6 @@
 import os
 import sys
+from unittest import mock
 from click.testing import CliRunner
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
