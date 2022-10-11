@@ -287,7 +287,9 @@ def is_port_vlan_member(config_db, port, vlan):
     return False
 
 
-def vlan_range_list(ctx, vid1: int, vid2: int) -> list:
+def vlan_range_list(ctx, vid_range: str) -> list:
+
+    vid1, vid2 = map(int, vid_range.split("-"))
 
     if vid1 == 1 or vid2 == 1:
         ctx.fail("Vlan1 is default vlan. Use switchport command.")
@@ -304,13 +306,15 @@ def vlan_range_list(ctx, vid1: int, vid2: int) -> list:
 def multiple_vlan_parser(ctx, s_input: str) -> list:
 
     vlan_list = []
-    try:
-        vlan_map = map(int, s_input.replace(" ", "").split(","))
-    except:
-        ctx.fail("Vlanid is not an integer.")
+
+    vlan_map = map(str, s_input.replace(" ", "").split(","))
     for vlan in vlan_map:
-        if vlan not in vlan_list:
-            vlan_list.append(vlan)
+        if "-" in vlan:
+            vlan_list += vlan_range_list(ctx, vlan)
+        elif vlan.isdigit() and int(vlan) not in vlan_list:
+            vlan_list.append(int(vlan))
+        elif not vlan.isdigit():
+            ctx.fail(vlan, " is not an integer.")
 
     vlan_list.sort()
     return vlan_list
