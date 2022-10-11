@@ -435,6 +435,7 @@
         "ifinfo.ifindex": "100"
     },
     "LAG_TABLE|PortChannel0001": {
+        "setup.runner_name": "lacp",
         "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "71",
@@ -445,6 +446,7 @@
         "runner.active": "true"
     },
     "LAG_TABLE|PortChannel0002": {
+        "setup.runner_name": "lacp",
         "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "72",
@@ -455,6 +457,7 @@
         "runner.active": "true"
     },
     "LAG_TABLE|PortChannel0003": {
+        "setup.runner_name": "lacp",
         "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "73",
@@ -465,6 +468,7 @@
         "runner.active": "true"
     },
     "LAG_TABLE|PortChannel0004": {
+        "setup.runner_name": "lacp",
         "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "74",
