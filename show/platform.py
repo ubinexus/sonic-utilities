@@ -105,7 +105,7 @@ def ssdhealth(device, verbose, vendor):
     """Show SSD Health information"""
     if not device:
         _, stdout = getstatusoutput_noshell_pipe(["lsblk", "-o", "NAME,TYPE", "-p"], ["grep", "disk"])
-        device = stdout.readline().strip().split()[0]
+        device = stdout.strip().split()[0]
     cmd = "sudo ssdutil -d " + device
     options = " -v" if verbose else ""
     options += " -e" if vendor else ""
@@ -149,7 +149,7 @@ def temperature():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def firmware(args):
     """Show firmware information"""
-    cmd = ["sudo", "fwutil", "show"] + args
+    cmd = ["sudo", "fwutil", "show"] + list(args)
 
     try:
         subprocess.check_call(cmd)

@@ -46,7 +46,8 @@ def run_command(command, display_cmd=False, ignore_error=False, print_to_console
     """Run bash command and print output to stdout
     """
     if display_cmd:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+        command_str = ' '.join(command)
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()

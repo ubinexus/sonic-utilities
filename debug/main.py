@@ -5,7 +5,8 @@ import subprocess
 vtysh_cmd = ['sudo', 'vtysh', '-c']
 
 def run_command(command, pager=False):
-    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+    command_str = ' '.join(command)
+    click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
     p = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     output = p.stdout.read()
     if pager:
@@ -45,7 +46,7 @@ if 'FRRouting' in p:
     @click.argument('additional', type=click.Choice(['segment']), required=False)
     def as4(additional):
         """BGP AS4 actions"""
-        command = ["debug bgp as4"]
+        command = vtysh_cmd + ["debug bgp as4"]
         if additional is not None:
             command = vtysh_cmd + ["debug bgp as4 segment"]
         run_command(command)
@@ -103,11 +104,12 @@ if 'FRRouting' in p:
     @click.argument('prefix', required=False)
     def updates(direction, prefix):
         """BGP updates"""
-        command = vtysh_cmd + ["debug bgp updates"]
+        bgp_cmd = "debug bgp updates"
         if direction is not None:
-            command = vtysh_cmd + ["debug bgp updates " + direction]
+            bgp_cmd += ' ' + direction
         if prefix is not None:
-            command = vtysh_cmd + ["debug bgp updates " + prefix]
+            bgp_cmd += ' ' + prefix
+        command = vtysh_cmd + [bgp_cmd]
         run_command(command)
 
     @bgp.command()
