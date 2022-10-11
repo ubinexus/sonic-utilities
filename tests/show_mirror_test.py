@@ -1,20 +1,34 @@
 import os
 import sys
-from click.testing import CliRunner
+import subprocess
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 
-from .utils import get_result_and_return_code
-
-import show.main as show
-
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "mirror_input")
+
+modules_path = os.path.dirname(test_path)
+scripts_path = os.path.join(modules_path, "acl_loader")
+
+def get_result_and_return_code(cmd):
+    return_code = 0
+    try:
+        output = subprocess.check_output(
+            cmd, stderr=subprocess.STDOUT, shell=True, text=True)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        # store only the error, no need for the traceback
+        output = e.output.strip().split("\n")[-1]
+
+    print(output)
+    return(return_code, output)
 
 class TestShowMirror(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        print(os.pathsep + scripts_path)
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_mirror_show(self):
@@ -35,7 +49,7 @@ session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 """
 
-        return_code, result = get_result_and_return_code('acl-loader show session')
+        return_code, result = get_result_and_return_code('main.py show session')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         dbconnector.dedicated_dbs = {}
