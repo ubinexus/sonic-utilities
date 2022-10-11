@@ -1,11 +1,11 @@
 import os
 import sys
-from unittest import mock
 from click.testing import CliRunner
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 
-import show.main as show
+
+import acl_loader.main as acl_loader
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "mirror_input")
@@ -35,8 +35,8 @@ session2   active    Ethernet7   Ethernet8   both
 session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 """
-        with mock.patch('show.main.run_command') as mock_run_command:
-            result = runner.invoke(show.cli.commands['mirror_session'], [], obj=db)
-            assert result.exit_code == 0
-            assert result.output == expected_output
+
+        result = runner.invoke(acl_loader.cli.commands['show'].commands['session'], [], obj=db)
         dbconnector.dedicated_dbs = {}
+        assert result.exit_code == 0
+        assert result.output == expected_output
