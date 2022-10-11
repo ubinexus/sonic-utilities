@@ -4,8 +4,9 @@ from click.testing import CliRunner
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 
+from .utils import get_result_and_return_code
 
-import acl_loader.main as acl_loader
+import show.main as show
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "mirror_input")
@@ -20,8 +21,6 @@ class TestShowMirror(object):
         from .mock_tables import dbconnector
         jsonfile_config = os.path.join(mock_db_path, "config_db")
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
-        runner = CliRunner()
-        db = Db()
         expected_output = """\
 ERSPAN Sessions
 Name    Status    SRC IP    DST IP    GRE    DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
@@ -36,7 +35,10 @@ session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 """
 
-        result = runner.invoke(acl_loader.cli.commands['show'].commands['session'], [], obj=db)
+        return_code, result = get_result_and_return_code('acl-loader show session')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
         dbconnector.dedicated_dbs = {}
-        assert result.exit_code == 0
-        assert result.output == expected_output
+        assert return_code == 0
+        assert result == expected_output
+
