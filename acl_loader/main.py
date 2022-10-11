@@ -800,10 +800,11 @@ class AclLoader(object):
                 if not service_array:
                     data.append([key, val["type"], "", val["policy_desc"], stage])
                 else:
-                    data.append([key, val["type"], service_array[0], val["policy_desc"], stage])
+                    services = natsorted(service_array)
+                    data.append([key, val["type"], services[0], val["policy_desc"], stage])
 
-                    if len(service_array) > 1:
-                        for service in service_array[1:]:
+                    if len(services) > 1:
+                        for service in services[1:]:
                             data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
