@@ -35,7 +35,7 @@ session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 session2   active    Ethernet7   Ethernet8   both
 """
-        with mock.patch('show.cli.run_command') as mock_run_command:
+        with mock.patch('show.main.run_command') as mock_run_command:
             result = runner.invoke(show.cli.commands['mirror_session'], [], obj=db)
         dbconnector.dedicated_dbs = {}
         assert result.exit_code == 0
