@@ -60,6 +60,13 @@
   * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Generic Configuration Update and Rollback](#Generic-Configuration-Update-and-Rollback)  
+  * [Apply-patch command](#Apply-patch-command)
+  * [Replace Command](#Replace-Command)
+  * [Rollback Command](#Rollback-Command)
+  * [Checkpoint Command](#Checkpoint-Command)
+  * [Delete-checkpoint Command](#Delete-checkpoint-Command)
+  * [List-checkpoints Command](#List-checkpoints-Command)   
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -92,6 +99,10 @@
  * [Loopback Interfaces](#loopback-interfaces)
     * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
+ * [MACsec Commands](#macsec-commands)
+    * [MACsec config command](#macsec-config-command)
+    * [MACsec show command](#macsec-show-command)
+    * [MACsec clear command](#macsec-clear-command)	
 * [VRF Configuration](#vrf-configuration)
     * [VRF show commands](#vrf-show-commands)
     * [VRF config commands](#vrf-config-commands)
@@ -114,6 +125,9 @@
 * [NVGRE](#nvgre)
   * [NVGRE show commands](#nvgre-show-commands)
   * [NVGRE config commands](#nvgre-config-commands)
+* [Password Hardening](#Password-Hardening)
+  * [PW config commands](#pw-config-commands)
+  * [PW show commands](#pw-show-commands)
 * [PBH](#pbh)
   * [PBH show commands](#pbh-show-commands)
   * [PBH config commands](#pbh-config-commands)
@@ -134,6 +148,9 @@
     * [Queue And Priority-Group](#queue-and-priority-group)
     * [Buffer Pool](#buffer-pool)
   * [QoS config commands](#qos-config-commands)
+* [Radius](#radius)
+  * [radius show commands](#show-radius-commands)
+  * [radius config commands](#Radius-config-commands)  
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
   * [sFlow Config commands](#sflow-config-commands)
@@ -3122,13 +3139,6 @@ This command will configure the state for a specific feature.
   admin@sonic:~$ sudo config feature state bgp disabled
   ``` 
 
-To make the command wait until the corresponding feature container stops(starts) use ```--block``` options:
-
-- Usage:
-    ```
-    admin@sonic:~$ config feature state bgp enabled --block
-    ```
-
 **config feature autorestart <feature_name> <autorestart_status>**
 
 This command will configure the status of auto-restart for a specific feature container.
@@ -3372,6 +3382,150 @@ This command is used to change device hostname without traffic being impacted.
   admin@sonic:~$ sudo config hostname CSW06
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
+
+## Generic Configuration Update and Rollback
+
+The below command displays the brief summary of apply-patch, rollback, replace, checkpoint, delete-checkpoint, list-checkpoints functionality. This GCU feature is an initial version in 202111 release and may not function properly.
+
+### Apply-patch command
+
+Usage:
+
+```
+
+admin@sonic:~$ sudo config apply-patch --help
+Usage: config apply-patch [OPTIONS] PATCH_FILE_PATH
+
+  Apply given patch of updates to Config. A patch is a JsonPatch which
+  follows rfc6902. This command can be used do partial updates to the config
+  with minimum disruption to running processes. It allows addition as well
+  as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+  format or SonicYang format.
+
+  <patch-file-path>: Path to the patch file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of config of the patch is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Replace Command
+
+
+Usage :
+
+```
+
+admin@sonic:~$ sudo config replace --help
+Usage: config replace [OPTIONS] TARGET_FILE_PATH
+
+  Replace the whole config with the specified config. The config is replaced
+  with minimum disruption e.g. if ACL config is different between current
+  and target config only ACL config is updated, and other config/services
+  such as DHCP will not be affected. **WARNING** The target config file
+  should be the whole config, not just the part intended to be updated.
+
+  <target-file-path>: Path to the target file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of target config is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Rollback Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config rollback --help
+Usage: config rollback [OPTIONS] CHECKPOINT_NAME
+
+  Rollback the whole config to the specified checkpoint. The config is
+  rolled back with minimum disruption e.g. if ACL config is different
+  between current and checkpoint config only ACL config is updated, and
+  other config/services such as DHCP will not be affected.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -d, --dry-run   test out the command without affecting config state
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+
+```
+
+### Checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config checkpoint --help
+Usage: config checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Take a checkpoint of the whole current config with the specified
+  checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### Delete-checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config delete-checkpoint --help
+Usage: config delete-checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Delete a checkpoint with the specified checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### List-checkpoints Command
+
+Usage :
+
+```
+admin@sonic:~$ sudo config list-checkpoints --help
+Usage: config list-checkpoints [OPTIONS]
+
+  List the config checkpoints available.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+		
+```
 
 ## Interfaces
 
@@ -5311,6 +5465,251 @@ It is recommended to use loopback names in the format "Loopbackxxx", where "xxx"
   admin@sonic:~$ sudo config loopback add Loopback11
   ```
 
+# MACsec Commands
+
+This sub-section explains the list of the configuration options available for MACsec. MACsec feature is as a plugin to SONiC, So please install MACsec package before using MACsec commands.
+
+## MACsec config command
+
+- Add MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile add --help
+Usage: config macsec profile add [OPTIONS] <profile_name>
+
+  Add MACsec profile
+
+Options:
+  --priority <priority>           For Key server election. In 0-255 range with
+                                  0 being the highest priority.  [default:
+                                  255]
+  --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
+                                  AES-128]
+  --primary_cak <primary_cak>     Primary Connectivity Association Key.
+                                  [required]
+  --primary_ckn <primary_cak>     Primary CAK Name.  [required]
+  --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
+                                  except EAPOL, will be converted to MACsec
+                                  packets without encryption.  SECURITY: All
+                                  traffic, except EAPOL, will be encrypted by
+                                  SecY.  [default: security]
+  --enable_replay_protect / --disable_replay_protect
+                                  Whether enable replay protect.  [default:
+                                  False]
+  --replay_window <enable_replay_protect>
+                                  Replay window size that is the number of
+                                  packets that could be out of order. This
+                                  field works only if ENABLE_REPLAY_PROTECT is
+                                  true.  [default: 0]
+  --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
+                                  [default: True]
+  --rekey_period <rekey_period>   The period of proactively refresh (Unit
+                                  second).  [default: 0]
+  -?, -h, --help                  Show this message and exit.
+```
+
+- Delete MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile del --help
+Usage: config macsec profile del [OPTIONS] <profile_name>
+
+  Delete MACsec profile
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Enable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port add --help
+Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
+
+  Add MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+
+- Disable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port del --help
+Usage: config macsec port del [OPTIONS] <port_name>
+
+  Delete MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+
+```
+
+
+## MACsec show command
+
+- Show MACsec
+
+```
+admin@vlab-02:~$ show macsec --help
+Usage: show macsec [OPTIONS] [INTERFACE_NAME]
+
+Options:
+  -d, --display [all]  Show internal interfaces  [default: all]
+  -n, --namespace []   Namespace name or all
+  -h, -?, --help       Show this message and exit.
+
+```
+
+```
+admin@vlab-02:~$ show macsec
+MACsec port(Ethernet0)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  2
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
+		next_pn                                1
+		sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+		MACsec Egress SA (2)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               5A8B8912139551D3678B43DD0F10FFA5
+		next_pn                                1
+		sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
+		lowest_acceptable_pn                     1
+		sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+		MACsec Ingress SA (2)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
+		lowest_acceptable_pn                     1
+		sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+MACsec port(Ethernet1)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  1
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
+		next_pn                                1
+		sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
+		lowest_acceptable_pn                     1
+		sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+```
+
+## MACsec clear command
+
+Clear MACsec counters which is to reset all MACsec counters to ZERO.
+
+```
+admin@sonic:~$ sonic-clear macsec --help
+Usage: sonic-clear macsec [OPTIONS]
+
+  Clear MACsec counts. This clear command will generated a cache for next
+  show commands which will base on this cache as the zero baseline to show
+  the increment of counters.
+
+Options:
+  --clean-cache BOOLEAN  If the option of clean cache is true, next show
+                         commands will show the raw counters which based on
+                         the service booted instead of the last clear command.
+  -h, -?, --help         Show this message and exit.
+```  
+
 ## VRF Configuration
 
 ### VRF show commands
@@ -7027,6 +7426,181 @@ config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
 config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
 ```
 
+## Password Hardening
+
+### PW config commands
+
+**pw enable**
+
+Passwoed Hardening enable feature, set configuration:
+
+```
+root@r-panther-13:/home/admin# config passwh policies state --help
+Usage: config passwh policies state [OPTIONS] STATE
+
+  state of the feature
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+**pw classes**
+
+PW class is the type of characters the user is required to enter when setting/updating a PW.
+
+There are 4 classes. (see description in arc section)
+
+The user will be able to choose whether to enforce all PW class characters in the PW or only a subset of the characters.
+
+A CLI command will be available to the user for this configuration. Once a user has selected the class types he wants to enforce (from a pre-defined options list), this will enforce the PW selected by the user to have at least 1 character from each class in the selected option.
+
+The CLI classes options will be as follows:
+
+None - Meaning no required classes.
+
+lower- lowerLowercase Characters
+
+upper - Uppercase
+
+digit - Numbers
+
+special - Special symbols (seen in requirement chapter)
+
+multiple char enforcement
+
+There will be no enforcement of multiple characters from a specific class or a specific character (be either letter or symbol) to appear in the PW.
+
+The CLI command to configure the PW class type will be along the following lines:
+
+Set classes configuration:
+```
+==============================================================================
+root@r-panther-13:/home/admin# config passwh policies lower-class --help
+Usage: config passwh policies lower-class [OPTIONS] LOWER_CLASS
+
+  password lower chars policy
+
+Options:
+  -?, -h, --help  Show this message and exit.
+==============================================================================
+root@r-panther-13:/home/admin# config passwh policies upper-class --help
+Usage: config passwh policies upper-class [OPTIONS] UPPER_CLASS
+
+  password upper chars policy
+
+Options:
+  -h, -?, --help  Show this message and exit.
+==============================================================================
+root@r-panther-13:/home/admin# config passwh policies digits-class --help
+Usage: config passwh policies digits-class [OPTIONS] DIGITS_CLASS
+
+  password digits chars policy
+
+Options:
+  -h, -?, --help  Show this message and exit.
+==============================================================================
+root@r-panther-13:/home/admin# config passwh policies special-class --help
+Usage: config passwh policies special-class [OPTIONS] SPECIAL_CLASS
+
+  password special chars policy
+
+Options:
+  -?, -h, --help  Show this message and exit.
+==============================================================================
+```
+
+Note: Meaning: no must use of lower, no must use of upper, must use digit, must use special characters
+
+**pw length**
+
+Set len-min configuration:
+```
+root@r-panther-13:/home/admin# config passwh policies len-min --help
+Usage: config passwh policies len-min [OPTIONS] LEN_MIN
+
+  password min length
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+Note: Where length is a number between 0 and 32.
+
+Once the user changed the minimum password length - the settings will be applied to the config node and will be enforced on the next pw change
+
+**pw age**
+
+* PW age expire
+
+Set configuration:
+```
+root@r-panther-13:/home/admin# config passwh policies expiration --help
+Usage: config passwh policies expiration [OPTIONS] EXPIRATION
+
+  expiration time (days unit)
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+Notes: Where age is in days and between 1 and 365 days (default 180).
+* PW Age Change Warning
+
+Set configuration:
+```
+root@r-panther-13:/home/admin# config passwh policies expiration-warning --help
+Usage: config passwh policies expiration-warning [OPTIONS] EXPIRATION_WARNING
+
+  expiration warning time (days unit)
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+Notes: The warning_days can be configured between 1 and 30 days (default 15).
+
+
+**pw username-match**
+
+Set configuration:
+
+```
+root@r-panther-13:/home/admin# config passwh policies username-passw-match --help
+Usage: config passwh policies username-passw-match [OPTIONS]
+                                                   USERNAME_PASSW_MATCH
+
+  username password match
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+**pw saving**
+Set configuration:
+
+```
+root@r-panther-13:/home/admin# config passwh policies history --help
+Usage: config passwh policies history [OPTIONS] HISTORY
+
+  num of old password that the system will recorded
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+### PW show commands
+
+**show passwh**
+
+Show command should be extended in order to add "passwh" alias:
+
+```
+root@r-panther-13:/home/admin# show passwh policies
+STATE    EXPIRATION    EXPIRATION WARNING    HISTORY    LEN MAX    LEN MIN    USERNAME PASSW MATCH    LOWER CLASS    UPPER CLASS    DIGITS CLASS    SPECIAL CLASS
+-------  ------------  --------------------  ---------  ---------  ---------  ----------------------  -------------  -------------  --------------  ---------------
+enabled      30           10                   4         100        30               false                 true            true            true          true
+```
+
 ## PBH
 
 This section explains the various show commands and configuration commands available for users.
@@ -7782,6 +8356,52 @@ If there was QoS configuration in the above tables for the ports:
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)
+
+## Radius
+
+### show radius commands
+
+This command displays the global radius configuration that includes the auth_type, retransmit, timeout  and passkey.
+
+- Usage:
+  ```
+  show radius
+  ```
+- Example:
+
+  ```
+  admin@sonic:~$ show radius
+	RADIUS global auth_type pap (default)
+	RADIUS global retransmit 3 (default)
+	RADIUS global timeout 5 (default)
+	RADIUS global passkey <EMPTY_STRING> (default)
+
+  ```
+ 
+### Radius config commands
+
+This command is to config the radius server for various parameter listed.
+
+ - Usage:
+  ```
+  config radius
+  ```
+- Example:
+  ```
+  admin@sonic:~$ config radius
+  
+  add         Specify a RADIUS server
+  authtype    Specify RADIUS server global auth_type [chap | pap | mschapv2]
+  default     set its default configuration
+  delete      Delete a RADIUS server
+  nasip       Specify RADIUS server global NAS-IP|IPV6-Address <IPAddress>
+  passkey     Specify RADIUS server global passkey <STRING>
+  retransmit  Specify RADIUS server global retry attempts <0 - 10>
+  sourceip    Specify RADIUS server global source ip <IPAddress>
+  statistics  Specify RADIUS server global statistics [enable | disable |...
+  timeout     Specify RADIUS server global timeout <1 - 60>
+
+  ```
 
 ## sFlow
 
@@ -10379,8 +10999,7 @@ In SONiC, there usually exists a set of tables related/relevant to a particular 
 
 ### Event Driven Techsupport Invocation
 
-This feature/capability makes the techsupport invocation event-driven based on system events like core dump generation or low RAM availability.
-This feature is only applicable for the processes running in the containers. More detailed explanation can be found in the HLD https://github.com/Azure/SONiC/blob/master/doc/auto_techsupport_and_coredump_mgmt.md
+This feature/capability makes the techsupport invocation event-driven based on core dump generation. This feature is only applicable for the processes running in the containers. More detailed explanation can be found in the HLD https://github.com/Azure/SONiC/blob/master/doc/auto_techsupport_and_coredump_mgmt.md
 
 #### config auto-techsupport global commands
 		
@@ -10452,35 +11071,6 @@ This feature is only applicable for the processes running in the containers. Mor
   config auto-techsupport global since <string>
   ```
 
-**config auto-techsupport global available-mem-threshold**
-
-Configure available memory threshold in %. System will automatically generate a techsupport dump when available memory goes below the configured threshold. Setting this field to 0 will disable techsupport invokation.
-
-- Usage:
-  ```
-  config auto-techsupport global available-mem-threshold <float up to two decimal places>
-  ```
-  - Parameters:
-    - available-mem-threshold: Memory threshold. Configure 0 to disable techsupport invocation on memory usage threshold crossing
-- Example:
-  ```
-  config auto-techsupport global available-mem-threshold 20
-  ```
-
-**config auto-techsupport global min-available-mem**
-
-Configure minimum available memory in MB. System will automatically generate a techsupport dump when available memory goes below the configured threshold.
-
-- Usage:
-  ```
-  config auto-techsupport global min-available-mem <uint32>
-  ```
-  - Parameters:
-    - min-available-mem: Minimum free memory amount in MB to trigger techsupport dump
-- Example:
-  ```
-  config auto-techsupport global min-available-mem 200
-  ```
 
 #### config auto-techsupport-feature commands
 
@@ -10488,16 +11078,15 @@ Configure minimum available memory in MB. System will automatically generate a t
 		
 - Usage:
   ```
-  config auto-techsupport-feature add <feature_name> --state <enabled/disabled> --rate-limit-interval <uint16> --available-mem-threshold <float up to two decimal places>
+  config auto-techsupport-feature add <feature_name> --state <enabled/disabled> --rate-limit-interval <uint16>
   ```
   - Parameters:
     - state: enable/disable the capability for the specific feature/container.
     - rate-limit-interval: Rate limit interval for the corresponding feature. Configure 0 to explicitly disable. For the techsupport to be generated by auto-techsupport, both the global and feature specific rate-limit-interval has to be passed
-    - available-mem-threshold: Memory threshold. Configure 0 to disable techsupport invocation on memory usage threshold crossing.
 
 - Example:
   ```
-  config auto-techsupport-feature add bgp --state enabled --rate-limit-interval 200 --available-mem-threshold 50
+  config auto-techsupport-feature add bgp --state enabled --rate-limit-interval 200
   ```
 
 
@@ -10519,7 +11108,6 @@ Configure minimum available memory in MB. System will automatically generate a t
   ```
   config auto-techsupport-feature update <feature_name> --state <enabled/disabled>
   config auto-techsupport-feature update <feature_name> --rate-limit-interval <uint16>
-  config auto-techsupport-feature update <feature_name> --available-mem-threshold <float up to two decimal places>
   ```
 
 - Example:
@@ -10540,9 +11128,9 @@ Configure minimum available memory in MB. System will automatically generate a t
 - Example:
   ```
   admin@sonic:~$ show auto-techsupport global
-  STATE    RATE LIMIT INTERVAL (sec)    MAX TECHSUPPORT LIMIT (%)    MAX CORE LIMIT (%)    AVAILABLE MEM THRESHOLD (%)    MIN AVAILABLE MEM (Kb)    SINCE
-  -------  ---------------------------  ---------------------------  --------------------  -----------------------------  ------------------------  ------------
-  enabled  180                          10                           5                     10                             200                       2 days ago
+  STATE      RATE LIMIT INTERVAL (sec)    MAX TECHSUPPORT LIMIT (%)    MAX CORE LIMIT (%)       SINCE
+  -------  ---------------------------   --------------------------    ------------------  ----------
+  enabled                          180                        10.0                   5.0   2 days ago
   ```
 
 **show auto-techsupport-feature**
@@ -10555,13 +11143,13 @@ Configure minimum available memory in MB. System will automatically generate a t
 - Example:
   ```
   admin@sonic:~$ show auto-techsupport-feature 
-  FEATURE NAME    STATE       RATE LIMIT INTERVAL (sec) AVAILABLE MEM THRESHOLD (%)
-  --------------  --------  --------------------------  ------------------------------
-  bgp             enabled                          600                              10
-  database        enabled                          600                              10
-  dhcp_relay      enabled                          600                              10
-  lldp            enabled                          600                              10
-  swss            disabled                         800                              10
+  FEATURE NAME    STATE       RATE LIMIT INTERVAL (sec) 
+  --------------  --------  --------------------------
+  bgp             enabled                          600
+  database        enabled                          600
+  dhcp_relay      enabled                          600
+  lldp            enabled                          600
+  swss            disabled                         800
   ```
 
 **show auto-techsupport history** 
@@ -10574,12 +11162,11 @@ Configure minimum available memory in MB. System will automatically generate a t
 - Example:
   ```
   admin@sonic:~$ show auto-techsupport history
-  TECHSUPPORT DUMP                          TRIGGERED BY    EVENT TYPE      CORE DUMP
-  ----------------------------------------  --------------  --------------  -----------------------------
-  sonic_dump_r-lionfish-16_20210901_221402  bgp             core            bgpcfgd.1630534439.55.core.gz
-  sonic_dump_r-lionfish-16_20210901_203725  snmp            core            python3.1630528642.23.core.gz
-  sonic_dump_r-lionfish-16_20210901_222408  teamd           core            python3.1630535045.34.core.gz
-  sonic_dump_r-lionfish-16_20210901_222511  N/A             memory          N/A
+  TECHSUPPORT DUMP                          TRIGGERED BY    CORE DUMP
+  ----------------------------------------  --------------  -----------------------------
+  sonic_dump_r-lionfish-16_20210901_221402  bgp             bgpcfgd.1630534439.55.core.gz
+  sonic_dump_r-lionfish-16_20210901_203725  snmp            python3.1630528642.23.core.gz
+  sonic_dump_r-lionfish-16_20210901_222408  teamd           python3.1630535045.34.core.gz
   ```
 		
 Go Back To [Beginning of the document](#) or [Beginning of this section](#troubleshooting-commands)
