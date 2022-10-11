@@ -1,5 +1,4 @@
 import jsonpatch
-import types
 from jsonpointer import JsonPointer
 
 from sonic_py_common import device_info
@@ -20,9 +19,9 @@ class ValidatedConfigDBConnector(object):
         if not yang_enabled:
             return self.connector.__getattribute__(name)
         if name == "set_entry":
-            return validated_set_entry
+            return self.validated_set_entry
         if name == "delete_table":
-            return validated_delete_table
+            return self.validated_delete_table
 
     def make_path_value_jsonpatch_compatible(self, table, key, value):
         if type(key) == tuple:
@@ -35,7 +34,7 @@ class ValidatedConfigDBConnector(object):
 
     def create_gcu_patch(self, op, table, key=None, value=None):
         if key:
-            path, value = make_path_value_jsonpatch_compatible(table, key, value)
+            path, value = self.make_path_value_jsonpatch_compatible(table, key, value)
         else: 
             path = "/{}".format(table)
 
@@ -50,7 +49,7 @@ class ValidatedConfigDBConnector(object):
         return gcu_patch
 
     def validated_delete_table(self, table):
-        gcu_patch = create_gcu_patch("remove", table)
+        gcu_patch = self.create_gcu_patch("remove", table)
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
         try:
@@ -65,11 +64,11 @@ class ValidatedConfigDBConnector(object):
         else:
             op = "remove"
     
-        gcu_patch = create_gcu_patch(op, table, key, value)
+        gcu_patch = self.create_gcu_patch(op, table, key, value)
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
 
         try:
             GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
         except EmptyTableError:
-            validated_delete_table(table)
+            self.validated_delete_table(table)
