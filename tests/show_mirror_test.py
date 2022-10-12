@@ -40,7 +40,9 @@ session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 """
 
-        return_code, result = get_result_and_return_code('python main.py show session')
+        cmd = 'python ' + os.path.join(scripts_path, 'main.py') + ' show session'
+        print cmd
+        return_code, result = get_result_and_return_code(cmd)
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         dbconnector.dedicated_dbs = {}
