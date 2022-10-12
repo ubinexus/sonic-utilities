@@ -16,12 +16,12 @@ class ValidatedConfigDBConnector(object):
         config_db_connector.connect()
         yang_enabled = device_info.is_yang_config_validation_enabled(config_db_connector)
 
-        if not yang_enabled:
-            return self.connector.__getattribute__(name)
-        if name == "set_entry":
-            return self.validated_set_entry
-        if name == "delete_table":
-            return self.validated_delete_table
+        if yang_enabled:
+            if name == "set_entry":
+                return self.validated_set_entry
+            if name == "delete_table":
+                return self.validated_delete_table
+        return self.connector.__getattribute__(name)
 
     def make_path_value_jsonpatch_compatible(self, table, key, value):
         if type(key) == tuple:
