@@ -10,13 +10,10 @@ class ValidatedConfigDBConnector(object):
     
     def __init__(self, config_db_connector):
         self.connector = config_db_connector
+        self.yang_enabled = device_info.is_yang_config_validation_enabled(self.connector)
 
     def __getattr__(self, name):
-        config_db_connector = ConfigDBConnector()
-        config_db_connector.connect()
-        yang_enabled = device_info.is_yang_config_validation_enabled(config_db_connector)
-
-        if yang_enabled:
+        if self.yang_enabled:
             if name == "set_entry":
                 return self.validated_set_entry
             if name == "delete_table":
