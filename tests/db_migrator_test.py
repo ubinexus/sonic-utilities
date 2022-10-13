@@ -420,6 +420,8 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
         dbconnector.dedicated_dbs['LOGLEVEL_DB'] = None
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
     def mock_dedicated_loglevel_db(self, filename):
         jsonfile = os.path.join(mock_db_path, 'loglevel_db', filename)
         dbconnector.dedicated_dbs['LOGLEVEL_DB'] = jsonfile
@@ -428,11 +430,16 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
         return loglevel_db
 
     def test_move_logger_tables_in_warm_upgrade(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'logger_tables_input')
         dbconnector.dedicated_dbs['LOGLEVEL_DB'] = os.path.join(mock_db_path, 'loglevel_db', 'logger_tables_input')
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
+
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
+
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'logger_tables_expected')
         dbconnector.dedicated_dbs['LOGLEVEL_DB'] = os.path.join(mock_db_path, 'loglevel_db', 'logger_tables_expected')
 
@@ -443,8 +450,3 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
-
-
-
-
-
