@@ -213,5 +213,17 @@
     },
     "MUX_CABLE_TABLE|Ethernet0": {
         "state": "active"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
+        "ip_address": "127.0.0.1",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD1": {
+        "ip_address": "127.0.0.1",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD2": {
+        "ip_address": "127.0.0.1",
+        "access": "False"
     }
 }
