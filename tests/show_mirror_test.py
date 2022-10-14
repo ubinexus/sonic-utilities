@@ -38,6 +38,5 @@ session15  active    Ethernet2   Ethernet3   tx
 """
         result = runner.invoke(acl_loader_show.cli.commands['show'].commands['session'], [], obj=db)
         dbconnector.dedicated_dbs = {}
-        assert return_code == 0
-        assert result == expected_output
-
+        assert result.exit_code == 0
+        assert result.output == expected_output
