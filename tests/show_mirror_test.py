@@ -36,7 +36,6 @@ session2   active    Ethernet7   Ethernet8   both
 session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
 """
-        aclloader = AclLoader()
         result = runner.invoke(acl_loader_show.cli.commands['show'].commands['session'], [], obj=db)
         dbconnector.dedicated_dbs = {}
         assert return_code == 0
