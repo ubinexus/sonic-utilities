@@ -5,7 +5,6 @@ import re
 import subprocess
 import sys
 import shutil
-from xmlrpc.client import Boolean
 
 import click
 import json
@@ -324,8 +323,10 @@ def get_existing_vlan_id(db) -> list:
     existing_vlans = []
     vlan_data = db.cfgdb.get_table('VLAN')
     keys = (vlan_data.keys())
+    
     for i in keys:
-        existing_vlans.append(i.strip("Vlan"))
+        existing_vlans.append(int(i.strip("Vlan")))
+
     if 1 in existing_vlans:
         existing_vlans.remove(1)
     return sorted(existing_vlans)
@@ -369,6 +370,15 @@ def vlan_member_input_parser(ctx, db, except_flag, multiple, vid) -> list:
     vid_list.sort()
     return vid_list
 
+def interface_is_tagged_member(db, interface_name):
+    """ Check if interface has tagged members i.e. is in trunk mode"""
+    vlan_member_table = db.get_table('VLAN_MEMBER')
+
+    for key, val in vlan_member_table.items():
+        if(key[1] == interface_name):
+            if (val['tagging_mode'] == 'tagged'):
+                return True
+    return False
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """

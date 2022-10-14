@@ -2,9 +2,6 @@ import click
 from .utils import log
 import utilities_common.cli as clicommon
 
-# since default vlan id is 1
-default_vid = 1
-
 #
 # 'switchport' mode ('config switchport ...')
 #
@@ -16,19 +13,17 @@ def switchport():
     pass
 
 
-@switchport.add_command("mode")
-@click.argument("type", metavar="<mode_type>", Required=True, type=click.Choice(["access", "trunk", "routed"]))
+@switchport.command("mode")
+@click.argument("type", metavar="<mode_type>", required=True, type=click.Choice(["access", "trunk", "routed"]))
 @click.argument("port", metavar="port", required=True)
 @clicommon.pass_db
-def access_mode(db, type, port):
-    """switchport mode help commands\nmode_type can either be:\n\t access for untagged mode\n\t trunk for tagged mode \n\t routed for non vlan mode"""
+def switchport_mode(db, type, port):
+    """switchport mode help commands\nmode_type can either be:\n\t -> access \n\t -> trunk \n\t -> routed"""
 
     ctx = click.get_current_context()
 
-    log.log_info(
-        "'switchport mode {} {}' executing...".format(type, port))
-
-    vlan = 'Vlan{}'.format(default_vid)
+    log.log_info("'switchport mode {} {}' executing...".format(type, port))
+    mode_exists_status = True
 
     # checking if port name with alias exists
     if clicommon.get_interface_naming_mode() == "alias":
@@ -38,82 +33,79 @@ def access_mode(db, type, port):
         if port is None:
             ctx.fail("cannot find port name for alias {}".format(alias))
 
+    if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
+            ctx.fail("{} is configured as mirror destination port".format(port))
+
+
+    if clicommon.is_valid_port(db.cfgdb, port):
+        is_port = True
+    elif clicommon.is_valid_portchannel(db.cfgdb, port):
+        is_port = False
+    else:
+        ctx.fail("{} does not exist".format(port))
+
+    if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
+            (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
+        ctx.fail("{} is a router interface!".format(port))
+
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
+        ctx.fail("{} is part of portchannel!".format(port))
+
+    port_table_data = db.cfgdb.get_table('PORT')
+    port_data = port_table_data[port]
+
     # mode type is either access or trunk
     if type != "routed":
 
-        # checking if default Vlan has been created or not
-        if not clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
-
-            db.cfgdb.set_entry('VLAN', vlan, {'vlanid': default_vid})
-
-            log.log_info(
-                "'vlan add {}' in switchport mode executing...".format(default_vid))
-
-        # tagging_mode will be untagged if access and tagged if trunk
-        if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
-            ctx.fail("{} is configured as mirror destination port".format(port))
-
-        if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
-            ctx.fail("{} is already a member of {}".format(port, vlan))
-
-        if clicommon.is_valid_port(db.cfgdb, port):
-            is_port = True
-        elif clicommon.is_valid_portchannel(db.cfgdb, port):
-            is_port = False
+        if "mode" in port_data:
+            existing_mode = port_data["mode"]
         else:
-            ctx.fail("{} does not exist".format(port))
+            existing_mode = "routed"
+            mode_exists_status = False
 
-        if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-                (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
-            ctx.fail("{} is a router interface!".format(port))
+        if existing_mode == "routed":
+            if mode_exists_status:
+                db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
+            if not mode_exists_status:
+                db.cfgdb.set_entry("PORT", port, {"mode": "{}".format(type)})
+        
+        if existing_mode == type:
+            ctx.fail("{} is already in the {} mode".format(port,type))
+        else: 
+            if existing_mode == "access" and type == "trunk":
+                pass
+            if existing_mode == "trunk" and type == "access":
+                if clicommon.interface_is_tagged_member(db,port):
+                    ctx.fail("{} is in {} mode and have tagged member|s.\nRemove tagged member|s from {} to switch to {} mode".format(port,existing_mode,port,type))
 
-        portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+            db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
 
-        if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
-            ctx.fail("{} is part of portchannel!".format(port))
-
-        # checking if it exists in default Vlan1
-        if clicommon.port_vlan_member_exist(db, vlan, port):
-
-            existing_port_vlan_status = clicommon.get_existing_port_vlan_status(
-                db, vlan, port)
-            existing_status = "access" if existing_port_vlan_status == "untagged" else "trunk"
-
-            if (type == existing_status):
-                ctx.fail("{} is already in {} mode!".format(port, type))
-
-            elif (type != existing_status):
-
-                if (type == "trunk" and existing_status == "access"):
-                    db.cfgdb.mod_entry('VLAN_MEMBER', (vlan, port), {
-                        'tagging_mode': "tagged"})
-
-                elif (type == "access" and existing_status == "trunk"):
-                    db.cfgdb.mod_entry('VLAN_MEMBER', (vlan, port), {
-                        'tagging_mode': "untagged"})
-
-                # switched the mode of already defined switchport
-                click.echo("{} switched from {} to {} mode".format(
-                    port, existing_status, type))
-
-        # if it not exists already set entry
-        else:
-            db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {
-                               'tagging_mode': "untagged" if type == "access" else "tagged"})
-
-            click.echo("{} switched to {} mode. Added to default {}".format(
-                port, type, vlan))
+        click.echo("{} switched from {} to {} mode.".format(port, existing_mode, type))
 
     # if mode type is routed
     else:
 
-        if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
-            ctx.fail("{} is already in routed mode".format(port))
+        if clicommon.interface_is_tagged_member(db,port):
+            ctx.fail("{} has tagged member|s. \nRemove them to change mode to {}".format(port,type))
 
-        if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
-            ctx.fail("{} is already in routed mode".format(port))
+        if clicommon.interface_is_untagged_member(db,port):
+            ctx.fail("{} has tagged member|s. \nRemove them to change mode to {}".format(port,type))
 
-        db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
+        if "mode" in port_data:
+            existing_mode = port_data["mode"]
+        else:
+            existing_mode = "routed"
+            mode_exists_status = False
+        
+        if not mode_exists_status:
+            db.cfgdb.set_entry("PORT", port, {"mode": "{}".format(type)})
+            click.echo("{} switched to {} mode.".format(port, type))
+        
+        if mode_exists_status and existing_mode == type:
+            ctx.fail("{} is already in {} mode".format(port,type))
+        
+        db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
+        click.echo("{} switched from {} to {} mode".format(port,existing_mode,type))
 
-        click.echo("{} is in {} mode. Removed from default {}".format(
-            port, type, vlan))

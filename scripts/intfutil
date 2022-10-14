@@ -61,7 +61,6 @@ VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
 
 SUB_PORT = "subport"
 
-
 def get_frontpanel_port_list(config_db):
     ports_dict = config_db.get_table('PORT')
     front_panel_ports_list = []
@@ -94,21 +93,22 @@ def get_interface_vlan_dict(config_db):
     int_to_vlan_dict = dict(zip(int_list, vlan_list))
     return int_to_vlan_dict
 
-######################Switchport modes ############################
 
-
-def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list, intf_name):
+def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list,config_db, intf_name):
     """
     Get interface vlan value and return it.
     """
     vlan = "routed"
+    ports_dict = config_db.get_table('PORT')
     if intf_name in front_panel_ports_list:
         if intf_name in int_to_vlan_dict.keys():
             vlan = int_to_vlan_dict[intf_name]
-            if "untagged" in vlan:
-                vlan = "access"
-            elif "tagged" in vlan:
+            if "Vlan" in vlan:
                 vlan = "trunk"
+                if intf_name in ports_dict:
+                    intf_data = ports_dict[intf_name]
+                    if "mode" in intf_data:
+                        vlan = intf_data["mode"]
     return vlan
 
 
@@ -119,8 +119,7 @@ def appl_db_keys_get(appl_db, front_panel_ports_list, intf_name):
     if intf_name is None:
         appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:*")
     elif intf_name in front_panel_ports_list:
-        appl_db_keys = appl_db.keys(
-            appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
+        appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
     else:
         return None
     return appl_db_keys
@@ -138,8 +137,7 @@ def appl_db_sub_intf_keys_get(appl_db, sub_intf_list, sub_intf_name):
                 if re.split(':', appl_db_intf_key, maxsplit=1)[-1].strip() in sub_intf_list:
                     appl_db_sub_intf_keys.append(appl_db_intf_key)
     elif sub_intf_name in sub_intf_list:
-        appl_db_sub_intf_keys = appl_db.keys(
-            appl_db.APPL_DB, "INTF_TABLE:%s" % sub_intf_name)
+        appl_db_sub_intf_keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:%s" % sub_intf_name)
     else:
         return []
     return appl_db_sub_intf_keys
@@ -162,7 +160,6 @@ def port_speed_parse(in_speed, optics_type):
 
     return out_speed
 
-
 def appl_db_port_status_get(appl_db, intf_name, status_type):
     """
     Get the port status
@@ -183,7 +180,6 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         status = ','.join(new_speed_list)
     return status
 
-
 def state_db_port_status_get(db, intf_name, field):
     """
     Get the port status
@@ -201,35 +197,27 @@ def state_db_port_status_get(db, intf_name, field):
         status = ','.join(new_speed_list)
     return status
 
-
 def port_oper_speed_get(db, intf_name):
     """
     Get port oper speed
     """
-    oper_speed = db.get(
-        db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
-    oper_status = db.get(
-        db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
+    oper_speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
+    oper_status = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
     if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_port_status_get(db, intf_name, PORT_SPEED)
     else:
         optics_type = port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
         return port_speed_parse(oper_speed, optics_type)
 
-
 def port_oper_speed_get_raw(db, intf_name):
     """
     Get port raw speed. E.g. 100000, 50000 and so on.
     """
-    speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX +
-                   intf_name, PORT_SPEED)
-    oper_status = db.get(
-        db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
+    speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
+    oper_status = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
     if speed is None or speed == "N/A" or oper_status != "up":
-        speed = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX +
-                       intf_name, PORT_SPEED)
+        speed = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_SPEED)
     return speed
-
 
 def port_optics_get(state_db, intf_name, type):
     """
@@ -244,19 +232,17 @@ def port_optics_get(state_db, intf_name, type):
             return "N/A"
     return optics_type
 
-
-def merge_dicts(x, y):
+def merge_dicts(x,y):
     # store a copy of x, but overwrite with y's values where applicable
-    merged = dict(x, **y)
+    merged = dict(x,**y)
     xkeys = x.keys()
     # if the value of merged[key] was overwritten with y[key]'s value
     # then we need to put back any missing x[key] values
     for key in xkeys:
         # if this key is a dictionary, recurse
         if isinstance(x[key], dict) and key in y:
-            merged[key] = merge(x[key], y[key])
+            merged[key] = merge(x[key],y[key])
     return merged
-
 
 def tuple_to_dict(tup, new_dict):
     """
@@ -282,9 +268,7 @@ def get_raw_portchannel_info(config_db):
     This function returns a dictionary with the key being portchannels and interface tuple.
     """
     get_raw_po_int_configdb_info = config_db.get_table('PORTCHANNEL_MEMBER')
-    # Return a dictionary with the key being the portchannel and interface
-    return get_raw_po_int_configdb_info
-
+    return get_raw_po_int_configdb_info     # Return a dictionary with the key being the portchannel and interface
 
 def get_portchannel_list(get_raw_po_int_configdb_info):
     """
@@ -300,7 +284,6 @@ def get_portchannel_list(get_raw_po_int_configdb_info):
             portchannel_list.append(portchannel)
     return natsorted(portchannel_list)
 
-
 def create_po_int_tuple_list(get_raw_po_int_configdb_info):
     """
     >>> po_int_tuple = get_raw_po_int_configdb_info.keys()
@@ -315,7 +298,6 @@ def create_po_int_tuple_list(get_raw_po_int_configdb_info):
     po_int_tuple_list = get_raw_po_int_configdb_info.keys()
     return po_int_tuple_list
 
-
 def create_po_int_dict(po_int_tuple_list):
     """
     This function takes the portchannel to interface tuple
@@ -325,7 +307,6 @@ def create_po_int_dict(po_int_tuple_list):
     temp_dict = {}
     po_int_dict = tuple_to_dict(po_int_tuple_list, temp_dict)
     return po_int_dict
-
 
 def create_int_to_portchannel_dict(po_int_tuple_list):
     """
@@ -338,7 +319,6 @@ def create_int_to_portchannel_dict(po_int_tuple_list):
         int_po_dict.setdefault(intf, po)
     return int_po_dict
 
-
 def po_speed_dict(po_int_dict, appl_db):
     """
     This function takes the portchannel to interface dictionary
@@ -348,7 +328,7 @@ def po_speed_dict(po_int_dict, appl_db):
     if po_int_dict:
         po_list = []
         for key, value in po_int_dict.items():
-            agg_speed_list = []
+            agg_speed_list =  []
             po_list.append(key)
             if len(value) == 1:
                 interface_speed = port_oper_speed_get_raw(appl_db, value[0])
@@ -356,30 +336,24 @@ def po_speed_dict(po_int_dict, appl_db):
                     # If no speed was returned, append None without format
                     po_list.append(None)
                 else:
-                    optics_type = port_optics_get(
-                        appl_db, value[0], PORT_OPTICS_TYPE)
-                    interface_speed = port_speed_parse(
-                        interface_speed, optics_type)
+                    optics_type = port_optics_get(appl_db, value[0], PORT_OPTICS_TYPE)
+                    interface_speed = port_speed_parse(interface_speed, optics_type)
                     po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
                     temp_speed = port_oper_speed_get_raw(appl_db, intf)
-                    optics_type = port_optics_get(
-                        appl_db, intf, PORT_OPTICS_TYPE)
+                    optics_type = port_optics_get(appl_db, intf, PORT_OPTICS_TYPE)
                     temp_speed = int(temp_speed) if temp_speed else 0
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
                     interface_speed = str(interface_speed)
-                    interface_speed = port_speed_parse(
-                        interface_speed, optics_type)
+                    interface_speed = port_speed_parse(interface_speed, optics_type)
                 po_list.append(interface_speed)
-            po_speed_dict = dict(po_list[i:i+2]
-                                 for i in range(0, len(po_list), 2))
+            po_speed_dict = dict(po_list[i:i+2] for i in range(0, len(po_list), 2))
         return po_speed_dict
     else:
         po_speed_dict = {}
         return po_speed_dict
-
 
 def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, portchannel_speed_dict, combined_int_to_vlan_po_dict=None):
     """
@@ -387,15 +361,20 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
     """
     full_table_id = "LAG_TABLE:" + po_name
     po_table_id = "PORTCHANNEL|" + po_name
-    # print(full_table_id)
+    #print(full_table_id)
     if status_type == "speed":
         status = portchannel_speed_dict[po_name]
         if status is None:
             return "N/A"
         return status
     if status_type == "vlan":
-        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
-            status = ""
+        port_table = config_db.get_table('PORT')
+        if po_name in port_table:
+            port_data = port_table[po_name]
+            if "mode" in port_data:
+                status = port_data["mode"]
+        elif combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
+            status = "trunk"
         else:
             status = "routed"
         return status
@@ -408,11 +387,10 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
             return "0x8100"
         return status
     status = appl_db.get(appl_db.APPL_DB, full_table_id, status_type)
-    # print(status)
+    #print(status)
     if status is None:
         return "N/A"
     return status
-
 
 def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, portchannel_speed_dict, sub_intf_name, status_type):
     sub_intf_sep_idx = sub_intf_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
@@ -422,13 +400,11 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
         full_intf_table_name = "INTF_TABLE" + ":" + sub_intf_name
 
         if status_type == "vlan":
-            vlan_id = appl_db.get(
-                appl_db.APPL_DB, full_intf_table_name, status_type)
+            vlan_id = appl_db.get(appl_db.APPL_DB, full_intf_table_name, status_type)
             return vlan_id
 
         if status_type == "admin_status":
-            status = appl_db.get(
-                appl_db.APPL_DB, full_intf_table_name, status_type)
+            status = appl_db.get(appl_db.APPL_DB, full_intf_table_name, status_type)
             return status if status is not None else "N/A"
 
         if status_type == "type":
@@ -446,11 +422,8 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
 
 # ========================== interface-status logic ==========================
 
-
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'FEC',
-               'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
-header_stat_sub_intf = ['Sub port interface',
-                        'Speed', 'MTU', 'Vlan', 'Admin', 'Type']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'FEC', 'Alias', 'Mode', 'Oper', 'Admin', 'Type', 'Asym PFC']
+header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', 'Type']
 
 
 class IntfStatus(object):
@@ -512,24 +485,16 @@ class IntfStatus(object):
 
                     if self.intf_name is None or key in intf_fs:
                         table.append((key,
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_LANES_STATUS),
-                                      port_oper_speed_get(self.db, key),
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_MTU_STATUS),
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_FEC),
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_ALIAS),
-                                      config_db_vlan_port_keys_get(
-                                          self.combined_int_to_vlan_po_dict, self.front_panel_ports_list, key),
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_OPER_STATUS),
-                                      appl_db_port_status_get(
-                                          self.db, key, PORT_ADMIN_STATUS),
-                                      port_optics_get(
-                                          self.db, key, PORT_OPTICS_TYPE),
-                                      appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
+                                appl_db_port_status_get(self.db, key, PORT_LANES_STATUS),
+                                port_oper_speed_get(self.db, key),
+                                appl_db_port_status_get(self.db, key, PORT_MTU_STATUS),
+                                appl_db_port_status_get(self.db, key, PORT_FEC),
+                                appl_db_port_status_get(self.db, key, PORT_ALIAS),
+                                config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list,self.config_db, key),
+                                appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                                appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
+                                port_optics_get(self.db, key, PORT_OPTICS_TYPE),
+                                appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
 
             for po, value in self.portchannel_speed_dict.items():
                 if po:
@@ -537,64 +502,45 @@ class IntfStatus(object):
                         continue
                     if self.intf_name is None or po in intf_fs:
                         table.append((po,
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_LANES_STATUS, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_SPEED, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_MTU_STATUS, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_FEC, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_ALIAS, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, "vlan", self.portchannel_speed_dict, self.combined_int_to_vlan_po_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_OPER_STATUS, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_ADMIN_STATUS, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(
-                                          self.db, self.config_db, po, PORT_OPTICS_TYPE, self.portchannel_speed_dict),
-                                      appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_PFC_ASYM_STATUS, self.portchannel_speed_dict)))
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_LANES_STATUS, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_SPEED, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_MTU_STATUS, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_FEC, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_ALIAS, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, "vlan", self.portchannel_speed_dict, self.combined_int_to_vlan_po_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_OPER_STATUS, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_ADMIN_STATUS, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_OPTICS_TYPE, self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_PFC_ASYM_STATUS, self.portchannel_speed_dict)))
         else:
             for key in self.appl_db_sub_intf_keys:
                 sub_intf = re.split(':', key, maxsplit=1)[-1].strip()
                 if sub_intf in self.sub_intf_list:
                     table.append((sub_intf,
-                                  appl_db_sub_intf_status_get(
-                                      self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_SPEED),
-                                  appl_db_sub_intf_status_get(
-                                      self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_MTU_STATUS),
-                                  appl_db_sub_intf_status_get(
-                                      self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, "vlan"),
-                                  appl_db_sub_intf_status_get(
-                                      self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_ADMIN_STATUS),
-                                  appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_OPTICS_TYPE)))
+                                appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_SPEED),
+                                appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_MTU_STATUS),
+                                appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, "vlan"),
+                                appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_ADMIN_STATUS),
+                                appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_OPTICS_TYPE)))
         return table
+
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_status(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(
-            self.db, self.front_panel_ports_list, None)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, None)
         self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
-        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(
-            self.config_db)
-        self.portchannel_list = get_portchannel_list(
-            self.get_raw_po_int_configdb_info)
-        self.po_int_tuple_list = create_po_int_tuple_list(
-            self.get_raw_po_int_configdb_info)
+        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
+        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
+        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
         self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
-        self.int_po_dict = create_int_to_portchannel_dict(
-            self.po_int_tuple_list)
-        self.combined_int_to_vlan_po_dict = merge_dicts(
-            self.int_to_vlan_dict, self.int_po_dict)
+        self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
+        self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
         self.portchannel_speed_dict = po_speed_dict(self.po_int_dict, self.db)
         self.portchannel_keys = self.portchannel_speed_dict.keys()
 
         self.sub_intf_list = get_sub_port_intf_list(self.config_db)
-        self.appl_db_sub_intf_keys = appl_db_sub_intf_keys_get(
-            self.db, self.sub_intf_list, self.sub_intf_name)
+        self.appl_db_sub_intf_keys = appl_db_sub_intf_keys_get(self.db, self.sub_intf_list, self.sub_intf_name)
         if self.appl_db_keys:
             self.table += self.generate_intf_status()
 
@@ -624,8 +570,7 @@ class IntfDescription(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print(tabulate(sorted_table, header_desc,
-              tablefmt="simple", stralign='right'))
+        print(tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right'))
 
     def generate_intf_description(self):
         """
@@ -644,29 +589,24 @@ class IntfDescription(object):
             key = re.split(':', i, maxsplit=1)[-1].strip()
             if key in self.front_panel_ports_list:
                 if self.multi_asic.skip_display(constants.PORT_OBJ, key):
-                    continue
+                        continue
                 table.append((key,
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_OPER_STATUS),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_ADMIN_STATUS),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_ALIAS),
+                              appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ALIAS),
                               appl_db_port_status_get(self.db, key, PORT_DESCRIPTION)))
         return table
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_description(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(
-            self.db, self.front_panel_ports_list, self.intf_name)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
         if self.appl_db_keys:
             self.table += self.generate_intf_description()
 
 
 # ========================== interface-autoneg logic ==========================
-header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds',
-                  'Rmt Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
+header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Rmt Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
 
 
 class IntfAutoNegStatus(object):
@@ -689,8 +629,7 @@ class IntfAutoNegStatus(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print(tabulate(sorted_table, header_autoneg,
-              tablefmt="simple", stralign='right'))
+        print(tabulate(sorted_table, header_autoneg, tablefmt="simple", stralign='right'))
 
     def generate_autoneg_status(self):
         """
@@ -710,33 +649,25 @@ class IntfAutoNegStatus(object):
             if key in self.front_panel_ports_list:
                 if self.multi_asic.skip_display(constants.PORT_OBJ, key):
                     continue
-                autoneg_mode = appl_db_port_status_get(
-                    self.db, key, PORT_AUTONEG)
+                autoneg_mode = appl_db_port_status_get(self.db, key, PORT_AUTONEG)
                 if autoneg_mode != 'N/A':
                     autoneg_mode = 'enabled' if autoneg_mode == 'on' else 'disabled'
                 table.append((key,
                               autoneg_mode,
                               port_oper_speed_get(self.db, key),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_ADV_SPEEDS),
-                              state_db_port_status_get(
-                                  self.db, key, PORT_RMT_ADV_SPEEDS),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_INTERFACE_TYPE),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_ADV_INTERFACE_TYPES),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_OPER_STATUS),
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_ADMIN_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ADV_SPEEDS),
+                              state_db_port_status_get(self.db, key, PORT_RMT_ADV_SPEEDS),
+                              appl_db_port_status_get(self.db, key, PORT_INTERFACE_TYPE),
+                              appl_db_port_status_get(self.db, key, PORT_ADV_INTERFACE_TYPES),
+                              appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
                               ))
         return table
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_autoneg_status(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(
-            self.db, self.front_panel_ports_list, self.intf_name)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
         if self.appl_db_keys:
             self.table += self.generate_autoneg_status()
 
@@ -744,7 +675,6 @@ class IntfAutoNegStatus(object):
 # ========================== interface-tpid logic ==========================
 
 header_tpid = ['Interface', 'Alias', 'Oper', 'Admin', 'TPID']
-
 
 class IntfTpid(object):
 
@@ -770,8 +700,7 @@ class IntfTpid(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print(tabulate(sorted_table, header_tpid,
-              tablefmt="simple", stralign='right'))
+        print(tabulate(sorted_table, header_tpid, tablefmt="simple", stralign='right'))
 
     def generate_intf_tpid(self):
         """
@@ -795,13 +724,10 @@ class IntfTpid(object):
 
                 if self.intf_name is None or key in intf_fs:
                     table.append((key,
-                                  appl_db_port_status_get(
-                                      self.db, key, PORT_ALIAS),
-                                  appl_db_port_status_get(
-                                      self.db, key, PORT_OPER_STATUS),
-                                  appl_db_port_status_get(
-                                      self.db, key, PORT_ADMIN_STATUS),
-                                  appl_db_port_status_get(self.db, key, PORT_TPID)))
+                        appl_db_port_status_get(self.db, key, PORT_ALIAS),
+                        appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                        appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
+                        appl_db_port_status_get(self.db, key, PORT_TPID)))
 
         for po, value in self.po_speed_dict.items():
             if po:
@@ -809,29 +735,21 @@ class IntfTpid(object):
                     continue
                 if self.intf_name is None or po in intf_fs:
                     table.append((po,
-                                  appl_db_portchannel_status_get(
-                                      self.db, self.config_db, po, PORT_ALIAS, self.po_speed_dict),
-                                  appl_db_portchannel_status_get(
-                                      self.db, self.config_db, po, PORT_OPER_STATUS, self.po_speed_dict),
-                                  appl_db_portchannel_status_get(
-                                      self.db, self.config_db, po, PORT_ADMIN_STATUS, self.po_speed_dict),
-                                  appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_TPID, self.po_speed_dict)))
+                        appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_ALIAS, self.po_speed_dict),
+                        appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_OPER_STATUS, self.po_speed_dict),
+                        appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_ADMIN_STATUS, self.po_speed_dict),
+                        appl_db_portchannel_status_get(self.db, self.config_db, po, PORT_TPID, self.po_speed_dict)))
         return table
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_tpid(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(
-            self.db, self.front_panel_ports_list, None)
-        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(
-            self.config_db)
-        self.portchannel_list = get_portchannel_list(
-            self.get_raw_po_int_configdb_info)
-        self.po_int_tuple_list = create_po_int_tuple_list(
-            self.get_raw_po_int_configdb_info)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, None)
+        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
+        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
+        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
         self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
-        self.int_po_dict = create_int_to_portchannel_dict(
-            self.po_int_tuple_list)
+        self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
         self.po_speed_dict = po_speed_dict(self.po_int_dict, self.db)
         self.portchannel_keys = self.po_speed_dict.keys()
 
@@ -841,7 +759,6 @@ class IntfTpid(object):
 
 # ========================== interface-link-training logic ==========================
 header_link_training = ['Interface', 'LT Oper', 'LT Admin', 'Oper', 'Admin']
-
 
 class IntfLinkTrainingStatus(object):
 
@@ -861,14 +778,12 @@ class IntfLinkTrainingStatus(object):
         self.get_intf_link_training_status()
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print(tabulate(sorted_table, header_link_training,
-              tablefmt="simple", stralign='right'))
+        print(tabulate(sorted_table, header_link_training, tablefmt="simple", stralign='right'))
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_link_training_status(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(
-            self.db, self.front_panel_ports_list, self.intf_name)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
         if self.appl_db_keys:
             self.table += self.generate_link_training_status()
 
@@ -890,55 +805,44 @@ class IntfLinkTrainingStatus(object):
             if key in self.front_panel_ports_list:
                 if self.multi_asic.skip_display(constants.PORT_OBJ, key):
                     continue
-                lt_admin = appl_db_port_status_get(
-                    self.db, key, PORT_LINK_TRAINING)
+                lt_admin = appl_db_port_status_get(self.db, key, PORT_LINK_TRAINING)
                 if lt_admin not in ['on', 'off']:
                     lt_admin = '-'
-                lt_status = state_db_port_status_get(
-                    self.db, key, PORT_LINK_TRAINING_STATUS)
+                lt_status = state_db_port_status_get(self.db, key, PORT_LINK_TRAINING_STATUS)
                 if lt_status in ['N/A', '', None]:
                     lt_status = 'off'
                 table.append((key,
                               lt_status.replace('_', ' '),
                               lt_admin,
-                              appl_db_port_status_get(
-                                  self.db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
                               appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS)))
         return table
-
 
 def main():
     parser = argparse.ArgumentParser(description='Display Interface information',
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', '--command', type=str,
-                        help='get interface status or description or auto negotiation status or tpid', default=None)
-    parser.add_argument('-i', '--interface', type=str,
-                        help='interface information for specific port: Ethernet0', default=None)
+    parser.add_argument('-c', '--command', type=str, help='get interface status or description or auto negotiation status or tpid', default=None)
+    parser.add_argument('-i', '--interface', type=str, help='interface information for specific port: Ethernet0', default=None)
     parser = multi_asic_util.multi_asic_args(parser)
     args = parser.parse_args()
 
     if args.command == "status":
-        interface_stat = IntfStatus(
-            args.interface, args.namespace, args.display)
+        interface_stat = IntfStatus(args.interface, args.namespace, args.display)
         interface_stat.display_intf_status()
     elif args.command == "description":
-        interface_desc = IntfDescription(
-            args.interface, args.namespace, args.display)
+        interface_desc = IntfDescription(args.interface, args.namespace, args.display)
         interface_desc.display_intf_description()
     elif args.command == "autoneg":
-        interface_autoneg_status = IntfAutoNegStatus(
-            args.interface, args.namespace, args.display)
+        interface_autoneg_status = IntfAutoNegStatus(args.interface, args.namespace, args.display)
         interface_autoneg_status.display_autoneg_status()
     elif args.command == "tpid":
         interface_tpid = IntfTpid(args.interface, args.namespace, args.display)
         interface_tpid.display_intf_tpid()
     elif args.command == "link_training":
-        interface_lt_status = IntfLinkTrainingStatus(
-            args.interface, args.namespace, args.display)
+        interface_lt_status = IntfLinkTrainingStatus(args.interface, args.namespace, args.display)
         interface_lt_status.display_link_training_status()
 
     sys.exit(0)
 
-
 if __name__ == "__main__":
-    main()
+     main()
