@@ -97,7 +97,7 @@ def remove_if_exists(path):
     log.info(f'removed {path}')
 
 
-def run_command(command: str):
+def run_command(command):
     """ Run arbitrary bash command.
     Args:
         command: String command to execute as bash script

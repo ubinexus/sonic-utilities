@@ -21,7 +21,8 @@ DOCKERDIR_NAME = 'docker'
 
 # Run bash command and print output to stdout
 def run_command(command):
-    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+    command_str = ' '.join(command)
+    click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     (out, _) = proc.communicate()

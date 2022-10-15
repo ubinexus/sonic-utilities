@@ -6036,7 +6036,7 @@ def firmware():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def install(args):
     """Install platform firmware"""
-    cmd = ["fwutil", "install"] + args
+    cmd = ["fwutil", "install"] + list(args)
 
     try:
         subprocess.check_call(cmd)
@@ -6054,7 +6054,7 @@ def install(args):
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def update(args):
     """Update platform firmware"""
-    cmd = ["fwutil", "update"] + args
+    cmd = ["fwutil", "update"] + list(args)
 
     try:
         subprocess.check_call(cmd)

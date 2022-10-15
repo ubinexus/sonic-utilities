@@ -7,6 +7,7 @@ e.g.: reboot (including warm/fast reboot), interface flapping, etc.
 
 import argparse
 import os
+import glob
 import subprocess
 import sys
 
@@ -36,25 +37,25 @@ def exec_cmd(cmd):
 def build_options(after=0, before=0, context=0):
     options = []
     if after:
-        options.append('-A {}'.format(after))
+        options += ['-A', str(after)]
     if before:
-        options.append('-B {}'.format(before))
+        options += ['-B', str(before)]
     if context:
-        options.append('-C {}'.format(context))
+        options += ['-C', str(context)]
 
-    return ' '.join(x for x in options)
+    return options
 
 
 def find_log(logpath, log, regex, after=0, before=0, context=0, field=0):
     options = build_options(after, before, context)
     if field <= 0:
-        cmd0 = ['find', '-L', "{}/{}*".format(logpath, log), "-newer", reference_file]
+        cmd0 = ['find', '-L'] + glob.glob("{}/{}*".format(logpath, log)) + ["-newer", reference_file]
         cmd1 = ["xargs", "ls", "-rt"]
-        cmd2 = ["xargs", "zgrep", "-a", options, regex]
+        cmd2 = ["xargs", "zgrep", "-a"] + options + [regex]
     else:
-        cmd0 = ['find', '-L', '{0}/{1}*'.format(logpath, log), '-newer', reference_file]
+        cmd0 = ['find', '-L'] + glob.glob('{0}/{1}*'.format(logpath, log)) + ['-newer', reference_file]
         cmd1 = ["sort", "-rn", "-t", ".", "-k", "{0},{0}".format(field)]
-        cmd2 = ["xargs", "zgrep", "-a", options, regex]
+        cmd2 = ["xargs", "zgrep", "-a"] + options + [regex]
 
     _, out = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2)
     '''
