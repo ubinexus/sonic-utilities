@@ -10405,6 +10405,7 @@ This command is used to get the fips status.
   ```
   sonic-installer get-fips [<image_name>]
   ```
+If the image is not specified, the next boot image will be used.
 
 - Example:
   ```
