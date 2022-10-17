@@ -206,14 +206,14 @@
 ## Introduction
 SONiC is an open source network operating system based on Linux that runs on switches from multiple vendors and ASICs. SONiC offers a full-suite of network functionality, like BGP and RDMA, that has been production-hardened in the data centers of some of the largest cloud-service providers. It offers teams the flexibility to create the network solutions they need while leveraging the collective strength of a large ecosystem and community.
 
-SONiC software shall be loaded in these [supported devices](https://github.com/Azure/SONiC/wiki/Supported-Devices-and-Platforms) and this CLI guide shall be used to configure the devices as well as to display the configuration, state and status.
+SONiC software shall be loaded in these [supported devices](https://github.com/sonic-net/SONiC/wiki/Supported-Devices-and-Platforms) and this CLI guide shall be used to configure the devices as well as to display the configuration, state and status.
 
-Follow the [Quick Start Guide](https://github.com/Azure/SONiC/wiki/Quick-Start) to boot the device in ONIE mode, install the SONiC software using the steps specified in the document and login to the device using the default username and password.
+Follow the [Quick Start Guide](https://github.com/sonic-net/SONiC/wiki/Quick-Start) to boot the device in ONIE mode, install the SONiC software using the steps specified in the document and login to the device using the default username and password.
 
 After logging into the device, SONiC software can be configured in following three methods.
   1. Command Line Interface (CLI)
-  2. [config_db.json](https://github.com/Azure/SONiC/wiki/Configuration)
-  3. [minigraph.xml](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
+  2. [config_db.json](https://github.com/sonic-net/SONiC/wiki/Configuration)
+  3. [minigraph.xml](https://github.com/sonic-net/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
 This document explains the first method and gives the complete list of commands that are supported in SONiC 201904 version (build#19).
 All the configuration commands need root privileges to execute them. Note that show commands can be executed by all users without the root privileges.
@@ -287,8 +287,8 @@ SONiC provides a CLI to configure the static IP for the management interface. Th
   ```
   admin@sonic:~$ sudo config interface ip add eth0 20.11.12.13/24 20.11.12.254
   ```
-  2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
-  3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
+  2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/sonic-net/SONiC/wiki/Configuration#Management-Interface)
+  3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/sonic-net/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
 Once the IP address is configured, the same can be verified using either `show management_interface address` command or the `/sbin/ifconfig eth0` linux command.
 Users can SSH login to this management interface IP address from their management network.
@@ -1388,8 +1388,8 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
   This command will remove all rules from all the ACL tables and insert all the rules present in this input file.
   Refer the example file [acl_full_snmp_1_2_ssh_4.json](#) that adds two rules for SNMP (Rule1 and Rule2) and one rule for SSH (Rule4)
-  Refer an example for input file format [here](https://github.com/Azure/sonic-mgmt/blob/master/ansible/roles/test/files/helpers/config_service_acls.sh)
-  Refer another example [here](https://github.com/Azure/sonic-mgmt/blob/master/ansible/roles/test/tasks/acl/acltb_test_rules_part_1.json)
+  Refer an example for input file format [here](https://github.com/sonic-net/sonic-mgmt/blob/master/ansible/roles/test/files/helpers/config_service_acls.sh)
+  Refer another example [here](https://github.com/sonic-net/sonic-mgmt/blob/master/ansible/roles/test/tasks/acl/acltb_test_rules_part_1.json)
 
 **config acl update incremental**
 
@@ -4066,7 +4066,7 @@ User can configure any speed specified under "breakout_modes" keys for the paren
 
 For example for a breakout mode of 2x50G[25G,10G] the default speed is 50G but the interface also supports 25G and 10G.
 
-Refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+Refer [DPB HLD DOC](https://github.com/sonic-net/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 **config interface speed <interface_name> (Versions >= 201904)**
 
@@ -4233,7 +4233,7 @@ Double tab i.e. <tab><tab> to see the available breakout option customized for e
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
 
-For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+For details please refer [DPB HLD DOC](https://github.com/sonic-net/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
@@ -6445,7 +6445,7 @@ This command is used to delete a configured NTP server IP address.
 Go Back To [Beginning of the document](#) or [Beginning of this section](#NTP)
 
 # PFC Watchdog Commands
-Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/Azure/SONiC/wiki/PFC-Watchdog)
+Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/sonic-net/SONiC/wiki/PFC-Watchdog)
 
 **config pfcwd start \<arguments\>**
 
@@ -6966,7 +6966,7 @@ When any port is already member of any other portchannel and if user tries to ad
 
 Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
-2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
+2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/sonic-net/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
 3) fast-rate - true/false, default is false (slow). Option specifying the rate in which we'll ask our link partner to transmit LACPDU packets in 802.3ad mode. slow - request partner to transmit LACPDUs every 30 seconds, fast - request partner to transmit LACPDUs every 1 second. In slow mode 60-90 seconds needed to detect linkdown, in fast mode only 2-3 seconds.
 
 A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
@@ -7769,13 +7769,13 @@ This command is used to clear all the QoS configuration from all the following Q
 This command is used to reload the QoS configuration.
 QoS configuration has got two sets of configurations.
 1) Generic QOS Configuration - This gives complete list of all possible QOS configuration. Its given in the file /usr/share/sonic/templates/qos_config.j2 in the device.
-   Reference: https://github.com/Azure/sonic-buildimage/blob/master/files/build_templates/qos_config.j2
+   Reference: https://github.com/sonic-net/sonic-buildimage/blob/master/files/build_templates/qos_config.j2
    Users have flexibility to have platform specific qos configuration by placing the qos_config.j2 file at /usr/share/sonic/device/<platform>/<hwsku>/.
    If users want to modify any of this loaded QOS configuration, they can modify this file in the device and then issue the "config qos reload" command.
 
 2) Platform specific buffer configuration. Every platform has got platform specific and topology specific (T0 or T1 or T2) buffer configuration at /usr/share/sonic/device/<platform>/<hwsku>/buffers_defaults_tx.j2
    In addition to platform specific configuration file, a generic configuration file is also present at /usr/share/sonic/templates/buffers_config.j2.
-   Reference: https://github.com/Azure/sonic-buildimage/blob/master/files/build_templates/buffers_config.j2
+   Reference: https://github.com/sonic-net/sonic-buildimage/blob/master/files/build_templates/buffers_config.j2
    Users can either modify the platform specific configuration file, or the generic configuration file and then issue this "config qos reload" command.
 
 These configuration files are already loaded in the device as part of the reboot process. In case if users wants to modify any of these configurations, they need to modify the appropriate QOS tables and fields in these files and then use this reload command.
@@ -10628,7 +10628,7 @@ In SONiC, there usually exists a set of tables related/relevant to a particular 
 ### Event Driven Techsupport Invocation
 
 This feature/capability makes the techsupport invocation event-driven based on system events like core dump generation or low RAM availability.
-This feature is only applicable for the processes running in the containers. More detailed explanation can be found in the HLD https://github.com/Azure/SONiC/blob/master/doc/auto_techsupport_and_coredump_mgmt.md
+This feature is only applicable for the processes running in the containers. More detailed explanation can be found in the HLD https://github.com/sonic-net/SONiC/blob/master/doc/auto_techsupport_and_coredump_mgmt.md
 
 #### config auto-techsupport global commands
 		
