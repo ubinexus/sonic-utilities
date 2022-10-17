@@ -67,7 +67,7 @@
   * [Interface naming mode show commands](#interface-naming-mode-show-commands)
   * [Interface naming mode config commands](#interface-naming-mode-config-commands)
  * [Interface Vrf binding](#interface-vrf-binding)
-      * [Interface vrf bind & unbind config commands](#interface-vrf-bind-&-unbind-config-commands)
+      * [Interface vrf bind & unbind config commands](#interface-vrf-bind--unbind-config-commands)
       * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
@@ -78,7 +78,7 @@
 * [Kubernetes](#Kubernetes)
   * [Kubernetes show commands](#Kubernetes-show-commands)
   * [Kubernetes config commands](#Kubernetes-config-commands)
-* [Linux Kernel Dump](#kdump)
+* [Linux Kernel Dump](#linux-kernel-dump)
   * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
   * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-command)
 * [LLDP](#lldp)
@@ -88,7 +88,7 @@
   * [Loading configuration from minigraph (XML) file](#loading-configuration-from-minigraph-xml-file)
   * [Reloading Configuration](#reloading-configuration)
   * [Loading Management Configuration](#loading-management-configuration)
-  * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+  * [Saving Configuration to a File for Persistence](#saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
     * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
@@ -4529,9 +4529,9 @@ This will move the interface to default vrf.
   config interface vrf unbind <interface_name>
   ```
   
-  ### Interface vrf binding show commands
+### Interface vrf binding show commands
   
-  To display interface vrf binding information, user can use show vrf command.  Please refer sub-section [Vrf-show-command](#vrf-show-commands).
+To display interface vrf binding information, user can use show vrf command. Please refer sub-section [Vrf-show-command](#vrf-show-commands).
   
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-vrf-binding)
 
@@ -5402,7 +5402,7 @@ If vrf-name is also provided as part of the command, if the vrf is created it wi
 
 ### VRF config commands
 
-**config vrf add **
+**config vrf add**
 
 This command creates vrf in SONiC system with provided vrf-name.
 
@@ -10364,44 +10364,85 @@ This command is used to install a new image on the alternate image partition.  T
   ```
 
 - Example:
-  ```
-  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
-  New image will be installed, continue? [y/N]: y
-  Downloading image...
-  ...100%, 480 MB, 3357 KB/s, 146 seconds passed
-  Command: /tmp/sonic_image
-  Verifying image checksum ... OK.
-  Preparing image archive ... OK.
-  ONIE Installer: platform: XXXX
-  onie_platform:
-  Installing SONiC in SONiC
-  Installing SONiC to /host/image-xxxx
-  Directory /host/image-xxxx/ already exists. Cleaning up...
-  Archive:  fs.zip
-     creating: /host/image-xxxx/boot/
-    inflating: /host/image-xxxx/boot/vmlinuz-3.16.0-4-amd64
-    inflating: /host/image-xxxx/boot/config-3.16.0-4-amd64
-    inflating: /host/image-xxxx/boot/System.map-3.16.0-4-amd64
-    inflating: /host/image-xxxx/boot/initrd.img-3.16.0-4-amd64
-     creating: /host/image-xxxx/platform/
-   extracting: /host/image-xxxx/platform/firsttime
-    inflating: /host/image-xxxx/fs.squashfs
-    inflating: /host/image-xxxx/dockerfs.tar.gz
-  Log file system already exists. Size: 4096MB
-  Installed SONiC base image SONiC-OS successfully
 
-  Command: cp /etc/sonic/minigraph.xml /host/
+```bash
+admin@sonic:~$ sudo sonic-installer install "https://sonic-build.azurewebsites.net/api/sonic/artifacts?branchName=xxxx&platform=xxxx&target=target%2Fsonic-xxxx.bin"
+New image will be installed, continue? [y/N]: y
+Downloading image...
+...99%, 980 MB, 1017 KB/s, 0 seconds left...     
+Installing image SONiC-OS-xxxxx and setting it as default...
+Command: bash /tmp/sonic_image
+Verifying image checksum ... OK.
+Preparing image archive ... OK.
+Installing SONiC in SONiC
+ONIE Installer: platform: x86_64-vs-r0
+onie_platform: x86_64-kvm_x86_64-r0
+Installing SONiC to /host/image-xxxx
+Archive:  fs.zip
+   creating: /host/image-xxxx/boot/
+  inflating: /host/image-xxxx/boot/System.map-5.10.0-12-2-amd64  
+  inflating: /host/image-xxxx/boot/initrd.img-5.10.0-12-2-amd64  
+  inflating: /host/image-xxxx/boot/vmlinuz-5.10.0-12-2-amd64  
+  inflating: /host/image-xxxx/boot/config-5.10.0-12-2-amd64  
+ extracting: /host/image-xxxx/fs.squashfs  
+ONIE_IMAGE_PART_SIZE=32768
+EXTRA_CMDLINE_LINUX=
+Switch CPU vendor is: GenuineIntel
+Switch CPU cstates are: disabled
+EXTRA_CMDLINE_LINUX=
+Installed SONiC base image SONiC-OS successfully
 
-  Command: grub-set-default --boot-directory=/host 0
+Command: grub-set-default --boot-directory=/host 0
 
-  Done
-  ```
+Command: config-setup backup
+Taking backup of current configuration
+
+Command: mkdir -p /tmp/image-xxxx-fs
+Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
+Command: sonic-cfggen -d -y /tmp/image-xxxx-fs/etc/sonic/sonic_version.yml -t /tmp/image-xxxx-fs/usr/share/sonic/templates/sonic-environment.j2
+Command: umount -r -f /tmp/image-xxxx-fs
+Command: rm -rf /tmp/image-xxxx-fs
+Command: mkdir -p /tmp/image-xxxx-fs
+Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
+Command: mkdir -p /host/image-xxxx/rw
+Command: mkdir -p /host/image-xxxx/work
+Command: mkdir -p /tmp/image-xxxx-fs
+Command: mount overlay -t overlay -o rw,relatime,lowerdir=/tmp/image-xxxx-fs,upperdir=/host/image-xxxx/rw,workdir=/host/image-xxxx/work /tmp/image-xxxx-fs
+Command: mkdir -p /tmp/image-xxxx-fs/var/lib/docker
+Command: mount --bind /host/image-xxxx/docker /tmp/image-xxxx-fs/var/lib/docker
+Command: chroot /tmp/image-xxxx-fs mount proc /proc -t proc
+Command: chroot /tmp/image-xxxx-fs mount sysfs /sys -t sysfs
+Command: cp /tmp/image-xxxx-fs/etc/default/docker /tmp/image-xxxx-fs/tmp/docker_config_backup
+Command: sh -c echo 'DOCKER_OPTS="$DOCKER_OPTS -H unix:// --storage-driver=overlay2 --bip=240.127.1.1/24 --iptables=false --ipv6=true --fixed-cidr-v6=fd00::/80 "' >> /tmp/image-xxxx-fs/etc/default/docker
+Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh start
+mount: /sys/fs/cgroup/cpu: cgroup already mounted on /sys/fs/cgroup.
+mount: /sys/fs/cgroup/cpuacct: cgroup already mounted on /sys/fs/cgroup.
+Command: cp /var/lib/sonic-package-manager/packages.json /tmp/image-xxxx-fs/tmp/packages.json
+Command: touch /tmp/image-xxxx-fs/tmp/docker.sock
+Command: mount --bind /var/run/docker.sock /tmp/image-xxxx-fs/tmp/docker.sock
+Command: chroot /tmp/image-xxxx-fs sh -c command -v sonic-package-manager
+Command: chroot /tmp/image-xxxx-fs sonic-package-manager migrate /tmp/packages.json --dockerd-socket /tmp/docker.sock -y
+migrating package dhcp-relay
+skipping dhcp-relay as installed version is newer
+migrating package macsec
+skipping macsec as installed version is newer
+Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh stop
+Command: mv /tmp/image-xxxx-fs/tmp/docker_config_backup /tmp/image-xxxx-fs/etc/default/docker
+Command: umount -f -R /tmp/image-xxxx-fs
+Command: umount -r -f /tmp/image-xxxx-fs
+Command: rm -rf /tmp/image-xxxx-fs
+Command: sync;sync;sync
+
+Command: sleep 3
+
+Done
+```
 
 Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin --skip-package-migration
+  admin@sonic:~$ sudo sonic-installer install "https://sonic-build.azurewebsites.net/api/sonic/artifacts?branchName=xxxx&platform=xxxx&target=target%2Fsonic-xxxx.bin" --skip-package-migration
   ```
 
 **sonic-installer set_default**
