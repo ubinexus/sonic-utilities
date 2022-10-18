@@ -131,8 +131,14 @@ def get_per_port_firmware(port):
 
     res_dir = dict(fvp)
     mux_info_dict["version_nic_active"] = res_dir.get("version_nic_active", None)
+    mux_info_dict["version_nic_inactive"] = res_dir.get("version_nic_inactive", None)
+    mux_info_dict["version_nic_next"] = res_dir.get("version_nic_next", None)
     mux_info_dict["version_peer_active"] = res_dir.get("version_peer_active", None)
+    mux_info_dict["version_peer_inactive"] = res_dir.get("version_peer_inactive", None)
+    mux_info_dict["version_peer_next"] = res_dir.get("version_peer_next", None)
     mux_info_dict["version_self_active"] = res_dir.get("version_self_active", None)
+    mux_info_dict["version_self_inactive"] = res_dir.get("version_self_inactive", None)
+    mux_info_dict["version_self_next"] = res_dir.get("version_self_next", None)
 
     return mux_info_dict
 
