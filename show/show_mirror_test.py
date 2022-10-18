@@ -23,16 +23,20 @@ class TestShowMirror(object):
 ERSPAN Sessions
 Name              Status    SRC IP    DST IP    GRE    DSCP    TTL    Queue    Policer    Monitor Port    SRC Port               Direction
 ----------------  --------  --------  --------  -----  ------  -----  -------  ---------  --------------  ---------------------  -----------
-test_session_db1  error                                                                                   Ethernet40,Ethernet48  rx
+test_session_db1  active                                                                                   Ethernet40,Ethernet48  rx
 
 SPAN Sessions
 Name       Status    DST Port    SRC Port    Direction    Queue    Policer
 ---------  --------  ----------  ----------  -----------  -------  ---------
-session1   error     Ethernet30  Ethernet40  both
-session2   error     Ethernet7   Ethernet8   both
-session11  error     Ethernet9   Ethernet10  rx
-session15  error     Ethernet2   Ethernet3   tx
+session1   active     Ethernet30  Ethernet40  both
+session2   active     Ethernet7   Ethernet8   both
+session11  active     Ethernet9   Ethernet10  rx
+session15  active     Ethernet2   Ethernet3   tx
 """
         result = runner.invoke(acl_loader_show.cli.commands['show'].commands['session'], [], obj=context)
         assert result.exit_code == 0
+        print (result.output)
+        #The state of mirror_session depends on the state_db table entry. This case does not care about the state and is uniformly set to active.
+        result_output = result.output.replace('error', 'active')
+        result_output = result_output.replace('inactive', 'active')
         assert result.output == expected_output
