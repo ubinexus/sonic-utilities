@@ -22,7 +22,9 @@ class TestShowMirror(object):
         jsonfile_config = os.path.join(mock_db_path, "config_db")
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
         runner = CliRunner()
-        db = Db()
+        context = {
+            "acl_loader": aclloader
+        }
         expected_output = """\
 ERSPAN Sessions
 Name    Status    SRC IP    DST IP    GRE    DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
