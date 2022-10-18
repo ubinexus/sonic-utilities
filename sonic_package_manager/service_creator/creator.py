@@ -5,7 +5,7 @@ import os
 import stat
 import subprocess
 from collections import defaultdict
-from typing import Dict, Type
+from typing import Dict, Type, List
 
 import jinja2 as jinja2
 from config.config_mgmt import ConfigMgmt
@@ -97,7 +97,7 @@ def remove_if_exists(path):
     log.info(f'removed {path}')
 
 
-def run_command(command):
+def run_command(command: List[str]):
     """ Run arbitrary bash command.
     Args:
         command: String command to execute as bash script

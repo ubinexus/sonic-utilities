@@ -8,7 +8,7 @@ import sys
 import signal
 
 import click
-
+from shlex import join
 from .exception import SonicRuntimeException
 
 HOST_PATH = '/host'
@@ -21,7 +21,7 @@ DOCKERDIR_NAME = 'docker'
 
 # Run bash command and print output to stdout
 def run_command(command):
-    command_str = ' '.join(command)
+    command_str = join(command)
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)

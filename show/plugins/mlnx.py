@@ -28,6 +28,7 @@ try:
     import click
     import xml.etree.ElementTree as ET
     from sonic_py_common import device_info
+    from shlex import join
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -46,7 +47,7 @@ def run_command(command, display_cmd=False, ignore_error=False, print_to_console
     """Run bash command and print output to stdout
     """
     if display_cmd:
-        command_str = ' '.join(command)
+        command_str = join(command)
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)

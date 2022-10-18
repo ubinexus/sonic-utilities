@@ -1,11 +1,12 @@
 import click
 import subprocess
+from shlex import join
 
 
 vtysh_cmd = ['sudo', 'vtysh', '-c']
 
 def run_command(command, pager=False):
-    command_str = ' '.join(command)
+    command_str = join(command)
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
     p = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     output = p.stdout.read()
