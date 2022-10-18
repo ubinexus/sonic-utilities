@@ -7,6 +7,8 @@ from utilities_common.db import Db
 
 import mock_tables.dbconnector
 import acl_loader.main as acl_loader_show
+from acl_loader import *
+from acl_loader.main import *
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "mirror_input")
@@ -22,6 +24,7 @@ class TestShowMirror(object):
         jsonfile_config = os.path.join(mock_db_path, "config_db")
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
         runner = CliRunner()
+        aclloader = AclLoader()
         context = {
             "acl_loader": aclloader
         }
