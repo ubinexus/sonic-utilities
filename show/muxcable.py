@@ -1606,7 +1606,6 @@ def version(db, port, active):
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc_exit = True
-        print_data = []
 
         for port in logical_port_list:
 
@@ -1638,22 +1637,28 @@ def version(db, port, active):
 
             port = platform_sfputil_helper.get_interface_alias(port, db)
             
-            mux_info = get_per_port_firmware(port)
-            if not isinstance(mux_info, dict):
-                mux_info = {}
+            mux_info_dict = get_per_port_firmware(port)
+            if not isinstance(mux_info_dict, dict):
+                mux_info_dict = {}
+                rc_exit = False
+             
+            mux_info = {}
+            mux_info_active_dict = {}
+            if active is True:
+                for key in mux_info_dict:
+                    if key.endswith("_active"):
+                        mux_info_active_dict[key] = mux_info_dict[key]
+                mux_info[port] = mux_info_active_dict
+                click.echo("{}".format(json.dumps(mux_info, indent=4)))
+            else:
+                mux_info[port] = mux_info_dict
+                click.echo("{}".format(json.dumps(mux_info, indent=4)))
             
-            for key, val in mux_info.items():
-                print_port_data = []
-                port = platform_sfputil_helper.get_interface_alias(port, db)
-                print_port_data.append(port)
-                print_port_data.append(key)
-                print_port_data.append(val)
-                print_data.append(print_port_data)
+            if rc_exit == False:
+                sys.exit(EXIT_FAIL)
 
-        headers = ['PORT', 'SIDE', 'VERSION']
-        click.echo(tabulate(print_data, headers=headers))
+        sys.exit(CONFIG_SUCCESSFUL)
 
-        sys.exit(CONFIG_SUCCESSFUL) 
     else:
         port_name = platform_sfputil_helper.get_interface_name(port, db)
         click.echo("Did not get a valid Port for mux firmware version".format(port_name))
