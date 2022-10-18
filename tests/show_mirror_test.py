@@ -1,6 +1,5 @@
 import os
 import sys
-import imp
 from swsscommon.swsscommon import SonicV2Connector
 from click.testing import CliRunner
 from utilities_common.db import Db
@@ -32,6 +31,7 @@ session1   active    Ethernet30  Ethernet40  both
 session2   active    Ethernet7   Ethernet8   both
 session11  active    Ethernet9   Ethernet10  rx
 session15  active    Ethernet2   Ethernet3   tx
+
 """
         result = runner.invoke(acl_loader_show.cli.commands['show'].commands['session'], [], obj=context)
         assert result.exit_code == 0
