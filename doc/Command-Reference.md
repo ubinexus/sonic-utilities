@@ -284,9 +284,9 @@ The IP address received from DHCP server can be verified using the `/sbin/ifconf
 SONiC provides a CLI to configure the static IP for the management interface. There are few ways by which a static IP address can be configured for the management interface.
   1. Use the `config interface ip add eth0` command.
   - Example:
-  ```
-  admin@sonic:~$ sudo config interface ip add eth0 20.11.12.13/24 20.11.12.254
-  ```
+    ```
+    admin@sonic:~$ sudo config interface ip add eth0 20.11.12.13/24 20.11.12.254
+    ```
   2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/sonic-net/SONiC/wiki/Configuration#Management-Interface)
   3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/sonic-net/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
@@ -294,11 +294,11 @@ Once the IP address is configured, the same can be verified using either `show m
 Users can SSH login to this management interface IP address from their management network.
 
 - Example:
- ```
- admin@sonic:~$ /sbin/ifconfig eth0
- eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
-       inet 10.11.11.13  netmask 255.255.255.0  broadcast 10.11.12.255
- ```
+  ```
+  admin@sonic:~$ /sbin/ifconfig eth0
+  eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.11.11.13  netmask 255.255.255.0  broadcast 10.11.12.255
+  ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-tasks)
 
 ## Getting Help
@@ -3331,13 +3331,13 @@ This command displays information about the gearbox phy interface lanes, speeds 
 
 - Example:
 
-```
-home/admin# show gearbox interfaces status
-  PHY Id    Interface    MAC Lanes    MAC Lane Speed    PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin
---------  -----------  -----------  ----------------  -----------  ----------------  ------------  -----------------  ------  -------
-       1    Ethernet0  25,26,27,28               10G      200,201               20G           206                40G      up       up
-       1    Ethernet4  29,30,31,32               10G      202,203               20G           207                40G      up       up
-       1    Ethernet8  33,34,35,36               10G      204,205               20G           208                40G      up       up
+  ```
+  home/admin# show gearbox interfaces status
+    PHY Id    Interface    MAC Lanes    MAC Lane Speed    PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin
+  --------  -----------  -----------  ----------------  -----------  ----------------  ------------  -----------------  ------  -------
+        1    Ethernet0  25,26,27,28               10G      200,201               20G           206                40G      up       up
+        1    Ethernet4  29,30,31,32               10G      202,203               20G           207                40G      up       up
+        1    Ethernet8  33,34,35,36               10G      204,205               20G           208                40G      up       up
 
   ```
 
@@ -3352,12 +3352,12 @@ This command displays basic information about the gearbox phys configured on the
 
 - Example:
 
-```
-/home/admin# show gearbox phys status
-  PHY Id     Name    Firmware
---------  -------  ----------
-       1  sesto-1        v0.1
-
+  ```
+  /home/admin# show gearbox phys status
+    PHY Id     Name    Firmware
+  --------  -------  ----------
+        1  sesto-1        v0.1
+  
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
@@ -3551,56 +3551,56 @@ The "rif" subcommand is used to display l3 interface counters. Layer 3 interface
 
 - Example:
 
-```
-  admin@sonic:~$ show interfaces counters rif
-          IFACE    RX_OK      RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
----------------  -------  ----------  --------  --------  -------  --------  --------  --------
-PortChannel0001   62,668  107.81 B/s    1.34/s         3        6  0.02 B/s    0.00/s         0
-PortChannel0002   62,645  107.77 B/s    1.34/s         3        2  0.01 B/s    0.00/s         0
-PortChannel0003   62,481  107.56 B/s    1.34/s         3        3  0.01 B/s    0.00/s         0
-PortChannel0004   62,732  107.88 B/s    1.34/s         2        3  0.01 B/s    0.00/s         0
-       Vlan1000        0    0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0
-```
+  ```
+    admin@sonic:~$ show interfaces counters rif
+            IFACE    RX_OK      RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
+  ---------------  -------  ----------  --------  --------  -------  --------  --------  --------
+  PortChannel0001   62,668  107.81 B/s    1.34/s         3        6  0.02 B/s    0.00/s         0
+  PortChannel0002   62,645  107.77 B/s    1.34/s         3        2  0.01 B/s    0.00/s         0
+  PortChannel0003   62,481  107.56 B/s    1.34/s         3        3  0.01 B/s    0.00/s         0
+  PortChannel0004   62,732  107.88 B/s    1.34/s         2        3  0.01 B/s    0.00/s         0
+        Vlan1000        0    0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0
+  ```
 
 
 Optionally, you can specify a layer 3 interface name to display the counters in single interface mode.
 
 - Example:
 
-```
-  admin@sonic:~$ show interfaces counters rif PortChannel0001
-  PortChannel0001
-  ---------------
+  ```
+    admin@sonic:~$ show interfaces counters rif PortChannel0001
+    PortChannel0001
+    ---------------
 
-          RX:
-                3269 packets
-              778494 bytesq
-                   3 error packets
-                 292 error bytes
-          TX:
-                   0 packets
-                   0 bytes
-                   0 error packets
-                   0 error bytes
-```
+            RX:
+                  3269 packets
+                778494 bytesq
+                    3 error packets
+                  292 error bytes
+            TX:
+                    0 packets
+                    0 bytes
+                    0 error packets
+                    0 error bytes
+  ```
 
 
 Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
 
 - Example:
 
-```
-  admin@sonic:~$ show interfaces counters -p 5
-        IFACE    STATE    RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
-  -----------  -------  -------  -----------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
-  Ethernet0         U      515   59.14 KB/s      0.00%         0         0         0    1,305  127.60 KB/s      0.00%         0         0         0
-  Ethernet4         U      305   26.54 KB/s      0.00%         0         0         0      279   39.12 KB/s      0.00%         0         0         0
-  Ethernet8         U      437   42.96 KB/s      0.00%         0         0         0      182   18.37 KB/s      0.00%         0         0         0
-  Ethernet12        U      284   40.79 KB/s      0.00%         0         0         0      160   13.03 KB/s      0.00%         0         0         0
-  Ethernet16        U      377   32.64 KB/s      0.00%         0         0         0      214   18.01 KB/s      0.00%         0         0         0
-  Ethernet20        U      284   36.81 KB/s      0.00%         0         0         0      138  8758.25 B/s      0.00%         0         0         0
-  Ethernet24        U      173   16.09 KB/s      0.00%         0         0         0      169   11.39 KB/s      0.00%         0         0         0
-```
+  ```
+    admin@sonic:~$ show interfaces counters -p 5
+          IFACE    STATE    RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+    -----------  -------  -------  -----------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
+    Ethernet0         U      515   59.14 KB/s      0.00%         0         0         0    1,305  127.60 KB/s      0.00%         0         0         0
+    Ethernet4         U      305   26.54 KB/s      0.00%         0         0         0      279   39.12 KB/s      0.00%         0         0         0
+    Ethernet8         U      437   42.96 KB/s      0.00%         0         0         0      182   18.37 KB/s      0.00%         0         0         0
+    Ethernet12        U      284   40.79 KB/s      0.00%         0         0         0      160   13.03 KB/s      0.00%         0         0         0
+    Ethernet16        U      377   32.64 KB/s      0.00%         0         0         0      214   18.01 KB/s      0.00%         0         0         0
+    Ethernet20        U      284   36.81 KB/s      0.00%         0         0         0      138  8758.25 B/s      0.00%         0         0         0
+    Ethernet24        U      173   16.09 KB/s      0.00%         0         0         0      169   11.39 KB/s      0.00%         0         0         0
+  ```
 
 - NOTE: Interface counters can be cleared by the user with the following command:
 
@@ -5057,16 +5057,16 @@ The variable USE_KDUMP in the file /etc/default/kdump-tools is set to 0 to disab
 Since this command might require changing the kernel parameters to specify the amount of memory reserved for the capture kernel (the kernel parameters which are exported through /proc/cmdline), a reboot is necessary. The command displays a message showing that kdump functionality will be either enabled or disabled following the next reboot.
 
 - Usage:
-```
-	admin@sonic:~$ config kdump
+  ```
+  admin@sonic:~$ config kdump
 
-Commands:
-  disable    Disable the KDUMP mechanism
-  enable     Enable the KDUMP mechanism
-  memory     Configure the memory for KDUMP mechanism
-  num_dumps  Configure the maximum dump files of KDUMP mechanism
+  Commands:
+    disable    Disable the KDUMP mechanism
+    enable     Enable the KDUMP mechanism
+    memory     Configure the memory for KDUMP mechanism
+    num_dumps  Configure the maximum dump files of KDUMP mechanism
 
-```
+  ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#kdump)
 
 ## LLDP
@@ -5407,9 +5407,9 @@ If vrf-name is also provided as part of the command, if the vrf is created it wi
 This command creates vrf in SONiC system with provided vrf-name.
 
 - Usage:
- ```
-config vrf add <vrf-name>
-```
+  ```
+  config vrf add <vrf-name>
+  ```
 Note: vrf-name should always start with keyword "Vrf"
 
 **config vrf del <vrf-name>**
@@ -5417,9 +5417,9 @@ Note: vrf-name should always start with keyword "Vrf"
 This command deletes vrf with name vrf-name.
 
 - Usage:
- ```
-config vrf del <vrf-name>
-```
+  ```
+  config vrf del <vrf-name>
+  ```
 
 ## Management VRF
 
@@ -6541,32 +6541,32 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#pfc-wa
 This command displays platform components firmware status information.
 
 - Usage:
-```bash
-show platform firmware status
-```
+  ```bash
+  show platform firmware status
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ sudo show platform firmware status
-Chassis    Module    Component    Version                  Description
----------  --------  -----------  -----------------------  ----------------------------------------
-MSN3800    N/A       ONIE         2020.11-5.2.0022-9600    ONIE - Open Network Install Environment
-                     SSD          0202-000                 SSD - Solid-State Drive
-                     BIOS         0ACLH004_02.02.008_9600  BIOS - Basic Input/Output System
-                     CPLD1        CPLD000120_REV0900       CPLD - Complex Programmable Logic Device
-                     CPLD2        CPLD000165_REV0500       CPLD - Complex Programmable Logic Device
-                     CPLD3        CPLD000166_REV0300       CPLD - Complex Programmable Logic Device
-                     CPLD4        CPLD000167_REV0100       CPLD - Complex Programmable Logic Device
-```
+  ```bash
+  admin@sonic:~$ sudo show platform firmware status
+  Chassis    Module    Component    Version                  Description
+  ---------  --------  -----------  -----------------------  ----------------------------------------
+  MSN3800    N/A       ONIE         2020.11-5.2.0022-9600    ONIE - Open Network Install Environment
+                      SSD          0202-000                 SSD - Solid-State Drive
+                      BIOS         0ACLH004_02.02.008_9600  BIOS - Basic Input/Output System
+                      CPLD1        CPLD000120_REV0900       CPLD - Complex Programmable Logic Device
+                      CPLD2        CPLD000165_REV0500       CPLD - Complex Programmable Logic Device
+                      CPLD3        CPLD000166_REV0300       CPLD - Complex Programmable Logic Device
+                      CPLD4        CPLD000167_REV0100       CPLD - Complex Programmable Logic Device
+  ```
 
 **show platform firmware updates**
 
 This command displays platform components firmware updates information.
 
 - Usage:
-```bash
-show platform firmware updates [-i|--image]
-```
+  ```bash
+  show platform firmware updates [-i|--image]
+  ```
 
 - Options:
   - _-i|--image_: show updates using current/next SONiC image
@@ -6579,18 +6579,18 @@ show platform firmware updates [-i|--image]
     - current
 
 - Example:
-```bash
-admin@sonic:~$ sudo show platform firmware updates
-Chassis    Module    Component    Firmware                                    Version (Current/Available)                        Status
----------  --------  -----------  ------------------------------------------  -------------------------------------------------  ------------------
-MSN3800    N/A       ONIE         /usr/local/lib/firmware/mellanox/onie.bin   2020.11-5.2.0022-9600 / 2020.11-5.2.0024-9600      update is required
-                     SSD          /usr/local/lib/firmware/mellanox/ssd.bin    0202-000 / 0204-000                                update is required
-                     BIOS         /usr/local/lib/firmware/mellanox/bios.bin   0ACLH004_02.02.008_9600 / 0ACLH004_02.02.010_9600  update is required
-                     CPLD1        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000120_REV0900 / CPLD000120_REV0900            up-to-date
-                     CPLD2        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000165_REV0500 / CPLD000165_REV0500            up-to-date
-                     CPLD3        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000166_REV0300 / CPLD000166_REV0300            up-to-date
-                     CPLD4        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000167_REV0100 / CPLD000167_REV0100            up-to-date
-```
+  ```bash
+  admin@sonic:~$ sudo show platform firmware updates
+  Chassis    Module    Component    Firmware                                    Version (Current/Available)                        Status
+  ---------  --------  -----------  ------------------------------------------  -------------------------------------------------  ------------------
+  MSN3800    N/A       ONIE         /usr/local/lib/firmware/mellanox/onie.bin   2020.11-5.2.0022-9600 / 2020.11-5.2.0024-9600      update is required
+                      SSD          /usr/local/lib/firmware/mellanox/ssd.bin    0202-000 / 0204-000                                update is required
+                      BIOS         /usr/local/lib/firmware/mellanox/bios.bin   0ACLH004_02.02.008_9600 / 0ACLH004_02.02.010_9600  update is required
+                      CPLD1        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000120_REV0900 / CPLD000120_REV0900            up-to-date
+                      CPLD2        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000165_REV0500 / CPLD000165_REV0500            up-to-date
+                      CPLD3        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000166_REV0300 / CPLD000166_REV0300            up-to-date
+                      CPLD4        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000167_REV0100 / CPLD000167_REV0100            up-to-date
+  ```
 
 - Note:
   - current/next values for _-i|--image_ are taken from `sonic-installer list`
@@ -6608,15 +6608,15 @@ MSN3800    N/A       ONIE         /usr/local/lib/firmware/mellanox/onie.bin   20
 This command displays platform components firmware utility version.
 
 - Usage:
-```bash
-show platform firmware version
-```
+  ```bash
+  show platform firmware version
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show platform firmware version
-fwutil version 2.0.0.0
-```
+  ```bash
+  admin@sonic:~$ show platform firmware version
+  fwutil version 2.0.0.0
+  ```
 
 ### Platform Component Firmware config commands
 
@@ -6626,30 +6626,30 @@ This command is used to install a platform component firmware.
 Both modular and non modular chassis platforms are supported.
 
 - Usage:
-```bash
-config platform firmware install chassis component <component_name> fw <fw_path> [-y|--yes]
-config platform firmware install module <module_name> component <component_name> fw <fw_path> [-y|--yes]
-```
+  ```bash
+  config platform firmware install chassis component <component_name> fw <fw_path> [-y|--yes]
+  config platform firmware install module <module_name> component <component_name> fw <fw_path> [-y|--yes]
+  ```
 
 - Options:
   - _-y|--yes_: automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
 
 - Example:
-```bash
-admin@sonic:~$ sudo config platform firmware install chassis component BIOS fw /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
-Warning: Immediate cold reboot is required to complete BIOS firmware update.
-New firmware will be installed, continue? [y/N]: y
-Installing firmware:
-    /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
+  ```bash
+  admin@sonic:~$ sudo config platform firmware install chassis component BIOS fw /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
+  Warning: Immediate cold reboot is required to complete BIOS firmware update.
+  New firmware will be installed, continue? [y/N]: y
+  Installing firmware:
+      /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
 
-admin@sonic:~$ sudo config platform firmware install module Module1 component BIOS fw https://www.mellanox.com/fw/sn3800/module1/bios.bin
-Warning: Immediate cold reboot is required to complete BIOS firmware update.
-New firmware will be installed, continue? [y/N]: y
-Downloading firmware:
-    [##################################################]  100%
-Installing firmware:
-    /tmp/bios.bin
-```
+  admin@sonic:~$ sudo config platform firmware install module Module1 component BIOS fw https://www.mellanox.com/fw/sn3800/module1/bios.bin
+  Warning: Immediate cold reboot is required to complete BIOS firmware update.
+  New firmware will be installed, continue? [y/N]: y
+  Downloading firmware:
+      [##################################################]  100%
+  Installing firmware:
+      /tmp/bios.bin
+  ```
 
 - Note:
   - <fw_path> can be absolute path or URL
@@ -6664,72 +6664,72 @@ sonic-buildimage/device/<platform_name>/<onie_platform>/platform_components.json
 
 Example:
 1. Non modular chassis platform
-```json
-{
-    "chassis": {
-        "Chassis1": {
-            "component": {
-                "BIOS": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
-                    "version": "<bios_version>"
-                },
-                "CPLD": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
-                    "version": "<cpld_version>"
-                },
-                "FPGA": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
-                    "version": "<fpga_version>"
-                }
-            }
-        }
-    }
-}
-```
+  ```json
+  {
+      "chassis": {
+          "Chassis1": {
+              "component": {
+                  "BIOS": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
+                      "version": "<bios_version>"
+                  },
+                  "CPLD": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
+                      "version": "<cpld_version>"
+                  },
+                  "FPGA": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
+                      "version": "<fpga_version>"
+                  }
+              }
+          }
+      }
+  }
+  ```
 
 2. Modular chassis platform
-```json
-{
-    "chassis": {
-        "Chassis1": {
-            "component": {
-                "BIOS": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
-                    "version": "<bios_version>"
-                },
-                "CPLD": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
-                    "version": "<cpld_version>"
-                },
-                "FPGA": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
-                    "version": "<fpga_version>"
-                }
-            }
-        }
-    },
-    "module": {
-        "Module1": {
-            "component": {
-                "CPLD": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/cpld.bin",
-                    "version": "<cpld_version>"
-                },
-                "FPGA": {
-                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/fpga.bin",
-                    "version": "<fpga_version>"
-                }
-            }
-        }
-    }
-}
-```
+  ```json
+  {
+      "chassis": {
+          "Chassis1": {
+              "component": {
+                  "BIOS": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
+                      "version": "<bios_version>"
+                  },
+                  "CPLD": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
+                      "version": "<cpld_version>"
+                  },
+                  "FPGA": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
+                      "version": "<fpga_version>"
+                  }
+              }
+          }
+      },
+      "module": {
+          "Module1": {
+              "component": {
+                  "CPLD": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/cpld.bin",
+                      "version": "<cpld_version>"
+                  },
+                  "FPGA": {
+                      "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/fpga.bin",
+                      "version": "<fpga_version>"
+                  }
+              }
+          }
+      }
+  }
+  ```
 
 - Usage:
-```bash
-config platform firmware update chassis component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
-config platform firmware update module <module_name> component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
-```
+  ```bash
+  config platform firmware update chassis component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
+  config platform firmware update module <module_name> component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
+  ```
 
 - Options:
   - _-y|--yes_: automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
@@ -6744,19 +6744,19 @@ config platform firmware update module <module_name> component <component_name> 
     - current
 
 - Example:
-```bash
-admin@sonic:~$ sudo config platform firmware update chassis component BIOS fw
-Warning: Immediate cold reboot is required to complete BIOS firmware update.
-New firmware will be installed, continue? [y/N]: y
-Updating firmware:
-    /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/chassis1/bios.bin
+  ```bash
+  admin@sonic:~$ sudo config platform firmware update chassis component BIOS fw
+  Warning: Immediate cold reboot is required to complete BIOS firmware update.
+  New firmware will be installed, continue? [y/N]: y
+  Updating firmware:
+      /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/chassis1/bios.bin
 
-admin@sonic:~$ sudo config platform firmware update module Module1 component BIOS fw
-Warning: Immediate cold reboot is required to complete BIOS firmware update.
-New firmware will be installed, continue? [y/N]: y
-Updating firmware:
-    /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/module1/bios.bin
-```
+  admin@sonic:~$ sudo config platform firmware update module Module1 component BIOS fw
+  Warning: Immediate cold reboot is required to complete BIOS firmware update.
+  New firmware will be installed, continue? [y/N]: y
+  Updating firmware:
+      /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/module1/bios.bin
+  ```
 
 - Note:
   - FW update will be disabled if component definition is not provided (e.g., 'BIOS': { })
@@ -6782,31 +6782,31 @@ The second approach is preferred. In this case an aggregated `vme` binary is use
 CPLD component can be specified arbitrary.
 
 - Example:
-```bash
-root@sonic:/home/admin# show platform firmware
-Chassis                 Module    Component    Version                  Description
-----------------------  --------  -----------  -----------------------  ----------------------------------------
-x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
-                                  CPLD1        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
-                                  CPLD2        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
-                                  CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
-                                  CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
+  ```bash
+  root@sonic:/home/admin# show platform firmware
+  Chassis                 Module    Component    Version                  Description
+  ----------------------  --------  -----------  -----------------------  ----------------------------------------
+  x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
+                                    CPLD1        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
+                                    CPLD2        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                    CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                    CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
 
-root@sonic:/home/admin# BURN_VME="$(pwd)/FUI000091_Burn_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
-root@sonic:/home/admin# REFRESH_VME="$(pwd)/FUI000091_Refresh_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
+  root@sonic:/home/admin# BURN_VME="$(pwd)/FUI000091_Burn_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
+  root@sonic:/home/admin# REFRESH_VME="$(pwd)/FUI000091_Refresh_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
 
-root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${BURN_VME}
-root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${REFRESH_VME}
+  root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${BURN_VME}
+  root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${REFRESH_VME}
 
-root@sonic:/home/admin# show platform firmware
-Chassis                 Module    Component    Version                  Description
-----------------------  --------  -----------  -----------------------  ----------------------------------------
-x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
-                                  CPLD1        CPLD000000_REV0600       CPLD - Complex Programmable Logic Device
-                                  CPLD2        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
-                                  CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
-                                  CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
-```
+  root@sonic:/home/admin# show platform firmware
+  Chassis                 Module    Component    Version                  Description
+  ----------------------  --------  -----------  -----------------------  ----------------------------------------
+  x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
+                                    CPLD1        CPLD000000_REV0600       CPLD - Complex Programmable Logic Device
+                                    CPLD2        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
+                                    CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                    CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
+  ```
 
 Note: the update will have the same effect if any of CPLD1/CPLD2/CPLD3/CPLD4 will be used
 
@@ -7010,35 +7010,35 @@ This subsection explains how to display the NVGRE configuration.
 This command displays the NVGRE tunnel configuration.
 
 - Usage:
-```bash
-show nvgre-tunnel
-```
+  ```bash
+  show nvgre-tunnel
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show nvgre-tunnel
-TUNNEL NAME    SRC IP
--------------  --------
-tunnel_1       10.0.0.1
-```
+  ```bash
+  admin@sonic:~$ show nvgre-tunnel
+  TUNNEL NAME    SRC IP
+  -------------  --------
+  tunnel_1       10.0.0.1
+  ```
 
 **show nvgre-tunnel-map**
 
 This command displays the NVGRE tunnel map configuration.
 
 - Usage:
-```bash
-show nvgre-tunnel-map
-```
+  ```bash
+  show nvgre-tunnel-map
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show nvgre-tunnel-map
-TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
--------------  -----------------  ---------  ------
-tunnel_1       Vlan1000           1000       5000
-tunnel_1       Vlan2000           2000       6000
-```
+  ```bash
+  admin@sonic:~$ show nvgre-tunnel-map
+  TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
+  -------------  -----------------  ---------  ------
+  tunnel_1       Vlan1000           1000       5000
+  tunnel_1       Vlan2000           2000       6000
+  ```
 
 ### NVGRE config commands
 
@@ -7050,20 +7050,20 @@ This command is used to manage the NVGRE tunnel objects.
 It supports add/delete operations.
 
 - Usage:
-```bash
-config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
-config nvgre-tunnel delete <tunnel-name>
-```
+  ```bash
+  config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
+  config nvgre-tunnel delete <tunnel-name>
+  ```
 
 - Parameters:
   - _tunnel-name_: the name of the NVGRE tunnel
   - _src-ip_: source ip address
 
 - Examples:
-```bash
-config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
-config nvgre-tunnel delete 'tunnel_1'
-```
+  ```bash
+  config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
+  config nvgre-tunnel delete 'tunnel_1'
+  ```
 
 **config nvgre-tunnel-map**
 
@@ -7071,10 +7071,10 @@ This command is used to manage the NVGRE tunnel map objects.
 It supports add/delete operations.
 
 - Usage:
-```bash
-config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
-config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
-```
+  ```bash
+  config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
+  config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
+  ```
 
 - Parameters:
   - _tunnel-name_: the name of the NVGRE tunnel
@@ -7083,10 +7083,10 @@ config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
   - _vsid_: Virtual Subnet Identifier
 
 - Examples:
-```bash
-config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
-config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
-```
+  ```bash
+  config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
+  config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
+  ```
 
 ## PBH
 
@@ -7101,93 +7101,93 @@ This subsection explains how to display PBH configuration and statistics.
 This command displays PBH table configuration.
 
 - Usage:
-```bash
-show pbh table
-```
+  ```bash
+  show pbh table
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show pbh table
-NAME       INTERFACE        DESCRIPTION
----------  ---------------  ---------------
-pbh_table  Ethernet0        NVGRE and VxLAN
-           Ethernet4
-           PortChannel0001
-           PortChannel0002
-```
+  ```bash
+  admin@sonic:~$ show pbh table
+  NAME       INTERFACE        DESCRIPTION
+  ---------  ---------------  ---------------
+  pbh_table  Ethernet0        NVGRE and VxLAN
+            Ethernet4
+            PortChannel0001
+            PortChannel0002
+  ```
 
 **show pbh rule**
 
 This command displays PBH rule configuration.
 
 - Usage:
-```bash
-show pbh rule
-```
+  ```bash
+  show pbh rule
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show pbh rule
-TABLE      RULE    PRIORITY    MATCH                                 HASH           ACTION         COUNTER
----------  ------  ----------  ------------------------------------  -------------  -------------  ---------
-pbh_table  nvgre   2           ether_type:        0x0800             inner_v6_hash  SET_ECMP_HASH  DISABLED
-                               ip_protocol:       0x2f
-                               gre_key:           0x2500/0xffffff00
-                               inner_ether_type:  0x86dd
-pbh_table  vxlan   1           ether_type:        0x0800             inner_v4_hash  SET_LAG_HASH   ENABLED
-                               ip_protocol:       0x11
-                               l4_dst_port:       0x12b5
-                               inner_ether_type:  0x0800
-```
+  ```bash
+  admin@sonic:~$ show pbh rule
+  TABLE      RULE    PRIORITY    MATCH                                 HASH           ACTION         COUNTER
+  ---------  ------  ----------  ------------------------------------  -------------  -------------  ---------
+  pbh_table  nvgre   2           ether_type:        0x0800             inner_v6_hash  SET_ECMP_HASH  DISABLED
+                                ip_protocol:       0x2f
+                                gre_key:           0x2500/0xffffff00
+                                inner_ether_type:  0x86dd
+  pbh_table  vxlan   1           ether_type:        0x0800             inner_v4_hash  SET_LAG_HASH   ENABLED
+                                ip_protocol:       0x11
+                                l4_dst_port:       0x12b5
+                                inner_ether_type:  0x0800
+  ```
 
 **show pbh hash**
 
 This command displays PBH hash configuration.
 
 - Usage:
-```bash
-show pbh hash
-```
+  ```bash
+  show pbh hash
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show pbh hash
-NAME           HASH FIELD
--------------  -----------------
-inner_v4_hash  inner_ip_proto
-               inner_l4_dst_port
-               inner_l4_src_port
-               inner_dst_ipv4
-               inner_src_ipv4
-inner_v6_hash  inner_ip_proto
-               inner_l4_dst_port
-               inner_l4_src_port
-               inner_dst_ipv6
-               inner_src_ipv6
-```
+  ```bash
+  admin@sonic:~$ show pbh hash
+  NAME           HASH FIELD
+  -------------  -----------------
+  inner_v4_hash  inner_ip_proto
+                inner_l4_dst_port
+                inner_l4_src_port
+                inner_dst_ipv4
+                inner_src_ipv4
+  inner_v6_hash  inner_ip_proto
+                inner_l4_dst_port
+                inner_l4_src_port
+                inner_dst_ipv6
+                inner_src_ipv6
+  ```
 
 **show pbh hash-field**
 
 This command displays PBH hash field configuration.
 
 - Usage:
-```bash
-show pbh hash-field
-```
+  ```bash
+  show pbh hash-field
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show pbh hash-field
-NAME               FIELD              MASK       SEQUENCE    SYMMETRIC
------------------  -----------------  ---------  ----------  -----------
-inner_ip_proto     INNER_IP_PROTOCOL  N/A        1           No
-inner_l4_dst_port  INNER_L4_DST_PORT  N/A        2           Yes
-inner_l4_src_port  INNER_L4_SRC_PORT  N/A        2           Yes
-inner_dst_ipv4     INNER_DST_IPV4     255.0.0.0  3           Yes
-inner_src_ipv4     INNER_SRC_IPV4     0.0.0.255  3           Yes
-inner_dst_ipv6     INNER_DST_IPV6     ffff::     4           Yes
-inner_src_ipv6     INNER_SRC_IPV6     ::ffff     4           Yes
-```
+  ```bash
+  admin@sonic:~$ show pbh hash-field
+  NAME               FIELD              MASK       SEQUENCE    SYMMETRIC
+  -----------------  -----------------  ---------  ----------  -----------
+  inner_ip_proto     INNER_IP_PROTOCOL  N/A        1           No
+  inner_l4_dst_port  INNER_L4_DST_PORT  N/A        2           Yes
+  inner_l4_src_port  INNER_L4_SRC_PORT  N/A        2           Yes
+  inner_dst_ipv4     INNER_DST_IPV4     255.0.0.0  3           Yes
+  inner_src_ipv4     INNER_SRC_IPV4     0.0.0.255  3           Yes
+  inner_dst_ipv6     INNER_DST_IPV6     ffff::     4           Yes
+  inner_src_ipv6     INNER_SRC_IPV6     ::ffff     4           Yes
+  ```
 
 - Note:
   - _SYMMETRIC_ is an artificial column and is only used to indicate fields symmetry
@@ -7197,18 +7197,18 @@ inner_src_ipv6     INNER_SRC_IPV6     ::ffff     4           Yes
 This command displays PBH statistics.
 
 - Usage:
-```bash
-show pbh statistics
-```
+  ```bash
+  show pbh statistics
+  ```
 
 - Example:
-```bash
-admin@sonic:~$ show pbh statistics
-TABLE      RULE    RX PACKETS COUNT    RX BYTES COUNT
----------  ------  ------------------  ----------------
-pbh_table  nvgre   0                   0
-pbh_table  vxlan   0                   0
-```
+  ```bash
+  admin@sonic:~$ show pbh statistics
+  TABLE      RULE    RX PACKETS COUNT    RX BYTES COUNT
+  ---------  ------  ------------------  ----------------
+  pbh_table  nvgre   0                   0
+  pbh_table  vxlan   0                   0
+  ```
 
 - Note:
   - _RX PACKETS COUNT_ and _RX BYTES COUNT_ can be cleared by user:
@@ -7226,11 +7226,11 @@ This command is used to manage PBH table objects.
 It supports add/update/remove operations.
 
 - Usage:
-```bash
-config pbh table add <table_name> --interface-list <interface_list> --description <description>
-config pbh table update <table_name> [ --interface-list <interface_list> ] [ --description <description> ]
-config pbh table delete <table_name>
-```
+  ```bash
+  config pbh table add <table_name> --interface-list <interface_list> --description <description>
+  config pbh table update <table_name> [ --interface-list <interface_list> ] [ --description <description> ]
+  config pbh table delete <table_name>
+  ```
 
 - Parameters:
   - _table_name_: the name of the PBH table
@@ -7238,14 +7238,14 @@ config pbh table delete <table_name>
   - _description_: the description of the PBH table
 
 - Examples:
-```bash
-config pbh table add 'pbh_table' \
---interface-list 'Ethernet0,Ethernet4,PortChannel0001,PortChannel0002' \
---description 'NVGRE and VxLAN'
-config pbh table update 'pbh_table' \
---interface-list 'Ethernet0'
-config pbh table delete 'pbh_table'
-```
+  ```bash
+  config pbh table add 'pbh_table' \
+  --interface-list 'Ethernet0,Ethernet4,PortChannel0001,PortChannel0002' \
+  --description 'NVGRE and VxLAN'
+  config pbh table update 'pbh_table' \
+  --interface-list 'Ethernet0'
+  config pbh table delete 'pbh_table'
+  ```
 
 **config pbh rule**
 
@@ -7253,17 +7253,17 @@ This command is used to manage PBH rule objects.
 It supports add/update/remove operations.
 
 - Usage:
-```bash
-config pbh rule add <table_name> <rule_name> --priority <priority> \
-[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
-[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
---hash <hash> [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
-config pbh rule update <table_name> <rule_name> [ --priority <priority> ] \
-[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
-[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
-[ --hash <hash> ] [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
-config pbh rule delete <table_name> <rule_name>
-```
+  ```bash
+  config pbh rule add <table_name> <rule_name> --priority <priority> \
+  [ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+  [ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+  --hash <hash> [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+  config pbh rule update <table_name> <rule_name> [ --priority <priority> ] \
+  [ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+  [ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+  [ --hash <hash> ] [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+  config pbh rule delete <table_name> <rule_name>
+  ```
 
 - Parameters:
   - _table_name_: the name of the PBH table
@@ -7295,20 +7295,20 @@ config pbh rule delete <table_name> <rule_name>
     - DISABLED
 
 - Examples:
-```bash
-config pbh rule add 'pbh_table' 'nvgre' \
---priority '2' \
---ether-type '0x0800' \
---ip-protocol '0x2f' \
---gre-key '0x2500/0xffffff00' \
---inner-ether-type '0x86dd' \
---hash 'inner_v6_hash' \
---packet-action 'SET_ECMP_HASH' \
---flow-counter 'DISABLED'
-config pbh rule update 'pbh_table' 'nvgre' \
---flow-counter 'ENABLED'
-config pbh rule delete 'pbh_table' 'nvgre'
-```
+  ```bash
+  config pbh rule add 'pbh_table' 'nvgre' \
+  --priority '2' \
+  --ether-type '0x0800' \
+  --ip-protocol '0x2f' \
+  --gre-key '0x2500/0xffffff00' \
+  --inner-ether-type '0x86dd' \
+  --hash 'inner_v6_hash' \
+  --packet-action 'SET_ECMP_HASH' \
+  --flow-counter 'DISABLED'
+  config pbh rule update 'pbh_table' 'nvgre' \
+  --flow-counter 'ENABLED'
+  config pbh rule delete 'pbh_table' 'nvgre'
+  ```
 
 **config pbh hash**
 
@@ -7316,24 +7316,24 @@ This command is used to manage PBH hash objects.
 It supports add/update/remove operations.
 
 - Usage:
-```bash
-config pbh hash add <hash_name> --hash-field-list <hash_field_list>
-config pbh hash update <hash_name> [ --hash-field-list <hash_field_list> ]
-config pbh hash delete <hash_name>
-```
+  ```bash
+  config pbh hash add <hash_name> --hash-field-list <hash_field_list>
+  config pbh hash update <hash_name> [ --hash-field-list <hash_field_list> ]
+  config pbh hash delete <hash_name>
+  ```
 
 - Parameters:
   - _hash_name_: the name of the PBH hash
   - _hash_field_list_: list of _hash-field_ objects to apply with the PBH hash
 
 - Examples:
-```bash
-config pbh hash add 'inner_v6_hash' \
---hash-field-list 'inner_ip_proto,inner_l4_dst_port,inner_l4_src_port,inner_dst_ipv6,inner_src_ipv6'
-config pbh hash update 'inner_v6_hash' \
---hash-field-list 'inner_ip_proto'
-config pbh hash delete 'inner_v6_hash'
-```
+  ```bash
+  config pbh hash add 'inner_v6_hash' \
+  --hash-field-list 'inner_ip_proto,inner_l4_dst_port,inner_l4_src_port,inner_dst_ipv6,inner_src_ipv6'
+  config pbh hash update 'inner_v6_hash' \
+  --hash-field-list 'inner_ip_proto'
+  config pbh hash delete 'inner_v6_hash'
+  ```
 
 **config pbh hash-field**
 
@@ -7341,13 +7341,13 @@ This command is used to manage PBH hash field objects.
 It supports add/update/remove operations.
 
 - Usage:
-```bash
-config pbh hash-field add <hash_field_name> \
---hash-field <hash_field> [ --ip-mask <ip_mask> ] --sequence-id <sequence_id>
-config pbh hash-field update <hash_field_name> \
-[ --hash-field <hash_field> ] [ --ip-mask <ip_mask> ] [ --sequence-id <sequence_id> ]
-config pbh hash-field delete <hash_field_name>
-```
+  ```bash
+  config pbh hash-field add <hash_field_name> \
+  --hash-field <hash_field> [ --ip-mask <ip_mask> ] --sequence-id <sequence_id>
+  config pbh hash-field update <hash_field_name> \
+  [ --hash-field <hash_field> ] [ --ip-mask <ip_mask> ] [ --sequence-id <sequence_id> ]
+  config pbh hash-field delete <hash_field_name>
+  ```
 
 - Parameters:
   - _hash_field_name_: the name of the PBH hash field
@@ -7373,15 +7373,15 @@ config pbh hash-field delete <hash_field_name>
   - _sequence_id_: the order in which fields are hashed
 
 - Examples:
-```bash
-config pbh hash-field add 'inner_dst_ipv6' \
---hash-field 'INNER_DST_IPV6' \
---ip-mask 'ffff::' \
---sequence-id '4'
-config pbh hash-field update 'inner_dst_ipv6' \
---ip-mask 'ffff:ffff::'
-config pbh hash-field delete 'inner_dst_ipv6'
-```
+  ```bash
+  config pbh hash-field add 'inner_dst_ipv6' \
+  --hash-field 'INNER_DST_IPV6' \
+  --ip-mask 'ffff::' \
+  --sequence-id '4'
+  config pbh hash-field update 'inner_dst_ipv6' \
+  --ip-mask 'ffff:ffff::'
+  config pbh hash-field delete 'inner_dst_ipv6'
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
 
@@ -8655,18 +8655,18 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#static
 This command displays all the subinterfaces that are configured on the device and its current status.
 
 - Usage:
-```
-show subinterfaces status
-```
+  ```
+  show subinterfaces status
+  ```
 
 - Example:
-```
-admin@sonic:~$ show subinterfaces status
-Sub port interface    Speed    MTU    Vlan    Admin                 Type
-------------------  -------  -----  ------  -------  -------------------
-     Eth64.10          100G   9100    100       up  dot1q-encapsulation
-     Ethernet0.100     100G   9100    100       up  dot1q-encapsulation
-```
+  ```
+  admin@sonic:~$ show subinterfaces status
+  Sub port interface    Speed    MTU    Vlan    Admin                 Type
+  ------------------  -------  -----  ------  -------  -------------------
+      Eth64.10          100G   9100    100       up  dot1q-encapsulation
+      Ethernet0.100     100G   9100    100       up  dot1q-encapsulation
+  ```
 
 ### Subinterfaces Config Commands
 
@@ -8675,29 +8675,29 @@ This sub-section explains how to configure subinterfaces.
 **config subinterface**
 
 - Usage:
-```
-config subinterface (add | del) <subinterface_name> [vlan <1-4094>]
-```
+  ```
+  config subinterface (add | del) <subinterface_name> [vlan <1-4094>]
+  ```
 
 - Example (Create the subinterfces with name "Ethernet0.100"):
-```
-admin@sonic:~$ sudo config subinterface add Ethernet0.100
-```
+  ```
+  admin@sonic:~$ sudo config subinterface add Ethernet0.100
+  ```
 
 - Example (Create the subinterfces with name "Eth64.100"):
-```
-admin@sonic:~$ sudo config subinterface add Eth64.100 100
-```
+  ```
+  admin@sonic:~$ sudo config subinterface add Eth64.100 100
+  ```
 
 - Example (Delete the subinterfces with name "Ethernet0.100"):
-```
-admin@sonic:~$ sudo config subinterface del Ethernet0.100
-```
+  ```
+  admin@sonic:~$ sudo config subinterface del Ethernet0.100
+  ```
 
 - Example (Delete the subinterfces with name "Eth64.100"):
-```
-admin@sonic:~$ sudo config subinterface del Eth64.100 100
-```
+  ```
+  admin@sonic:~$ sudo config subinterface del Eth64.100 100
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
@@ -11076,56 +11076,56 @@ This command displays the current ZTP configuration of the switch. It also displ
 
 - Example:
 
-```
-root@B1-SP1-7712:/home/admin# show ztp status
-ZTP Admin Mode : True
-ZTP Service    : Inactive
-ZTP Status     : SUCCESS
-ZTP Source     : dhcp-opt67 (eth0)
-Runtime        : 05m 31s
-Timestamp      : 2019-09-11 19:12:24 UTC
+  ```
+  root@B1-SP1-7712:/home/admin# show ztp status
+  ZTP Admin Mode : True
+  ZTP Service    : Inactive
+  ZTP Status     : SUCCESS
+  ZTP Source     : dhcp-opt67 (eth0)
+  Runtime        : 05m 31s
+  Timestamp      : 2019-09-11 19:12:24 UTC
 
-ZTP Service is not running
+  ZTP Service is not running
 
-01-configdb-json: SUCCESS
-02-connectivity-check: SUCCESS
-```
+  01-configdb-json: SUCCESS
+  02-connectivity-check: SUCCESS
+  ```
 Use the verbose option to display more detailed information.
 
-```
-root@B1-SP1-7712:/home/admin# show ztp status --verbose
-Command: ztp status --verbose
-========================================
-ZTP
-========================================
-ZTP Admin Mode : True
-ZTP Service    : Inactive
-ZTP Status     : SUCCESS
-ZTP Source     : dhcp-opt67 (eth0)
-Runtime        : 05m 31s
-Timestamp      : 2019-09-11 19:12:16 UTC
-ZTP JSON Version : 1.0
+  ```
+  root@B1-SP1-7712:/home/admin# show ztp status --verbose
+  Command: ztp status --verbose
+  ========================================
+  ZTP
+  ========================================
+  ZTP Admin Mode : True
+  ZTP Service    : Inactive
+  ZTP Status     : SUCCESS
+  ZTP Source     : dhcp-opt67 (eth0)
+  Runtime        : 05m 31s
+  Timestamp      : 2019-09-11 19:12:16 UTC
+  ZTP JSON Version : 1.0
 
-ZTP Service is not running
+  ZTP Service is not running
 
-----------------------------------------
-01-configdb-json
-----------------------------------------
-Status          : SUCCESS
-Runtime         : 02m 48s
-Timestamp       : 2019-09-11 19:11:55 UTC
-Exit Code       : 0
-Ignore Result   : False
+  ----------------------------------------
+  01-configdb-json
+  ----------------------------------------
+  Status          : SUCCESS
+  Runtime         : 02m 48s
+  Timestamp       : 2019-09-11 19:11:55 UTC
+  Exit Code       : 0
+  Ignore Result   : False
 
-----------------------------------------
-02-connectivity-check
-----------------------------------------
-Status          : SUCCESS
-Runtime         : 04s
-Timestamp       : 2019-09-11 19:12:16 UTC
-Exit Code       : 0
-Ignore Result   : False
-```
+  ----------------------------------------
+  02-connectivity-check
+  ----------------------------------------
+  Status          : SUCCESS
+  Runtime         : 04s
+  Timestamp       : 2019-09-11 19:12:16 UTC
+  Exit Code       : 0
+  Ignore Result   : False
+  ```
 
 - Description
 
@@ -11165,10 +11165,10 @@ Use this command to enable ZTP administrative mode
 
 - Example:
 
-```
-root@sonic:/home/admin# config ztp enable
-Running command: ztp enable
-```
+  ```
+  root@sonic:/home/admin# config ztp enable
+  Running command: ztp enable
+  ```
 
 
 
@@ -11183,11 +11183,11 @@ Use this command to disable ZTP administrative mode.  This command can also be u
 
 - Example:
 
-```
-root@sonic:/home/admin# config ztp disable
-Active ZTP session will be stopped and disabled, continue? [y/N]: y
-Running command: ztp disable -y
-```
+  ```
+  root@sonic:/home/admin# config ztp disable
+  Active ZTP session will be stopped and disabled, continue? [y/N]: y
+  Running command: ztp disable -y
+  ```
 
 
 **config ztp run**
@@ -11201,11 +11201,11 @@ Use this command to manually restart a new ZTP session.  This command deletes th
 
 - Example:
 
-```
-root@sonic:/home/admin# config ztp run
-ZTP will be restarted. You may lose switch data and connectivity, continue? [y/N]: y
-Running command: ztp run -y
-```
+  ```
+  root@sonic:/home/admin# config ztp run
+  ZTP will be restarted. You may lose switch data and connectivity, continue? [y/N]: y
+  Running command: ztp run -y
+  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
 
@@ -11216,240 +11216,237 @@ This sub-section explains the list of the configuration options available for MA
 ## MACsec config command
 
 - Add MACsec profile
-```
-admin@sonic:~$ sudo config macsec profile add --help
-Usage: config macsec profile add [OPTIONS] <profile_name>
+  ```
+  admin@sonic:~$ sudo config macsec profile add --help
+  Usage: config macsec profile add [OPTIONS] <profile_name>
 
-  Add MACsec profile
+    Add MACsec profile
 
-Options:
-  --priority <priority>           For Key server election. In 0-255 range with
-                                  0 being the highest priority.  [default:
-                                  255]
-  --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
-                                  AES-128]
-  --primary_cak <primary_cak>     Primary Connectivity Association Key.
-                                  [required]
-  --primary_ckn <primary_cak>     Primary CAK Name.  [required]
-  --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
-                                  except EAPOL, will be converted to MACsec
-                                  packets without encryption.  SECURITY: All
-                                  traffic, except EAPOL, will be encrypted by
-                                  SecY.  [default: security]
-  --enable_replay_protect / --disable_replay_protect
-                                  Whether enable replay protect.  [default:
-                                  False]
-  --replay_window <enable_replay_protect>
-                                  Replay window size that is the number of
-                                  packets that could be out of order. This
-                                  field works only if ENABLE_REPLAY_PROTECT is
-                                  true.  [default: 0]
-  --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
-                                  [default: True]
-  --rekey_period <rekey_period>   The period of proactively refresh (Unit
-                                  second).  [default: 0]
-  -?, -h, --help                  Show this message and exit.
-```
+  Options:
+    --priority <priority>           For Key server election. In 0-255 range with
+                                    0 being the highest priority.  [default:
+                                    255]
+    --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
+                                    AES-128]
+    --primary_cak <primary_cak>     Primary Connectivity Association Key.
+                                    [required]
+    --primary_ckn <primary_cak>     Primary CAK Name.  [required]
+    --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
+                                    except EAPOL, will be converted to MACsec
+                                    packets without encryption.  SECURITY: All
+                                    traffic, except EAPOL, will be encrypted by
+                                    SecY.  [default: security]
+    --enable_replay_protect / --disable_replay_protect
+                                    Whether enable replay protect.  [default:
+                                    False]
+    --replay_window <enable_replay_protect>
+                                    Replay window size that is the number of
+                                    packets that could be out of order. This
+                                    field works only if ENABLE_REPLAY_PROTECT is
+                                    true.  [default: 0]
+    --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
+                                    [default: True]
+    --rekey_period <rekey_period>   The period of proactively refresh (Unit
+                                    second).  [default: 0]
+    -?, -h, --help                  Show this message and exit.
+  ```
 
 - Delete MACsec profile
-```
-admin@sonic:~$ sudo config macsec profile del --help
-Usage: config macsec profile del [OPTIONS] <profile_name>
+  ```
+  admin@sonic:~$ sudo config macsec profile del --help
+  Usage: config macsec profile del [OPTIONS] <profile_name>
 
-  Delete MACsec profile
+    Delete MACsec profile
 
-Options:
-  -?, -h, --help  Show this message and exit.
-```
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
 
 - Enable MACsec on the port
-```
-admin@sonic:~$ sudo config macsec port add --help
-Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
+  ```
+  admin@sonic:~$ sudo config macsec port add --help
+  Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
 
-  Add MACsec port
+    Add MACsec port
 
-Options:
-  -?, -h, --help  Show this message and exit.
-```
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
 
 
 - Disable MACsec on the port
-```
-admin@sonic:~$ sudo config macsec port del --help
-Usage: config macsec port del [OPTIONS] <port_name>
+  ```
+  admin@sonic:~$ sudo config macsec port del --help
+  Usage: config macsec port del [OPTIONS] <port_name>
 
-  Delete MACsec port
+    Delete MACsec port
 
-Options:
-  -?, -h, --help  Show this message and exit.
-
-```
-
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
 
 ## MACsec show command
 
 - Show MACsec
 
-```
-admin@vlab-02:~$ show macsec --help
-Usage: show macsec [OPTIONS] [INTERFACE_NAME]
+  ```
+  admin@vlab-02:~$ show macsec --help
+  Usage: show macsec [OPTIONS] [INTERFACE_NAME]
 
-Options:
-  -d, --display [all]  Show internal interfaces  [default: all]
-  -n, --namespace []   Namespace name or all
-  -h, -?, --help       Show this message and exit.
+  Options:
+    -d, --display [all]  Show internal interfaces  [default: all]
+    -n, --namespace []   Namespace name or all
+    -h, -?, --help       Show this message and exit.
+  ```
 
-```
-
-```
-admin@vlab-02:~$ show macsec
-MACsec port(Ethernet0)
----------------------  -----------
-cipher_suite           GCM-AES-256
-enable                 true
-enable_encrypt         true
-enable_protect         true
-enable_replay_protect  false
-replay_window          0
-send_sci               true
----------------------  -----------
-	MACsec Egress SC (5254008f4f1c0001)
-	-----------  -
-	encoding_an  2
-	-----------  -
-		MACsec Egress SA (1)
-		-------------------------------------  ----------------------------------------------------------------
-		auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
-		next_pn                                1
-		sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
-		salt                                   000000000000000000000000
-		ssci                                   0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
-		-------------------------------------  ----------------------------------------------------------------
-		MACsec Egress SA (2)
-		-------------------------------------  ----------------------------------------------------------------
-		auth_key                               5A8B8912139551D3678B43DD0F10FFA5
-		next_pn                                1
-		sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
-		salt                                   000000000000000000000000
-		ssci                                   0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
-		-------------------------------------  ----------------------------------------------------------------
-	MACsec Ingress SC (525400edac5b0001)
-		MACsec Ingress SA (1)
-		---------------------------------------  ----------------------------------------------------------------
-		active                                   true
-		auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
-		lowest_acceptable_pn                     1
-		sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
-		salt                                     000000000000000000000000
-		ssci                                     0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
-		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
-		---------------------------------------  ----------------------------------------------------------------
-		MACsec Ingress SA (2)
-		---------------------------------------  ----------------------------------------------------------------
-		active                                   true
-		auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
-		lowest_acceptable_pn                     1
-		sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
-		salt                                     000000000000000000000000
-		ssci                                     0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
-		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
-		---------------------------------------  ----------------------------------------------------------------
-MACsec port(Ethernet1)
----------------------  -----------
-cipher_suite           GCM-AES-256
-enable                 true
-enable_encrypt         true
-enable_protect         true
-enable_replay_protect  false
-replay_window          0
-send_sci               true
----------------------  -----------
-	MACsec Egress SC (5254008f4f1c0001)
-	-----------  -
-	encoding_an  1
-	-----------  -
-		MACsec Egress SA (1)
-		-------------------------------------  ----------------------------------------------------------------
-		auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
-		next_pn                                1
-		sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
-		salt                                   000000000000000000000000
-		ssci                                   0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
-		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
-		-------------------------------------  ----------------------------------------------------------------
-	MACsec Ingress SC (525400edac5b0001)
-		MACsec Ingress SA (1)
-		---------------------------------------  ----------------------------------------------------------------
-		active                                   true
-		auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
-		lowest_acceptable_pn                     1
-		sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
-		salt                                     000000000000000000000000
-		ssci                                     0
-		SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
-		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
-		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
-		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
-		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
-		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
-		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
-		---------------------------------------  ----------------------------------------------------------------
-```
+  ```
+  admin@vlab-02:~$ show macsec
+  MACsec port(Ethernet0)
+  ---------------------  -----------
+  cipher_suite           GCM-AES-256
+  enable                 true
+  enable_encrypt         true
+  enable_protect         true
+  enable_replay_protect  false
+  replay_window          0
+  send_sci               true
+  ---------------------  -----------
+    MACsec Egress SC (5254008f4f1c0001)
+    -----------  -
+    encoding_an  2
+    -----------  -
+      MACsec Egress SA (1)
+      -------------------------------------  ----------------------------------------------------------------
+      auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
+      next_pn                                1
+      sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+      salt                                   000000000000000000000000
+      ssci                                   0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+      -------------------------------------  ----------------------------------------------------------------
+      MACsec Egress SA (2)
+      -------------------------------------  ----------------------------------------------------------------
+      auth_key                               5A8B8912139551D3678B43DD0F10FFA5
+      next_pn                                1
+      sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+      salt                                   000000000000000000000000
+      ssci                                   0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+      -------------------------------------  ----------------------------------------------------------------
+    MACsec Ingress SC (525400edac5b0001)
+      MACsec Ingress SA (1)
+      ---------------------------------------  ----------------------------------------------------------------
+      active                                   true
+      auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
+      lowest_acceptable_pn                     1
+      sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+      salt                                     000000000000000000000000
+      ssci                                     0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
+      SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+      ---------------------------------------  ----------------------------------------------------------------
+      MACsec Ingress SA (2)
+      ---------------------------------------  ----------------------------------------------------------------
+      active                                   true
+      auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
+      lowest_acceptable_pn                     1
+      sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+      salt                                     000000000000000000000000
+      ssci                                     0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
+      SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+      ---------------------------------------  ----------------------------------------------------------------
+  MACsec port(Ethernet1)
+  ---------------------  -----------
+  cipher_suite           GCM-AES-256
+  enable                 true
+  enable_encrypt         true
+  enable_protect         true
+  enable_replay_protect  false
+  replay_window          0
+  send_sci               true
+  ---------------------  -----------
+    MACsec Egress SC (5254008f4f1c0001)
+    -----------  -
+    encoding_an  1
+    -----------  -
+      MACsec Egress SA (1)
+      -------------------------------------  ----------------------------------------------------------------
+      auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
+      next_pn                                1
+      sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+      salt                                   000000000000000000000000
+      ssci                                   0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+      SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+      -------------------------------------  ----------------------------------------------------------------
+    MACsec Ingress SC (525400edac5b0001)
+      MACsec Ingress SA (1)
+      ---------------------------------------  ----------------------------------------------------------------
+      active                                   true
+      auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
+      lowest_acceptable_pn                     1
+      sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+      salt                                     000000000000000000000000
+      ssci                                     0
+      SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
+      SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+      SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+      SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+      SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+      SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+      SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+      ---------------------------------------  ----------------------------------------------------------------
+  ```
 
 ## MACsec clear command
 
 Clear MACsec counters which is to reset all MACsec counters to ZERO.
 
-```
-admin@sonic:~$ sonic-clear macsec --help
-Usage: sonic-clear macsec [OPTIONS]
+  ```
+  admin@sonic:~$ sonic-clear macsec --help
+  Usage: sonic-clear macsec [OPTIONS]
 
-  Clear MACsec counts. This clear command will generated a cache for next
-  show commands which will base on this cache as the zero baseline to show
-  the increment of counters.
+    Clear MACsec counts. This clear command will generated a cache for next
+    show commands which will base on this cache as the zero baseline to show
+    the increment of counters.
 
-Options:
-  --clean-cache BOOLEAN  If the option of clean cache is true, next show
-                         commands will show the raw counters which based on
-                         the service booted instead of the last clear command.
-  -h, -?, --help         Show this message and exit.
-```
+  Options:
+    --clean-cache BOOLEAN  If the option of clean cache is true, next show
+                          commands will show the raw counters which based on
+                          the service booted instead of the last clear command.
+    -h, -?, --help         Show this message and exit.
+  ```
