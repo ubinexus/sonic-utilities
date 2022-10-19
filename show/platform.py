@@ -105,8 +105,11 @@ def ssdhealth(device, verbose, vendor):
     """Show SSD Health information"""
     if not device:
         _, stdout = getstatusoutput_noshell_pipe(["lsblk", "-o", "NAME,TYPE", "-p"], ["grep", "disk"])
-        stdout_first_line = stdout.split('\n')[0]
-        device = stdout_first_line.strip().split()[0]
+        if stdout != '':
+            stdout_first_line = stdout.split('\n')[0]
+            device = stdout_first_line.strip().split()[0]
+        else:
+            device = ''
     cmd = "sudo ssdutil -d " + device
     options = " -v" if verbose else ""
     options += " -e" if vendor else ""
