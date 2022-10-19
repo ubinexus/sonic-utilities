@@ -10365,78 +10365,78 @@ This command is used to install a new image on the alternate image partition.  T
 
 - Example:
 
-```bash
-admin@sonic:~$ sudo sonic-installer install "https://sonic-build.azurewebsites.net/api/sonic/artifacts?branchName=xxxx&platform=xxxx&target=target%2Fsonic-xxxx.bin"
-New image will be installed, continue? [y/N]: y
-Downloading image...
-...99%, 980 MB, 1017 KB/s, 0 seconds left...
-Installing image SONiC-OS-xxxxx and setting it as default...
-Command: bash /tmp/sonic_image
-Verifying image checksum ... OK.
-Preparing image archive ... OK.
-Installing SONiC in SONiC
-ONIE Installer: platform: x86_64-vs-r0
-onie_platform: x86_64-kvm_x86_64-r0
-Installing SONiC to /host/image-xxxx
-Archive:  fs.zip
-   creating: /host/image-xxxx/boot/
-  inflating: /host/image-xxxx/boot/System.map-5.10.0-12-2-amd64
-  inflating: /host/image-xxxx/boot/initrd.img-5.10.0-12-2-amd64
-  inflating: /host/image-xxxx/boot/vmlinuz-5.10.0-12-2-amd64
-  inflating: /host/image-xxxx/boot/config-5.10.0-12-2-amd64
- extracting: /host/image-xxxx/fs.squashfs
-ONIE_IMAGE_PART_SIZE=32768
-EXTRA_CMDLINE_LINUX=
-Switch CPU vendor is: GenuineIntel
-Switch CPU cstates are: disabled
-EXTRA_CMDLINE_LINUX=
-Installed SONiC base image SONiC-OS successfully
+  ```bash
+  admin@sonic:~$ sudo sonic-installer install "https://sonic-build.azurewebsites.net/api/sonic/artifacts?branchName=xxxx&platform=xxxx&target=target%2Fsonic-xxxx.bin"
+  New image will be installed, continue? [y/N]: y
+  Downloading image...
+  ...99%, 980 MB, 1017 KB/s, 0 seconds left...
+  Installing image SONiC-OS-xxxxx and setting it as default...
+  Command: bash /tmp/sonic_image
+  Verifying image checksum ... OK.
+  Preparing image archive ... OK.
+  Installing SONiC in SONiC
+  ONIE Installer: platform: x86_64-vs-r0
+  onie_platform: x86_64-kvm_x86_64-r0
+  Installing SONiC to /host/image-xxxx
+  Archive:  fs.zip
+    creating: /host/image-xxxx/boot/
+    inflating: /host/image-xxxx/boot/System.map-5.10.0-12-2-amd64
+    inflating: /host/image-xxxx/boot/initrd.img-5.10.0-12-2-amd64
+    inflating: /host/image-xxxx/boot/vmlinuz-5.10.0-12-2-amd64
+    inflating: /host/image-xxxx/boot/config-5.10.0-12-2-amd64
+  extracting: /host/image-xxxx/fs.squashfs
+  ONIE_IMAGE_PART_SIZE=32768
+  EXTRA_CMDLINE_LINUX=
+  Switch CPU vendor is: GenuineIntel
+  Switch CPU cstates are: disabled
+  EXTRA_CMDLINE_LINUX=
+  Installed SONiC base image SONiC-OS successfully
 
-Command: grub-set-default --boot-directory=/host 0
+  Command: grub-set-default --boot-directory=/host 0
 
-Command: config-setup backup
-Taking backup of current configuration
+  Command: config-setup backup
+  Taking backup of current configuration
 
-Command: mkdir -p /tmp/image-xxxx-fs
-Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
-Command: sonic-cfggen -d -y /tmp/image-xxxx-fs/etc/sonic/sonic_version.yml -t /tmp/image-xxxx-fs/usr/share/sonic/templates/sonic-environment.j2
-Command: umount -r -f /tmp/image-xxxx-fs
-Command: rm -rf /tmp/image-xxxx-fs
-Command: mkdir -p /tmp/image-xxxx-fs
-Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
-Command: mkdir -p /host/image-xxxx/rw
-Command: mkdir -p /host/image-xxxx/work
-Command: mkdir -p /tmp/image-xxxx-fs
-Command: mount overlay -t overlay -o rw,relatime,lowerdir=/tmp/image-xxxx-fs,upperdir=/host/image-xxxx/rw,workdir=/host/image-xxxx/work /tmp/image-xxxx-fs
-Command: mkdir -p /tmp/image-xxxx-fs/var/lib/docker
-Command: mount --bind /host/image-xxxx/docker /tmp/image-xxxx-fs/var/lib/docker
-Command: chroot /tmp/image-xxxx-fs mount proc /proc -t proc
-Command: chroot /tmp/image-xxxx-fs mount sysfs /sys -t sysfs
-Command: cp /tmp/image-xxxx-fs/etc/default/docker /tmp/image-xxxx-fs/tmp/docker_config_backup
-Command: sh -c echo 'DOCKER_OPTS="$DOCKER_OPTS -H unix:// --storage-driver=overlay2 --bip=240.127.1.1/24 --iptables=false --ipv6=true --fixed-cidr-v6=fd00::/80 "' >> /tmp/image-xxxx-fs/etc/default/docker
-Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh start
-mount: /sys/fs/cgroup/cpu: cgroup already mounted on /sys/fs/cgroup.
-mount: /sys/fs/cgroup/cpuacct: cgroup already mounted on /sys/fs/cgroup.
-Command: cp /var/lib/sonic-package-manager/packages.json /tmp/image-xxxx-fs/tmp/packages.json
-Command: touch /tmp/image-xxxx-fs/tmp/docker.sock
-Command: mount --bind /var/run/docker.sock /tmp/image-xxxx-fs/tmp/docker.sock
-Command: chroot /tmp/image-xxxx-fs sh -c command -v sonic-package-manager
-Command: chroot /tmp/image-xxxx-fs sonic-package-manager migrate /tmp/packages.json --dockerd-socket /tmp/docker.sock -y
-migrating package dhcp-relay
-skipping dhcp-relay as installed version is newer
-migrating package macsec
-skipping macsec as installed version is newer
-Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh stop
-Command: mv /tmp/image-xxxx-fs/tmp/docker_config_backup /tmp/image-xxxx-fs/etc/default/docker
-Command: umount -f -R /tmp/image-xxxx-fs
-Command: umount -r -f /tmp/image-xxxx-fs
-Command: rm -rf /tmp/image-xxxx-fs
-Command: sync;sync;sync
+  Command: mkdir -p /tmp/image-xxxx-fs
+  Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
+  Command: sonic-cfggen -d -y /tmp/image-xxxx-fs/etc/sonic/sonic_version.yml -t /tmp/image-xxxx-fs/usr/share/sonic/templates/sonic-environment.j2
+  Command: umount -r -f /tmp/image-xxxx-fs
+  Command: rm -rf /tmp/image-xxxx-fs
+  Command: mkdir -p /tmp/image-xxxx-fs
+  Command: mount -t squashfs /host/image-xxxx/fs.squashfs /tmp/image-xxxx-fs
+  Command: mkdir -p /host/image-xxxx/rw
+  Command: mkdir -p /host/image-xxxx/work
+  Command: mkdir -p /tmp/image-xxxx-fs
+  Command: mount overlay -t overlay -o rw,relatime,lowerdir=/tmp/image-xxxx-fs,upperdir=/host/image-xxxx/rw,workdir=/host/image-xxxx/work /tmp/image-xxxx-fs
+  Command: mkdir -p /tmp/image-xxxx-fs/var/lib/docker
+  Command: mount --bind /host/image-xxxx/docker /tmp/image-xxxx-fs/var/lib/docker
+  Command: chroot /tmp/image-xxxx-fs mount proc /proc -t proc
+  Command: chroot /tmp/image-xxxx-fs mount sysfs /sys -t sysfs
+  Command: cp /tmp/image-xxxx-fs/etc/default/docker /tmp/image-xxxx-fs/tmp/docker_config_backup
+  Command: sh -c echo 'DOCKER_OPTS="$DOCKER_OPTS -H unix:// --storage-driver=overlay2 --bip=240.127.1.1/24 --iptables=false --ipv6=true --fixed-cidr-v6=fd00::/80 "' >> /tmp/image-xxxx-fs/etc/default/docker
+  Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh start
+  mount: /sys/fs/cgroup/cpu: cgroup already mounted on /sys/fs/cgroup.
+  mount: /sys/fs/cgroup/cpuacct: cgroup already mounted on /sys/fs/cgroup.
+  Command: cp /var/lib/sonic-package-manager/packages.json /tmp/image-xxxx-fs/tmp/packages.json
+  Command: touch /tmp/image-xxxx-fs/tmp/docker.sock
+  Command: mount --bind /var/run/docker.sock /tmp/image-xxxx-fs/tmp/docker.sock
+  Command: chroot /tmp/image-xxxx-fs sh -c command -v sonic-package-manager
+  Command: chroot /tmp/image-xxxx-fs sonic-package-manager migrate /tmp/packages.json --dockerd-socket /tmp/docker.sock -y
+  migrating package dhcp-relay
+  skipping dhcp-relay as installed version is newer
+  migrating package macsec
+  skipping macsec as installed version is newer
+  Command: chroot /tmp/image-xxxx-fs /usr/lib/docker/docker.sh stop
+  Command: mv /tmp/image-xxxx-fs/tmp/docker_config_backup /tmp/image-xxxx-fs/etc/default/docker
+  Command: umount -f -R /tmp/image-xxxx-fs
+  Command: umount -r -f /tmp/image-xxxx-fs
+  Command: rm -rf /tmp/image-xxxx-fs
+  Command: sync;sync;sync
 
-Command: sleep 3
+  Command: sleep 3
 
-Done
-```
+  Done
+  ```
 
 Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
 
