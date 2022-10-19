@@ -100,7 +100,7 @@ routing_stack = get_routing_stack()
 
 def run_command(command, pager=False, return_output=False, return_exitstatus=False):
     # Provide option for caller function to Process the output.
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     if return_output:
         output = proc.communicate()
         return output if not return_exitstatus else output + (proc.returncode,)
@@ -163,40 +163,40 @@ elif routing_stack == "frr":
 @cli.command()
 def counters():
     """Clear counters"""
-    command = "portstat -c"
+    command = ["portstat", "-c"]
     run_command(command)
 
 @cli.command()
 @click.argument('interface', metavar='<interface_name>', required=False, type=str)
 def rifcounters(interface):
     """Clear RIF counters"""
-    command = "intfstat -c"
+    command = ["intfstat", "-c"]
     if interface is not None:
-        command = "intfstat -i {} -c".format(interface)
+        command = ["intfstat", "-i", interface, "-c"]
     run_command(command)
 
 @cli.command()
 def queuecounters():
     """Clear queue counters"""
-    command = "queuestat -c"
+    command = ["queuestat", "-c"]
     run_command(command)
 
 @cli.command()
 def pfccounters():
     """Clear pfc counters"""
-    command = "pfcstat -c"
+    command = ["pfcstat", "-c"]
     run_command(command)
 
 @cli.command()
 def dropcounters():
     """Clear drop counters"""
-    command = "dropstat -c clear"
+    command = ["dropstat", "-c", "clear"]
     run_command(command)
 
 @cli.command()
 def tunnelcounters():
     """Clear Tunnel counters"""
-    command = "tunnelstat -c"
+    command = ["tunnelstat", "-c"]
     run_command(command)
 
 #
@@ -217,13 +217,13 @@ def watermark():
 @watermark.command('headroom')
 def clear_wm_pg_headroom():
     """Clear user headroom WM for pg"""
-    command = 'watermarkstat -c -t pg_headroom'
+    command = ['watermarkstat', '-c', '-t', 'pg_headroom']
     run_command(command)
 
 @watermark.command('shared')
 def clear_wm_pg_shared():
     """Clear user shared WM for pg"""
-    command = 'watermarkstat -c -t pg_shared'
+    command = ['watermarkstat', '-c', '-t', 'pg_shared']
     run_command(command)
 
 @priority_group.group()
@@ -237,7 +237,7 @@ def clear_pg_counters():
 
     if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
         exit("Root privileges are required for this operation")
-    command = 'pg-drop -c clear'
+    command = ['pg-drop', '-c', 'clear']
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -249,13 +249,13 @@ def persistent_watermark():
 @persistent_watermark.command('headroom')
 def clear_pwm_pg_headroom():
     """Clear persistent headroom WM for pg"""
-    command = 'watermarkstat -c -p -t pg_headroom'
+    command = ['watermarkstat', '-c', '-p', '-t', 'pg_headroom']
     run_command(command)
 
 @persistent_watermark.command('shared')
 def clear_pwm_pg_shared():
     """Clear persistent shared WM for pg"""
-    command = 'watermarkstat -c -p -t pg_shared'
+    command = ['watermarkstat', '-c', '-p', '-t', 'pg_shared']
     run_command(command)
 
 
@@ -273,19 +273,19 @@ def watermark():
 @watermark.command('unicast')
 def clear_wm_q_uni():
     """Clear user WM for unicast queues"""
-    command = 'watermarkstat -c -t q_shared_uni'
+    command = ['watermarkstat', '-c', '-t', 'q_shared_uni']
     run_command(command)
 
 @watermark.command('multicast')
 def clear_wm_q_multi():
     """Clear user WM for multicast queues"""
-    command = 'watermarkstat -c -t q_shared_multi'
+    command = ['watermarkstat', '-c', '-t', 'q_shared_multi']
     run_command(command)
 
 @watermark.command('all')
 def clear_wm_q_all():
     """Clear user WM for all queues"""
-    command = 'watermarkstat -c -t q_shared_all'
+    command = ['watermarkstat', '-c', '-t', 'q_shared_all']
     run_command(command)
 
 @queue.group(name='persistent-watermark')
@@ -297,19 +297,19 @@ def persistent_watermark():
 @persistent_watermark.command('unicast')
 def clear_pwm_q_uni():
     """Clear persistent WM for persistent queues"""
-    command = 'watermarkstat -c -p -t q_shared_uni'
+    command = ['watermarkstat', '-c', '-p', '-t', 'q_shared_uni']
     run_command(command)
 
 @persistent_watermark.command('multicast')
 def clear_pwm_q_multi():
     """Clear persistent WM for multicast queues"""
-    command = 'watermarkstat -c -p -t q_shared_multi'
+    command = ['watermarkstat', '-c', '-p', '-t', 'q_shared_multi']
     run_command(command)
 
 @persistent_watermark.command('all')
 def clear_pwm_q_all():
     """Clear persistent WM for all queues"""
-    command = 'watermarkstat -c -p -t q_shared_all'
+    command = ['watermarkstat', '-c', '-p', '-t', 'q_shared_all']
     run_command(command)
 
 @cli.group(name='headroom-pool')
@@ -323,7 +323,7 @@ def watermark():
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
-    command = 'watermarkstat -c -t headroom_pool'
+    command = ['watermarkstat', '-c', '-t', 'headroom_pool']
     run_command(command)
 
 @headroom_pool.command('persistent-watermark')
@@ -332,7 +332,7 @@ def persistent_watermark():
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
-    command = 'watermarkstat -c -p -t headroom_pool'
+    command = ['watermarkstat', '-c', '-p', '-t', 'headroom_pool']
     run_command(command)
 
 #
@@ -344,17 +344,17 @@ def persistent_watermark():
 def arp(ipaddress):
     """Clear IP ARP table"""
     if ipaddress is not None:
-        command = 'sudo ip -4 neigh show {}'.format(ipaddress)
+        command = ['sudo', 'ip', '-4', 'neigh', 'show', ipaddress]
         (out, err) = run_command(command, return_output=True)
         if not err and 'dev' in out:
             outputList = out.split()
             dev = outputList[outputList.index('dev') + 1]
-            command = 'sudo ip -4 neigh del {} dev {}'.format(ipaddress, dev)
+            command = ['sudo', 'ip', '-4', 'neigh', 'del', ipaddress, 'dev', dev]
         else:
             click.echo("Neighbor {} not found".format(ipaddress))
             return
     else:
-        command = "sudo ip -4 -s -s neigh flush all"
+        command = ['sudo', 'ip', '-4', '-s', '-s', 'neigh', 'flush', 'all']
 
     run_command(command)
 
@@ -367,17 +367,17 @@ def arp(ipaddress):
 def ndp(ipaddress):
     """Clear IPv6 NDP table"""
     if ipaddress is not None:
-        command = 'sudo ip -6 neigh show {}'.format(ipaddress)
+        command = ['sudo', 'ip', '-6', 'neigh', 'show', ipaddress]
         (out, err) = run_command(command, return_output=True)
         if not err and 'dev' in out:
             outputList = out.split()
             dev = outputList[outputList.index('dev') + 1]
-            command = 'sudo ip -6 neigh del {} dev {}'.format(ipaddress, dev)
+            command = ['sudo', 'ip', '-6', 'neigh', 'del', ipaddress, 'dev', dev]
         else:
             click.echo("Neighbor {} not found".format(ipaddress))
             return
     else:
-        command = 'sudo ip -6 -s -s neigh flush all'
+        command = ['sudo', 'ip', '-6', '-s', '-s', 'neigh', 'flush', 'all']
 
     run_command(command)
 
@@ -398,7 +398,7 @@ def fdb():
 @fdb.command('all')
 def clear_all_fdb():
     """Clear All FDB entries"""
-    command = 'fdbclear'
+    command = ['fdbclear']
     run_command(command)
 
 # 'sonic-clear fdb port' and 'sonic-clear fdb vlan' will be added later
@@ -426,7 +426,7 @@ def clear_vlan_fdb(vlanid):
 @click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
 def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
+    cmd = ["consutil", "clear", "{}".format("--devicename" if devicename else ""), str(target)]
     (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
     click.echo(output)
     sys.exit(exitstatus)
@@ -445,7 +445,7 @@ def nat():
 def statistics():
     """ Clear all NAT statistics """
 
-    cmd = "natclear -s"
+    cmd = ["natclear", "-s"]
     run_command(cmd)
 
 # 'translations' subcommand ("clear nat translations")
@@ -453,7 +453,7 @@ def statistics():
 def translations():
     """ Clear all NAT translations """
 
-    cmd = "natclear -t"
+    cmd = ["natclear", "-t"]
     run_command(cmd)
 
 # 'pbh' group ("clear pbh ...")
@@ -480,7 +480,7 @@ def statistics(db):
 @cli.command()
 def flowcnt_trap():
     """ Clear trap flow counters """
-    command = "flow_counters_stat -c -t trap"
+    command = ["flow_counters_stat", "-c", '-t', "trap"]
     run_command(command)
 
 
