@@ -1745,7 +1745,7 @@ def metrics(db, port, json_output):
 def event_log(db, port, json_output):
     """Show muxcable event log <port>"""
 
-    click.confirm(('Muxcable at port {} will retreive cable logs from MCU, Caution: approx wait time could be ~2 minutes Continue?'.format(port), abort=True)
+    click.confirm(('Muxcable at port {} will retreive cable logs from MCU, Caution: approx wait time could be ~2 minutes Continue?'.format(port)), abort=True)
     port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_EVENT_LOG_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RSP")

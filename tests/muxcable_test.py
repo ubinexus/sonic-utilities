@@ -980,6 +980,7 @@ class TestMuxcable(object):
         assert result.exit_code == 0
 
 
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
