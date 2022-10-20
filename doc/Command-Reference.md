@@ -4116,6 +4116,36 @@ This command is used to enable or disable low-power mode for an SFP transceiver
   Disabling low-power mode for port Ethernet0...  OK
   ```
 
+**config interface transceiver frequency**
+
+This command is used to set the coherent module laser frequency
+
+- Usage:
+  ```
+  config interface transceiver frequency <interface_name> <frequency_value>
+  ```
+
+- Examples:
+  ```
+  user@sonic:~# config interface transceiver frequency Ethernet0 196100
+  Setting laser frequency to 196100 GHz on port Ethernet0
+  ```
+
+**config interface transceiver tx_power**
+
+This command is used to set the coherent module tx power
+
+- Usage:
+  ```
+  config interface transceiver tx_power <interface_name> <tx_power_value>
+  ```
+
+- Examples:
+  ```
+  user@sonic:~# config interface transceiver tx_power Ethernet0 -- -10.0
+  Setting target Tx output power to -10.0 dBm on port Ethernet0
+  ```
+
 **config interface transceiver reset**
 
 This command is used to reset an SFP transceiver
@@ -10438,6 +10468,39 @@ This command removes all unused images from the device, leaving only the current
   admin@sonic:~$ sudo sonic-installer cleanup
   Remove images which are not current and next, continue? [y/N]: y
   No image(s) to remove
+  ```
+
+**sonic-installer get-fips**
+
+This command is used to get the fips status.
+
+- Usage:
+  ```
+  sonic-installer get-fips [<image_name>]
+  ```
+If the image is not specified, the next boot image will be used.
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer get-fips
+  FIPS is enabled
+  ```
+
+**sonic-installer set-fips**
+
+The command is used to enable or disable the fips.
+
+- Usage:
+  ```
+  sonic-installer set-fips [--enable-fips|--disable-fips] [<image_name>]
+  ```
+If the option --enable-fips or --disable-fips is not specified, the default behavior is to enable fips.
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer set-fips --enable-fips
+  Done
+  Set FIPS for the image successfully
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#software-installation-and-management)
