@@ -1608,7 +1608,7 @@ def version(db, port, active):
         else:
             click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
 
-   elif port == "all" and port is not None:
+    elif port == "all" and port is not None:
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
