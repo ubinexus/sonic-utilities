@@ -26,7 +26,7 @@ try:
     import sys
     import subprocess
     import click
-    import xml.etree.ElementTree as ET
+    from lxml import etree as ET
     from sonic_py_common import device_info
     from shlex import join
 except ImportError as e:
