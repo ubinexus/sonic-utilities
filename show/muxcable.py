@@ -102,7 +102,6 @@ def check_port_in_mux_cable_table(port):
 def get_per_port_firmware(port):
 
     state_db = {}
-    muxcable_info_tbl = {}
     mux_info_dict = {}
     mux_info_full_dict = {}
 
