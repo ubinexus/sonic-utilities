@@ -1436,9 +1436,10 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
-    def test_show_muxcable_firmware_version(self):
+    def test_show_muxcable_firmware_version_all(self):
         runner = CliRunner()
         db = Db()
 
