@@ -110,7 +110,7 @@ def get_per_port_firmware(port):
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        state_db[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        state_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         state_db[asic_id].connect(state_db[asic_id].STATE_DB)
 
     if platform_sfputil is not None:
