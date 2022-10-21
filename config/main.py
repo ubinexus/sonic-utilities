@@ -1572,7 +1572,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
 
     if cache_arp_table:
-        cache_arp_entries()
+        mux_cable_config = db.cfgdb.get_table('MUX_CABLE')
+        if not any('cable_type' in mux_cable and mux_cable['cable_type']=='active-active' for mux_cable in mux_cable_config.values()):
+            cache_arp_entries()
 
     #Stop services before config push
     if not no_service_restart:
