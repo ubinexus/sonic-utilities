@@ -422,6 +422,23 @@ show_muxcable_firmware_version_expected_output = """\
 }
 """
 
+show_muxcable_firmware_version_all_expected_output = """\
+{
+    "Ethernet12": {
+        "version_nic_active": "0.1MS",
+        "version_nic_inactive": "0.1MS",
+        "version_nic_next": "0.1MS",
+        "version_peer_active": "0.1MS",
+        "version_peer_inactive": "0.1MS",
+        "version_peer_next": "0.1MS",
+        "version_self_active": "0.1MS",
+        "version_self_inactive": "0.1MS",
+        "version_self_next": "0.1MS"
+    }
+}
+"""
+
+
 show_muxcable_firmware_version_active_expected_output = """\
 {
     "version_self_active": "0.6MS",
@@ -1446,7 +1463,9 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["firmware"].commands["version"], [
                                "all"], obj=db)
         assert result.exit_code == 0
-        assert result.output == show_muxcable_firmware_version_expected_output
+        f = open("newfile", "w")
+        f.write(result.output)
+        assert result.output == show_muxcable_firmware_version_all_expected_output
 
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
