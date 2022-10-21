@@ -359,7 +359,7 @@ def event_counters():
     if table:
         click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
     else:
-         click.echo('No data available in COUNTERS_EVENTS\n')
+        click.echo('No data available in COUNTERS_EVENTS\n')
 
 
 #
