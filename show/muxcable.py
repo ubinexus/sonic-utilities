@@ -104,6 +104,7 @@ def get_per_port_firmware(port):
     state_db = {}
     muxcable_info_tbl = {}
     mux_info_dict = {}
+    mux_info_full_dict = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -111,8 +112,7 @@ def get_per_port_firmware(port):
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         state_db[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        state_db[asic_id].connect(statedb[asic_id].STATE_DB)
-        muxcable_info_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "MUX_CABLE_INFO")
+        state_db[asic_id].connect(state_db[asic_id].STATE_DB)
 
     if platform_sfputil is not None:
         asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
@@ -127,10 +127,11 @@ def get_per_port_firmware(port):
             return False
 
 
-    muxcable_grpc_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-        per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_INFO|{}'.format(port))
+    mux_info_full_dict[asic_index] = state_db[asic_index].get_all(
+        state_db[asic_index].STATE_DB, 'MUX_CABLE_INFO|{}'.format(port))
 
-    res_dir = muxcable_grpc_dict
+    res_dir = {}
+    res_dir = mux_info_full_dict[asic_index]
     mux_info_dict["version_nic_active"] = res_dir.get("version_nic_active", None)
     mux_info_dict["version_nic_inactive"] = res_dir.get("version_nic_inactive", None)
     mux_info_dict["version_nic_next"] = res_dir.get("version_nic_next", None)
