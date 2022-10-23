@@ -1258,7 +1258,7 @@ When user has not configured server specific timeout, this global value shall be
   admin@sonic:~$ sudo config tacacs timeout 60
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#aaa--tacacs)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#tacacs)
 
 
 
@@ -1439,8 +1439,6 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   File "acl_incremental_snmp_1_3_ssh_4.json" has got SNMP Rule1, SNMP Rule3 and SSH Rule4.
   This file is created by copying the file "acl_full_snmp_1_2_ssh_4.json" to "acl_incremental_snmp_1_3_ssh_4.json" and then removing SNMP Rule2 and adding SNMP Rule3.
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
-
 **config acl add table**
 
 This command is used to create new ACL tables.
@@ -1617,6 +1615,8 @@ This command displays the state and key parameters of all BFD sessions that matc
   -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
   10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#bfd)
 
 ## BGP
 
@@ -1987,6 +1987,7 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ### BGP config commands
 
@@ -2531,7 +2532,7 @@ This comnmand is used to clear drop counters. This is done on a per-user basis.
   Cleared drop counters
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](##drop-counters)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
 
 ## Dynamic Buffer Management
 
@@ -2623,8 +2624,6 @@ This command is used to configure the length of the cable connected to a port. T
   admin@sonic:~$ sudo config interface cable_length Ethernet0 40m
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
-
 **config interface buffer priority-group lossless**
 
 This command is used to configure the priority groups on which lossless traffic runs.
@@ -2679,8 +2678,6 @@ This command is used to configure the priority groups on which lossless traffic 
   ```
   admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0
   ```
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
 **config interface buffer queue**
 
@@ -2918,6 +2915,8 @@ This command is used to display the status of buffer pools and profiles currentl
   size        0
   ----------  --------------------------------
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
 ## ECN
 
@@ -3825,6 +3824,8 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
 
 This command is already explained [here](#Transceivers)
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
 ### Interface Config Commands
 This sub-section explains the following list of configuration on the interfaces.
 1) ip - To add or remove IP address for the interface
@@ -4235,8 +4236,6 @@ Double tab i.e. <tab><tab> to see the available breakout option customized for e
 
 For details please refer [DPB HLD DOC](https://github.com/sonic-net/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
 **config interface autoneg <interface_name> (Versions >= 202106)**
 
 This command is used to set port auto negotiation mode.
@@ -4259,8 +4258,6 @@ This command is used to set port auto negotiation mode.
 
   admin@sonic:~$ sudo config interface autoneg Ethernet0 disabled
   ```
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 **config interface advertised-speeds <interface_name> (Versions >= 202106)**
 
@@ -4285,8 +4282,6 @@ This command is used to set port advertised speed.
   admin@sonic:~$ sudo config interface advertised-speeds Ethernet0 50000,100000
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
 **config interface advertised-types <interface_name> (Versions >= 202106)**
 
 This command is used to set port advertised interface types.
@@ -4310,8 +4305,6 @@ This command is used to set port advertised interface types.
   admin@sonic:~$ sudo config interface advertised-types Ethernet0 CR,CR4
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
 **config interface type <interface_name> (Versions >= 202106)**
 
 This command is used to set port interface type.
@@ -4333,15 +4326,11 @@ This command is used to set port interface type.
   admin@sonic:~$ sudo config interface type Ethernet0 CR4
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
 **config interface cable_length (Versions >= 202006)**
 
 This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
 
 For details please refer [dynamic buffer management](#dynamic-buffer-management)
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 **config interface lossless_pg (Versions >= 202006)**
 
@@ -4349,15 +4338,11 @@ This command is used to configure the priority groups on which lossless traffic 
 
 For details please refer [dynamic buffer management](#dynamic-buffer-management)
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
 **config interface headroom_override (Versions >= 202006)**
 
 This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
 
 For details please refer [dynamic buffer management](#dynamic-buffer-management)
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 **config interface mpls add <interface_name> (Versions >= 202106)**
 
@@ -5046,6 +5031,9 @@ last number of lines.
   [ 656.337476] gpio_ich(E) ahci(E) mlxsw_core(E) libahci(E) devlink(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) lpc_ich(E) mfd_core(E) ehci_pci(E) ehci_hcd(E) usbcore(E) e1000e(E) usb_common(E) fan(E) thermal(E)
   [ 656.569590] CR2: 0000000000000000
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#linux-kernel-dump)
+
 ### Linux Kernel Dump config command
 
 **config kdump**
@@ -5067,7 +5055,7 @@ Since this command might require changing the kernel parameters to specify the a
     num_dumps  Configure the maximum dump files of KDUMP mechanism
 
   ```
-Go Back To [Beginning of the document](#) or [Beginning of this section](#kdump)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#linux-kernel-dump)
 
 ## LLDP
 
@@ -5371,6 +5359,8 @@ It is recommended to use loopback names in the format "Loopbackxxx", where "xxx"
   admin@sonic:~$ sudo config loopback add Loopback11
   ```
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#loopback-interfaces)
+
 ## VRF Configuration
 
 ### VRF show commands
@@ -5420,6 +5410,8 @@ This command deletes vrf with name vrf-name.
   ```
   config vrf del <vrf-name>
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vrf-configuration)
 
 ## Management VRF
 
@@ -7088,6 +7080,8 @@ It supports add/delete operations.
   config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
   ```
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#nvgre)
+
 ## PBH
 
 This section explains the various show commands and configuration commands available for users.
@@ -8386,6 +8380,8 @@ This command is used to add or delete the SNMP user for SNMPv3.
   Restarting SNMP service...
   ```
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#snmp)
+
 ## Startup & Running Configuration
 
 ### Startup Configuration
@@ -8699,7 +8695,7 @@ This sub-section explains how to configure subinterfaces.
   admin@sonic:~$ sudo config subinterface del Eth64.100 100
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#subinterfaces)
 
 ## Syslog
 
@@ -9051,8 +9047,6 @@ This command displays virtual address to the physical address translation status
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
-
 ### System-Health
 
 These commands are used to monitor the system current running services and hardware state.
@@ -9234,6 +9228,7 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   -----------  --------  ------
   psu.voltage  Ignored   Device
   ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
 
 ## VLAN & FDB
@@ -11455,3 +11450,5 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
                           the service booted instead of the last clear command.
     -h, -?, --help         Show this message and exit.
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
