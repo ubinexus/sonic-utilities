@@ -184,7 +184,7 @@
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
-  * [ ZTP show commands](#ztp-show-commands)
+  * [ZTP show commands](#ztp-show-commands)
   * [ZTP configuration commands](#ztp-configuration-commands)
 * [MACsec Commands](#macsec-commands)
   * [MACsec config command](#macsec-config-command)
@@ -11060,19 +11060,19 @@ This command displays the routing policy that takes precedence over the other ro
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#quagga-bgp-show-commands)
 
-# ZTP Configuration And Show Commands
+## ZTP Configuration and Show Commands
 
 This section explains all the Zero Touch Provisioning commands that are supported in SONiC.
 
-## ZTP show commands
+### ZTP show commands
 
-
+**show ztp status**
 This command displays the current ZTP configuration of the switch. It also displays detailed information about current state of a ZTP session. It displays information related to all configuration sections as defined in the switch provisioning information discovered in a particular ZTP session.
 
 - Usage:
-  show ztp status
-
-  show ztp status --verbose
+  ```
+  show ztp status [--verbose]
+  ```
 
 - Example:
 
@@ -11153,15 +11153,19 @@ Use the verbose option to display more detailed information.
   - **Activity String** - In addition to above information an activity string is displayed indicating the current action being performed by the ZTP service and how much time it has been performing the mentioned activity. Below is an example.
     -    (04m 12s) Discovering provisioning data
 
-## ZTP configuration commands
+### ZTP configuration commands
 
 This sub-section explains the list of the configuration options available for ZTP.
-
-
 
 **config ztp enable**
 
 Use this command to enable ZTP administrative mode
+
+- Usage:
+
+  ```
+  config ztp enable
+  ```
 
 - Example:
 
@@ -11177,9 +11181,10 @@ Use this command to enable ZTP administrative mode
 Use this command to disable ZTP administrative mode.  This command can also be used to abort a current ZTP session and load the factory default switch configuration.
 
 - Usage:
-  config ztp disable
 
-  config ztp disable -y
+  ```
+  config ztp disable [-y|--yes]
+  ```
 
 - Example:
 
@@ -11195,9 +11200,9 @@ Use this command to disable ZTP administrative mode.  This command can also be u
 Use this command to manually restart a new ZTP session.  This command deletes the existing */etc/sonic/config_db.json* file and stats ZTP service. It also erases the previous ZTP session data. ZTP configuration is loaded on to the switch and ZTP discovery is performed.
 
 - Usage:
-  config ztp run
-
-  config ztp run -y
+  ```
+  config ztp run [-y|--yes]
+  ```
 
 - Example:
 
@@ -11207,7 +11212,7 @@ Use this command to manually restart a new ZTP session.  This command deletes th
   Running command: ztp run -y
   ```
 
-Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#ztp-configuration-and-show-commands)
 
 # MACsec Commands
 
