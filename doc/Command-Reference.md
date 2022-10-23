@@ -67,8 +67,8 @@
   * [Interface naming mode show commands](#interface-naming-mode-show-commands)
   * [Interface naming mode config commands](#interface-naming-mode-config-commands)
  * [Interface Vrf binding](#interface-vrf-binding)
-      * [Interface vrf bind & unbind config commands](#interface-vrf-bind--unbind-config-commands)
-      * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
+  * [Interface vrf bind & unbind config commands](#interface-vrf-bind--unbind-config-commands)
+  * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
@@ -90,11 +90,11 @@
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](#saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
-    * [Loopback show commands](#loopback-show-commands)
-    * [Loopback config commands](#loopback-config-commands)
+  * [Loopback show commands](#loopback-show-commands)
+  * [Loopback config commands](#loopback-config-commands)
 * [VRF Configuration](#vrf-configuration)
-    * [VRF show commands](#vrf-show-commands)
-    * [VRF config commands](#vrf-config-commands)
+  * [VRF show commands](#vrf-show-commands)
+  * [VRF config commands](#vrf-config-commands)
 * [Management VRF](#Management-VRF)
   * [Management VRF Show commands](#management-vrf-show-commands)
   * [Management VRF Config commands](#management-vrf-config-commands)
@@ -304,8 +304,8 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-
 ## Getting Help
 
 Subsections:
-  1. [Help for Config Commands](#Config-Help)
-  2. [Help for Show Commands](#Show-Help)
+  1. [Help for Config Commands](#help-for-config-commands)
+  2. [Help for Show Commands](#help-for-show-commands)
   3. [Show Versions](#Show-Versions)
   4. [Show System Status](#Show-System-Status)
   5. [Show Hardware Platform](#Show-Hardware-Platform)
@@ -4526,7 +4526,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#interf
 
 This sub-section explains the various IP protocol specific show commands that are used to display the following.
 1) routes
-2) bgp details - Explained in the [bgp section](#show-bgp)
+2) bgp details - Explained in the [bgp section](#bgp)
 3) IP interfaces
 4) prefix-list
 5) protocol
@@ -4624,7 +4624,7 @@ The type of interfaces include the following.
 #### show ip protocol
 
 This command displays the route-map that is configured for the routing protocol.
-Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
+Refer the routing stack [Quagga Command Reference](https://www.nongnu.org/quagga/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
 
 - Usage:
   ```
@@ -4657,7 +4657,7 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 This sub-section explains the various IPv6 protocol specific show commands that are used to display the following.
 1) routes
-2) IPv6 bgp details - Explained in the [bgp section](#show-bgp)
+2) IPv6 bgp details - Explained in the [bgp section](#bgp)
 3) IP interfaces
 4) protocol
 
@@ -4759,7 +4759,7 @@ The type of interfaces include the following.
 **show ipv6 protocol**
 
 This command displays the route-map that is configured for the IPv6 routing protocol.
-Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
+Refer the routing stack [Quagga Command Reference](https://www.nongnu.org/quagga/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
 
 
 - Usage:
@@ -10851,7 +10851,7 @@ Once if users go to "vtysh", they can use the routing stack specific commands as
       Exit routemap
   ```
 
-Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about about the routing stack configuration.
+Refer the routing stack [Quagga Command Reference](https://www.nongnu.org/quagga/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about about the routing stack configuration.
 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#routing-stack)
