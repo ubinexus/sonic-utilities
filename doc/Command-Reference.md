@@ -80,7 +80,7 @@
   * [Kubernetes config commands](#Kubernetes-config-commands)
 * [Linux Kernel Dump](#linux-kernel-dump)
   * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
-  * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-command)
+  * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -1312,10 +1312,10 @@ It can be:
     -  physical interface name, e.g. "Ethernet10"
     -  port channel name, e.g. "PortChannel0002"
     -  next-hop IP address, e.g. "10.0.0.1"
-    -  next-hop group set of IP addresses with comma seperator, e.g. "10.0.0.1,10.0.0.3"
+    -  next-hop group set of IP addresses with comma separator, e.g. "10.0.0.1,10.0.0.3"
 - "MIRROR INGRESS|EGRESS: session-name" for mirror rules, where "session-name" refers to mirror session
 
-Users can choose to have a default permit rule or default deny rule. In case of default "deny all" rule, add the permitted rules on top of the deny rule. In case of the default "permit all" rule, users can add the deny rules on top of it. If users have not confgured any rule, SONiC allows all traffic (which is "permit all").
+Users can choose to have a default permit rule or default deny rule. In case of default "deny all" rule, add the permitted rules on top of the deny rule. In case of the default "permit all" rule, users can add the deny rules on top of it. If users have not configured any rule, SONiC allows all traffic (which is "permit all").
 
 5) Match  - The fields from the packet header that need to be matched against the same present in the incoming traffic.
 
@@ -1358,7 +1358,7 @@ In order to create acl tables, either follow the config_db.json method or minigr
 
 After creating tables, either the config_db.json method or the minigraph method or the CLI method (explained here) can be used to populate the rules in those ACL tables.
 
-This command updates only the ACL rules and it does not disturb the ACL tables; i.e. the output of "show acl table" is not alterted by using this command; only the output of "show acl rule" will be changed after this command.
+This command updates only the ACL rules and it does not disturb the ACL tables; i.e. the output of "show acl table" is not altered by using this command; only the output of "show acl rule" will be changed after this command.
 
 When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
 
@@ -1372,8 +1372,8 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   ```
 
   - Parameters:
-    - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
-    - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
+    - table_name: Specify the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
+    - session_name: Specify the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
     - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
 
     *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
@@ -1395,7 +1395,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 This command is used to perform incremental update of ACL rule table. This command gets existing rules from Config DB and compares with rules specified in input file and performs corresponding modifications.
 
-With respect to DATA ACLs, the command does not assume that new dataplane ACLs can be inserted in betweeen by shifting existing ACLs in all ASICs. Therefore, this command performs a full update on dataplane ACLs.
+With respect to DATA ACLs, the command does not assume that new dataplane ACLs can be inserted in between by shifting existing ACLs in all ASICs. Therefore, this command performs a full update on dataplane ACLs.
 With respect to control plane ACLs, this command performs an incremental update.
 If we assume that "file1.json" is the already loaded ACL rules file and if "file2.json" is the input file that is passed as parameter for this command, the following requirements are valid for the input file.
 1) First copy the file1.json to file2.json.
@@ -1403,7 +1403,7 @@ If we assume that "file1.json" is the already loaded ACL rules file and if "file
 3) Add the newly required ACL rules into file2.json.
 4) Modify the existing ACL rules (that require changes) in file2.json.
 
-NOTE: If any ACL rule that is already available in file1.json is required even after this command execution, such rules should remain unalterted in file2.json. Don't remove them.
+NOTE: If any ACL rule that is already available in file1.json is required even after this command execution, such rules should remain unaltered in file2.json. Don't remove them.
 Note that "incremental" is working like "full".
 
 When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
@@ -1418,8 +1418,8 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   ```
 
   - Parameters:
-    - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
-    - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
+    - table_name: Specify the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
+    - session_name: Specify the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
     - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
 
     *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
@@ -1488,7 +1488,7 @@ This command displays the ARP entries in the device with following options.
 - Details:
   - show arp: Displays all entries
   - show arp -if <ifname>: Displays the ARP specific to the specified interface.
-  - show arp <ip-address>: Displays the ARP specific to the specicied ip-address.
+  - show arp <ip-address>: Displays the ARP specific to the specified ip-address.
 
 
 - Example:
@@ -1620,8 +1620,8 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#bfd)
 
 ## BGP
 
-This section explains all the BGP show commands and BGP configuation commands in both "Quagga" and "FRR" routing software that are supported in SONiC.
-In 201811 and older verisons "Quagga" was enabled by default. In current version "FRR" is enabled by default.
+This section explains all the BGP show commands and BGP configuration commands in both "Quagga" and "FRR" routing software that are supported in SONiC.
+In 201811 and older versions "Quagga" was enabled by default. In current version "FRR" is enabled by default.
 Most of the FRR show commands start with "show bgp". Similar commands in Quagga starts with "show ip bgp". All sub-options supported in all these show commands are common for FRR and Quagga.
 Detailed show commands examples for Quagga are provided at the end of this document.This section captures only the commands supported by FRR.
 
@@ -2459,7 +2459,7 @@ Because clear (see below) is handled on a per-user basis different users may see
 
 This command is used to initialize a new drop counter. The user must specify a name, type, and initial list of drop reasons.
 
-This command will fail if the given name is already in use, if the type of counter is not supported, or if any of the specified drop reasons are not supported. It will also fail if all avaialble counters are already in use on the device.
+This command will fail if the given name is already in use, if the type of counter is not supported, or if any of the specified drop reasons are not supported. It will also fail if all available counters are already in use on the device.
 
 - Usage:
   ```
@@ -5034,7 +5034,7 @@ last number of lines.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#linux-kernel-dump)
 
-### Linux Kernel Dump config command
+### Linux Kernel Dump config commands
 
 **config kdump**
 
@@ -6437,7 +6437,7 @@ This command is used to delete a configured NTP server IP address.
 Go Back To [Beginning of the document](#) or [Beginning of this section](#NTP)
 
 # PFC Watchdog Commands
-Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/sonic-net/SONiC/wiki/PFC-Watchdog)
+Detailed description of the PFC Watchdog can be found on [this wiki page](https://github.com/sonic-net/SONiC/wiki/PFC-Watchdog)
 
 **config pfcwd start \<arguments\>**
 
@@ -10771,7 +10771,7 @@ Configure minimum available memory in MB. System will automatically generate a t
   config auto-techsupport-feature update swss --rate-limit-interval 200
   ```
 
-#### Show CLI:
+#### show auto-techsupport commands
 
 **show auto-techsupport global**
 
