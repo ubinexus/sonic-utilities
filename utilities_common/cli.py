@@ -291,10 +291,10 @@ def vlan_range_list(ctx, vid_range: str) -> list:
     vid1, vid2 = map(int, vid_range.split("-"))
 
     if vid1 == 1 or vid2 == 1:
-        ctx.fail("Vlan1 is default vlan. Use switchport command.")
+        ctx.fail("Vlan1 is default vlan")
 
     if vid1 >= vid2:
-        ctx.fail("vid2 is greater than vid1. List  cannot be generated")
+        ctx.fail("{} is greater than {}. List cannot be generated".format(vid1,vid2))
 
     if is_vlanid_in_range(vid1) and is_vlanid_in_range(vid2):
         return list(range(vid1, vid2+1))
@@ -313,7 +313,7 @@ def multiple_vlan_parser(ctx, s_input: str) -> list:
         elif vlan.isdigit() and int(vlan) not in vlan_list:
             vlan_list.append(int(vlan))
         elif not vlan.isdigit():
-            ctx.fail(vlan, " is not an integer.")
+            ctx.fail("{} is not integer".format(vlan))
 
     vlan_list.sort()
     return vlan_list
@@ -322,46 +322,49 @@ def multiple_vlan_parser(ctx, s_input: str) -> list:
 def get_existing_vlan_id(db) -> list:
     existing_vlans = []
     vlan_data = db.cfgdb.get_table('VLAN')
-    keys = (vlan_data.keys())
-    
-    for i in keys:
+
+    for i in vlan_data.keys():
         existing_vlans.append(int(i.strip("Vlan")))
 
-    if 1 in existing_vlans:
-        existing_vlans.remove(1)
     return sorted(existing_vlans)
 
+def get_existing_vlan_id_on_interface(db,port) -> list:
+    intf_vlans = []
+    vlan_member_data = db.cfgdb.get_table('VLAN_MEMBER')
 
-def port_vlan_member_exist(db, vlan, portname):
-    vlan_member_table = db.cfgdb.get_table('VLAN_MEMBER')
-    if vlan_member_table.has_key((vlan, portname)):
-        return True
-    else:
-        return False
+    for (k,v) in vlan_member_data.keys():
+        if v == port:
+            intf_vlans.append(int(k.strip("Vlan")))
 
-
-def get_existing_port_vlan_status(db, vlan, portname) -> str:
-    vlan_member_table = db.cfgdb.get_table('VLAN_MEMBER')
-    return vlan_member_table[(vlan, portname)]["tagging_mode"]
+    return sorted(intf_vlans)
 
 
-def vlan_member_input_parser(ctx, db, except_flag, multiple, vid) -> list:
+def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, port) -> list:
     vid_list = []
     if vid == "all":
-        return get_existing_vlan_id(db)
+        if command_mode == "add":
+            return get_existing_vlan_id(db) # config vlan member add
+        if command_mode == "del":
+            return get_existing_vlan_id_on_interface(db,port) # config vlan member del
     if multiple:
         vid_list = multiple_vlan_parser(ctx, vid)
     if except_flag:
-        comp_list = get_existing_vlan_id(db)  # get from same method as all
+        if command_mode == "add":
+            comp_list = get_existing_vlan_id(db)  # config vlan member add
+        elif command_mode == "del":
+            comp_list = get_existing_vlan_id_on_interface(db,port) # config vlan member del
         if multiple:
             for i in vid_list:
                 if i in comp_list:
                     comp_list.remove(i)
-            vid_list = comp_list
         else:
-            if vid.isdigit() and int(vid) in comp_list:
-                vid_list = comp_list.remove(int(vid))
-    else:
+            if not vid.isdigit():
+                ctx.fail("Vlan is not integer.")
+            vid = int(vid)
+            if vid in comp_list:
+                comp_list.remove(vid)
+        vid_list = comp_list
+    elif not multiple:
         # if entered vlan is not a integer
         if not vid.isdigit():
             ctx.fail("Vlan is not integer.")

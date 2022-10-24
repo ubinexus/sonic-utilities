@@ -103,12 +103,12 @@ def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list,config
     if intf_name in front_panel_ports_list:
         if intf_name in int_to_vlan_dict.keys():
             vlan = int_to_vlan_dict[intf_name]
-            if "Vlan" in vlan:
-                vlan = "trunk"
-                if intf_name in ports_dict:
-                    intf_data = ports_dict[intf_name]
-                    if "mode" in intf_data:
-                        vlan = intf_data["mode"]
+            if "PortChannel" in vlan:
+                return vlan
+    if intf_name in ports_dict:
+        intf_data = ports_dict[intf_name]
+        if "mode" in intf_data:
+            vlan = intf_data["mode"]
     return vlan
 
 
@@ -368,12 +368,7 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
             return "N/A"
         return status
     if status_type == "vlan":
-        port_table = config_db.get_table('PORT')
-        if po_name in port_table:
-            port_data = port_table[po_name]
-            if "mode" in port_data:
-                status = port_data["mode"]
-        elif combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
+        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
             status = "trunk"
         else:
             status = "routed"

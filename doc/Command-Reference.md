@@ -161,6 +161,7 @@
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
     * [VLAN Config commands](#vlan-config-commands)
+    * [Switchport commands](#switchport-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
 * [VxLAN & Vnet](#vxlan--vnet)
@@ -9304,38 +9305,28 @@ This command is used to add or delete the vlan.
 
 **config vlan add/del -m**
 
-This command is used to add or delete the vlan in a comma separted format. Different vlans can be added or deleted at once.
+This command is used to add or delete Vlan in a comma separted format or in a range format. Multiple Vlans can be added or deleted at once.
 
 - Usage:
 
   ```
-  config vlan (add | del) -m <vlan_ids>
+  config vlan (add | del) -m <vlan_id|s>
   ```
 
-- Example (Create the VLAN "Vlan100,Vlan200,Vlan300" if these does not already exist):
+- Example (Create the VLAN "Vlan100, Vlan200, Vlan300" if these does not already exist):
   ```
   admin@sonic:~$ sudo config vlan add -m 100,200,300
+  This command will add Vlan100 , Vlan200, Vlan300 
   ```
 
-**config vlan add/del range**
-
-This command is used to add or delete the vlan in a range format. A range of vlans can be added or deleted at once.
-
-- Usage:
-
+- Example (Create Range of VLAN(s) from 10-15 if these does not already exist):
   ```
-  config vlan (add | del) range  <vlan_id_1> <vlan_id_2>
+  admin@sonic:~$ sudo config vlan add -m 10-15
+  This command will add Vlan10, Vlan11, Vlan12, Vlan13, Vlan14, Vlan15 
   ```
-
-- Example (Create the VLAN "Vlan100 to Vlan110" in a range if these does not already exist):
-  ```
-  admin@sonic:~$ sudo config vlan add range 100 110
-  This command will create VLANs from Vlan100 to Vlan 110 in a range one by one
-  ```
-
 **config vlan member add/del**
 
-This command is to add or delete members port into the already created vlan.
+ _NOTE: This command can only be used after configuring switchport mode on the interface._
 
 - Usage:
   ```
@@ -9354,55 +9345,55 @@ _NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
   This command will add Ethernet4 as member of the vlan 100.
   ```
 
-**config vlan member add/del -m -e <vlan_ids> <member_portname>**
+**config vlan member add/del -m  <vlan_ids> <member_portname>**
 
-This command is to add or delete multiple vlan members into port.
-
-_NOTE: This command is only for adding tagged vlan members into port._
+ _NOTE: This command can only be used after configuring switchport mode on the interface. This is only for adding tagged vlan members to trunk port_
 
 - Usage:
+  ```
+  config vlan member add/del  [-m|--multiple] <vlan_id> <member_portname>
+  ```
+
+
+- Example (Add the VLAN "Vlan100, Vlan200, Vlan300" in one command on port if they don't exist as members):
 
   ```
-  config vlan member add/del [-m|--multiple] [-e|--except_flag] <vlan_ids> <member_portname>
-  ```
-
-- Example (Add the VLAN "Vlan100,Vlan200,Vlan300" in one command on port if they don't exist as members):
-
-  ```
-  admin@sonic:~$ sudo config vlan member add -m  100,200,300 Ethernet0
-  This command will add Ethernet0 as member of the vlan 100, vlan 200, vlan 300
+  admin@sonic:~$ sudo config vlan member add -m 100,200,300 Ethernet0
+  This command will add Ethernet0 as member of the Vlan100, Vlan200, Vlan300
 
   admin@sonic:~$ sudo config vlan member add -m 100,200,300 Ethernet4
-  This command will add Ethernet4 as member of the vlan 100, vlan 200, vlan 300
+  This command will add Ethernet4 as member of the Vlan100, Vlan200, Vlan300
+  ```
+- Example (Add the VLAN "Vlan10, Vlan11, Vlan12, Vlan13" in one command on port if they don't exist as members):
+  ```
+  admin@sonic:~$ sudo config vlan member add -m 10-13 Ethernet0
+  This command will add Ethernet0 as member of the Vlan10, Vlan11, Vlan12, Vlan13
+
   ```
 
-- Example (Add all VLANs except "Vlan100,Vlan300" from existing VLAN on port if they don't exist as members):
+- Example (Suppose if Vlan10, Vlan20, Vlan30, Vlan40, Vlan50, Vlan70 are existing Vlans, Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members):
+
+  ```
+  admin@sonic:~$ sudo config vlan member add -e 10 Ethernet0
+  This command will add Ethernet0 as member of Vlan 20, Vlan30, Vlan 40, Vlan 50, Vlan 70
+  ```
+  
+- Example (Suppose if Vlan10, Vlan11, Vlan12, Vlan13, Vlan14, Vlan15, Vlan16, Vlan17, Vlan18, Vlan19, Vlan20 are existing Vlans. Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members):
+
+
+  ```
+  admin@sonic:~$ sudo config vlan member add  -m -e 12-17 Ethernet0
+  This command will add Ethernet0 as member of Vlan10, Vlan11, Vlan18, Vlan19, Vlan20
+  ```
+- Example (Add all VLANs except "Vlan100, Vlan300" from existing VLAN on port if they don't exist as members):
 
   _Suppose if Vlan 100, Vlan 200, Vlan 300, Vlan 400, Vlan 500, Vlan 700 are existing Vlans._
 
   ```
-  admin@sonic:~$ sudo config vlan member add -e 100,300 Ethernet4
+  admin@sonic:~$ sudo config vlan member add -m -e 100,300 Ethernet4
   This command will add Ethernet4 as member of Vlan 200, Vlan 400, Vlan 500, Vlan 700
   ```
 
-**config vlan member add/del range <vlan_id_1> <vland_id_2> <member_portname>**
-
-This command is to add or delete range of vlan members into port.
-
-_NOTE: This command is only for adding tagged vlan members into port._
-
-- Usage:
-
-  ```
-  config vlan member add/del range <vlan_id_1> <vland_id_2> <member_portname>
-  ```
-
-- Example (Add VLAN "Vlan100, Vlan200, Vlan300, Vlan400 ,Vlan500" in one command on port if they don't exist as members):
-
-  ```
-  admin@sonic:~$ sudo config vlan member add range 100 105 Ethernet0
-  This command will add Ethernet0 as member of the Vlan100, Vlan101, Vlan102, Vlan103, Vlan104, Vlan105
-  ```
 
 **config vlan member add/del all <member_portname>**
 
@@ -9410,14 +9401,18 @@ This command is to add or delete all existing vlan members onto/from port.
 
 _This will not work for untagged vlans._
 
-- Example (Add all VLANs except "Vlan100,Vlan300" from existing VLAN on port if they don't exist as members):
+- Example (Add all VLANs except "Vlan100, Vlan300" from existing VLAN on port if they don't exist as members):
 
-  _Suppose if Vlan 100, Vlan 200, Vlan 300, Vlan 400, Vlan 500, Vlan 700 are existing Vlans._
+  _Suppose if Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700 are existing Vlans._
 
   ```
   admin@sonic:~$ sudo config vlan member add all Ethernet4
-  This command will add Ethernet4 as member of Vlan 100, Vlan 200, Vlan 300, Vlan 400, Vlan 500, Vlan 700
+  This command will add Ethernet4 as member of Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700
   ```
+
+#### SWITCHPORT Config commands
+
+This sub-section explains how to configure the switchport mode of ports.
 
 **config switchport mode trunk|access|routed <member_portname>**
 
@@ -9433,7 +9428,7 @@ This command is to use to add port modes
 
   ```
   admin@sonic:~$ sudo config switchport mode trunk Ethernet0
-  This command will add Ethernet0 as member of Default Vlan1 as trunk port
+  This command will configure Ethernet0 as trunk port
   ```
 
 - Usage:
@@ -9446,7 +9441,7 @@ This command is to use to add port modes
 
   ```
   admin@sonic:~$ sudo config switchport mode access Ethernet0
-  This command will add Ethernet0 as member of Default Vlan1 as access port
+  This command will configure Ethernet0 as access port
   ```
 
 - Usage:
@@ -9459,10 +9454,11 @@ This command is to use to add port modes
 
   ```
   admin@sonic:~$ sudo config switchport mode routed Ethernet0
-  This command will remove Ethernet0 as member of Default Vlan1 and set it in routed mode
+  This command will change mode from either access or trunk to routed mode.
   ```
 
-  ```
+_NOTE: When the interface is in routed mode, VLAN|s cannot be added to the interface_
+
 **config proxy_arp enabled/disabled**
 
 This command is used to enable or disable proxy ARP for a VLAN interface

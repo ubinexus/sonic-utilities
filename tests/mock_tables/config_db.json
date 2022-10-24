@@ -221,7 +221,6 @@
         "lanes": "69,70,71,72",
         "mtu": "9100",
         "tpid": "0x8100",
-        "mode": "routed",
         "pfc_asym": "off",
         "speed": "40000"
     },

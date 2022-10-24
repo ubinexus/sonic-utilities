@@ -36,13 +36,15 @@ def add_vlan(db, vid, multiple):
         vid_list = clicommon.multiple_vlan_parser(ctx, vid)
     else:
         if not vid.isdigit():
-            ctx.fail("Vlan is not integer.")
+            ctx.fail("{} is not integer".format(vid))
         vid_list.append(int(vid))
 
     if ADHOC_VALIDATION:
 
         # loop will execute till an exception occurs
         for vid in vid_list:
+
+            vlan = 'Vlan{}'.format(vid)
 
             # default vlan checker
             if vid == 1:
@@ -54,8 +56,6 @@ def add_vlan(db, vid, multiple):
             if not clicommon.is_vlanid_in_range(vid):
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
-            vlan = 'Vlan{}'.format(vid)
-
             # TODO: MISSING CONSTRAINT IN YANG MODEL
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
                 log.log_info("{} already exists".format(vlan))
@@ -63,7 +63,7 @@ def add_vlan(db, vid, multiple):
 
             try:
                 config_db.set_entry('VLAN', vlan, {'vlanid': str(vid)})
-                click.echo("'vlan add {} ' done".format(vid))
+                click.echo("Vlan{} has been added".format(vid))
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
@@ -84,7 +84,7 @@ def del_vlan(db, vid, multiple):
         vid_list = clicommon.multiple_vlan_parser(ctx, vid)
     else:
         if not vid.isdigit():
-            ctx.fail("Vlan is not integer.")
+            ctx.fail("{} is not integer".format(vid))
         vid_list.append(int(vid))
 
     if ADHOC_VALIDATION:
@@ -118,7 +118,7 @@ def del_vlan(db, vid, multiple):
                     ctx.fail("vlan: {} can not be removed. First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)))
             try:
                 config_db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
-                click.echo("'vlan del {} ' done".format(vid))
+                click.echo("Vlan{} has deleted added".format(vid))
             except JsonPatchConflict:
                 ctx.fail("{} does not exist".format(vlan))
                 
@@ -187,7 +187,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 
     # parser will parse the vid input if there are syntax errors it will throw error
 
-    vid_list = clicommon.vlan_member_input_parser(ctx, db, except_flag, multiple, vid)
+    vid_list = clicommon.vlan_member_input_parser(ctx, "add", db, except_flag, multiple, vid, port)
 
     # multiple vlan command cannot be used to add multiple untagged vlan members
     if untagged and (multiple or except_flag or vid == "all"):
@@ -254,21 +254,24 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 port_data = port_table_data[port]
 
                 if "mode" not in port_data: 
-                    ctx.fail("{} is in routed mode!\nUse switchport mode command to changes port mode".format(port))
+                    ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
                 else:
                     existing_mode = port_data["mode"]
                 
+                if existing_mode == "routed":
+                    ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
+
                 mode_type = "access" if untagged else "trunk"
                 if existing_mode == "access" and mode_type == "trunk":  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                    ctx.fail("{} is in access mode! Tagged Members cannot be added".format(existing_mode))
+                    ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
                 
-                if existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
+                elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
                     pass
             
             # in case of exception in list last added member will be shown to user
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
-                click.echo("'vlan member add {} {}' done".format(vid, port))
+                click.echo("{} is added to {} as vlan member".format(port, vlan))
             except ValueError:
                 ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
 
@@ -287,7 +290,7 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
 
     # parser will parse the vid input if there are syntax errors it will throw error
 
-    vid_list = clicommon.vlan_member_input_parser(ctx, db, except_flag, multiple, vid)
+    vid_list = clicommon.vlan_member_input_parser(ctx,"del", db, except_flag, multiple, vid, port)
 
     if ADHOC_VALIDATION:
         for vid in vid_list:
@@ -315,7 +318,7 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
-                click.echo("'vlan member del {} {}' done".format(vid, port))
+                click.echo("{} is removed from {} as vlan member".format(port, vlan))
 
             except JsonPatchConflict:
                 ctx.fail("{} invalid or does not exist, or {} is not a member of {}".format(vlan, port, vlan))

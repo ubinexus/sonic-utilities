@@ -69,7 +69,8 @@ def switchport_mode(db, type, port):
             if mode_exists_status:
                 db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
             if not mode_exists_status:
-                db.cfgdb.set_entry("PORT", port, {"mode": "{}".format(type)})
+                port_data["mode"] = type
+                db.cfgdb.set_entry("PORT", port, port_data)
         
         if existing_mode == type:
             ctx.fail("{} is already in the {} mode".format(port,type))
@@ -77,21 +78,21 @@ def switchport_mode(db, type, port):
             if existing_mode == "access" and type == "trunk":
                 pass
             if existing_mode == "trunk" and type == "access":
-                if clicommon.interface_is_tagged_member(db,port):
+                if clicommon.interface_is_tagged_member(db.cfgdb,port):
                     ctx.fail("{} is in {} mode and have tagged member|s.\nRemove tagged member|s from {} to switch to {} mode".format(port,existing_mode,port,type))
 
             db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
 
-        click.echo("{} switched from {} to {} mode.".format(port, existing_mode, type))
+        click.echo("{} switched from {} to {} mode".format(port, existing_mode, type))
 
     # if mode type is routed
     else:
 
-        if clicommon.interface_is_tagged_member(db,port):
+        if clicommon.interface_is_tagged_member(db.cfgdb,port):
             ctx.fail("{} has tagged member|s. \nRemove them to change mode to {}".format(port,type))
 
-        if clicommon.interface_is_untagged_member(db,port):
-            ctx.fail("{} has tagged member|s. \nRemove them to change mode to {}".format(port,type))
+        if clicommon.interface_is_untagged_member(db.cfgdb,port):
+            ctx.fail("{} has untagged member. \nRemove them to change mode to {}".format(port,type))
 
         if "mode" in port_data:
             existing_mode = port_data["mode"]
@@ -100,12 +101,14 @@ def switchport_mode(db, type, port):
             mode_exists_status = False
         
         if not mode_exists_status:
+            port_data["mode"] = type
             db.cfgdb.set_entry("PORT", port, {"mode": "{}".format(type)})
-            click.echo("{} switched to {} mode.".format(port, type))
+            click.echo("{} switched to {} mode".format(port, type))
         
         if mode_exists_status and existing_mode == type:
             ctx.fail("{} is already in {} mode".format(port,type))
         
-        db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
-        click.echo("{} switched from {} to {} mode".format(port,existing_mode,type))
+        else:
+            db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
+            click.echo("{} switched from {} to {} mode".format(port,existing_mode,type))
 
