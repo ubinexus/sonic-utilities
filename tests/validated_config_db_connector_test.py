@@ -42,5 +42,7 @@ class TestValidatedConfigDBConnector(TestCase):
 
     def test_create_gcu_patch(self):
         expected_gcu_patch = jsonpatch.JsonPatch([{"op": "add", "path": "/PORTCHANNEL/PortChannel01", "value": "test"}])
-        created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", "test")
-        assert expected_gcu_patch == created_gcu_patch
+        with mock.patch('validated_config_db_connector.ConfigDBConnector.get_table', return_value=True):
+            with mock.patch('validated_config_db_connector.ConfigDBConnector.get_entry', return_value=True):
+                created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", "test")
+                assert expected_gcu_patch == created_gcu_patch
