@@ -2,13 +2,10 @@ import click
 
 import json
 import ipaddress
-import os
 import subprocess
 
 import utilities_common.cli as clicommon
 from sonic_py_common import logger
-from sonic_py_common import multi_asic
-from sonic_package_manager.manager import PackageManager
 from syslog_util import common as syslog_common
 
 
