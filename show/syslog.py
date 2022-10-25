@@ -69,7 +69,7 @@ def rate_limit_host(db):
         "BURST",
     ]
     body = []
-    entry = db.get_entry(syslog_common.SYSLOG_CONFIG_TABLE, syslog_common.SYSLOG_CONFIG_GLOBAL_KEY)
+    entry = db.cfgdb.get_entry(syslog_common.SYSLOG_CONFIG_TABLE, syslog_common.SYSLOG_CONFIG_GLOBAL_KEY)
     if entry:
         body.append([entry.get(syslog_common.SYSLOG_RATE_LIMIT_INTERVAL, 'N/A'),
                     entry.get(syslog_common.SYSLOG_RATE_LIMIT_BURST, 'N/A')])
