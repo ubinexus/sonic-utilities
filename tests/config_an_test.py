@@ -33,6 +33,9 @@ class TestConfigInterface(object):
         self.basic_check("autoneg", ["Ethernet0", "disabled"], ctx)
         self.basic_check("autoneg", ["Invalid", "enabled"], ctx, operator.ne)
         self.basic_check("autoneg", ["Ethernet0", "invalid"], ctx, operator.ne)
+        # Setting auto negotiation on a port channel is not supported
+        result = self.basic_check("autoneg", ["PortChannel0001", "enabled"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_speed(self, ctx):
         self.basic_check("speed", ["Ethernet0", "40000"], ctx)
