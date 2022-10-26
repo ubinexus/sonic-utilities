@@ -5,7 +5,6 @@ from jsonpointer import JsonPointer
 from sonic_py_common import device_info
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from generic_config_updater.gu_common import EmptyTableError, genericUpdaterLogging
-from swsscommon.swsscommon import ConfigDBConnector
 
 class ValidatedConfigDBConnector(object):
     
@@ -40,7 +39,7 @@ class ValidatedConfigDBConnector(object):
         if value == {"NULL" : "NULL"}:
             value = {}
         else:
-            value = self.stringify_value()
+            value = self.stringify_value(value)
         return path, value
 
     def create_gcu_patch(self, op, table, key=None, value=None, mod_entry=False):
