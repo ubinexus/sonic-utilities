@@ -50,7 +50,7 @@ stages:
     - script: |
         apt list | grep "libboost-serialization"
         set -xe
-        sudo apt-get -y purge libhiredis-dev libnl-3-dev libnl-route-3-dev libboost-serialization1.71-dev
+        sudo apt-get -y purge libhiredis-dev libnl-3-dev libnl-route-3-dev
         sudo dpkg -i libnl-3-200_*.deb
         sudo dpkg -i libnl-genl-3-200_*.deb
         sudo dpkg -i libnl-route-3-200_*.deb
