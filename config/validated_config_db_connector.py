@@ -23,13 +23,14 @@ class ValidatedConfigDBConnector(object):
                 return self.validated_mod_entry
         return self.connector.__getattribute__(name)
 
+    def stringify_value(self, value):
+        if isinstance(value, dict):
+            value = {str(k):str(v) for k, v in value.items()}
+        else:
+            value = str(value)
+        return value
+
     def make_path_value_jsonpatch_compatible(self, table, key, value):
-        def stringify_value():
-            nonlocal value
-            if isinstance(value, dict):
-                value = {str(k):str(v) for k, v in value.items()}
-            else:
-                value = str(value)
         if type(key) == tuple:
             path = JsonPointer.from_parts([table, '|'.join(key)]).path
         elif type(key) == list:
@@ -39,17 +40,19 @@ class ValidatedConfigDBConnector(object):
         if value == {"NULL" : "NULL"}:
             value = {}
         else:
-            stringify_value()
+            value = self.stringify_value()
         return path, value
 
     def create_gcu_patch(self, op, table, key=None, value=None, mod_entry=False):
         gcu_json_input = []
+        """Add patch element to create new table if necessary, as GCU is unable to add to nonexistent table"""
         if op == "add" and not self.get_table(table):
             gcu_json = {"op": "{}".format(op),
                         "path": "/{}".format(table),
                         "value": {}}
             gcu_json_input.append(gcu_json)
 
+        """Add patch element to create ConfigDB path if necessary, as GCU is unable to add to a nonexistent path"""
         if op == "add" and not self.get_entry(table, key):
             path = JsonPointer.from_parts([table, key]).path
             gcu_json = {"op": "{}".format(op),
@@ -70,6 +73,7 @@ class ValidatedConfigDBConnector(object):
 
             gcu_json_input.append(gcu_json)
         
+        """mod_entry makes path more granular so that preexisting fields in db are not removed"""
         if mod_entry:
             key_start = key
             value_copy = copy.deepcopy(value)
