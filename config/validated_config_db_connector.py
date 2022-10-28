@@ -93,6 +93,7 @@ class ValidatedConfigDBConnector(object):
 
         try:
             GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+            return True
         except EmptyTableError:
             self.validated_delete_table(table)
 
@@ -113,7 +114,7 @@ class ValidatedConfigDBConnector(object):
             op = "remove"
 
         gcu_patch = self.create_gcu_patch(op, table, key, value, mod_entry=True)
-        self.apply_patch(gcu_patch, table)
+        return self.apply_patch(gcu_patch, table)
 
     def validated_set_entry(self, table, key, value):
         if value is not None:
@@ -122,4 +123,4 @@ class ValidatedConfigDBConnector(object):
             op = "remove"
 
         gcu_patch = self.create_gcu_patch(op, table, key, value)
-        self.apply_patch(gcu_patch, table)
+        return self.apply_patch(gcu_patch, table)
