@@ -5017,7 +5017,7 @@ def bind(ctx, interface_name, vrf_name):
     else:
         config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
-    click.echo("Interface {} IPv4 disabled and address(es) removed due to binding VRF {}.".format(interface_name, vrf_name))
+    click.echo("Interface {} IP disabled and address(es) removed due to binding VRF {}.".format(interface_name, vrf_name))
 #
 # 'unbind' subcommand
 #
@@ -5054,7 +5054,7 @@ def unbind(ctx, interface_name):
     else:
         config_db.set_entry(table_name, interface_name, None)
     
-    click.echo("Interface {} IPv4 disabled and address(es) removed due to unbinding VRF.".format(interface_name))
+    click.echo("Interface {} IP disabled and address(es) removed due to unbinding VRF.".format(interface_name))
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
 #
@@ -5228,7 +5228,7 @@ def del_vrf(ctx, vrf_name):
     else:
         del_interface_bind_to_vrf(config_db, vrf_name)
         config_db.set_entry('VRF', vrf_name, None)
-        click.echo("VRF {} deleted and all associated IPv4 addresses removed.".format(vrf_name))
+        click.echo("VRF {} deleted and all associated IP addresses removed.".format(vrf_name))
 
 @vrf.command('add_vrf_vni_map')
 @click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
