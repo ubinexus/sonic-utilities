@@ -87,7 +87,7 @@ class ValidatedConfigDBConnector(object):
         gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
         return gcu_patch
 
-    def apply_patch(self, gcu_patch):
+    def apply_patch(self, gcu_patch, table):
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
 
@@ -113,7 +113,7 @@ class ValidatedConfigDBConnector(object):
             op = "remove"
 
         gcu_patch = self.create_gcu_patch(op, table, key, value, mod_entry=True)
-        self.apply_patch(gcu_patch)
+        self.apply_patch(gcu_patch, table)
 
     def validated_set_entry(self, table, key, value):
         if value is not None:
