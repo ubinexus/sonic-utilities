@@ -122,4 +122,4 @@ class ValidatedConfigDBConnector(object):
             op = "remove"
 
         gcu_patch = self.create_gcu_patch(op, table, key, value)
-        self.apply_patch(gcu_patch)
+        self.apply_patch(gcu_patch, table)
