@@ -543,7 +543,7 @@ idx:    0            1        2     3   4       5            6         7        
             if i.isdigit() and int(i) != 0:
                 if cnt == 6:
                     syslog.syslog(syslog.LOG_ERR, "TX_ERR {} found on link {}!".format(i, link))
-                if cnt == 15:
+                if cnt == 13:
                     syslog.syslog(syslog.LOG_ERR, "RX_ERR {} found on link {}!".format(i, link))
                 else:
                     continue
