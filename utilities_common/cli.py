@@ -547,7 +547,9 @@ idx:    0            1        2     3   4       5            6         7        
                     syslog.syslog(syslog.LOG_ERR, "RX_ERR {} found on link {}!".format(i, link))
                 else:
                     continue
-    return
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
 
 
 def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
