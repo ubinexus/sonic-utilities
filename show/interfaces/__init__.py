@@ -527,7 +527,6 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
 
     if ctx.invoked_subcommand is None:
         cmd = "portstat"
-        clicommon.masic_run_command_int_ext_and_alert(cmd)
         if printall:
             cmd += " -a"
         if period is not None:
