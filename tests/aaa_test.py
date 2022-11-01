@@ -294,7 +294,17 @@ class TestAaa(object):
 
         result = runner.invoke(config.config.commands["tacacs"].commands["delete"], ["10.10.10.10"], obj=obj)
         print(result.exit_code)
-        print(result.output)
         assert result.exit_code != 0
-        assert "Invalid ip address. Error:" in result.output
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
+    def test_config_aaa_tacacs_add_yang_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["tacacs"].commands["add"], ["10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        assert result.exit_code != 0
