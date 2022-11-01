@@ -33,27 +33,40 @@ class TestValidatedConfigDBConnector(TestCase):
         mock_generic_updater = mock.Mock()
         mock_generic_updater.apply_patch = mock.Mock(side_effect=EmptyTableError)
         with mock.patch('validated_config_db_connector.GenericUpdater', return_value=mock_generic_updater):
-            remove_entry_success = validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry(mock.Mock(), SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_EMPTY)
-            assert remove_entry_success
+            try:
+                remove_entry_success = validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry(mock.Mock(), SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_EMPTY)
+            except Exception as ex:
+                assert False, "Exception {} thrown unexpectedly".format(ex)
 
     def test_validated_mod_entry(self):
         mock_generic_updater = mock.Mock()
         with mock.patch('validated_config_db_connector.GenericUpdater', return_value=mock_generic_updater):
-            successful_application = validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry(mock.Mock(), SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_DICT)
-            assert successful_application
+            try:
+                successful_application = validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry(mock.Mock(), SAMPLE_TABLE, SAMPLE_KEY, SAMPLE_VALUE_DICT)
+            except Exception as ex:
+                assert False, "Exception {} thrown unexpectedly".format(ex)
 
     def test_validated_delete_table_invalid_delete(self):
         mock_generic_updater = mock.Mock()
         mock_generic_updater.apply_patch = mock.Mock(side_effect=ValueError)
         with mock.patch('validated_config_db_connector.GenericUpdater', return_value=mock_generic_updater):
-            delete_table_success = validated_config_db_connector.ValidatedConfigDBConnector.validated_delete_table(mock.Mock(), SAMPLE_TABLE)
-            assert not delete_table_success
+            try:
+                delete_table_success = validated_config_db_connector.ValidatedConfigDBConnector.validated_delete_table(mock.Mock(), SAMPLE_TABLE)
+            except Exception as ex:
+                assert False, "Exception {} thrown unexpectedly".format(ex)
 
-    def test_create_gcu_patch(self):
+    def test_create_gcu_patch_set_entry(self):
         expected_gcu_patch = jsonpatch.JsonPatch([{"op": "add", "path": "/PORTCHANNEL", "value": {}}, {"op": "add", "path": "/PORTCHANNEL/PortChannel01", "value": {}}, {"op": "add", "path": "/PORTCHANNEL/PortChannel01", "value": "test"}])
         with mock.patch('validated_config_db_connector.ConfigDBConnector.get_table', return_value=False):
             with mock.patch('validated_config_db_connector.ConfigDBConnector.get_entry', return_value=False):
                 created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", SAMPLE_VALUE)
+                assert expected_gcu_patch == created_gcu_patch
+
+    def test_create_gcu_patch_mod_entry(self):
+        expected_gcu_patch = jsonpatch.JsonPatch([{"op": "add", "path": "/PORTCHANNEL/PortChannel01/test_key", "value": "test_value"}])
+        with mock.patch('validated_config_db_connector.ConfigDBConnector.get_table', return_value=True):
+            with mock.patch('validated_config_db_connector.ConfigDBConnector.get_entry', return_value=True):
+                created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", {"test_key": "test_value"}, mod_entry=True)
                 assert expected_gcu_patch == created_gcu_patch
 
     def test_apply_patch(self):
@@ -61,5 +74,7 @@ class TestValidatedConfigDBConnector(TestCase):
         mock_generic_updater.apply_patch = mock.Mock(side_effect=EmptyTableError)
         with mock.patch('validated_config_db_connector.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('validated_config_db_connector.ValidatedConfigDBConnector.validated_delete_table', return_value=True):
-                apply_patch_success = validated_config_db_connector.ValidatedConfigDBConnector.apply_patch(mock.Mock(), SAMPLE_PATCH, SAMPLE_TABLE)
-                assert not apply_patch_success
+                try:
+                    validated_config_db_connector.ValidatedConfigDBConnector.apply_patch(mock.Mock(), SAMPLE_PATCH, SAMPLE_TABLE)
+                except Exception as ex:
+                    assert False, "Exception {} thrown unexpectedly".format(ex)
