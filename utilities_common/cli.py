@@ -10,7 +10,6 @@ import click
 import json
 import lazy_object_proxy
 import netaddr
-import syslog
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
@@ -508,46 +507,6 @@ def run_command_in_alias_mode(command):
                 click.echo(converted_output.rstrip('\n'))
 
     rc = process.poll()
-    if rc != 0:
-        sys.exit(rc)
-
-
-def masic_run_command_int_ext_and_alert(command):
-    command += " -s all"
-
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-
-    (out, err) = proc.communicate()
-
-    if len(out) == 0:
-        return
-
-    parsed_op = out.rstrip('\n')
-    item = re.split(' +', parsed_op)
-    cnt = 0
-    link = ""
-    """
-        IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK      TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
-    -----------  -------  -------  --------  ---------  --------  --------  --------  -------  ----------  ---------  --------  --------  --------
-    Ethernet0        D        0  0.00 B/s      0.00%         0         0         0        0    0.00 B/s      0.00%         0         0         0
-    Ethernet4        U        0  0.00 B/s      0.00%         0         0         0    4,806  134.18 B/s      0.00%         0         0         0
-idx:    0            1        2     3   4       5            6         7         8        9      10  11       12           13       14        15
-    """
-    for i in item:
-        if i.startswith('Ethernet'):
-            cnt = 0
-            link = i
-        else:
-            cnt = cnt+1
-            # headers will be ignored by following
-            if i.isdigit() and int(i) != 0:
-                if cnt == 6:
-                    syslog.syslog(syslog.LOG_ERR, "TX_ERR {} found on link {}!".format(i, link))
-                if cnt == 13:
-                    syslog.syslog(syslog.LOG_ERR, "RX_ERR {} found on link {}!".format(i, link))
-                else:
-                    continue
-    rc = proc.poll()
     if rc != 0:
         sys.exit(rc)
 
