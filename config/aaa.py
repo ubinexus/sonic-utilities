@@ -20,7 +20,7 @@ def add_table_kv(table, entry, key, val):
     config_db.connect()
     try:
         config_db.mod_entry(table, entry, {key:val})
-    except Exception as e:
+    except ValueError as e:
         ctx = click.get_current_context()
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
@@ -34,7 +34,7 @@ def del_table_key(table, entry, key):
             del data[key]
         try:
             config_db.set_entry(table, entry, data)
-        except Exception as e:
+        except (ValueError, JsonPatchConflict) as e:
             ctx = click.get_current_context()
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
