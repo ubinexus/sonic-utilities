@@ -1971,14 +1971,10 @@ def override_config_db(config_db, config_input):
 def hostname(new_hostname):
     """Change device hostname without impacting the traffic."""
 
-    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
+    config_db = ConfigDBConnector()
     config_db.connect()
-    try:
-        config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
-                            {'hostname': new_hostname})
-    except Exception as e:
-        ctx = click.get_current_context()
-        ctx.fail("Failed to write new hostname to ConfigDB. Error: {}".format(e))
+    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                        {'hostname': new_hostname})
 
     click.echo('Please note loaded setting will be lost after system reboot. To'
                ' preserve setting, run `config save`.')
@@ -1997,22 +1993,16 @@ def synchronous_mode(sync_mode):
             2. systemctl restart swss
     """
 
-    if ADHOC_VALIDATION:
-        if sync_mode != 'enable' and sync_mode != 'disable':
-            raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
-    
-    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
-    config_db.connect()
-    try:
+    if sync_mode == 'enable' or sync_mode == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
         config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"synchronous_mode" : sync_mode})
-    except Exception as e:
-        ctx = click.get_current_context()
-        ctx.fail("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
-    
-    click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
-        Option 1. config save -y \n
-                  config reload -y \n
-        Option 2. systemctl restart swss""" % sync_mode)
+        click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
+    Option 1. config save -y \n
+              config reload -y \n
+    Option 2. systemctl restart swss""" % sync_mode)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')
@@ -2021,21 +2011,13 @@ def synchronous_mode(sync_mode):
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):
     # Enable or disable YANG validation on updates to ConfigDB
-
-    if ADHOC_VALIDATION:
-        if yang_config_validation != 'enable' and yang_config_validation != 'disable':
-            raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
-
-    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
-    config_db.connect()
-    try:
+    if yang_config_validation == 'enable' or yang_config_validation == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
         config_db.mod_entry('DEVICE_METADATA', 'localhost', {"yang_config_validation": yang_config_validation})
-    except Exception as e:
-        ctx = click.get_current_context()
-        print(e)
-        ctx.fail("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
-
-    click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
+        click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
 
 #
 # 'portchannel' group ('config portchannel ...')
