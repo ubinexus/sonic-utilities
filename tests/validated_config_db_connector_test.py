@@ -56,18 +56,20 @@ class TestValidatedConfigDBConnector(TestCase):
                 assert False, "Exception {} thrown unexpectedly".format(ex)
 
     def test_create_gcu_patch_set_entry(self):
+        mock_validated_config_db_connector = ValidatedConfigDBConnector(ConfigDBConnector())
+        mock_validated_config_db_connector.get_entry = mock.Mock(return_value=False)
+        mock_validated_config_db_connector.get_table = mock.Mock(return_value=False)
         expected_gcu_patch = jsonpatch.JsonPatch([{"op": "add", "path": "/PORTCHANNEL", "value": {}}, {"op": "add", "path": "/PORTCHANNEL/PortChannel01", "value": {}}, {"op": "add", "path": "/PORTCHANNEL/PortChannel01", "value": "test"}])
-        with mock.patch('validated_config_db_connector.ConfigDBConnector.get_table', return_value=False):
-            with mock.patch('validated_config_db_connector.ConfigDBConnector.get_entry', return_value=False):
-                created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", SAMPLE_VALUE)
-                assert expected_gcu_patch == created_gcu_patch
+        created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(mock_validated_config_db_connector, "add", "PORTCHANNEL", "PortChannel01", SAMPLE_VALUE)
+        assert expected_gcu_patch == created_gcu_patch
 
     def test_create_gcu_patch_mod_entry(self):
+        mock_validated_config_db_connector = ValidatedConfigDBConnector(ConfigDBConnector())
+        mock_validated_config_db_connector.get_entry = mock.Mock(return_value=True)
+        mock_validated_config_db_connector.get_table = mock.Mock(return_value=True)
         expected_gcu_patch = jsonpatch.JsonPatch([{"op": "add", "path": "/PORTCHANNEL/PortChannel01/test_key", "value": "test_value"}])
-        with mock.patch('validated_config_db_connector.ConfigDBConnector.get_table', return_value=True):
-            with mock.patch('validated_config_db_connector.ConfigDBConnector.get_entry', return_value=True):
-                created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(ValidatedConfigDBConnector(ConfigDBConnector()), "add", "PORTCHANNEL", "PortChannel01", {"test_key": "test_value"}, mod_entry=True)
-                assert expected_gcu_patch == created_gcu_patch
+        created_gcu_patch = validated_config_db_connector.ValidatedConfigDBConnector.create_gcu_patch(mock_validated_config_db_connector, "add", "PORTCHANNEL", "PortChannel01", {"test_key": "test_value"}, mod_entry=True)
+        assert expected_gcu_patch == created_gcu_patch
 
     def test_apply_patch(self):
         mock_generic_updater = mock.Mock()
