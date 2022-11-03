@@ -281,7 +281,7 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     # send arp/ndp packets
     for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        if subtype.lower() != 'dualtor':
+        if subtype and 'dualtor' in subtype.lower():
             # for non dualtor devices, src mac will be router_mac
             src_mac = src_mac_addrs[src_if]
         else:
