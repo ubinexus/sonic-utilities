@@ -527,6 +527,7 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
 
     if ctx.invoked_subcommand is None:
         cmd = "portstat"
+
         if printall:
             cmd += " -a"
         if period is not None:
@@ -537,8 +538,10 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
             cmd += " -s {}".format(display)
         if namespace is not None:
             cmd += " -n {}".format(namespace)
-        click.echo("\n\nReminder: Please check internal links for any CRC error with '-d all' option\n\n")
+        
         clicommon.run_command(cmd, display_cmd=verbose)
+        if multi_asic.is_multi_asic():
+            click.echo("\n\nReminder: Please execute 'show interface counters -d all' to include internal links\n\n")
 
 # 'errors' subcommand ("show interfaces counters errors")
 @counters.command()
