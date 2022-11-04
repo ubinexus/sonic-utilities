@@ -347,7 +347,7 @@ class AclLoader(object):
         Load file with ACL rules configuration in openconfig ACL format. Convert rules
         to Config DB schema.
         :param filename: File in openconfig ACL format
-        :param is_time_based: A bool, indicates whether the rule is dynamic or not
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return:
         """
         self.yang_acl = AclLoader.parse_acl_json(filename)
@@ -586,7 +586,7 @@ class AclLoader(object):
 
         return rule_props
 
-    def is_db_rule_dynamic(self, key):
+    def is_db_rule_time_based(self, key):
         try:
             data = self.configdb.get_entry(self.ACL_RULE, key)
             if 'is_time_based' in data and data['is_time_based'].lower() == 'true':
@@ -596,9 +596,9 @@ class AclLoader(object):
             return False
         
     def is_time_based_rule(self, rule):
-        return rule.time_range.config.start_time
+        return rule.time_range.config.end_time
 
-    def convert_dynamic_acl_config(self, key, rule):
+    def convert_time_based_acl_config(self, key, rule):
         rule_props = {}
         
         if self.is_time_based_rule(rule):
@@ -608,9 +608,9 @@ class AclLoader(object):
         
         return rule_props
 
-    def add_config_db_dynamic_acl_rule_entry(self, table, rule, entry):
+    def add_config_db_time_based_acl_rule_entry(self, table, rule, entry):
         """
-        Insert entry to CONFIG_DB for dynamic ACL
+        Insert entry to CONFIG_DB for time-based ACL
         """
         key = table + '|' + rule
         try:
@@ -640,12 +640,12 @@ class AclLoader(object):
         :param table_name: ACL table name to which rule belong
         :param rule: ACL rule in openconfig format
         :param rule_name: The name of ACL rule, can be None
-        :param is_time_based: A bool, indicates whether the rule is dynamic or not
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return: dict with Config DB schema
         """
         rule_props = {}
         if is_time_based and not self.is_time_based_rule(rule):
-            warning("Attempting to insert time-based ACL rule without TTL, refused")
+            warning("Attempting to insert time-based ACL rule without timestamps, refused")
             return {}
         if not is_time_based and self.is_time_based_rule(rule):
             warning("Attempting to insert time-based ACL rule to non-time-based ACL table, refused")
@@ -670,7 +670,7 @@ class AclLoader(object):
         deep_update(rule_props, self.convert_icmp(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_input_interface(table_name, rule_idx, rule))
-        deep_update(rule_props, self.convert_dynamic_acl_config(rule_key, rule))
+        deep_update(rule_props, self.convert_time_based_acl_config(rule_key, rule))
 
         self.validate_rule_fields(rule_props)
 
@@ -695,7 +695,7 @@ class AclLoader(object):
     def convert_rules(self, is_time_based):
         """
         Convert rules in openconfig ACL format to Config DB schema
-        :param is_time_based: A bool, indicates whether the rule is dynamic or not
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
@@ -824,18 +824,18 @@ class AclLoader(object):
 
     def update_time_based_acl_rules(self):
         """
-        Perform update of dynamic ACL rule.
-        Renew the TTL of ACL rule if existing, or insert new dynamic ACL rule
+        Perform update of time-based ACL rule.
+        Update the start_time and end_time if existing, or insert new time-based ACL rule
         :return:
         """
         for key, entry in self.rules_info.items():
             if key[1] == self.DEFAULT_RULE:
                 continue
-            self.add_config_db_dynamic_acl_rule_entry(table=key[0], rule=key[1], entry=entry)
+            self.add_config_db_time_based_acl_rule_entry(table=key[0], rule=key[1], entry=entry)
 
     def remove_time_based_acl_rules(self, table=None, rule=None):
         """
-        Remove entry from CONFIG_DB (must be dynamic)
+        Remove entry from CONFIG_DB (must be time-based)
         :return:
         """
         if not rule:
