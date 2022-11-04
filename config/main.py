@@ -1570,6 +1570,15 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
+        # Check the file is properly formatted before proceeding.  
+        try:
+            # Load golden config json
+            config_input = read_json_file(file)
+        except Exception as e:
+            click.secho("Bad format: json file broken. {}".format(str(e)),
+                        fg='magenta')
+            sys.exit(1)
+
         if load_sysinfo:
             try:
                 command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
