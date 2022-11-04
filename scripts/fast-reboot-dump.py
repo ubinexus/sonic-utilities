@@ -283,10 +283,10 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
         if subtype and 'dualtor' in subtype.lower():
             # for non dualtor devices, src mac will be router_mac
-            src_mac = src_mac_addrs[src_if]
+            src_mac = get_iface_mac_addr(vlan_name)
         else:
             # for dualtor devices, the src mac will be vlan_mac
-            src_mac = get_iface_mac_addr(vlan_name)
+            src_mac = src_mac_addrs[src_if]
 
         if ipaddress.ip_interface(str(dst_ip)).ip.version == 4:
             send_arp(sockets[src_if], src_mac, src_ip_addrs[vlan_name], dst_mac, dst_ip)
