@@ -249,3 +249,88 @@ class TestInitConfigMigrator(object):
         assert not diff
 
         assert not expected_db.cfgdb.get_table('CONTAINER_FEATURE')
+
+class TestPfcEnableMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_pfc_enable_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('PORT_QOS_MAP')
+        expected_table = expected_db.cfgdb.get_table('PORT_QOS_MAP')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+class TestGlobalDscpToTcMapMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_global_dscp_to_tc_map_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.asic_type = "broadcom"
+        dbmgtr.hwsku = "vs"
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('PORT_QOS_MAP')
+        expected_table = expected_db.cfgdb.get_table('PORT_QOS_MAP')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+        
+        # Check port_qos_map|global is not generated on mellanox asic
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
+        dbmgtr_mlnx = db_migrator.DBMigrator(None)
+        dbmgtr_mlnx.asic_type = "mellanox"
+        dbmgtr_mlnx.hwsku = "vs"
+        dbmgtr_mlnx.migrate()
+        resulting_table = dbmgtr_mlnx.configDB.get_table('PORT_QOS_MAP')
+        assert resulting_table == {}
+
+class TestWarmUpgrade_to_2_0_2(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_warm_upgrade_to_2_0_2(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_expected')
+        expected_db = Db()
+
+        expected_db
+        new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
+        for table in new_tables:
+            resulting_table = dbmgtr.configDB.get_table(table)
+            expected_table = expected_db.cfgdb.get_table(table)
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff

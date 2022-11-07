@@ -13,7 +13,7 @@ import time
 import itertools
 
 from collections import OrderedDict
-from minigraph import parse_device_desc_xml
+from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
 from socket import AF_INET, AF_INET6
@@ -39,6 +39,12 @@ from . import vlan
 from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
 
+# Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
+# since /usr/local/bin/sonic-cfggen does not have .py extension.
+from imp import load_source
+load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
+import sonic_cfggen
+
 # mock masic APIs for unit test
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -63,6 +69,7 @@ ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
+DEFAULT_GOLDEN_CONFIG_DB_FILE = '/etc/sonic/golden_config_db.json'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -614,20 +621,22 @@ def _change_hostname(hostname):
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
+            'PORT_QOS_MAP',
+            'QUEUE',
             'TC_TO_PRIORITY_GROUP_MAP',
             'MAP_PFC_PRIORITY_TO_QUEUE',
             'TC_TO_QUEUE_MAP',
             'DSCP_TO_TC_MAP',
             'SCHEDULER',
             'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
-            'PORT_QOS_MAP',
             'WRED_PROFILE',
-            'QUEUE',
             'CABLE_LENGTH',
-            'BUFFER_POOL',
-            'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE',
+            'BUFFER_PORT_INGRESS_PROFILE_LIST',
+            'BUFFER_PORT_EGRESS_PROFILE_LIST',
+            'BUFFER_PROFILE',
+            'BUFFER_POOL',
             'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
             'LOSSLESS_TRAFFIC_PATTERN']
 
@@ -935,7 +944,7 @@ def cache_arp_entries():
     if not cache_err:
         fdb_cache_file = os.path.join(cache_dir, 'fdb.json')
         arp_cache_file = os.path.join(cache_dir, 'arp.json')
-        fdb_filter_cmd = '/usr/local/bin/filter_fdb_entries -f {} -a {} -c /etc/sonic/configdb.json'.format(fdb_cache_file, arp_cache_file)
+        fdb_filter_cmd = '/usr/local/bin/filter_fdb_entries -f {} -a {} -c /etc/sonic/config_db.json'.format(fdb_cache_file, arp_cache_file)
         filter_proc = subprocess.Popen(fdb_filter_cmd, shell=True, text=True, stdout=subprocess.PIPE)
         _, filter_err = filter_proc.communicate()
         if filter_err:
@@ -961,6 +970,40 @@ def validate_ipv4_address(ctx, param, ip_addr):
     except ValueError as e:
         raise click.UsageError(str(e))
 
+def _is_storage_device(cfg_db):
+    """
+    Check if the device is a storage device or not
+    """
+    device_metadata = cfg_db.get_entry("DEVICE_METADATA", "localhost")
+    return device_metadata.get("storage_device", "Unknown") == "true"
+
+def _is_acl_table_present(cfg_db, acl_table_name):
+    """
+    Check if acl table exists
+    """
+    return acl_table_name in cfg_db.get_keys("ACL_TABLE")
+
+def load_backend_acl(cfg_db, device_type):
+    """
+    Load acl on backend storage device
+    """
+
+    BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
+    BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
+
+    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db) and _is_acl_table_present(cfg_db, "DATAACL"):
+        if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
+            clicommon.run_command(
+                "{} -d -t {},{}".format(
+                    SONIC_CFGGEN_PATH,
+                    BACKEND_ACL_TEMPLATE_FILE,
+                    BACKEND_ACL_FILE
+                ),
+                display_cmd=True
+            )
+        if os.path.isfile(BACKEND_ACL_FILE):
+            clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -980,6 +1023,10 @@ def config(ctx):
 
     if asic_type == 'mellanox':
         platform.add_command(mlnx.mlnx)
+
+    if asic_type == 'cisco-8000':
+        from sonic_platform.cli.cisco import cisco
+        platform.add_command(cisco)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
@@ -1270,16 +1317,25 @@ def load_mgmt_config(filename):
     config_data = parse_device_desc_xml(filename)
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
-    mgmt_conf = netaddr.IPNetwork(list(config_data['MGMT_INTERFACE'].keys())[0][1])
-    gw_addr = list(config_data['MGMT_INTERFACE'].values())[0]['gwaddr']
-    command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
-    clicommon.run_command(command, display_cmd=True)
-    command = "ip route add default via {} dev eth0 table default".format(gw_addr)
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    for key in list(config_data['MGMT_INTERFACE'].keys()):
+        # key: (eth0, ipprefix)
+        # value: { gwaddr: ip }
+        mgmt_conf = netaddr.IPNetwork(key[1])
+        gw_addr = config_data['MGMT_INTERFACE'][key]['gwaddr']
+        if mgmt_conf.version == 4:
+            command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            command = "ifconfig eth0 add {}".format(str(mgmt_conf))
+            # Ignore error for IPv6 configuration command due to it not allows config the same IP twice
+            clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} route add default via {} dev eth0 table default".format(" -6" if mgmt_conf.version == 6 else "", gw_addr)
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} rule add from {} table default".format(" -6" if mgmt_conf.version == 6 else "", str(mgmt_conf.ip))
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    if len(config_data['MGMT_INTERFACE'].keys()) > 0:
+        command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
@@ -1329,6 +1385,12 @@ def load_minigraph(db, no_service_restart):
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
+    # get the device type
+    device_type = _get_device_type()
+
+    # Load backend acl
+    load_backend_acl(db.cfgdb, device_type)
+
     # Load port_config.json
     try:
         load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
@@ -1338,9 +1400,7 @@ def load_minigraph(db, no_service_restart):
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
-    # get the device type
-    device_type = _get_device_type()
-    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
+    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Write latest db version string into db
@@ -1352,6 +1412,10 @@ def load_minigraph(db, no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+
+    # Load golden_config_db.json
+    if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+        override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -1400,6 +1464,65 @@ def load_port_config(config_db, port_config_path):
                 'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
                 port_name), display_cmd=True)
     return
+
+
+def override_config_by(golden_config_path):
+    # Override configDB with golden config
+    clicommon.run_command('config override-config-table {}'.format(
+        golden_config_path), display_cmd=True)
+    return
+
+
+#
+# 'override-config-table' command ('config override-config-table ...')
+#
+@config.command('override-config-table')
+@click.argument('input-config-db', required=True)
+@click.option(
+    '--dry-run', is_flag=True, default=False,
+    help='test out the command without affecting config state'
+)
+@clicommon.pass_db
+def override_config_table(db, input_config_db, dry_run):
+    """Override current configDB with input config."""
+
+    try:
+        # Load golden config json
+        config_input = read_json_file(input_config_db)
+    except Exception as e:
+        click.secho("Bad format: json file broken. {}".format(str(e)),
+                    fg='magenta')
+        sys.exit(1)
+
+    # Validate if the input is dict
+    if not isinstance(config_input, dict):
+        click.secho("Bad format: input_config_db is not a dict",
+                    fg='magenta')
+        sys.exit(1)
+
+    config_db = db.cfgdb
+
+    if dry_run:
+        # Read config from configDB
+        current_config = config_db.get_config()
+        # Serialize to the same format as json input
+        sonic_cfggen.FormatConverter.to_serialized(current_config)
+        # Override current config with golden config
+        for table in config_input:
+            current_config[table] = config_input[table]
+        print(json.dumps(current_config, sort_keys=True,
+                         indent=4, cls=minigraph_encoder))
+    else:
+        # Deserialized golden config to DB recognized format
+        sonic_cfggen.FormatConverter.to_deserialized(config_input)
+        # Delete table from DB then mod_config to apply golden config
+        click.echo("Removing configDB overriden table first ...")
+        for table in config_input:
+            config_db.delete_table(table)
+        click.echo("Overriding input config to configDB ...")
+        data = sonic_cfggen.FormatConverter.output_to_db(config_input)
+        config_db.mod_config(data)
+        click.echo("Overriding completed. No service is restarted.")
 
 #
 # 'hostname' command
@@ -1671,7 +1794,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
     if policer:
         session_info['policer'] = policer
 
-    if queue:
+    if queue is not None:
         session_info['queue'] = queue
 
     if src_port:
@@ -1697,7 +1820,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
             "ttl": ttl
             }
 
-    if gre_type:
+    if gre_type is not None:
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)

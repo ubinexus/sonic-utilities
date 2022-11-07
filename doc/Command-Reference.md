@@ -4635,7 +4635,7 @@ running on the device.
 
 This command is used to reconfigure hostname and mgmt interface based on device description file.
 This command either uses the optional file specified as arguement or looks for the file "/etc/sonic/device_desc.xml".
-If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress", it fails.
+If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress" (or "ManagementAddressV6"), it fails.
 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
@@ -8135,6 +8135,42 @@ This command displays brief information about all the vnets configured in the de
   Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
   ```
 
+**show vnet endpoint <ip/ipv6>**
+
+This command displays the list or vxlan tunnel endpoints and their status. In addition it also shows the number of prefixes associated with each endpoints in the tunnels. If an IP address of an endpoint is provided, this command also shows the associated prefixes a well.
+
+- Usage:
+
+  ```
+  show vnet endpoint <ipv4_address/ipv6_address>
+
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet endpoint
+  Endpoint                 prefix count  status
+  ---------------------  --------------  --------
+  fddd:a100:a251::a10:1               1  Down
+  fddd:a101:a251::a10:1               1  Up
+  100.251.7.1                         3  Up
+  
+  or
+  
+  admin@sonic:~$ show vnet endpoint fddd:a101:a251::a10:1
+  Endpoint               prefix                        status
+  ---------------------  ----------------------------  --------
+  fddd:a101:a251::a10:1  ['fddd:a150:a251::a6:1/128']  Up
+
+  or
+
+  admin@sonic:~$ show vnet endpoint 100.251.7.1
+  Endpoint     prefix                                                     status
+  -----------  ---------------------------------------------------------  --------
+  100.251.7.1  ['160.62.191.1/32', '160.63.191.1/32', '160.64.191.1/32']  Up
+  ```
+
 **show vnet name <vnet_name>**
 
 This command displays brief information about <vnet_name> configured in the device.
@@ -8200,7 +8236,7 @@ This command displays vnet neighbor information about all the vnets configured i
 
 **show vnet routes all**
 
-This command displays all routes information about all the vnets configured in the device.
+This command displays all routes information about all the vnets configured in the device. It also shows the status of the routes which may or may not be active.
 
 - Usage:
 
@@ -8217,10 +8253,11 @@ This command displays all routes information about all the vnets configured in t
   Vnet_2000    100.100.3.0/24             Ethernet52
   Vnet_3000    100.100.4.0/24             Vlan2000
 
-  vnet name    prefix          endpoint    mac address        vni
-  -----------  --------------  ----------  -----------------  -----
-  Vnet_2000    100.100.1.1/32  10.10.10.1
-  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  vnet name    prefix          endpoint    mac address        vni    status
+  -----------  --------------  ----------  -----------------  -----  -------
+  Vnet_2000    100.100.1.1/32  10.10.10.1                            active
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04         inactive
+  Vnet_3000    100.100.2.3/32  10.10.10.6  00:00:00:00:03:04
   ```
 
 **show vnet routes tunnel**
