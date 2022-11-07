@@ -630,6 +630,7 @@ class TestReloadConfig(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.remove(cls.dummy_cfg_file)
         print("TEARDOWN")
 
 
