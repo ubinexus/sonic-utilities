@@ -509,8 +509,8 @@ class TestMultiAsicPortStat(object):
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
-    def test_multi_show_intf_counters_reminder(self, setup_interf_counters_commands):
-        show = setup_interf_counters_commands
+    def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
+        show = setup_ip_route_commands
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["int"].commands["counters"])
