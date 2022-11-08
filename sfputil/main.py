@@ -20,6 +20,8 @@ from sonic_platform_base.sfp_base import SfpBase
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
+from utilities_common.platform_sfputil_helper import covert_application_advertisement_to_output_string
+from utilities_common.platform_sfputil_helper import QSFP_DATA_MAP
 from tabulate import tabulate
 
 VERSION = '3.0'
@@ -45,25 +47,6 @@ CDB_DEFAULT_HOST_PASSWORD = 0x00001011
 MAX_LPL_FIRMWARE_BLOCK_SIZE = 116 #Bytes
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
-QSFP_DATA_MAP = {
-    'model': 'Vendor PN',
-    'vendor_oui': 'Vendor OUI',
-    'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
-    'manufacturer': 'Vendor Name',
-    'vendor_rev': 'Vendor Rev',
-    'serial': 'Vendor SN',
-    'type': 'Identifier',
-    'ext_identifier': 'Extended Identifier',
-    'ext_rateselect_compliance': 'Extended RateSelect Compliance',
-    'cable_length': 'cable_length',
-    'cable_type': 'Length',
-    'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
-    'specification_compliance': 'Specification compliance',
-    'encoding': 'Encoding',
-    'connector': 'Connector',
-    'application_advertisement': 'Application Advertisement'
-}
-
 QSFP_DD_DATA_MAP = {
     'model': 'Vendor PN',
     'vendor_oui': 'Vendor OUI',
@@ -345,6 +328,8 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'supported_max_laser_freq' or key == 'supported_min_laser_freq':
                 if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
                     output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+            elif key == 'application_advertisement':
+                output += covert_application_advertisement_to_output_string(indent, sfp_info_dict)
             else:
                 try:
                     output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
@@ -1211,8 +1196,8 @@ def download_firmware(port_name, filepath):
 def run(port_name, mode):
     """Run the firmware with default mode=1"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1232,8 +1217,8 @@ def run(port_name, mode):
 def commit(port_name):
     """Commit the running firmware"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1256,8 +1241,8 @@ def upgrade(port_name, filepath):
 
     physical_port = logical_port_to_physical_port_index(port_name)
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1294,8 +1279,8 @@ def upgrade(port_name, filepath):
 def download(port_name, filepath):
     """Download firmware on the transceiver"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1322,8 +1307,8 @@ def unlock(port_name, password):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
