@@ -163,15 +163,7 @@ Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       
 Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
 
 multi_asic_intf_counters_reminder = """\
-
-
 Reminder: Please execute 'show interface counters -d all' to include internal links
-
-
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 """
 
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
@@ -516,7 +508,7 @@ class TestMultiAsicPortStat(object):
             show.cli.commands["interfaces"].commands["counters"])
         print("result = {}".format(result.output))
         assert result.exit_code == 0
-        assert result.output == multi_asic_intf_counters_reminder
+        assert multi_asic_intf_counters_reminder in result.output
 
     @classmethod
     def teardown_class(cls):
