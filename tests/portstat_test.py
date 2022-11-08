@@ -515,6 +515,7 @@ class TestMultiAsicPortStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_intf_counters_reminder
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
