@@ -509,12 +509,14 @@ class TestMultiAsicPortStat(object):
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
-    def test_multi_show_intf_counters_reminder(self):
-        return_code, result = get_result_and_return_code('show int counters')
-        print("return_code: {}".format(return_code))
-        print("result = {}".format(result))
-        assert return_code == 0
-        assert result == multi_asic_intf_counters_reminder
+    def test_multi_show_intf_counters_reminder(self, setup_interf_counters_commands):
+        show = setup_interf_counters_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["int"].commands["counters"])
+        print("result = {}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == multi_asic_intf_counters_reminder
 
     @classmethod
     def teardown_class(cls):
