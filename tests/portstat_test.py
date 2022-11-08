@@ -513,7 +513,7 @@ class TestMultiAsicPortStat(object):
         show = setup_ip_route_commands
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["int"].commands["counters"])
+            show.cli.commands["interfaces"].commands["counters"])
         print("result = {}".format(result.output))
         assert result.exit_code == 0
         assert result.output == multi_asic_intf_counters_reminder
