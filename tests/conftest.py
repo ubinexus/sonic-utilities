@@ -310,7 +310,6 @@ def setup_bgp_commands():
 @pytest.fixture
 def setup_ip_route_commands():
     import show.main as show
-
     return show
 
 @pytest.fixture
@@ -318,3 +317,7 @@ def setup_fib_commands():
     import show.main as show
     return show
 
+@pytest.fixture
+def setup_interf_counters_commands():
+    import show.interfaces.__init__ as show
+    return show
