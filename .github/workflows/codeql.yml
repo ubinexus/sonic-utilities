@@ -1,0 +1,41 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "master", "201709", "201803", "201811", "201911", "202012_fastboot_fix", "202012_sonic_installer_swap_setup", "202012", "202106", "202111", "202205", "cpu_utilization_storm", "db_migrate_policer", "masic_callback_bug", "revert-1599-dev/mghoneim/patch_sorter", "revert-1646-ro-vtysh-202012", "revert-dhcp6relay-cli" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: "15 8 * * 6"
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ python ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{ matrix.language }}"
