@@ -2000,6 +2000,17 @@ def peer(db, peer_ip):
     click.echo(tabulate(bfd_body, bfd_headers))
 
 
+# 'suppress-pending-fib' subcommand ("show suppress-pending-fib")
+@cli.command('suppress-pending-fib')
+@clicommon.pass_db
+def suppress_pending_fib(db):
+    """ Show the status of suppress pending FIB feature """
+
+    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
+    state = field_values.get('suppress-pending-fib', 'disabled').title()
+    click.echo(state)
+
+
 # Load plugins and register them
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)

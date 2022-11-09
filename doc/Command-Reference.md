@@ -1987,6 +1987,25 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
+**show suppress-pending-fib**
+
+This command is used to show the status of suppress pending FIB feature.
+When enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  show suppress-pending-fib
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show suppress-pending-fib
+  Enabled
+  ```
+  ```
+  admin@sonic:~$ show suppress-pending-fib
+  Disabled
+  ```
 
 ### BGP config commands
 
@@ -2076,6 +2095,24 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
+  ```
+
+**config suppress-pending-fib**
+
+This command is used to enable or disable announcements of routes not yet installed in the HW.
+Once enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  config suppress-pending-fib <enabled|disabled>
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config suppress-pending-fib enabled
+  ```
+  ```
+  admin@sonic:~$ sudo config suppress-pending-fib enabled
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)

@@ -1792,7 +1792,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, golden_config_pat
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
 
-    # Keep device isolated with TSA 
+    # Keep device isolated with TSA
     if traffic_shift_away:
         clicommon.run_command("TSA", display_cmd=True)
         if golden_config_path or not golden_config_path and os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
@@ -1998,8 +1998,25 @@ def synchronous_mode(sync_mode):
         raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
+# 'suppress-pending-fib' command ('config suppress-pending-fib ...')
+#
+@config.command('suppress-pending-fib')
+@click.argument('state', metavar='<enable|disable>', required=True)
+@clicommon.pass_db
+def suppress_pending_fib(db, state):
+    ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
+
+    if state not in ('enabled', 'disabled'):
+        raise click.BadParameter(f'Error: Invalid argument {state}, expect either enabled or disabled')
+
+    config_db = db.cfgdb
+    sync_mode = config_db.get_entry('DEVICE_METADATA', 'localhost').get('synchronous_mode')
+
+    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-pending-fib" : state})
+
+#
 # 'yang_config_validation' command ('config yang_config_validation ...')
-# 
+#
 @config.command('yang_config_validation')
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):
