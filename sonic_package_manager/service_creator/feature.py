@@ -204,9 +204,8 @@ class FeatureRegistry:
             new_name (str): new table name
             old_name (str, optional): old table name. Defaults to None.
         """
-        def_cfg = DEFAULT_SYSLOG_FEATURE_CONFIG.copy()
         for conn in self._sonic_db.get_connectors():
-            new_cfg = copy.deepcopy(def_cfg)
+            new_cfg = copy.deepcopy(DEFAULT_SYSLOG_FEATURE_CONFIG.copy())
             if old_name:
                 current_cfg = conn.get_entry(SYSLOG_CONFIG, old_name)
                 conn.set_entry(SYSLOG_CONFIG, old_name, None)

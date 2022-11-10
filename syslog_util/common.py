@@ -26,7 +26,7 @@ def service_validator(feature_data, service_name):
     """Validate input service name
 
     Args:
-        db (obj): db object
+        feature_data (dict): feature entries of FEATURE table
         service_name (str): service name
     """
     if service_name not in feature_data:

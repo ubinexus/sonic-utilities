@@ -462,8 +462,8 @@ def rate_limit_host(db, interval, burst):
 
 @syslog.command("rate-limit-container")
 @click.argument("service_name", required=True)
-@click.option("-i", "--interval", help="Configures syslog rate limit interval in seconds for containers", type=click.IntRange(0, 2147483647))
-@click.option("-b", "--burst", help="Configures syslog rate limit burst in number of messages for containers", type=click.IntRange(0, 2147483647))
+@click.option("-i", "--interval", help="Configures syslog rate limit interval in seconds for specified containers", type=click.IntRange(0, 2147483647))
+@click.option("-b", "--burst", help="Configures syslog rate limit burst in number of messages for specified containers", type=click.IntRange(0, 2147483647))
 @clicommon.pass_db
 def rate_limit_container(db, service_name, interval, burst):
     """ Configure syslog rate limit for containers """

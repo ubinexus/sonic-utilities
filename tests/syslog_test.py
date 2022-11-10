@@ -11,6 +11,13 @@ import config.main as config
 
 from click.testing import CliRunner
 from utilities_common.db import Db
+from syslog_util.common import FEATURE_TABLE, \
+                               SYSLOG_CONFIG_TABLE, \
+                               SYSLOG_CONFIG_GLOBAL_KEY, \
+                               SYSLOG_CONFIG_FEATURE_TABLE, \
+                               SYSLOG_RATE_LIMIT_INTERVAL, \
+                               SYSLOG_RATE_LIMIT_BURST, \
+                               SUPPORT_RATE_LIMIT
 
 from .mock_tables import dbconnector
 from .syslog_input import config_mock
@@ -29,13 +36,6 @@ ERROR_PATTERN_NONEXISTENT_VRF = "VRF doesn't exist in Linux"
 
 SUCCESS = 0
 ERROR2 = 2
-
-FEATURE_TABLE = 'FEATURE'
-SYSLOG_CONFIG_TABLE = 'SYSLOG_CONFIG'
-SYSLOG_CONFIG_GLOBAL_KEY = 'GLOBAL'
-SYSLOG_CONFIG_FEATURE_TABLE = 'SYSLOG_CONFIG_FEATURE'
-SYSLOG_RATE_LIMIT_INTERVAL = 'rate_limit_interval'
-SYSLOG_RATE_LIMIT_BURST = 'rate_limit_burst'
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "syslog_input")
@@ -257,7 +257,7 @@ class TestSyslog:
                                            {'interval':1, 'burst':0, 'expected_interval': '0', 'expected_burst': '0'}])
     def test_config_syslog_rate_limit_container_basic(self, test_data):
         db = Db()
-        db.cfgdb.set_entry(FEATURE_TABLE, 'bgp', {'support_syslog_rate_limit': 'true',
+        db.cfgdb.set_entry(FEATURE_TABLE, 'bgp', {SUPPORT_RATE_LIMIT: 'true',
                                                   'state': 'enabled'})
 
         runner = CliRunner()
@@ -295,7 +295,7 @@ class TestSyslog:
 
     def test_config_syslog_rate_limit_container_service_no_support(self):
         db = Db()
-        db.cfgdb.set_entry(FEATURE_TABLE, 'bgp', {'support_syslog_rate_limit': 'false',
+        db.cfgdb.set_entry(FEATURE_TABLE, 'bgp', {SUPPORT_RATE_LIMIT: 'false',
                                                   'state': 'enabled'})
         runner = CliRunner()
 
