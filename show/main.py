@@ -1718,6 +1718,53 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
+@cli.command('poe-information')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def poe(verbose):
+    """Show PoE global information configured at Switch"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    poe_info = config_db.get_table('POE')
+    global_admin_state = 'down'
+    global_max_power_supply = 'NA'
+    global_power_consumed = 'NA'
+
+    if poe_info:
+        global_admin_state = poe_info['global']['admin_state']
+
+    click.echo("\nPoE(Power Over Ethernet) Global Information:")
+    click.echo("  PoE Admin State:".ljust(30) + "{}".format(global_admin_state))
+    click.echo("  Max Power Supply:".ljust(30) + "{}".format(global_max_power_supply))
+    click.echo("  Power Consumed:".ljust(30) + "{}".format(global_power_consumed))
+    #print("Show PoE global information configured at Switch")
+    pass
+
+
+@cli.command('appdb-poe-information')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def poe_appdb(verbose):
+    """Show PoE information configured at APP DB of the switch"""
+    app_db = SonicV2Connector()
+    app_db.connect(app_db.APPL_DB)
+    table = "PORT_TABLE:Ethernet*"
+    keys = app_db.keys(app_db.APPL_DB, table)
+
+    header = ['InterfaceName', 'PoE State', 'PoE Class', 'Priority']
+    body = []
+
+    if not keys:
+        click.echo("PORT TABLE is not configured in the switch")
+        return
+
+    for key in keys:
+        poe_state = app_db.get(app_db.APPL_DB, key, 'poe_state')
+        poe_class = app_db.get(app_db.APPL_DB, key, 'poe_class')
+        poe_priority = app_db.get(app_db.APPL_DB, key, 'poe_priority')
+        interfacename = key.split(':')[-1]
+        body.append([interfacename,  poe_state, poe_class, poe_priority])
+    click.echo(tabulate(body, header, tablefmt="grid")) 
+    pass
+
 
 @cli.command('services')
 def services():

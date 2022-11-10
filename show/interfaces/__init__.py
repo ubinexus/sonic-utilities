@@ -15,6 +15,12 @@ import sonic_platform_base.sonic_sfp.sfputilhelper
 
 from . import portchannel
 from collections import OrderedDict
+#poe
+try:
+    import ast
+except ImportError as e:
+    raise ImportError("%s - required module not found" % str(e))
+
 
 HWSKU_JSON = 'hwsku.json'
 
@@ -125,6 +131,36 @@ def naming_mode(verbose):
     """Show interface naming_mode status"""
 
     click.echo(clicommon.get_interface_naming_mode())
+
+# 'poe' subcommand ("show interfaces poe")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def poe(interfacename, namespace, display, verbose):
+    """Show PoE information configured at all interfaces of the switch"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    header = ['InterfaceName', 'PoE AdminState', 'PoE Class', 'Priority']
+    body = []
+
+    try:
+        port_dict = config_db.get_table('PORT')
+    except Exception as e:
+        click.echo("PORT Table is not present in Config DB")
+        raise click.Abort()
+
+    ports = ast.literal_eval(json.dumps(port_dict))
+	
+    if interfacename is not None:
+        "Show poe information for given interface"
+        body.append([interfacename,  ports[interfacename].get('poe_state'), ports[interfacename].get('poe_class'), ports[interfacename].get('poe_priority')])
+    else:
+        for intf_name in ports.keys():
+            body.append([intf_name,  ports[intf_name].get('poe_state'), ports[intf_name].get('poe_class'), ports[intf_name].get('poe_priority')])
+    click.echo(tabulate(body, header, tablefmt="grid")) 
+    pass
 
 @interfaces.command()
 @click.argument('interfacename', required=False)

@@ -5692,6 +5692,45 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 
+@interface.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def poe(ctx):
+    """Set PoE configuration settings"""
+    print("Set PoE configuration settings")
+    pass
+
+@poe.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('admin_state', type=click.Choice(['up', 'down']))
+@click.argument('class_type', type=int, required=True)
+@click.argument('port_priority', type=int, required=True)
+@click.pass_context
+def poe_port_config(ctx, interface_name, admin_state, class_type, port_priority):
+    """Set PoE Configurations for the port"""
+    namespace = get_port_namespace(interface_name)
+    if namespace is None:
+        return None
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
+    port_tbl = config_db.get_table('PORT')
+    g_poe_tbl = config_db.get_table('POE')
+
+    if not g_poe_tbl:
+        g_poe_tbl = {'global': {'admin_state': 'down'}}
+        
+    if g_poe_tbl['global']['admin_state'] == "up":
+        if not port_tbl:
+            port_tbl = {interface_name: {'poe_state': admin_state, 'poe_class': class_type, 'poe_priority': port_priority}}
+        else:
+            port_tbl[interface_name]['poe_state'] = admin_state
+            port_tbl[interface_name]['poe_class'] = class_type
+            port_tbl[interface_name]['poe_priority'] = port_priority
+        config_db.mod_entry('PORT', interface_name, port_tbl[interface_name])
+    else:
+        print("PoE feature is disabled, so PoE specific PORT configuration is not permitted")
+    pass
+
 
 #
 # 'pfc' group ('config interface pfc ...')
@@ -6855,6 +6894,58 @@ def del_subinterface(ctx, subinterface_name):
         config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
     except JsonPatchConflict as e:
         ctx.fail("{} is invalid vlan subinterface. Error: {}".format(subinterface_name, e))
+
+#
+# 'poe' group ('config poe ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def poe(ctx):
+    """Set global PoE configurations"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    #print("Set global PoE configurations")
+    pass
+
+#
+# 'poe' command ('config poe enable')
+#
+@poe.command('enable')
+@click.pass_context
+def enable(ctx):
+    """Enable PoE functionality"""
+    config_db = ctx.obj['db']
+    poe_tbl = config_db.get_table('POE')
+    
+    if not poe_tbl:
+        poe_tbl = {'global': {'admin_state': 'up'}}
+    else:
+        poe_tbl['global']['admin_state'] = 'up'
+    
+    config_db.mod_entry('POE', 'global', poe_tbl['global'])
+    #print("Enable PoE functionality")
+    pass
+
+
+#
+# 'poe' command ('config poe disable')
+#
+@poe.command('disable')
+@click.pass_context
+def disable(ctx):
+    """Disable PoE functionality"""
+    config_db = ctx.obj['db']
+    poe_tbl = config_db.get_table('POE')
+    
+    if not poe_tbl:
+        poe_tbl = {'global': {'admin_state': 'down'}}
+    else:
+        poe_tbl['global']['admin_state'] = 'down'
+    
+    config_db.mod_entry('POE', 'global', poe_tbl['global']) 
+    #print("Disable PoE functionality")
+    pass
 
 if __name__ == '__main__':
     config()
