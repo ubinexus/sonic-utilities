@@ -1168,7 +1168,18 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
                                ["Ethernet0"], obj=db)
         assert result.exit_code == 1
+        
+    @mock.patch('sonic_y_cable.y_cable.get_part_number', mock.MagicMock(return_value=(False)))
+    @mock.patch('sonic_y_cable.y_cable.get_vendor', mock.MagicMock(return_value=(False)))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_cableinfo_invalid_port(self):
+        runner = CliRunner()
+        db = Db()
 
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["abc"], obj=db)
+        assert result.exit_code == 1
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
