@@ -78,6 +78,7 @@ class TestSfputil(object):
                                                      sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
                                                      sfputil.DOM_VALUE_UNIT_MAP)
         assert output == expected_output
+
     @pytest.mark.parametrize("sfp_info_dict, expected_output",[
         # Non-CMIS module
         (

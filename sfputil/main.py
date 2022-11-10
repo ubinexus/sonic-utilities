@@ -20,8 +20,8 @@ from sonic_platform_base.sfp_base import SfpBase
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
-from utilities_common.platform_sfputil_helper import covert_application_advertisement_to_output_string
-from utilities_common.platform_sfputil_helper import QSFP_DATA_MAP
+from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
+from utilities_common.sfp_helper import QSFP_DATA_MAP
 from tabulate import tabulate
 
 VERSION = '3.0'
