@@ -2001,17 +2001,12 @@ def synchronous_mode(sync_mode):
 # 'suppress-pending-fib' command ('config suppress-pending-fib ...')
 #
 @config.command('suppress-pending-fib')
-@click.argument('state', metavar='<enable|disable>', required=True)
+@click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
 @clicommon.pass_db
 def suppress_pending_fib(db, state):
     ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
 
-    if state not in ('enabled', 'disabled'):
-        raise click.BadParameter(f'Error: Invalid argument {state}, expect either enabled or disabled')
-
     config_db = db.cfgdb
-    sync_mode = config_db.get_entry('DEVICE_METADATA', 'localhost').get('synchronous_mode')
-
     config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-pending-fib" : state})
 
 #

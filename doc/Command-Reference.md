@@ -2112,7 +2112,7 @@ Once enabled, BGP will not advertise routes which aren't yet offloaded.
   admin@sonic:~$ sudo config suppress-pending-fib enabled
   ```
   ```
-  admin@sonic:~$ sudo config suppress-pending-fib enabled
+  admin@sonic:~$ sudo config suppress-pending-fib disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
