@@ -2007,7 +2007,6 @@ When enabled, BGP will not advertise routes which aren't yet offloaded.
   Disabled
   ```
 
-
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ### BGP config commands
