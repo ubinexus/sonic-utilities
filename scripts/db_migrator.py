@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_3_0_6'
+        self.CURRENT_VERSION = 'version_4_0_0'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -69,6 +69,10 @@ class DBMigrator():
         self.stateDB = SonicV2Connector(host='127.0.0.1')
         if self.stateDB is not None:
             self.stateDB.connect(self.stateDB.STATE_DB)
+
+        self.loglevelDB = SonicV2Connector(host='127.0.0.1')
+        if self.loglevelDB is not None:
+            self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
 
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
@@ -617,13 +621,13 @@ class DBMigrator():
             abandon_method = self.mellanox_buffer_migrator.mlnx_abandon_pending_buffer_configuration
             append_method = self.mellanox_buffer_migrator.mlnx_append_item_on_pending_configuration_list
 
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_3_0_0') \
-               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_3_0_0') \
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_2_0_0') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_2_0_0') \
                and (not self.mellanox_buffer_migrator.mlnx_is_buffer_model_dynamic() or \
                     self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
                and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
-                self.set_version('version_3_0_0')
+                self.set_version('version_2_0_0')
         else:
             self.prepare_dynamic_buffer_for_warm_reboot()
 
@@ -632,8 +636,26 @@ class DBMigrator():
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
             log.log_notice('Setting buffer_model to traditional')
 
-            self.set_version('version_3_0_0')
+            self.set_version('version_2_0_0')
 
+        return 'version_2_0_0'
+
+    def version_2_0_0(self):
+        """
+        Version 2_0_0
+        """
+        log.log_info('Handling version_2_0_0')
+        self.migrate_port_qos_map_global()
+        self.set_version('version_2_0_1')
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
+        Version 2_0_1.
+        This is the latest version for 202012 branch 
+        """
+        log.log_info('Handling version_2_0_1')
+        self.set_version('version_3_0_0')
         return 'version_3_0_0'
 
     def version_3_0_0(self):
@@ -694,6 +716,7 @@ class DBMigrator():
             if 'pfc_enable' in v:
                 v['pfcwd_sw_enable'] = v['pfc_enable']
                 self.configDB.set_entry('PORT_QOS_MAP', k, v)
+        self.set_version('version_3_0_5')
         return 'version_3_0_5'
 
     def version_3_0_5(self):
@@ -701,14 +724,43 @@ class DBMigrator():
         Version 3_0_5
         """
         log.log_info('Handling version_3_0_5')
-        self.migrate_port_qos_map_global()
+        # Removing LOGLEVEL DB and moving it's content to CONFIG DB
+        # Removing Jinja2_cache
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        if warmreboot_state == 'true':
+            table_name = "LOGGER"
+            loglevel_field = "LOGLEVEL"
+            logoutput_field = "LOGOUTPUT"
+            keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
+            if keys is not None:
+                for key in keys:
+                    if key != "JINJA2_CACHE":
+                        fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                        component = key.split(":")[1]
+                        loglevel = fvs[loglevel_field]
+                        logoutput = fvs[logoutput_field]
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
+        self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
     def version_3_0_6(self):
         """
-        Current latest version. Nothing to do here.
+        Version 3_0_6
+        This is the latest version for 202211 branch
         """
+
         log.log_info('Handling version_3_0_6')
+        self.set_version('version_4_0_0')
+        return 'version_4_0_0'
+
+    def version_4_0_0(self):
+        """
+        Version 4_0_0.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_0')
         return None
 
     def get_version(self):

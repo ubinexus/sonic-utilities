@@ -280,7 +280,7 @@ def update_configdb_pck_loss_data(config_db, port, val):
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
-@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto", "manual", "standby"]))
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto", "manual", "standby", "detach"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL)
 @clicommon.pass_db
@@ -1200,3 +1200,46 @@ def set_fec(db, port, target, mode):
         else:
             click.echo("ERR: Unable to set fec enable/disable port {} to {}".format(port, mode))
             sys.exit(CONFIG_FAIL)
+
+def update_configdb_ycable_telemetry_data(config_db, key, val):
+    log_verbosity = get_value_for_key_in_config_tbl(config_db, key, "log_verbosity", "XCVRD_LOG")
+
+    config_db.set_entry("XCVRD_LOG", key, {"log_verbosity": log_verbosity,
+                                                "disable_telemetry": val})
+    return 0
+
+@muxcable.command()
+@click.argument('state', metavar='<enable/disable telemetry>', required=True, type=click.Choice(["enable", "disable"]))
+@clicommon.pass_db
+def telemetry(db, state):
+    """Enable/Disable Telemetry for ycabled """
+
+    per_npu_configdb = {}
+    xcvrd_log_cfg_db_tbl = {}
+
+    if state == 'enable':
+        val = 'False'
+    elif state == 'disable':
+        val = 'True'
+
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        # replace these with correct macros
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
+
+        xcvrd_log_cfg_db_tbl[asic_id] = per_npu_configdb[asic_id].get_table("XCVRD_LOG")
+
+    asic_index = multi_asic.get_asic_index_from_namespace(EMPTY_NAMESPACE)
+    rc = update_configdb_ycable_telemetry_data(per_npu_configdb[asic_index], "Y_CABLE", val)
+
+
+    if rc == 0:
+        click.echo("Success in ycabled telemetry state to {}".format(state))
+    else:
+        click.echo("ERR: Unable to set ycabled telemetry state to {}".format(state))
+        sys.exit(CONFIG_FAIL)
