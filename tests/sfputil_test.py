@@ -184,7 +184,7 @@ class TestSfputil(object):
             "        Active App Selection Host Lane 7: 1\n"
             "        Active App Selection Host Lane 8: 1\n"
             "        Active Firmware Version: 0.1\n"
-            "        Application Advertisement: 400G CR8 - Copper cable - 1\n"
+            "        Application Advertisement: 400G CR8 - Copper cable - 0x1\n"
             "                                   200GBASE-CR4 (Clause 136) - Unknown - Unknown\n"
             "        CMIS Revision: 5.0\n"
             "        Connector: LC\n"
@@ -391,6 +391,7 @@ Ethernet12  Unknown state: 255
 Ethernet16  Unplugged
 Ethernet28  Unplugged
 Ethernet36  Unknown
+Ethernet40  Unplugged
 """
         assert result.output == expected_output
 
