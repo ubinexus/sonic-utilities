@@ -5164,6 +5164,14 @@ def add_vrf(ctx, vrf_name):
         ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
+    if len(vrf_name) < 4:
+        ctx.fail("'vrf_name' is too short!")
+
+    allowed = re.compile(r'^[A-Za-z0-9_.\-]*$')
+    result = allowed.match(vrf_name)
+    if not result:
+        ctx.fail("'vrf_name' is invalid!")
+
     if (vrf_name == 'mgmt' or vrf_name == 'management'):
         vrf_add_management_vrf(config_db)
     else:
