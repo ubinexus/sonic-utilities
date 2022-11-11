@@ -394,9 +394,19 @@ def print_output_in_alias_mode(output, index):
 def run_command_in_alias_mode(command):
     """Run command and replace all instances of SONiC interface names
        in output with vendor-sepecific interface aliases.
+       Returns output for "show ip route" command, print output for the
+       rest of commands.
     """
 
     process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+
+    if "show ip route" in command:
+        """Show ip route"""
+        output = process.communicate()[0]
+        for port_name in iface_alias_converter.port_dict:
+            if port_name in output:
+                output = output.replace(port_name, iface_alias_converter.name_to_alias(port_name))
+        return output
 
     while True:
         output = process.stdout.readline()
@@ -530,8 +540,12 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
     if get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
-        run_command_in_alias_mode(command)
-        sys.exit(0)
+        # in case of "show ip route" command, perform the command and return execution result
+        return_output = run_command_in_alias_mode(command)
+        if return_cmd and return_output:
+            return return_output
+        else:
+            sys.exit(0)
 
     proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
