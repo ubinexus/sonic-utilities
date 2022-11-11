@@ -43,7 +43,7 @@ def covert_application_advertisement_to_output_string(indent, sfp_info_dict):
                     assign_options = 'Unknown'
                 else:
                     assign_options = hex(assign_options)
-                elements.append(str(item.get('host_lane_assignment_options', 'Unknown')))
+                elements.append(assign_options)
                 lines.append(' - '.join(elements))
             sep = '\n' + ' ' * len(field_name)
             output += sep.join(lines)
