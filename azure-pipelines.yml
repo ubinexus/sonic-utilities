@@ -67,7 +67,7 @@ stages:
         source: specific
         project: build
         pipeline: 9
-        artifact: sonic-swss-common
+        artifact: sonic-swss-common.bullseye.amd64
         runVersion: 'latestFromBranch'
         runBranch: 'refs/heads/master'
       displayName: "Download sonic swss common deb packages"
