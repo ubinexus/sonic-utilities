@@ -92,12 +92,6 @@ def test_mirror_session_add():
 
         mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, None, None, None)
 
-        result = runner.invoke(
-                config.config.commands["mirror_session"].commands["add"],
-                ["test_session", "100.1.1.1", "2.2.2.2", "8", "63"])
-
-        mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, None, None, None)
-
 
 def test_mirror_session_erspan_add():
     runner = CliRunner()
@@ -176,12 +170,6 @@ def test_mirror_session_erspan_add():
                 ["test_session", "100.1.1.1", "2.2.2.2", "8", "63", "0", "0"])
 
         mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 0, 0, None, None, None)
-
-        result = runner.invoke(
-                config.config.commands["mirror_session"].commands["erspan"].commands["add"],
-                ["test_session", "100.1.1.1", "2.2.2.2", "8", "63"])
-
-        mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, None, None, None, None, None)
 
 
 def test_mirror_session_span_add():

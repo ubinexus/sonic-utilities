@@ -1114,9 +1114,6 @@ def validate_gre_type(ctx, _, value):
     if value is None:
         return None
     try:
-        if value is None:
-            return
-
         base = 10
         if value.lower().startswith('0x'):
             base = 16
