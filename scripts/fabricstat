@@ -122,7 +122,10 @@ class FabricPortStat(FabricStat):
 
         table = []
         header = None
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        if not self.namespace:
+            asic = '0'
+        else:
+            asic = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_id = key[len(PORT_NAME_PREFIX):]
             if errors_only:
@@ -168,7 +171,10 @@ class FabricQueueStat(FabricStat):
             return
 
         table = []
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        if not self.namespace:
+            asic = '0'
+        else:
+            asic = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_name, queue_id = key.split(':')
             port_id = port_name[len(PORT_NAME_PREFIX):]
