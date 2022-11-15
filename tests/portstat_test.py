@@ -383,12 +383,7 @@ class TestPortStat(object):
 class TestMultiAsicPortStat(object):
     @classmethod
     def setup_class(cls):
-        print("SETUP")       
-        from .mock_tables import mock_multi_asic
-        importlib.reload(mock_multi_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_namespace_config() 
-        
+        print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
@@ -506,30 +501,39 @@ class TestMultiAsicPortStat(object):
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
-    def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
-        runner = CliRunner()
-        db = Db()
-        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
-
-        result = runner.invoke(
-                 config.config.commands["interface"].commands["counters"],
-                 [], obj=obj)
-        
-        print("result = {}".format(result.output))
-        assert result.exit_code == 0
-        assert multi_asic_intf_counters_reminder in result.output
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        from .mock_tables import mock_single_asic
-        importlib.reload(mock_single_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_database_config()
-        
         os.environ["PATH"] = os.pathsep.join(
             os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         remove_tmp_cnstat_file()
         
+
+class TestShowIntCountersMasic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config() 
+
+
+    def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interface"].commands["counters"])    
+        print("result = {}".format(result.output))
+        assert result.exit_code == 0
+        assert multi_asic_intf_counters_reminder in result.output
+
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
