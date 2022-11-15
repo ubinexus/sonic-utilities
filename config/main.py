@@ -5972,7 +5972,6 @@ def over_subscribe_ratio(db, ratio):
         ctx.fail("Invalid over-subscribe-ratio value {}. It should be in range [0, {}]".format(ratio, port_number))
 
     default_lossless_param = config_db.get_table("DEFAULT_LOSSLESS_BUFFER_PARAMETER")
-    default_lossless_param = {"default_dynamic_th": "0"}
     first_item = True
     for k, v in default_lossless_param.items():
         if not first_item:
