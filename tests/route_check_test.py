@@ -17,9 +17,11 @@ ARGS = "args"
 RET = "return"
 APPL_DB = 0
 ASIC_DB = 1
+APPL_STATE_DB = 14
 PRE = "pre-value"
 UPD = "update"
 RESULT = "res"
+FRR_ROUTES = "frr-routes"
 
 OP_SET = "SET"
 OP_DEL = "DEL"
@@ -336,8 +338,109 @@ test_data = {
                     RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
-        }
-    }
+        },
+    },
+    "9": {
+        DESCR: "basic good one, check FRR routes",
+        ARGS: "route_check -m INFO -i 1000",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            },
+        },
+        FRR_ROUTES: {
+            "0.0.0.0/0": [
+                {
+                    "prefix": "0.0.0.0/0",
+                    "vrfName": "default",
+                    "protocol": "bgp",
+                    "offloaded": "true",
+                },
+            ],
+            "10.10.196.12/31": [
+                {
+                    "prefix": "10.10.196.12/31",
+                    "vrfName": "default",
+                    "protocol": "bgp",
+                    "offloaded": "true",
+                },
+            ],
+            "10.10.196.24/31": [
+                {
+                    "protocol": "connected",
+                },
+            ],
+        },
+    },
+    "10": {
+        DESCR: "failure test case, missing FRR routes",
+        ARGS: "route_check -m INFO -i 1000",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            },
+        },
+        FRR_ROUTES: {
+            "0.0.0.0/0": [
+                {
+                    "prefix": "0.0.0.0/0",
+                    "vrfName": "default",
+                    "protocol": "bgp",
+                    "offloaded": "true",
+                },
+            ],
+            "10.10.196.12/31": [
+                {
+                    "prefix": "10.10.196.12/31",
+                    "vrfName": "default",
+                    "protocol": "bgp",
+                },
+            ],
+            "10.10.196.24/31": [
+                {
+                    "protocol": "connected",
+                },
+            ],
+        },
+        RESULT: {
+            "missed_FRR_routes": [
+                {"prefix": "10.10.196.12/31", "vrfName": "default", "protocol": "bgp"}
+            ],
+        },
+        RET: -1,
+    },
 }
 
 def do_start_test(tname, tno, ctdata):
@@ -425,7 +528,7 @@ class Table:
         return True, ret
 
 
-db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB}
+db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB, "APPL_STATE_DB": APPL_STATE_DB}
 def conn_side_effect(arg, _):
     return db_conns[arg]
 
@@ -517,7 +620,7 @@ class mock_subscriber:
 
         print("state={} k={} op={} v={}".format(self.state, k, op, str(v)))
         return (k, op, v)
-   
+
 
     def getDbConnector(self):
         return self.dbconn
@@ -571,7 +674,10 @@ class TestRouteCheck(object):
     @patch("route_check.swsscommon.Table")
     @patch("route_check.swsscommon.Select")
     @patch("route_check.swsscommon.SubscriberStateTable")
-    def test_server(self, mock_subs, mock_sel, mock_table, mock_conn):
+    @patch("route_check.subprocess.check_output")
+    @patch("route_check.time.sleep")
+    @patch("route_check.swsscommon.NotificationProducer")
+    def test_server(self, mock_ntf_producer, mock_time_sleep, mock_check_output, mock_subs, mock_sel, mock_table, mock_conn):
         self.init()
         ret = 0
 
@@ -579,6 +685,18 @@ class TestRouteCheck(object):
         set_mock(mock_table, mock_conn, mock_sel, mock_subs)
         for (i, ct_data) in test_data.items():
             do_start_test("route_test", i, ct_data)
+
+            check_patch = patch('route_check.is_suppress_pending_fib_enabled', lambda: False)
+
+            if FRR_ROUTES in ct_data:
+                routes = ct_data[FRR_ROUTES]
+
+                def side_effect(*args, **kwargs):
+                    return json.dumps(routes)
+
+                mock_check_output.side_effect = side_effect
+            else:
+                check_patch.start()
 
             with patch('sys.argv', ct_data[ARGS].split()):
                 ret, res = route_check.main()
@@ -590,6 +708,8 @@ class TestRouteCheck(object):
                     print("expect_res={}".format(json.dumps(expect_res, indent=4)))
                 assert ret == expect_ret
                 assert res == expect_res
+
+            check_patch.stop()
 
 
         # Test timeout
@@ -616,10 +736,3 @@ class TestRouteCheck(object):
         assert len(msg) == 5
         msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
         assert len(msg) == 5
-               
-        
-
-
-
-
-
