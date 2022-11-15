@@ -12,7 +12,7 @@ class TestSynchronousMode(object):
 
     def __check_result(self, result_msg, mode):
         if mode == "enable" or mode == "disable":
-            expected_msg = """Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration \n
+            expected_msg = """Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
     Option 1. config save -y \n
               config reload -y \n
     Option 2. systemctl restart swss"""  % mode
