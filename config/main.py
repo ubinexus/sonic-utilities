@@ -1971,9 +1971,9 @@ def synchronous_mode(sync_mode):
         ctx.fail("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
     
     click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
-        Option 1. config save -y \n 
-                  config reload -y \n
-        Option 2. systemctl restart swss""" % sync_mode)
+    Option 1. config save -y \n
+              config reload -y \n
+    Option 2. systemctl restart swss""" % sync_mode)
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')
