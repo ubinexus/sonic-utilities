@@ -72,6 +72,9 @@ MAX_SCAN_INTERVAL = 3600    # An hour
 
 PRINT_MSG_LEN_MAX = 1000
 
+FRR_CHECK_RETRIES = 3
+FRR_WAIT_TIME = 5
+
 class Level(Enum):
     ERR = 'ERR'
     INFO = 'INFO'
@@ -516,7 +519,7 @@ def check_frr_pending_routes():
 
     missed_rt = []
 
-    retries = 3
+    retries = FRR_CHECK_RETRIES
     for i in range(retries):
         missed_rt = []
         frr_routes = get_frr_routes()
@@ -532,7 +535,7 @@ def check_frr_pending_routes():
         if not missed_rt:
             break
 
-        time.sleep(5)
+        time.sleep(FRR_WAIT_TIME)
 
     return missed_rt
 
