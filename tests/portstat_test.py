@@ -383,7 +383,12 @@ class TestPortStat(object):
 class TestMultiAsicPortStat(object):
     @classmethod
     def setup_class(cls):
-        print("SETUP")
+        print("SETUP")       
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config() 
+        
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
@@ -502,10 +507,14 @@ class TestMultiAsicPortStat(object):
         assert result == intf_invalid_asic_error
 
     def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
-        show = setup_ip_route_commands
         runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
+
         result = runner.invoke(
-            show.cli.commands["interfaces"].commands["counters"])
+                 config.config.commands["interface"].commands["counters"],
+                 [], obj=obj)
+        
         print("result = {}".format(result.output))
         assert result.exit_code == 0
         assert multi_asic_intf_counters_reminder in result.output
