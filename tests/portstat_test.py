@@ -522,8 +522,14 @@ class TestMultiAsicPortStat(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
+        
         os.environ["PATH"] = os.pathsep.join(
             os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         remove_tmp_cnstat_file()
+        
