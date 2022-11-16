@@ -736,7 +736,7 @@ def storm_control_delete_entry(port_name, storm_type):
     else:
         try:
             config_db.set_entry('PORT_STORM_CONTROL', key, None)
-        except JsonPatchConflict:
+        except JsonPatchConflict as e:
             ctx = click.get_current_context()
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
