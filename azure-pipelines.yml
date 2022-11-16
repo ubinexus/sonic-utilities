@@ -59,7 +59,7 @@ stages:
         sudo dpkg -i libyang_1.0.73_amd64.deb
         sudo dpkg -i libyang-cpp_1.0.73_amd64.deb
         sudo dpkg -i python3-yang_1.0.73_amd64.deb
-      workingDirectory: $(Pipeline.Workspace)/target/debs/buster/
+      workingDirectory: $(Pipeline.Workspace)/target/debs/bullseye/
       displayName: 'Install Debian dependencies'
 
     - task: DownloadPipelineArtifact@2
@@ -67,7 +67,7 @@ stages:
         source: specific
         project: build
         pipeline: 9
-        artifact: sonic-swss-common
+        artifact: sonic-swss-common.bullseye.amd64
         runVersion: 'latestFromBranch'
         runBranch: 'refs/heads/master'
       displayName: "Download sonic swss common deb packages"
@@ -87,7 +87,7 @@ stages:
         sudo pip3 install sonic_yang_models-1.0-py3-none-any.whl
         sudo pip3 install sonic_config_engine-1.0-py3-none-any.whl
         sudo pip3 install sonic_platform_common-1.0-py3-none-any.whl
-      workingDirectory: $(Pipeline.Workspace)/target/python-wheels/buster/
+      workingDirectory: $(Pipeline.Workspace)/target/python-wheels/bullseye/
       displayName: 'Install Python dependencies'
 
     - script: |
