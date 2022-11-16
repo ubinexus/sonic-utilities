@@ -48,7 +48,6 @@ stages:
       displayName: "Download artifacts from latest sonic-buildimage build"
 
     - script: |
-        apt list | grep "libboost-serialization"
         set -xe
         sudo apt-get -y purge libhiredis-dev libnl-3-dev libnl-route-3-dev
         sudo dpkg -i libnl-3-200_*.deb
