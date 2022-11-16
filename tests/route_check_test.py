@@ -675,9 +675,8 @@ class TestRouteCheck(object):
     @patch("route_check.swsscommon.Select")
     @patch("route_check.swsscommon.SubscriberStateTable")
     @patch("route_check.subprocess.check_output")
-    @patch("route_check.time.sleep")
     @patch("route_check.swsscommon.NotificationProducer")
-    def test_server(self, mock_ntf_producer, mock_time_sleep, mock_check_output, mock_subs, mock_sel, mock_table, mock_conn):
+    def test_server(self, mock_ntf_producer, mock_check_output, mock_subs, mock_sel, mock_table, mock_conn):
         self.init()
         ret = 0
 
