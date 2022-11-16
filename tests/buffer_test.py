@@ -2,10 +2,13 @@ import os
 import sys
 import pytest
 import mock
+import jsonpatch
 from importlib import reload
 from click.testing import CliRunner
 from unittest import TestCase
 from swsscommon.swsscommon import ConfigDBConnector
+from mock import patch
+from jsonpatch import JsonPatchConflict
 
 from .mock_tables import dbconnector
 
@@ -14,6 +17,7 @@ import config.main as config
 from utilities_common.db import Db
 
 from .buffer_input.buffer_test_vectors import *
+from config.validated_config_db_connector import ValidatedConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -28,6 +32,15 @@ class TestBuffer(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         print("SETUP")
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_config_buffer_profile_headroom_yang(self):
+        db = Db()
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
+                               ["testprofile", "--dynamic_th", "3", "--xon", "18432", "--xoff", "32768"], obj=db)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_config_buffer_profile_headroom(self):
         runner = CliRunner()
         db = Db()
@@ -286,7 +299,34 @@ class TestInterfaceBuffer(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs = {}
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_config_int_buffer_pg_lossless_add_yang(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
+                                   commands["lossless"].commands["add"],
+                                   ["Ethernet0", "5"], obj=db)
+        assert "Invalid ConfigDB. Error" in result.output
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_int_buffer_pg_lossless_remove(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        db = Db()
+
+        # Remove non-exist entry
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
+                                   commands["lossless"].commands["remove"],
+                                   ["Ethernet0", "5"], obj=db)
+            print(result.exit_code, result.output)
+            assert "Invalidi ConfigDB. Error" in result.output
+    
     def test_config_int_buffer_pg_lossless_add(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
