@@ -221,7 +221,7 @@
         "cable_length": "10",
         "specification_compliance": "Not supported for CMIS cables",
         "nominal_bit_rate": "Not supported for CMIS cables",
-        "application_advertisement": "{1: {'host_electrical_interface_id': '400G CR8', 'module_media_interface_id': 'Copper cable', 'media_lane_count': 8, 'host_lane_count': 8, 'host_lane_assignment_options': 1}, 2: {'host_electrical_interface_id': '200GBASE-CR4 (Clause 136)'}}"
+        "application_advertisement": "{1: {'host_electrical_interface_id': '400G CR8', 'module_media_interface_id': 'Copper cable', 'media_lane_count': 8, 'host_lane_count': 8, 'host_lane_assignment_options': 1, 'media_lane_assignment_options': 2}, 2: {'host_electrical_interface_id': '200GBASE-CR4 (Clause 136)'}}"
     },
     "TRANSCEIVER_STATUS|Ethernet0": {
         "status": "67",

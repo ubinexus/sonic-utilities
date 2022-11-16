@@ -37,13 +37,13 @@ def covert_application_advertisement_to_output_string(indent, sfp_info_dict):
                     continue
                 elements = []
                 elements.append(host_interface_id)
+                host_assign_options = item.get('host_lane_assignment_options')
+                host_assign_options = hex(host_assign_options) if host_assign_options else 'Unknown'
+                elements.append(f'Host Assign ({host_assign_options})')
                 elements.append(item.get('module_media_interface_id', 'Unknown'))
-                assign_options = item.get('host_lane_assignment_options')
-                if not assign_options:
-                    assign_options = 'Unknown'
-                else:
-                    assign_options = hex(assign_options)
-                elements.append(assign_options)
+                media_assign_options = item.get('media_lane_assignment_options')
+                media_assign_options = hex(media_assign_options) if media_assign_options else 'Unknown'
+                elements.append(f'Media Assign ({media_assign_options})')
                 lines.append(' - '.join(elements))
             sep = '\n' + ' ' * len(field_name)
             output += sep.join(lines)

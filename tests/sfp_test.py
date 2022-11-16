@@ -175,8 +175,8 @@ Ethernet8: SFP EEPROM detected
 
 test_qsfp_dd_eeprom_adv_app_output = """\
 Ethernet40: SFP EEPROM detected
-        Application Advertisement: 400G CR8 - Copper cable - 0x1
-                                   200GBASE-CR4 (Clause 136) - Unknown - Unknown
+        Application Advertisement: 400G CR8 - Host Assign (0x1) - Copper cable - Media Assign (0x2)
+                                   200GBASE-CR4 (Clause 136) - Host Assign (Unknown) - Unknown - Media Assign (Unknown)
         Connector: No separable connector
         Encoding: Not supported for CMIS cables
         Extended Identifier: Power Class 1(10.0W Max)

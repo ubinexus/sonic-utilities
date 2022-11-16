@@ -145,7 +145,8 @@ class TestSfputil(object):
                                                   'module_media_interface_id': 'Copper cable', \
                                                   'media_lane_count': 8, \
                                                   'host_lane_count': 8, \
-                                                  'host_lane_assignment_options': 1}, \
+                                                  'host_lane_assignment_options': 1, \
+                                                  'media_lane_assignment_options': 2}, \
                                               2: {'host_electrical_interface_id': '200GBASE-CR4 (Clause 136)'}}",
                 'specification_compliance': "sm_media_interface",
                 'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
@@ -184,8 +185,8 @@ class TestSfputil(object):
             "        Active App Selection Host Lane 7: 1\n"
             "        Active App Selection Host Lane 8: 1\n"
             "        Active Firmware Version: 0.1\n"
-            "        Application Advertisement: 400G CR8 - Copper cable - 0x1\n"
-            "                                   200GBASE-CR4 (Clause 136) - Unknown - Unknown\n"
+            "        Application Advertisement: 400G CR8 - Host Assign (0x1) - Copper cable - Media Assign (0x2)\n"
+            "                                   200GBASE-CR4 (Clause 136) - Host Assign (Unknown) - Unknown - Media Assign (Unknown)\n"
             "        CMIS Revision: 5.0\n"
             "        Connector: LC\n"
             "        Encoding: N/A\n"
