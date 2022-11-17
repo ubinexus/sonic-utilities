@@ -308,7 +308,7 @@ def remotemac(remote_vtep_ip, count):
             if vxlan_table is None:
              continue
             rmtip = vxlan_table.get('remote_vtep')
-            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip or rmtip == None:
+            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip or rmtip is None:
                continue
             if count is None:
                body.append([vlan, mac, rmtip, vxlan_table['vni'], vxlan_table['type']])
