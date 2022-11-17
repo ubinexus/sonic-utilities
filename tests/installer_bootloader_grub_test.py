@@ -1,10 +1,19 @@
 import os
 import shutil
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 
 # Import test module
 import sonic_installer.bootloader.grub as grub
 
+def test_install_image():
+    image_path = 'sonic'
+    expected_calls = [
+            call(["bash", image_path]),
+            call(['grub-set-default', '--boot-directory=' + grub.HOST_PATH, '0'])]
+    with patch('sonic_installer.bootloader.grub.run_command') as mock_cmd:
+        bootloader = grub.GrubBootloader()
+        bootloader.install_image(image_path)
+        mock_cmd.assert_has_calls(expected_calls)
 
 @patch("sonic_installer.bootloader.grub.subprocess.call", Mock())
 @patch("sonic_installer.bootloader.grub.open")
