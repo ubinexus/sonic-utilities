@@ -17,23 +17,32 @@ def mock_run_command(cmd):
 def test_remove_image(run_command_patch):
     # Constants
     image_path_prefix = os.path.join(uboot.HOST_PATH, uboot.IMAGE_DIR_PREFIX)
-    exp_image_path = f'{image_path_prefix}expeliarmus-{uboot.IMAGE_PREFIX}abcde'
+    exp_image0_path = f'{image_path_prefix}expeliarmus-{uboot.IMAGE_PREFIX}abcde'
+    exp_image1_path = f'{image_path_prefix}expeliarmus-abcde'
 
-    intstalled_images = [
+    installed_images = [
         f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde',
         f'{uboot.IMAGE_PREFIX}expeliarmus-abcde',
     ]
 
     bootloader = uboot.UbootBootloader()
-    bootloader.get_installed_images = Mock(return_value=intstalled_images)
+    bootloader.get_installed_images = Mock(return_value=installed_images)
 
     # Verify rm command was executed with image path
-    bootloader.remove_image(intstalled_images[0])
+    bootloader.remove_image(installed_images[0])
     args_list = uboot.subprocess.call.call_args_list
     assert len(args_list) > 0
 
     args, _ = args_list[0]
-    assert exp_image_path in args[0]
+    assert exp_image0_path in args[0]
+
+    uboot.subprocess.call.call_args_list = []
+    bootloader.remove_image(installed_images[1])
+    args_list = uboot.subprocess.call.call_args_list
+    assert len(args_list) > 0
+
+    args, _ = args_list[0]
+    assert exp_image1_path in args[0]
 
 @patch("sonic_installer.bootloader.uboot.subprocess.Popen")
 @patch("sonic_installer.bootloader.uboot.run_command")
