@@ -189,9 +189,50 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 
     vid_list = clicommon.vlan_member_input_parser(ctx, "add", db, except_flag, multiple, vid, port)
 
+    hybrid_status = False
+    port_table_data = db.cfgdb.get_table('PORT')
+
+    if clicommon.get_interface_naming_mode() == "alias":  # TODO: MISSING CONSTRAINT IN YANG MODEL
+        alias = port
+        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+        port = iface_alias_converter.alias_to_name(alias)
+        if port is None:
+            ctx.fail("cannot find port name for alias {}".format(alias))
+
+    # TODO: MISSING CONSTRAINT IN YANG MODEL
+    if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
+        ctx.fail("{} is configured as mirror destination port".format(port))
+
+    if clicommon.is_valid_port(db.cfgdb, port):
+        is_port = True
+    elif clicommon.is_valid_portchannel(db.cfgdb, port):
+        is_port = False
+    else:
+        ctx.fail("{} does not exist".format(port))
+
+    if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
+            (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
+        ctx.fail("{} is a router interface!".format(port))
+
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    # TODO: MISSING CONSTRAINT IN YANG MODEL
+    if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
+        ctx.fail("{} is part of portchannel!".format(port))
+
+    if is_port:
+        port_data = port_table_data[port]
+        if "mode" in port_data:
+            if port_data["mode"] == "hybrid":
+                hybrid_status = True
+
     # multiple vlan command cannot be used to add multiple untagged vlan members
-    if untagged and (multiple or except_flag or vid == "all"):
-        ctx.fail("{} cannot have more than one untagged Vlan.".format(port))
+    # if the Ethernet is in Hybrid Mode, it can 
+    if untagged:
+        if hybrid_status:
+            pass
+        elif (multiple or except_flag or vid == "all"):
+            ctx.fail("{} cannot have more than one untagged Vlan.".format(port))
 
     if ADHOC_VALIDATION:
         for vid in vid_list:
@@ -210,49 +251,18 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 log.log_info("{} does not exist".format(vlan))
                 ctx.fail("{} does not exist".format(vlan))
 
-            if clicommon.get_interface_naming_mode() == "alias":  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                alias = port
-                iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-                port = iface_alias_converter.alias_to_name(alias)
-                if port is None:
-                    ctx.fail("cannot find port name for alias {}".format(alias))
-
-            # TODO: MISSING CONSTRAINT IN YANG MODEL
-            if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
-                ctx.fail("{} is configured as mirror destination port".format(port))
-
             # TODO: MISSING CONSTRAINT IN YANG MODEL
             if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
                 log.log_info("{} is already a member of {}".format(port, vlan))
                 ctx.fail("{} is already a member of {}".format(port, vlan))
                 
-
-            if clicommon.is_valid_port(db.cfgdb, port):
-                is_port = True
-            elif clicommon.is_valid_portchannel(db.cfgdb, port):
-                is_port = False
-            else:
-                ctx.fail("{} does not exist".format(port))
-
-            if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-                    (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                ctx.fail("{} is a router interface!".format(port))
-
-            portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
-
             # TODO: MISSING CONSTRAINT IN YANG MODEL
-            if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
-                ctx.fail("{} is part of portchannel!".format(port))
-
-            # TODO: MISSING CONSTRAINT IN YANG MODEL
-            if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged):
+            if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged and not hybrid_status):
                 ctx.fail("{} is already untagged member!".format(port))
             
             # checking mode status of port if its access, trunk or routed
             if is_port:
-                port_table_data = db.cfgdb.get_table('PORT')
-                port_data = port_table_data[port]
-
+                
                 if "mode" not in port_data: 
                     ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
                 else:

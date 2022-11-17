@@ -373,6 +373,18 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
     vid_list.sort()
     return vid_list
 
+def interface_has_multiple_untagged_member(db, interface_name):
+    """ Check if interface is already untagged member"""
+    vlan_member_table = db.get_table('VLAN_MEMBER')
+    counter = 0
+    for key, val in vlan_member_table.items():
+        if(key[1] == interface_name):
+            if (val['tagging_mode'] == 'untagged'):
+                counter += 1
+                if counter > 1:
+                    return True
+    return False
+
 def interface_is_tagged_member(db, interface_name):
     """ Check if interface has tagged members i.e. is in trunk mode"""
     vlan_member_table = db.get_table('VLAN_MEMBER')
