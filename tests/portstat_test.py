@@ -505,35 +505,3 @@ class TestMultiAsicPortStat(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         remove_tmp_cnstat_file()
-
-multi_asic_intf_counters_reminder = """\
-Reminder: Please execute 'show interface counters -d all' to include internal links
-"""
-
-class TestShowIntCountersMasic(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-        from .mock_tables import mock_multi_asic
-        importlib.reload(mock_multi_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_namespace_config() 
-
-
-    def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interface"].commands["counters"])    
-        print("result = {}".format(result.output))
-        assert result.exit_code == 0
-        assert multi_asic_intf_counters_reminder in result.output
-
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        from .mock_tables import mock_single_asic
-        importlib.reload(mock_single_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_database_config()
-
