@@ -98,11 +98,11 @@ Error: bgp summary from bgp container not in json format
 """
 
 show_error_no_v6_neighbor = """\
-% No IPv6 neighbor is configured
+No IPv6 neighbor is configured
 """
 
 show_error_no_v4_neighbor = """\
-% No IPv4 neighbor is configured
+No IPv4 neighbor is configured
 """
 
 show_bgp_summary_v4_chassis = """\
