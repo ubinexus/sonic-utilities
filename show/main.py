@@ -42,6 +42,7 @@ from . import acl
 from . import bgp_common
 from . import chassis_modules
 from . import dropcounters
+from . import fabric
 from . import feature
 from . import fgnhg
 from . import flow_counters
@@ -264,6 +265,7 @@ def cli(ctx):
 cli.add_command(acl.acl)
 cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
+cli.add_command(fabric.fabric)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(flow_counters.flowcnt_route)
@@ -326,6 +328,7 @@ def vrf(vrf_name):
             vrfs = [vrf_name]
         for vrf in vrfs:
             intfs = get_interface_bind_to_vrf(config_db, vrf)
+            intfs = natsorted(intfs)
             if len(intfs) == 0:
                 body.append([vrf, ""])
             else:
@@ -333,6 +336,32 @@ def vrf(vrf_name):
                 for intf in intfs[1:]:
                     body.append(["", intf])
     click.echo(tabulate(body, header))
+
+#
+# 'events' command ("show event-counters")
+#
+
+@cli.command()
+def event_counters():
+    """Show events counter"""
+    # dump keys as formatted
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    header = ['name', 'count']
+    keys = counters_db.keys(counters_db.COUNTERS_DB, 'COUNTERS_EVENTS*')
+    table = []
+
+    for key in natsorted(keys):
+        key_list = key.split(':')
+        data_dict = counters_db.get_all(counters_db.COUNTERS_DB, key)
+        table.append((key_list[1], data_dict["value"]))
+
+    if table:
+        click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
+    else:
+        click.echo('No data available in COUNTERS_EVENTS\n')
+
 
 #
 # 'arp' command ("show arp")

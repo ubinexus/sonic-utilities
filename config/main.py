@@ -1082,38 +1082,6 @@ def update_sonic_environment():
             display_cmd=True
         )
 
-def cache_arp_entries():
-    success = True
-    cache_dir = '/host/config-reload'
-    click.echo('Caching ARP table to {}'.format(cache_dir))
-
-    if not os.path.exists(cache_dir):
-        os.mkdir(cache_dir)
-
-    arp_cache_cmd = ['/usr/local/bin/fast-reboot-dump.py', '-t', cache_dir]
-    cache_proc = subprocess.Popen(arp_cache_cmd, text=True, stdout=subprocess.PIPE)
-    _, cache_err = cache_proc.communicate()
-    if cache_err:
-        click.echo("Could not cache ARP and FDB info prior to reloading")
-        success = False
-
-    if not cache_err:
-        fdb_cache_file = os.path.join(cache_dir, 'fdb.json')
-        arp_cache_file = os.path.join(cache_dir, 'arp.json')
-        fdb_filter_cmd = ['/usr/local/bin/filter_fdb_entries', '-f', fdb_cache_file, '-a', arp_cache_file, '-c', '/etc/sonic/configdb.json']
-        filter_proc = subprocess.Popen(fdb_filter_cmd, text=True, stdout=subprocess.PIPE)
-        _, filter_err = filter_proc.communicate()
-        if filter_err:
-            click.echo("Could not filter FDB entries prior to reloading")
-            success = False
-
-    # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
-    # by creating /host/config-reload/needs-restore
-    if success:
-        restore_flag_file = os.path.join(cache_dir, 'needs-restore')
-        open(restore_flag_file, 'w').close()
-    return success
-
 def remove_router_interface_ip_address(config_db, interface_name, ipaddress_to_remove):
     table_name = get_interface_table_name(interface_name)
     keys = config_db.get_keys(table_name)
@@ -1143,6 +1111,8 @@ def validate_ipv4_address(ctx, param, ip_addr):
 def validate_gre_type(ctx, _, value):
     """A validator for validating input gre_type
     """
+    if value is None:
+        return None
     try:
         base = 10
         if value.lower().startswith('0x'):
@@ -1208,6 +1178,10 @@ def config(ctx):
     except (KeyError, TypeError) as e:
         print("Caught an exception: " + str(e))
         raise click.Abort()
+
+    if asic_type == 'cisco-8000':
+        from sonic_platform.cli.cisco import cisco
+        platform.add_command(cisco)
 
     # Load database config files
     load_db_config()
@@ -1514,12 +1488,11 @@ def list_checkpoints(ctx, verbose):
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
-@click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
 @click.option('-t', '--file_format', default='config_db',type=click.Choice(['config_yang', 'config_db']),show_default=True,help='specify the file format')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force, file_format):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_format):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1562,13 +1535,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         if len(cfg_files) != num_cfg_file:
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
-
-    # For dual ToR devices, cache ARP and FDB info
-    localhost_metadata = db.cfgdb.get_table('DEVICE_METADATA')['localhost']
-    cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
-
-    if cache_arp_table:
-        cache_arp_entries()
 
     #Stop services before config push
     if not no_service_restart:
@@ -1723,9 +1689,10 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
-@click.option('-p', '--golden_config_path', help='The path of golden config file')
+@click.option('-o', '--override_config', default=False, is_flag=True, help='Enable config override. Proceed with default path.')
+@click.option('-p', '--golden_config_path', help='Provide golden config path to override. Use with --override_config')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart, traffic_shift_away, golden_config_path):
+def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, golden_config_path):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
 
@@ -1798,20 +1765,19 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, golden_config_pat
     # Keep device isolated with TSA 
     if traffic_shift_away:
         clicommon.run_command("TSA", display_cmd=True)
-        if golden_config_path or not golden_config_path and os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+        if override_config:
             log.log_warning("Golden configuration may override System Maintenance state. Please execute TSC to check the current System mode")
             click.secho("[WARNING] Golden configuration may override Traffic-shift-away state. Please execute TSC to check the current System mode")
 
     # Load golden_config_db.json
-    if golden_config_path:
+    if override_config:
+        if golden_config_path is None:
+            golden_config_path = DEFAULT_GOLDEN_CONFIG_DB_FILE
         if not os.path.isfile(golden_config_path):
             click.secho("Cannot find '{}'!".format(golden_config_path),
                         fg='magenta')
             raise click.Abort()
         override_config_by(golden_config_path)
-    else:
-        if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
-            override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -2056,15 +2022,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     if fallback != 'false':
         fvs['fallback'] = 'true'
     
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        db = ctx.obj['db']
         if is_portchannel_name_valid(portchannel_name) != True:
             ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
         if is_portchannel_present_in_db(db, portchannel_name):
             ctx.fail("{} already exists!".format(portchannel_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
-    else:
-        db = ValidatedConfigDBConnector(ctx.obj['db']) 
     
     try:
         db.set_entry('PORTCHANNEL', portchannel_name, fvs)
@@ -2077,8 +2041,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        db = ctx.obj['db']
         if is_portchannel_name_valid(portchannel_name) != True:
             ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
@@ -2094,8 +2058,6 @@ def remove_portchannel(ctx, portchannel_name):
 
         if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0: # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
-    else:
-        db = ValidatedConfigDBConnector(ctx.obj['db'])
     
     try:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
@@ -2113,104 +2075,109 @@ def portchannel_member(ctx):
 @click.pass_context
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
-    db = ctx.obj['db']
-    if clicommon.is_port_mirror_dst_port(db, port_name):
-        ctx.fail("{} is configured as mirror destination port".format(port_name))
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    
+    if ADHOC_VALIDATION:
+        if clicommon.is_port_mirror_dst_port(db, port_name):
+            ctx.fail("{} is configured as mirror destination port".format(port_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Check if the member interface given by user is valid in the namespace.
-    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+        # Check if the member interface given by user is valid in the namespace.
+        if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    # Dont proceed if the port channel name is not valid
-    if is_portchannel_name_valid(portchannel_name) is False:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+        # Dont proceed if the port channel name is not valid
+        if is_portchannel_name_valid(portchannel_name) is False:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
  
-    # Don't allow a port to be member of port channel if it is configured with an IP address
-    for key,value in db.get_table('INTERFACE').items():
-        if type(key) == tuple:
-            continue
-        if key == port_name:
-            ctx.fail(" {} has ip address configured".format(port_name))
-            return
+        # Don't allow a port to be member of port channel if it is configured with an IP address
+        for key,value in db.get_table('INTERFACE').items():
+            if type(key) == tuple:
+                continue
+            if key == port_name:
+                ctx.fail(" {} has ip address configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
 
-    for key in db.get_keys('VLAN_SUB_INTERFACE'):
-        if type(key) == tuple:
-            continue
-        intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
-        parent_intf = get_intf_longname(intf)
-        if parent_intf == port_name:
-            ctx.fail(" {} has subinterfaces configured".format(port_name))
+        for key in db.get_keys('VLAN_SUB_INTERFACE'):
+            if type(key) == tuple:
+                continue
+            intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
+            parent_intf = get_intf_longname(intf)
+            if parent_intf == port_name:
+                ctx.fail(" {} has subinterfaces configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Dont allow a port to be member of port channel if it is configured as a VLAN member
-    for k,v in db.get_table('VLAN_MEMBER'):
-        if v == port_name:
-            ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
-            return
+        # Dont allow a port to be member of port channel if it is configured as a VLAN member
+        for k,v in db.get_table('VLAN_MEMBER'):
+            if v == port_name:
+                ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
 
-    # Dont allow a port to be member of port channel if it is already member of a port channel
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
-        if v == port_name:
-            ctx.fail("{} Interface is already member of {} ".format(v,k))
+        # Dont allow a port to be member of port channel if it is already member of a port channel
+        for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+            if v == port_name:
+                ctx.fail("{} Interface is already member of {} ".format(v,k))    # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Dont allow a port to be member of port channel if its speed does not match with existing members
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
-        if k == portchannel_name:
-            member_port_entry = db.get_entry('PORT', v)
+        # Dont allow a port to be member of port channel if its speed does not match with existing members
+        for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+            if k == portchannel_name:
+                member_port_entry = db.get_entry('PORT', v)
+                port_entry = db.get_entry('PORT', port_name)
+
+                if member_port_entry is not None and port_entry is not None:
+                    member_port_speed = member_port_entry.get(PORT_SPEED)
+
+                    port_speed = port_entry.get(PORT_SPEED) # TODO: MISSING CONSTRAINT IN YANG MODEL
+                    if member_port_speed != port_speed: 
+                        ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                                 .format(port_name, portchannel_name))
+
+        # Dont allow a port to be member of port channel if its MTU does not match with portchannel
+        portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
+        if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
             port_entry = db.get_entry('PORT', port_name)
 
-            if member_port_entry is not None and port_entry is not None:
-                member_port_speed = member_port_entry.get(PORT_SPEED)
+            if port_entry and port_entry.get(PORT_MTU) is not None:
+                port_mtu = port_entry.get(PORT_MTU)
 
-                port_speed = port_entry.get(PORT_SPEED)
-                if member_port_speed != port_speed:
-                    ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                portchannel_mtu = portchannel_entry.get(PORT_MTU) # TODO: MISSING CONSTRAINT IN YANG MODEL
+                if portchannel_mtu != port_mtu:
+                    ctx.fail("Port MTU of {} is different than the {} MTU size"
                              .format(port_name, portchannel_name))
 
-    # Dont allow a port to be member of port channel if its MTU does not match with portchannel
-    portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
-    if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
+        # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
+        # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
+        # new member by SAI.
         port_entry = db.get_entry('PORT', port_name)
+        if port_entry and port_entry.get(PORT_TPID) is not None:
+            port_tpid = port_entry.get(PORT_TPID) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if port_tpid != DEFAULT_TPID:
+                ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
-        if port_entry and port_entry.get(PORT_MTU) is not None:
-            port_mtu = port_entry.get(PORT_MTU)
+        # Don't allow a port to be a member of portchannel if already has ACL bindings
+        try:
+            acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace']) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if acl_bindings:
+                ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
 
-            portchannel_mtu = portchannel_entry.get(PORT_MTU)
-            if portchannel_mtu != port_mtu:
-                ctx.fail("Port MTU of {} is different than the {} MTU size"
-                         .format(port_name, portchannel_name))
+        # Don't allow a port to be a member of portchannel if already has PBH bindings
+        try:
+            pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if pbh_bindings:
+                ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
 
-    # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
-    # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
-    # new member by SAI.
-    port_entry = db.get_entry('PORT', port_name)
-    if port_entry and port_entry.get(PORT_TPID) is not None:
-        port_tpid = port_entry.get(PORT_TPID)
-        if port_tpid != DEFAULT_TPID:
-            ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
-
-    # Don't allow a port to be a member of portchannel if already has ACL bindings
     try:
-        acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace'])
-        if acl_bindings:
-            ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
-    except Exception as e:
-        ctx.fail(str(e))
-
-    # Don't allow a port to be a member of portchannel if already has PBH bindings
-    try:
-        pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE)
-        if pbh_bindings:
-            ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
-    except Exception as e:
-        ctx.fail(str(e))
-
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
-            {'NULL': 'NULL'})
+        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
+                {'NULL': 'NULL'})
+    except ValueError:
+        ctx.fail("Portchannel or interface name is invalid or nonexistent")
 
 @portchannel_member.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -2223,22 +2190,25 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                  .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-    db = ctx.obj['db']
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-    # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, port_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    if ADHOC_VALIDATION:
+        # Check if the member interface given by user is valid in the namespace.
+        if interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
 
-    # Dont proceed if the the port is not an existing member of the port channel
-    if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
-        ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
-
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+        # Dont proceed if the the port is not an existing member of the port channel
+        if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+            ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
+    
+    try:
+        db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+    except JsonPatchConflict:
+        ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
 
 #
@@ -2637,7 +2607,7 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
         namespace_list = multi_asic.get_namespaces_from_linux()
 
     buffer_model_updated = False
-    vendors_supporting_dynamic_buffer = ["mellanox"]
+    vendors_supporting_dynamic_buffer = ["mellanox", "barefoot"]
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
@@ -4204,7 +4174,7 @@ def _get_all_mgmtinterface_keys():
 @interface.command()
 @click.pass_context
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('interface_mtu', metavar='<interface_mtu>', required=True)
+@click.argument('interface_mtu', metavar='<interface_mtu>', required=True, type=click.IntRange(68, 9216))
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
@@ -4302,7 +4272,7 @@ def ip(ctx):
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -4366,7 +4336,7 @@ def add(ctx, interface_name, ip_addr, gw):
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -5009,6 +4979,7 @@ def bind(ctx, interface_name, vrf_name):
     else:
         config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
+    click.echo("Interface {} IP disabled and address(es) removed due to binding VRF {}.".format(interface_name, vrf_name))
 #
 # 'unbind' subcommand
 #
@@ -5044,7 +5015,8 @@ def unbind(ctx, interface_name):
         config_db.set_entry(table_name, interface_name, subintf_entry)
     else:
         config_db.set_entry(table_name, interface_name, None)
-
+    
+    click.echo("Interface {} IP disabled and address(es) removed due to unbinding VRF.".format(interface_name))
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
 #
@@ -5218,7 +5190,7 @@ def del_vrf(ctx, vrf_name):
     else:
         del_interface_bind_to_vrf(config_db, vrf_name)
         config_db.set_entry('VRF', vrf_name, None)
-
+        click.echo("VRF {} deleted and all associated IP addresses removed.".format(vrf_name))
 
 @vrf.command('add_vrf_vni_map')
 @click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
@@ -6173,8 +6145,8 @@ def loopback(ctx, redis_unix_socket_path):
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def add_loopback(ctx, loopback_name):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        config_db = ctx.obj['db']
         if is_loopback_name_valid(loopback_name) is False:
             ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
                     .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
@@ -6182,8 +6154,6 @@ def add_loopback(ctx, loopback_name):
         lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
         if loopback_name in lo_intfs:
             ctx.fail("{} already exists".format(loopback_name)) # TODO: MISSING CONSTRAINT IN YANG VALIDATION
-    else:
-        config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     
     try:
         config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
@@ -6194,7 +6164,7 @@ def add_loopback(ctx, loopback_name):
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def del_loopback(ctx, loopback_name):
-    config_db = ctx.obj['db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
 
     if ADHOC_VALIDATION:
@@ -6204,8 +6174,6 @@ def del_loopback(ctx, loopback_name):
         lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
         if loopback_name not in lo_intfs:
             ctx.fail("{} does not exist".format(loopback_name))
-    else:
-        config_db = ValidatedConfigDBConnector(ctx.obj['db'])
 
     ips = [ k[1] for k in lo_config_db if type(k) == tuple and k[0] == loopback_name ]
     for ip in ips:
@@ -6792,73 +6760,82 @@ def is_subintf_shortname(intf):
 @click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
 @click.pass_context
 def add_subinterface(ctx, subinterface_name, vid):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-    if sub_intf_sep_idx == -1:
-        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
-
     interface_alias = subinterface_name[:sub_intf_sep_idx]
-    if interface_alias is None:
-        ctx.fail("{} invalid subinterface".format(interface_alias))
+    if ADHOC_VALIDATION:
+        if sub_intf_sep_idx == -1:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    if interface_alias.startswith("Po") is True:
-        intf_table_name = CFG_PORTCHANNEL_PREFIX
-    elif interface_alias.startswith("Eth") is True:
-        intf_table_name = 'PORT'
+        if interface_alias is None:
+            ctx.fail("{} invalid subinterface".format(interface_alias))
 
-    config_db = ctx.obj['db']
-    port_dict = config_db.get_table(intf_table_name)
-    parent_intf = get_intf_longname(interface_alias)
-    if interface_alias is not None:
-        if not port_dict:
-            ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
-        if parent_intf not in port_dict.keys():
-            ctx.fail("{} parent interface not found".format(subinterface_name))
+        if interface_alias.startswith("Po") is True:
+            intf_table_name = CFG_PORTCHANNEL_PREFIX
+        elif interface_alias.startswith("Eth") is True:
+            intf_table_name = 'PORT'
+        else:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    # Validate if parent is portchannel member
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-    if interface_is_in_portchannel(portchannel_member_table, parent_intf):
-        ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
-                .format(parent_intf))
+        port_dict = config_db.get_table(intf_table_name)
+        parent_intf = get_intf_longname(interface_alias)
+        if interface_alias is not None:
+            if not port_dict:
+                ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
+            if parent_intf not in port_dict.keys():
+                ctx.fail("{} parent interface not found".format(subinterface_name))
 
-    # Validate if parent is vlan member
-    vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if interface_is_in_vlan(vlan_member_table, parent_intf):
-        ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
-                .format(parent_intf))
+        # Validate if parent is portchannel member
+        portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+        if interface_is_in_portchannel(portchannel_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
+                    .format(parent_intf))
 
-    sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
-    if subinterface_name in sub_intfs:
-        ctx.fail("{} already exists".format(subinterface_name))
+        # Validate if parent is vlan member
+        vlan_member_table = config_db.get_table('VLAN_MEMBER')
+        if interface_is_in_vlan(vlan_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
+                    .format(parent_intf))
+
+        sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
+        if subinterface_name in sub_intfs:
+            ctx.fail("{} already exists".format(subinterface_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
+            ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        if vid is None and is_subintf_shortname(subinterface_name):
+            ctx.fail("{} Encap vlan is mandatory or short name subinterfaces".format(subinterface_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
 
     subintf_dict = {}
     if vid is not None:
         subintf_dict.update({"vlan" : vid})
-    elif is_subintf_shortname(subinterface_name):
-        ctx.fail("{} Encap vlan is mandatory for short name subinterfaces".format(subinterface_name))
-
-    if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
-        ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
-
     subintf_dict.update({"admin_status" : "up"})
-    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+    
+    try:
+        config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+    except ValueError as e:
+        ctx.fail("Invalid vlan subinterface. Error: {}".format(e))
 
 @subinterface.command('del')
 @click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
 @click.pass_context
 def del_subinterface(ctx, subinterface_name):
-    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-    if sub_intf_sep_idx == -1:
-        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-    config_db = ctx.obj['db']
-    #subinterface_name = subintf_get_shortname(subinterface_name)
-    if interface_name_is_valid(config_db, subinterface_name) is False:
-        ctx.fail("{} is invalid ".format(subinterface_name))
+    if ADHOC_VALIDATION:
+        sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
-    sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
-    if subinterface_name not in sub_intfs:
-        ctx.fail("{} does not exists".format(subinterface_name))
+        #subinterface_name = subintf_get_shortname(subinterface_name)
+        if interface_name_is_valid(config_db, subinterface_name) is False:
+            ctx.fail("{} is invalid ".format(subinterface_name))
+
+        subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
+        sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
+        if subinterface_name not in sub_intfs:
+            ctx.fail("{} does not exists".format(subinterface_name))
 
     ips = {}
     ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
@@ -6874,7 +6851,10 @@ def del_subinterface(ctx, subinterface_name):
     for ip in ips:
         config_db.set_entry('INTERFACE', (subinterface_name, ip), None)
 
-    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
+    try:
+        config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
+    except JsonPatchConflict as e:
+        ctx.fail("{} is invalid vlan subinterface. Error: {}".format(subinterface_name, e))
 
 if __name__ == '__main__':
     config()
