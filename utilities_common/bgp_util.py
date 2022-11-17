@@ -217,7 +217,7 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
         # exit cli command without printing the error message
         if key not in cmd_output_json:
-            click.echo("% No BGP neighbors found in VRF default")
+            click.echo("% No IP{} neighbor is configured".format(af))
             exit()
 
         device.current_namespace = ns
