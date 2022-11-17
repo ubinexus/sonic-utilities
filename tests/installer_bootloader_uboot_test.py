@@ -45,6 +45,7 @@ def test_get_next_image(run_command_patch, popen_patch):
 
     def mock_run_command(cmd):
         # Remove leading string "/usr/bin/fw_setenv boot_next " -- the 29 characters
+        cmd = ' '.join(cmd)
         MockProc.commandline = cmd[29:]
 
     # Constants

@@ -99,35 +99,35 @@ class TestMultiAsicFabricStat(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
 
     def test_multi_show_fabric_counters(self):
-        return_code, result = get_result_and_return_code('fabricstat')
+        return_code, result = get_result_and_return_code(['fabricstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters
 
     def test_multi_show_fabric_counters_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_asic0
 
     def test_multi_asic_invalid_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -n asic99')
+        return_code, result = get_result_and_return_code(['fabricstat', '-n', 'asic99'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
         assert result == fabric_invalid_asic_error
 
     def test_multi_show_fabric_counters_queue(self):
-        return_code, result = get_result_and_return_code('fabricstat -q')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_queue
 
     def test_multi_show_fabric_counters_queue_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
