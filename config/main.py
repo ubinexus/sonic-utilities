@@ -4102,10 +4102,6 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
             click.secho("[ERROR] Interface name {} is invalid".format(intf))
             raise click.Abort()
 
-    if not add_intf_dict:
-        click.secho("[ERROR] add_intf_dict is None or empty! No interfaces are there to be added", fg='red')
-        raise click.Abort()
-
     port_dict = {}
     for intf in add_intf_dict:
         if intf in add_ports:
