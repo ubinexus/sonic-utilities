@@ -131,6 +131,16 @@ class TestBuffer(object):
         assert result.exit_code != 0
         assert "Multiple entries are found in DEFAULT_LOSSLESS_BUFFER_PARAMETER while no dynamic_th specified" in result.output
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_config_shp_size_negative_yang(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["buffer"].commands["shared-headroom-pool"].commands["size"],
+                               ["200000"])
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
     def test_config_shp_size_negative(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["buffer"].commands["shared-headroom-pool"].commands["size"],
