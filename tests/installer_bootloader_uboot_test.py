@@ -1,5 +1,5 @@
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 
 # Import test module
 import sonic_installer.bootloader.uboot as uboot
@@ -11,6 +11,24 @@ class MockProc():
 
 def mock_run_command(cmd):
     MockProc.commandline = cmd
+
+def test_set_default_image():
+    installed_images = {
+            f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde': ['run sonic_image_1'],
+            f'{uboot.IMAGE_PREFIX}expeliarmus-abcde': ['run sonic_image_2'],
+    }
+    subcmd = ['/usr/bin/fw_setenv', 'boot_next']
+    images = list(installed_images.keys())
+    image0, image1 = installed_images[images[0]], installed_images[images[1]]
+    expected_call0, expected_call1 = [call(subcmd + image0)], [call(subcmd + image1)]
+    with patch('sonic_installer.bootloader.uboot.run_command') as mock_run_command:
+        bootloader = uboot.UbootBootloader()
+        bootloader.get_installed_images = Mock(return_value=images)
+        bootloader.set_default_image(images[0])
+        assert mock_run_command.call_args_list == expected_call0
+        mock_run_command.call_args_list = []
+        bootloader.set_default_image(images[1])
+        assert mock_run_command.call_args_list == expected_call1
 
 @patch("sonic_installer.bootloader.uboot.subprocess.call", Mock())
 @patch("sonic_installer.bootloader.uboot.run_command")
