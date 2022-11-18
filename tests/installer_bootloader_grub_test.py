@@ -5,11 +5,12 @@ from unittest.mock import Mock, patch, call
 # Import test module
 import sonic_installer.bootloader.grub as grub
 
+installed_images = [
+    f'{grub.IMAGE_PREFIX}expeliarmus-{grub.IMAGE_PREFIX}abcde',
+    f'{grub.IMAGE_PREFIX}expeliarmus-abcde',
+]
+
 def test_set_default_image():
-    installed_images = [
-        f'{grub.IMAGE_PREFIX}expeliarmus-{grub.IMAGE_PREFIX}abcde',
-        f'{grub.IMAGE_PREFIX}expeliarmus-abcde',
-    ]
     image = installed_images[0]
     expected_call = [call(['grub-set-default', '--boot-directory=' + grub.HOST_PATH, str(installed_images.index(image))])]
 
@@ -20,10 +21,6 @@ def test_set_default_image():
         mock_cmd.assert_has_calls(expected_call)
 
 def test_set_next_image():
-    installed_images = [
-        f'{grub.IMAGE_PREFIX}expeliarmus-{grub.IMAGE_PREFIX}abcde',
-        f'{grub.IMAGE_PREFIX}expeliarmus-abcde',
-    ]
     image = installed_images[0]
     expected_call = [call(['grub-reboot', '--boot-directory=' + grub.HOST_PATH, str(installed_images.index(image))])]
 
@@ -36,8 +33,9 @@ def test_set_next_image():
 def test_install_image():
     image_path = 'sonic'
     expected_calls = [
-            call(["bash", image_path]),
-            call(['grub-set-default', '--boot-directory=' + grub.HOST_PATH, '0'])]
+        call(["bash", image_path]),
+        call(['grub-set-default', '--boot-directory=' + grub.HOST_PATH, '0'])
+    ]
     with patch('sonic_installer.bootloader.grub.run_command') as mock_cmd:
         bootloader = grub.GrubBootloader()
         bootloader.install_image(image_path)

@@ -4,6 +4,12 @@ from unittest.mock import Mock, patch, call
 # Import test module
 import sonic_installer.bootloader.uboot as uboot
 
+# Constants
+installed_images = [
+    f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde',
+    f'{uboot.IMAGE_PREFIX}expeliarmus-abcde',
+]
+
 class MockProc():
     commandline = "linuxargs="
     def communicate():
@@ -13,39 +19,29 @@ def mock_run_command(cmd):
     MockProc.commandline = cmd
 
 def test_set_default_image():
-    installed_images = {
-            f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde': ['run sonic_image_1'],
-            f'{uboot.IMAGE_PREFIX}expeliarmus-abcde': ['run sonic_image_2'],
-    }
     subcmd = ['/usr/bin/fw_setenv', 'boot_next']
-    images = list(installed_images.keys())
-    image0, image1 = installed_images[images[0]], installed_images[images[1]]
+    image0, image1 = ['run sonic_image_1'], ['run sonic_image_2']
     expected_call0, expected_call1 = [call(subcmd + image0)], [call(subcmd + image1)]
     with patch('sonic_installer.bootloader.uboot.run_command') as mock_run_command:
         bootloader = uboot.UbootBootloader()
-        bootloader.get_installed_images = Mock(return_value=images)
-        bootloader.set_default_image(images[0])
+        bootloader.get_installed_images = Mock(return_value=installed_images)
+        bootloader.set_default_image(installed_images[0])
         assert mock_run_command.call_args_list == expected_call0
         mock_run_command.call_args_list = []
-        bootloader.set_default_image(images[1])
+        bootloader.set_default_image(installed_images[1])
         assert mock_run_command.call_args_list == expected_call1
 
 def test_set_next_image():
-    installed_images = {
-            f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde': ['run sonic_image_1'],
-            f'{uboot.IMAGE_PREFIX}expeliarmus-abcde': ['run sonic_image_2'],
-    }
     subcmd = ['/usr/bin/fw_setenv', 'boot_once']
-    images = list(installed_images.keys())
-    image0, image1 = installed_images[images[0]], installed_images[images[1]]
+    image0, image1 = ['run sonic_image_1'], ['run sonic_image_2']
     expected_call0, expected_call1 = [call(subcmd + image0)], [call(subcmd + image1)]
     with patch('sonic_installer.bootloader.uboot.run_command') as mock_run_command:
         bootloader = uboot.UbootBootloader()
-        bootloader.get_installed_images = Mock(return_value=images)
-        bootloader.set_next_image(images[0])
+        bootloader.get_installed_images = Mock(return_value=installed_images)
+        bootloader.set_next_image(installed_images[0])
         assert mock_run_command.call_args_list == expected_call0
         mock_run_command.call_args_list = []
-        bootloader.set_next_image(images[1])
+        bootloader.set_next_image(installed_images[1])
         assert mock_run_command.call_args_list == expected_call1
 
 @patch("sonic_installer.bootloader.uboot.subprocess.call", Mock())
@@ -53,12 +49,9 @@ def test_set_next_image():
 def test_remove_image(run_command_patch):
     # Constants
     image_path_prefix = os.path.join(uboot.HOST_PATH, uboot.IMAGE_DIR_PREFIX)
-    exp_image0_path = f'{image_path_prefix}expeliarmus-{uboot.IMAGE_PREFIX}abcde'
-    exp_image1_path = f'{image_path_prefix}expeliarmus-abcde'
-
-    installed_images = [
-        f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde',
-        f'{uboot.IMAGE_PREFIX}expeliarmus-abcde',
+    exp_image_path = [
+        f'{image_path_prefix}expeliarmus-{uboot.IMAGE_PREFIX}abcde',
+        f'{image_path_prefix}expeliarmus-abcde'
     ]
 
     bootloader = uboot.UbootBootloader()
@@ -70,7 +63,7 @@ def test_remove_image(run_command_patch):
     assert len(args_list) > 0
 
     args, _ = args_list[0]
-    assert exp_image0_path in args[0]
+    assert exp_image_path[0] in args[0]
 
     uboot.subprocess.call.call_args_list = []
     bootloader.remove_image(installed_images[1])
@@ -78,7 +71,7 @@ def test_remove_image(run_command_patch):
     assert len(args_list) > 0
 
     args, _ = args_list[0]
-    assert exp_image1_path in args[0]
+    assert exp_image_path[1] in args[0]
 
 @patch("sonic_installer.bootloader.uboot.subprocess.Popen")
 @patch("sonic_installer.bootloader.uboot.run_command")
@@ -93,24 +86,18 @@ def test_get_next_image(run_command_patch, popen_patch):
         cmd = ' '.join(cmd)
         MockProc.commandline = cmd[29:]
 
-    # Constants
-    intstalled_images = [
-        f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde',
-        f'{uboot.IMAGE_PREFIX}expeliarmus-abcde',
-    ]
-    
     run_command_patch.side_effect = mock_run_command
     popen_patch.return_value = MockProc()
 
     bootloader = uboot.UbootBootloader()
-    bootloader.get_installed_images = Mock(return_value=intstalled_images)
+    bootloader.get_installed_images = Mock(return_value=installed_images)
 
-    bootloader.set_default_image(intstalled_images[1])
+    bootloader.set_default_image(installed_images[1])
     
     # Verify get_next_image was executed with image path
     next_image=bootloader.get_next_image()
 
-    assert next_image == intstalled_images[1]
+    assert next_image == installed_images[1]
 
 @patch("sonic_installer.bootloader.uboot.subprocess.Popen")
 @patch("sonic_installer.bootloader.uboot.run_command")
