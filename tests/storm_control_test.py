@@ -49,7 +49,7 @@ class TestStormControl(object):
         result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["add"], ["Ethernet0", "unknown-multicast", "10000"], obj = obj)
         print(result.exit_code)
         print(result.output)
-        assert "Invalid ConfigDB. Error1" in result.output
+        assert "Invalid ConfigDB. Error" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
