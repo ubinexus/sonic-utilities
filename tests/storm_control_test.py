@@ -49,12 +49,12 @@ class TestStormControl(object):
         result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["add"], ["Ethernet0", "unknown-multicast", "10000"], obj = obj)
         print(result.exit_code)
         print(result.output)
-        assert "Invalid ConfigDB. Error" in result.output
+        assert "Invalid ConfigDB. Error1" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={'kbps': '1000'}))
-    def test_add_umcast_storm_yang_empty_entry(self):
+    def test_add_umcast_storm_yang_non_empty_entry(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
