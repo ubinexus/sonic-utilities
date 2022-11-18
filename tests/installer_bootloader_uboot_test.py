@@ -30,6 +30,24 @@ def test_set_default_image():
         bootloader.set_default_image(images[1])
         assert mock_run_command.call_args_list == expected_call1
 
+def test_set_next_image():
+    installed_images = {
+            f'{uboot.IMAGE_PREFIX}expeliarmus-{uboot.IMAGE_PREFIX}abcde': ['run sonic_image_1'],
+            f'{uboot.IMAGE_PREFIX}expeliarmus-abcde': ['run sonic_image_2'],
+    }
+    subcmd = ['/usr/bin/fw_setenv', 'boot_once']
+    images = list(installed_images.keys())
+    image0, image1 = installed_images[images[0]], installed_images[images[1]]
+    expected_call0, expected_call1 = [call(subcmd + image0)], [call(subcmd + image1)]
+    with patch('sonic_installer.bootloader.uboot.run_command') as mock_run_command:
+        bootloader = uboot.UbootBootloader()
+        bootloader.get_installed_images = Mock(return_value=images)
+        bootloader.set_next_image(images[0])
+        assert mock_run_command.call_args_list == expected_call0
+        mock_run_command.call_args_list = []
+        bootloader.set_next_image(images[1])
+        assert mock_run_command.call_args_list == expected_call1
+
 @patch("sonic_installer.bootloader.uboot.subprocess.call", Mock())
 @patch("sonic_installer.bootloader.uboot.run_command")
 def test_remove_image(run_command_patch):
