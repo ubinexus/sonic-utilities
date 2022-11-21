@@ -426,7 +426,7 @@ def clear_vlan_fdb(vlanid):
 @click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
 def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = ["consutil", "clear", "{}".format("--devicename" if devicename else ""), str(target)]
+    cmd = ["consutil", "clear", "--devicename" if devicename else "", str(target)]
     (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
     click.echo(output)
     sys.exit(exitstatus)

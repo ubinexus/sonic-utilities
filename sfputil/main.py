@@ -1298,7 +1298,7 @@ def download_firmware(port_name, filepath):
 
     try:
         fwinfo = api.get_module_fw_mgmt_feature()
-        if fwinfo['status']:
+        if fwinfo['status'] == True:
             startLPLsize, maxblocksize, lplonly_flag, autopaging_flag, writelength = fwinfo['feature']
         else:
             click.echo("Failed to fetch CDB Firmware management features")
