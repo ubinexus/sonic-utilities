@@ -314,6 +314,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]["type"].upper() == "L3"
 
+    def is_table_l2(self, tname):
+        """
+        Check if ACL table type is L2
+        :param tname: ACL table name
+        :return: True if table type is L2 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() == "L2"
+
     def is_table_ipv6(self, tname):
         """
         Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
@@ -456,6 +464,15 @@ class AclLoader(object):
 
             rule_props["VLAN_ID"] = vlan_id
 
+        if rule.l2.config.source_mac:
+            source_mac = rule.l2.config.source_mac
+            source_mac_mask = rule.l2.config.source_mac_mask
+            rule_props["SRC_MAC"] = source_mac + "/" + source_mac_mask
+        if rule.l2.config.destination_mac:
+            destination_mac = rule.l2.config.destination_mac
+            destination_mac_mask = rule.l2.config.destination_mac_mask
+            rule_props["DST_MAC"] = destination_mac + "/" + destination_mac_mask
+ 
         return rule_props
 
     def convert_ip(self, table_name, rule_idx, rule):
@@ -639,6 +656,8 @@ class AclLoader(object):
         rule_props["PACKET_ACTION"] = "DROP"
         if self.is_table_ipv6(table_name):
             rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
+        elif self.is_table_l2(table_name):
+            rule_props["IP_TYPE"] = "ANY"
         else:
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
