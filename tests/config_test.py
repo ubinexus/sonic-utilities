@@ -668,6 +668,28 @@ class TestConfigQos(object):
         import config.main
         importlib.reload(config.main)
 
+    def _keys(args, kwargs):
+        if not TestConfigQos._keys_counter:
+            return []
+        TestConfigQos._keys_counter-=1
+        return ["BUFFER_POOL_TABLE:egress_lossy_pool"]
+
+    def test_qos_wait_until_clear_empty(self):
+        from config.main import _wait_until_clear
+
+        with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys',  side_effect=TestConfigQos._keys):
+            TestConfigQos._keys_counter = 1
+            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+        assert empty
+
+    def test_qos_wait_until_clear_not_empty(self):
+        from config.main import _wait_until_clear
+
+        with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys', side_effect=TestConfigQos._keys):
+            TestConfigQos._keys_counter = 10
+            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+        assert not empty
+
     def test_qos_reload_single(
             self, get_cmd_module, setup_qos_mock_apis,
             setup_single_broadcom_asic

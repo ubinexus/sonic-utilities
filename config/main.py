@@ -728,20 +728,21 @@ def storm_control_delete_entry(port_name, storm_type):
     return True
 
 
-def wait_until_clear(interval=0.5, timeout=30):
+def _wait_until_clear(table, interval=0.5, timeout=30):
     start = time.time()
     empty = False
     app_db = SonicV2Connector(host='127.0.0.1')
     app_db.connect(app_db.APPL_DB)
 
     while not empty and time.time() - start < timeout:
-        current_profiles = app_db.keys(app_db.APPL_DB, "BUFFER_POOL_TABLE:*")
+        current_profiles = app_db.keys(app_db.APPL_DB, table)
         if not current_profiles:
             empty = True
         else:
             time.sleep(interval)
     if not empty:
         click.echo("Operation not completed successfully, please save and reload configuration.")
+    return empty
 
 
 def _clear_qos(delay = False):
@@ -781,7 +782,7 @@ def _clear_qos(delay = False):
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
     if delay:
-        wait_until_clear(interval=0.5, timeout=30)
+        _wait_until_clear("BUFFER_POOL_TABLE:*",interval=0.5, timeout=30)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
