@@ -66,6 +66,8 @@ from . import syslog
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
+ECMP_CALC = '/usr/bin/ecmp_calc.py'
+CONTAINER_NAME = 'syncd'
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -1032,6 +1034,29 @@ def fib(ipaddress, verbose):
     if ipaddress is not None:
         cmd += " -ip {}".format(ipaddress)
     run_command(cmd, display_cmd=verbose)
+
+
+#
+# 'ecmp-egress-port' subcommand ("show ip ecmp-egress-port...")
+#
+
+@ip.command()
+@click.option('--packet', '-p', required=True, help="Json file describing a packet")
+@click.option('--ingress-port', '-i', required=True, help="Ingress port")
+@click.option('--vrf', '-v', required=False, help="VRF name")
+@click.option('--debug', '-d', required=False, is_flag=True, help="Run in debug mode")
+def ecmp_egress_port(packet, ingress_port, vrf, debug):
+    """Show egress port for given packet"""
+    cmd = "docker cp {} {}:/".format(packet, CONTAINER_NAME)
+    run_command(cmd)
+
+    packet = os.path.basename(packet)
+    cmd = "docker exec {} {} --packet {} --interface {}".format(CONTAINER_NAME, ECMP_CALC, packet, ingress_port)
+    if vrf is not None:
+        cmd += " --vrf {}".format(vrf)
+    if debug is True:
+        cmd += " --debug"
+    run_command(cmd, display_cmd=debug)
 
 
 #
