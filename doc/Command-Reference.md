@@ -8831,8 +8831,6 @@ This command is used to configure syslog rate limit for host.
 - Example:
   ```
   admin@sonic:~$ sudo config syslog rate-limit-host --interval 300 --burst 20000
-  Running command: systemctl reset-failed rsyslog-config rsyslog
-  Running command: systemctl restart rsyslog-config
   ```
 
 **config syslog rate-limit-container**
@@ -8851,9 +8849,6 @@ This command is used to configure syslog rate limit for containers.
 - Example:
   ```
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
-  Running command: sonic-cfggen -d -t /usr/share/sonic/templates/rsyslog-container.conf.j2 -a "{\"target_ip\": \"127.0.0.1\", \"container_name\": \"bgp\" }"  > /tmp/rsyslog.bgp.conf
-  rsyslogd: stopped
-  rsyslogd: started
   ```
 
 
