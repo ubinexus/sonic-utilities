@@ -653,7 +653,10 @@ def set_fips(image, enable_fips):
         echo_and_log('Error: Image does not exist', LOG_ERR)
         sys.exit(1)
     bootloader.set_fips(image, enable=enable_fips)
-    click.echo('Set FIPS for the image successfully')
+    if enable_fips:
+        click.echo('Enabled FIPS for the image successfully')
+    else:
+        click.echo('Disabled FIPS for the image successfully')
 
 # Get fips for image
 @sonic_installer.command('get-fips')

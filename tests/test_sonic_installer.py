@@ -101,9 +101,9 @@ def test_set_fips(get_bootloader):
 
     # Test set-fips command options: --enable-fips/--disable-fips
     result = runner.invoke(sonic_installer.commands["set-fips"], [next_image, '--enable-fips'])
-    assert 'Set FIPS' in result.output
+    assert 'Enabled FIPS for the image successfully' in result.output
     result = runner.invoke(sonic_installer.commands["set-fips"], ['--disable-fips'])
-    assert 'Set FIPS' in result.output
+    assert 'Disabled FIPS for the image successfully' in result.output
 
     # Test command get-fips options
     result = runner.invoke(sonic_installer.commands["get-fips"])
