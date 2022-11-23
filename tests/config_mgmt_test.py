@@ -229,6 +229,7 @@ class TestConfigMgmt(TestCase):
         # mock funcs
         cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
         cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
+        cmdpb._verifyPortShutdown = mock.MagicMock(return_value=True)
         from .mock_tables import dbconnector
         return cmdpb
 
