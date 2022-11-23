@@ -10537,7 +10537,7 @@ If the option --enable-fips or --disable-fips is not specified, the default beha
   ```
   admin@sonic:~$ sudo sonic-installer set-fips --enable-fips
   Done
-  Set FIPS for the image successfully
+  Enabled FIPS for the image successfully
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#software-installation-and-management)
