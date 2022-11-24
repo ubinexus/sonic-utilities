@@ -792,7 +792,6 @@ class AclLoader(object):
                 current_dataplane_rules.add(key)
 
         added_dataplane_rules = new_dataplane_rules.difference(current_dataplane_rules)
-        removed_dataplane_rules = current_dataplane_rules.difference(new_dataplane_rules)
         existing_dataplane_rules = new_rules.intersection(current_dataplane_rules)
 
         for key in added_dataplane_rules:
