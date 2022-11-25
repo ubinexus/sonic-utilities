@@ -631,11 +631,10 @@ def check_routes():
 
     rt_frr_miss = []
 
-    if is_suppress_pending_fib_enabled():
-        rt_frr_miss = check_frr_pending_routes()
+    rt_frr_miss = check_frr_pending_routes()
 
-        if rt_frr_miss:
-            results["missed_FRR_routes"] = rt_frr_miss
+    if rt_frr_miss:
+        results["missed_FRR_routes"] = rt_frr_miss
 
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
@@ -644,8 +643,9 @@ def check_routes():
         print_message(syslog.LOG_WARNING, "del: ", json.dumps(deletes, indent=4))
 
         if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
-            print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR but all routes in APPL_DB and ASIC_DB are in sync. Mitigating problem")
-            mitigate_installed_not_offloaded_frr_routes(rt_frr_miss)
+            print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR but all routes in APPL_DB and ASIC_DB are in sync")
+            if is_suppress_pending_fib_enabled():
+                mitigate_installed_not_offloaded_frr_routes(rt_frr_miss)
 
         return -1, results
     else:

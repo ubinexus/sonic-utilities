@@ -685,7 +685,7 @@ class TestRouteCheck(object):
         for (i, ct_data) in test_data.items():
             do_start_test("route_test", i, ct_data)
 
-            check_patch = patch('route_check.is_suppress_pending_fib_enabled', lambda: False)
+            check_patch = patch('route_check.check_frr_pending_routes', lambda: [])
 
             if FRR_ROUTES in ct_data:
                 routes = ct_data[FRR_ROUTES]
