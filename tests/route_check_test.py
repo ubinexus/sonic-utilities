@@ -685,6 +685,8 @@ class TestRouteCheck(object):
         for (i, ct_data) in test_data.items():
             do_start_test("route_test", i, ct_data)
 
+            check_patch = patch('route_check.is_suppress_pending_fib_enabled', lambda: False)
+
             if FRR_ROUTES in ct_data:
                 routes = ct_data[FRR_ROUTES]
 
@@ -693,8 +695,7 @@ class TestRouteCheck(object):
 
                 mock_check_output.side_effect = side_effect
             else:
-                frr_check_patch = patch('route_check.check_frr_pending_routes', lambda: [])
-                frr_check_patch.start()
+                check_patch.start()
 
             with patch('sys.argv', ct_data[ARGS].split()):
                 ret, res = route_check.main()
@@ -707,8 +708,7 @@ class TestRouteCheck(object):
                 assert ret == expect_ret
                 assert res == expect_res
 
-            if FRR_ROUTES not in ct_data:
-                frr_check_patch.stop()
+            check_patch.stop()
 
 
         # Test timeout

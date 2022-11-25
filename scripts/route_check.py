@@ -321,6 +321,15 @@ def get_route_entries():
     return (selector, subs, sorted(rt))
 
 
+def is_suppress_pending_fib_enabled():
+    cfg_db = swsscommon.ConfigDBConnector()
+    cfg_db.connect()
+
+    state = cfg_db.get_entry('DEVICE_METADATA', 'localhost').get('suppress-pending-fib')
+
+    return state == 'enabled'
+
+
 def get_frr_routes():
     """
     Read routes from zebra through CLI command
@@ -620,10 +629,13 @@ def check_routes():
     if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
-    rt_frr_miss = check_frr_pending_routes()
+    rt_frr_miss = []
 
-    if rt_frr_miss:
-        results["missed_FRR_routes"] = rt_frr_miss
+    if is_suppress_pending_fib_enabled():
+        rt_frr_miss = check_frr_pending_routes()
+
+        if rt_frr_miss:
+            results["missed_FRR_routes"] = rt_frr_miss
 
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
