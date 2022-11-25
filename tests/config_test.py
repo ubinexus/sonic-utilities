@@ -15,10 +15,12 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
+from mock import patch
 
 from generic_config_updater.generic_updater import ConfigFormat
 
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 
 # Add Test, module and script path.
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -222,7 +224,7 @@ class TestConfigReload(object):
             obj = {'config_db': db.cfgdb}
 
             # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-n", "-y", "--disable_arp_cache"], obj=obj)
+            result = runner.invoke(config.config.commands["reload"], ["-l", "-n", "-y"], obj=obj)
 
             print(result.exit_code)
             print(result.output)
@@ -409,27 +411,6 @@ class TestLoadMinigraph(object):
                 assert result.exit_code == 0
                 assert expected_output in result.output
 
-    def test_load_minigraph_with_golden_config(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch(
-            "utilities_common.cli.run_command",
-            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            (config, show) = get_cmd_module
-            db = Db()
-            golden_config = {}
-            self.check_golden_config(db, config, golden_config,
-                                     "config override-config-table /etc/sonic/golden_config_db.json")
-
-    def check_golden_config(self, db, config, golden_config, expected_output):
-        def is_file_side_effect(filename):
-            return True if 'golden_config' in filename else False
-        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
-            assert expected_output in result.output
-
     def test_load_minigraph_with_non_exist_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -437,23 +418,31 @@ class TestLoadMinigraph(object):
                 mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
             (config, show) = get_cmd_module
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-p", "non_exist.json", "-y"])
+            result = runner.invoke(config.config.commands["load_minigraph"], ["--override_config", "--golden_config_path", "non_exist.json", "-y"])
             assert result.exit_code != 0
             assert "Cannot find 'non_exist.json'" in result.output
 
-    def test_load_minigraph_with_golden_config_path(self, get_cmd_module):
+    def test_load_minigraph_with_specified_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command, \
                 mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
             (config, show) = get_cmd_module
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-p", "golden_config.json", "-y"])
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
+            result = runner.invoke(config.config.commands["load_minigraph"], ["--override_config", "--golden_config_path",  "golden_config.json", "-y"])
             assert result.exit_code == 0
             assert "config override-config-table golden_config.json" in result.output
+
+    def test_load_minigraph_with_default_golden_config_path(self, get_cmd_module):
+        def is_file_side_effect(filename):
+            return True if 'golden_config' in filename else False
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command, \
+                mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["--override_config", "-y"])
+            assert result.exit_code == 0
+            assert "config override-config-table /etc/sonic/golden_config_db.json" in result.output
 
     def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
@@ -475,7 +464,7 @@ class TestLoadMinigraph(object):
                 db = Db()
                 golden_config = {}
                 runner = CliRunner()
-                result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-ty", "--override_config"])
                 print(result.exit_code)
                 print(result.output)
                 traceback.print_tb(result.exc_info[2])
@@ -509,7 +498,7 @@ class TestReloadConfig(object):
 
             result = runner.invoke(
                 config.config.commands["reload"],
-                [self.dummy_cfg_file, '-y', '-f', "--disable_arp_cache"])
+                [self.dummy_cfg_file, '-y', '-f'])
 
             print(result.exit_code)
             print(result.output)
@@ -526,7 +515,7 @@ class TestReloadConfig(object):
             (config, show) = get_cmd_module
 
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["reload"], [self.dummy_cfg_file, "-y", "--disable_arp_cache"])
+            result = runner.invoke(config.config.commands["reload"], [self.dummy_cfg_file, "-y"])
 
             print(result.exit_code)
             print(result.output)
@@ -551,7 +540,7 @@ class TestReloadConfig(object):
                             self.dummy_cfg_file)
             result = runner.invoke(
                 config.config.commands["reload"],
-                [cfg_files, '-y', '-f', "--disable_arp_cache"])
+                [cfg_files, '-y', '-f'])
 
             print(result.exit_code)
             print(result.output)
@@ -570,7 +559,7 @@ class TestReloadConfig(object):
             runner = CliRunner()
 
             result = runner.invoke(config.config.commands["reload"],
-                                    [self.dummy_cfg_file, "--disable_arp_cache", '-y', '-f', '-t', 'config_yang'])
+                                    [self.dummy_cfg_file, '-y', '-f', '-t', 'config_yang'])
 
             print(result.exit_code)
             print(result.output)
@@ -1636,6 +1625,92 @@ class TestConfigHostname(object):
         # Check new hostname was part of args
         assert {'hostname': 'new_hostname'} in args
 
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigLoopback(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_add_loopback_with_invalid_name_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["add"], ["Loopbax1"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Loopbax1 is invalid, name should have prefix 'Loopback' and suffix '<0-999>'" in result.output
+
+    def test_add_loopback_with_invalid_name_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["add"], ["Loopbax1"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Loopbax1 is invalid, name should have prefix 'Loopback' and suffix '<0-999>'" in result.output
+
+    def test_del_nonexistent_loopback_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["del"], ["Loopback12"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Loopback12 does not exist" in result.output
+    
+    def test_del_nonexistent_loopback_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["del"], ["Loopbax1"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Loopbax1 is invalid, name should have prefix 'Loopback' and suffix '<0-999>'" in result.output
+    
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(return_value=True))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_add_loopback_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["add"], ["Loopback12"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+    def test_add_loopback_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["loopback"].commands["add"], ["Loopback12"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+    
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
