@@ -833,7 +833,7 @@
         "peer_switch": "sonic-switch",
         "type": "ToRRouter",
         "subtype": "DualToR",
-        "suppress-pending-fib": "enabled"
+        "suppress-fib-pending": "enabled"
     },
     "SNMP_COMMUNITY|msft": {
         "TYPE": "RO"

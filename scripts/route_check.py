@@ -325,7 +325,7 @@ def is_suppress_pending_fib_enabled():
     cfg_db = swsscommon.ConfigDBConnector()
     cfg_db.connect()
 
-    state = cfg_db.get_entry('DEVICE_METADATA', 'localhost').get('suppress-pending-fib')
+    state = cfg_db.get_entry('DEVICE_METADATA', 'localhost').get('suppress-fib-pending')
 
     return state == 'enabled'
 
