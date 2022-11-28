@@ -1551,7 +1551,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         # Check if the file is properly formatted before proceeding.  
         for file in cfg_files:
             try:
-                config_input = read_json_file(file)
+                read_json_file(file)
             except Exception as e:
                 click.secho("Bad format: json file broken. {}".format(str(e)),
                             fg='magenta')

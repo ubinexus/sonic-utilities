@@ -531,7 +531,7 @@ class TestReloadConfig(object):
 
             result = runner.invoke(
                 config.config.commands["reload"],
-                [self.dummy_cfg_file_invalid, '-y', '-f', "--disable_arp_cache"])
+                [self.dummy_cfg_file_invalid, '-y', '-f'])
 
             print(result.exit_code)
             print(result.output)
@@ -596,7 +596,7 @@ class TestReloadConfig(object):
                             self.dummy_cfg_file)
             result = runner.invoke(
                 config.config.commands["reload"],
-                [cfg_files, '-y', '-f', "--disable_arp_cache"])
+                [cfg_files, '-y', '-f'])
 
             print(result.exit_code)
             print(result.output)
