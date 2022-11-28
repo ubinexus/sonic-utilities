@@ -2028,6 +2028,91 @@ def peer(db, peer_ip):
 
     click.echo(tabulate(bfd_body, bfd_headers))
 
+@cli.group('heartbeat-status', invoke_without_command=True)
+def heartbeat_status():
+    """Show hearbeat-status"""
+
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB)
+
+    entries = state_db.keys(state_db.STATE_DB, "HB_CLIENTS_STATE_TABLE*")
+    if not entries:
+        click.echo('Client information not available\n')
+        return
+
+    header = ['ClientName', 'PID', 'State', 'Poll-Interval', 'Dead-Interval', 'Echo-Req', 'Echo-ack']
+
+    body = []
+    for key in entries:
+        key_list = key.split('|')
+
+        pid = key_list[1]
+        name = key_list[2]
+        data_dict = state_db.get_all(state_db.STATE_DB, "HB_CLIENTS_STATE_TABLE|{}|{}".format(pid,name))
+        if data_dict is None:
+            continue
+
+        clientname = name
+        #pid = data_dict.get('pid', "")
+        state = data_dict.get('state', "").lower()
+        pollinterval = data_dict.get('poll-time', "0")
+        deadinterval = data_dict.get('dead-time', "0")
+        echoreq = data_dict.get('num-echo-req', "0")
+        echoack = data_dict.get('num-echo-ack', "0")
+
+        body.append([clientname, pid, state, pollinterval, deadinterval, echoreq, echoack])
+
+    click.echo(tabulate(body, header))
+
+@cli.group('heartbeat-info', invoke_without_command=True)
+@click.argument('name', metavar='<name>', required=True)
+def heartbeat_info(name):
+    """Show hearbeat-info"""
+
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB)
+
+    entries = state_db.keys(state_db.STATE_DB, "HB_CLIENTS_STATE_TABLE*")
+    if not entries:
+        click.echo('Client information not available\n')
+        return
+
+    for key in entries:
+        key_list = key.split('|')
+
+        pid = key_list[1]
+        cname = key_list[2]
+        if name != cname:
+            continue
+        data_dict = state_db.get_all(state_db.STATE_DB, "HB_CLIENTS_STATE_TABLE|{}|{}".format(pid,name))
+        if data_dict is None:
+            continue
+
+        clientname = cname
+        #pid = data_dict.get('pid', "")
+        state = data_dict.get('state', "").lower()
+        pollinterval = data_dict.get('poll-time', "0")
+        deadinterval = data_dict.get('dead-time', "0")
+        action = data_dict.get('action', "none").lower()
+        downtime = data_dict.get('down-timestamp', "NA")
+        uptime = data_dict.get('up-timestamp', "NA")
+        trace = data_dict.get('trace', "")
+        echoreq = data_dict.get('num-echo-req', "0")
+        echoack = data_dict.get('num-echo-ack', "0")
+
+        click.echo("ClientName    : {}".format(clientname))
+        click.echo("Pid           : {}".format(pid))
+        click.echo("State         : {}".format(state))
+        click.echo("PollInterval  : {} secs".format(pollinterval))
+        click.echo("DeadInterval  : {} secs".format(deadinterval))
+        click.echo("Action        : {}".format(action))
+        click.echo("DownTime      : {}".format(downtime))
+        click.echo("UpTime        : {}".format(uptime))
+        click.echo("Echo-req Count: {}".format(echoreq))
+        click.echo("Echo-ack Count: {}".format(echoack))
+        click.echo("Trace         :")
+        click.echo("{}".format(trace))
+
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
