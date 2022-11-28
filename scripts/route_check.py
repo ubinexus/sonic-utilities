@@ -322,6 +322,9 @@ def get_route_entries():
 
 
 def is_suppress_pending_fib_enabled():
+    """
+    Returns True if FIB suppression is enabled, False otherwise
+    """
     cfg_db = swsscommon.ConfigDBConnector()
     cfg_db.connect()
 
@@ -514,7 +517,8 @@ def filter_out_standalone_tunnel_routes(routes):
 
 def check_frr_pending_routes():
     """
-    TODO: add docstring
+    Check FRR routes for offload flag presence by executing "show ip route json"
+    Returns a list of routes that have no offload flag.
     """
 
     missed_rt = []
@@ -529,6 +533,11 @@ def check_frr_pending_routes():
                 if entry['protocol'] != 'bgp':
                     continue
 
+                # TODO: Also handle VRF routes. Currently this script does not check for VRF routes so it would be incorrect for us
+                # to assume they are installed in ASIC_DB, so we don't handle them.
+                if entry['vrfName'] != 'default':
+                    continue
+
                 if not entry.get('offloaded', False):
                     missed_rt.append(entry)
 
@@ -540,21 +549,14 @@ def check_frr_pending_routes():
     return missed_rt
 
 
-def get_appl_rt_key_from_frr_entry(entry):
-    prefix = entry['prefix']
-    vrf = entry['vrfName']
-
-    if vrf == 'default':
-        return prefix
-
-    return prefix + ':' + vrf
-
-
 def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt):
+    """
+    Mitigate not installed but not offloaded FRR routes.
+    """
     db = swsscommon.DBConnector('APPL_STATE_DB', 0)
     response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
     for entry in missed_frr_rt:
-        key = get_appl_rt_key_from_frr_entry(entry)
+        key = entry['prefix']
 
         fvs = swsscommon.FieldValuePairs([('err_str', 'SWSS_RC_SUCCESS'), ('protocol', entry['protocol'])])
         response_producer.send('SWSS_RC_SUCCESS', key, fvs)
