@@ -1547,6 +1547,15 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         if len(cfg_files) != num_cfg_file:
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
+        
+        # Check if the file is properly formatted before proceeding.  
+        for file in cfg_files:
+            try:
+                config_input = read_json_file(file)
+            except Exception as e:
+                click.secho("Bad format: json file broken. {}".format(str(e)),
+                            fg='magenta')
+                sys.exit(1)
 
     #Stop services before config push
     if not no_service_restart:
