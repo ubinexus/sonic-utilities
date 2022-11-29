@@ -73,7 +73,7 @@ MAX_SCAN_INTERVAL = 3600    # An hour
 PRINT_MSG_LEN_MAX = 1000
 
 FRR_CHECK_RETRIES = 3
-FRR_WAIT_TIME = 5
+FRR_WAIT_TIME = 15
 
 class Level(Enum):
     ERR = 'ERR'
@@ -321,7 +321,7 @@ def get_route_entries():
     return (selector, subs, sorted(rt))
 
 
-def is_suppress_pending_fib_enabled():
+def is_suppress_fib_pending_enabled():
     """
     Returns True if FIB suppression is enabled, False otherwise
     """
@@ -647,7 +647,7 @@ def check_routes():
 
         if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
             print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR but all routes in APPL_DB and ASIC_DB are in sync")
-            if is_suppress_pending_fib_enabled():
+            if is_suppress_fib_pending_enabled():
                 mitigate_installed_not_offloaded_frr_routes(rt_frr_miss)
 
         return -1, results
