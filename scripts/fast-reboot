@@ -447,6 +447,13 @@ function load_kernel() {
     /sbin/kexec -a -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 }
 
+function load_kernel_secure() {
+    # Load kernel into the memory secure
+    # -s flag is for enforcing the new load kernel(vmlinuz) to be signed and verify.
+    # not using -a flag, this flag can fallback to an old kexec load that do not support Secure Boot verification
+    /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS" -s
+}
+
 function unload_kernel()
 {
     # Unload the previously loaded kernel if any loaded
@@ -597,9 +604,13 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     fi
 fi
 
+# check if secure boot is enable in UEFI 
+SECURE_UPGRADE_ENABLED=$(bootctl status 2>/dev/null | grep -c "Secure Boot: enabled")
 
 if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
     load_aboot_secureboot_kernel
+elif [ ${SECURE_UPGRADE_ENABLED} -eq 1 ]; then
+    load_kernel_secure
 else
     load_kernel
 fi
