@@ -1,0 +1,46 @@
+{
+	"acl": {
+		"acl-sets": {
+			"acl-set": {
+				"DATAACL_ADD_DEL": {
+					"acl-entries": {
+						"acl-entry": {
+							"1": {
+								"config": {
+									"sequence-id": 1
+								},
+								"actions": {
+									"config": {
+										"forwarding-action": "ACCEPT"
+									}
+								},
+								"ip": {
+									"config": {
+										"source-ip-address": "30.0.0.2/32",
+										"destination-ip-address": "40.0.0.3/32"
+									}
+								}
+							},
+							"3": {
+								"config": {
+									"sequence-id": 3
+								},
+								"actions": {
+									"config": {
+										"forwarding-action": "ACCEPT"
+									}
+								},
+								"ip": {
+									"config": {
+										"source-ip-address": "31.0.0.2/32",
+										"destination-ip-address": "41.0.0.3/32"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
