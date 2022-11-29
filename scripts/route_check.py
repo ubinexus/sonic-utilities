@@ -551,7 +551,7 @@ def check_frr_pending_routes():
 
 def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt):
     """
-    Mitigate not installed but not offloaded FRR routes.
+    Mitigate installed but not offloaded FRR routes.
     """
     db = swsscommon.DBConnector('APPL_STATE_DB', 0)
     response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
@@ -576,6 +576,9 @@ def check_routes():
 
     If there are still some unjustifiable diffs, between APPL & ASIC DB,
     related to routes report failure, else all good.
+
+    If there are FRR routes that aren't marked offloaded but all APPL & ASIC DB
+    routes are in sync report failure and perform a mitigation action.
 
     :return (0, None) on sucess, else (-1, results) where results holds
     the unjustifiable entries.
@@ -630,8 +633,6 @@ def check_routes():
 
     if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
-
-    rt_frr_miss = []
 
     rt_frr_miss = check_frr_pending_routes()
 
