@@ -90,7 +90,8 @@ Reloading Monit configuration ...
 """
 
 RELOAD_CONFIG_DB_OUTPUT_INVALID = """\
-Bad format: json file broken. Expecting ',' delimiter: line 12 column 5 (char 321)
+Bad format: json file '/sonic/src/sonic-utilities/tests/config_reload_input/config_db_invalid.json' broken.
+Expecting ',' delimiter: line 12 column 5 (char 321)
 """
 
 RELOAD_YANG_CFG_OUTPUT = """\
@@ -107,10 +108,6 @@ Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --w
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
-"""
-
-RELOAD_MASIC_CONFIG_DB_OUTPUT_INVALID = """\
-Bad format: json file broken. Expecting ',' delimiter: line 12 column 5 (char 321)
 """
 
 reload_config_with_sys_info_command_output="""\
@@ -603,7 +600,7 @@ class TestReloadConfig(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 1
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_MASIC_CONFIG_DB_OUTPUT_INVALID
+                == RELOAD_CONFIG_DB_OUTPUT_INVALID
 
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
@@ -623,6 +620,25 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_YANG_CFG_OUTPUT
+
+    def test_reload_yang_config_invalid(self, get_cmd_module,
+                                        setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["reload"],
+                                    [self.dummy_cfg_file_invalid, '-y', '-f', '-t', 'config_yang'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 1
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_CONFIG_DB_OUTPUT_INVALID
 
     @classmethod
     def teardown_class(cls):

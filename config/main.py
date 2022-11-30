@@ -1547,15 +1547,34 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         if len(cfg_files) != num_cfg_file:
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
-        
-        # Check if the file is properly formatted before proceeding.  
-        for file in cfg_files:
-            try:
-                read_json_file(file)
-            except Exception as e:
-                click.secho("Bad format: json file broken. {}".format(str(e)),
-                            fg='magenta')
-                sys.exit(1)
+
+    for inst in range(-1, num_cfg_file-1):
+        # Get the namespace name, for linux host it is None
+        if inst == -1:
+            namespace = None
+        else:
+            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+        if cfg_files:
+            file = cfg_files[inst+1]
+        else:
+            if file_format == 'config_db':
+                if namespace is None:
+                    file = DEFAULT_CONFIG_DB_FILE
+                else:
+                    file = "/etc/sonic/config_db{}.json".format(inst)
+            else:
+                file = DEFAULT_CONFIG_YANG_FILE
+
+        # Check the file is properly formatted before proceeding.  
+        try:
+            # Load golden config json
+            read_json_file(file)
+        except Exception as e:
+            click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                        fg='magenta')
+            sys.exit(1)
 
     #Stop services before config push
     if not no_service_restart:
