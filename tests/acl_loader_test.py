@@ -246,8 +246,6 @@ class TestAclLoader(object):
             'PRIORITY': '9998'
         }
 
-        acl_loader.configdb.mod_entry = mock.MagicMock(return_value=True)
-        acl_loader.configdb.set_entry = mock.MagicMock(return_value=True)
         acl_loader.per_npu_configdb = {}
         namespaces = multi_asic.get_front_end_namespaces()
         for namespace in namespaces:
