@@ -1,4 +1,3 @@
-
 import os
 
 import pytest
@@ -31,6 +30,5 @@ class TestShowRunCommands(object):
         input = testData['test_vector']
         result = runner.invoke(exec_cmd, input['args'])
         print("{}".format(result.output))
-        import pdb; pdb.set_trace()
         assert result.exit_code == 0
         assert result.output == show_run_bgp_sasic
