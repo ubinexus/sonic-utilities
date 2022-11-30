@@ -1385,21 +1385,28 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False, 
-              help='Option needed for multi-asic only - provide namespace name or all')
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def bgp(namespace, verbose):
-    """Show BGP running configuration"""
-    if multi_asic.is_multi_asic() and (namespace not in multi_asic.get_namespace_list() or namespace != 'all'):
-        ctx = click.get_current_context()
-        ctx.fail("-n/--namespace option required. provide namespace from list {}, or give '-n all'".format(multi_asic.get_namespace_list()))
+    """
+    Show BGP running configuration
+    Note:
+        multi-asic can run 'show run bgp' and show from all asics, or 'show run bgp -n <ns>'
+        single-asic only run 'show run bgp', '-n' is not available
+    """
+
+    if multi_asic.is_multi_asic():
+        if namespace and namespace not in multi_asic.get_namespace_list():
+            ctx = click.get_current_context()
+            ctx.fail("invalid value for -n/--namespace option. provide namespace from list {}".format(multi_asic.get_namespace_list()))
     if not multi_asic.is_multi_asic() and namespace:
-        ctx = click.get_current_context()                
+        ctx = click.get_current_context()
         ctx.fail("-n/--namespace is not available for single asic")
 
     output = ""
-    #sigle-asic duts will not enter this condition, they cannot take '-n' option
-    if namespace:
-        if namespace == 'all':
+    if multi_asic.is_multi_asic():
+        if not namespace:
             ns_list = multi_asic.get_namespace_list()
             for ns in ns_list:
                 output += "\n------------Showing running config bgp on {}------------\n".format(ns)
@@ -1411,7 +1418,6 @@ def bgp(namespace, verbose):
             ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(namespace))
             cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
             output += run_command(cmd, display_cmd = False, return_cmd=True)
-    # multi-asic duts will not enter this condition, they have to be given '-n' option
     else:
         cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
         output += run_command(cmd, display_cmd = False, return_cmd=True)
