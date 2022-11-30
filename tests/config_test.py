@@ -89,10 +89,11 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-RELOAD_CONFIG_DB_OUTPUT_INVALID = """\
-Bad format: json file '/sonic/src/sonic-utilities/tests/config_reload_input/config_db_invalid.json' broken.
-Expecting ',' delimiter: line 12 column 5 (char 321)
-"""
+RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG = """\
+Bad format: json file"""
+
+RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR = """\
+Expecting ',' delimiter: line 12 column 5 (char 321)"""
 
 RELOAD_YANG_CFG_OUTPUT = """\
 Stopping SONiC target ...
@@ -534,8 +535,10 @@ class TestReloadConfig(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 1
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_CONFIG_DB_OUTPUT_INVALID
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -599,8 +602,10 @@ class TestReloadConfig(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 1
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_CONFIG_DB_OUTPUT_INVALID
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
@@ -637,8 +642,10 @@ class TestReloadConfig(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 1
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_CONFIG_DB_OUTPUT_INVALID
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     @classmethod
     def teardown_class(cls):
