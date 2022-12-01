@@ -105,8 +105,7 @@ class TestShowRunCommands(object):
 
     def test_show_run_bgp_single(self):
         runner = CliRunner()
-        exec_cmd = show.cli.commands["runningconfiguration"].commands["bgp"]
-        result = runner.invoke(exec_cmd)
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["bgp"], [])
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_run_bgp_sasic
