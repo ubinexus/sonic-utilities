@@ -1182,7 +1182,6 @@ def validate_config_file(file):
                     fg='magenta')
         sys.exit(1)
 
-
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1605,10 +1604,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         log.log_info("'reload' stopping services...")
         _stop_services()
 
-    # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
-    # service running in the host + DB services running in each ASIC namespace created per ASIC.
-    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
-    # denoting the current namespace which we are in ( the linux host )
     for file, namespace, file_exists in cfg_file_dict.values():
         if not file_exists:
             click.echo("The config file {} doesn't exist".format(file))
