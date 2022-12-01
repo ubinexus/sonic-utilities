@@ -1170,6 +1170,18 @@ def load_backend_acl(cfg_db, device_type):
         if os.path.isfile(BACKEND_ACL_FILE):
             clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
 
+def validate_config_file(file):
+    """
+    A validator to check config files for syntax errors
+    """
+    try:
+        # Load golden config json
+        read_json_file(file)
+    except Exception as e:
+        click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                    fg='magenta')
+        sys.exit(1)
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1582,16 +1594,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         cfg_file_dict[inst] = [file, namespace, True]
 
         # Check the file is properly formatted before proceeding.
-        try:
-            # Load golden config json
-            read_json_file(file)
-            # In the last iteration, verify INIT_CFG_FILE if it exits
-            if inst == num_cfg_file-2 and os.path.isfile(INIT_CFG_FILE):
-                read_json_file(INIT_CFG_FILE)
-        except Exception as e:
-            click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
-                        fg='magenta')
-            sys.exit(1)
+        validate_config_file(file) 
+            
+    #Validate INIT_CFG_FILE if it exits
+    if os.path.isfile(INIT_CFG_FILE):
+        validate_config_file(INIT_CFG_FILE)
 
     #Stop services before config push
     if not no_service_restart:
