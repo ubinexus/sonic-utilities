@@ -1567,7 +1567,12 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             else:
                 file = DEFAULT_CONFIG_YANG_FILE
 
-        # Check the file is properly formatted before proceeding.  
+        # Check if the file exists before proceeding
+        # Instead of exiting, skip the current namespace and check the next one
+        if not os.path.exists(file):
+            continue
+
+        # Check the file is properly formatted before proceeding.
         try:
             # Load golden config json
             read_json_file(file)

@@ -111,6 +111,15 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
+RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST = """\
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+The config file non_exist.json doesn't exist
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
 reload_config_with_sys_info_command_output="""\
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
@@ -606,6 +615,29 @@ class TestReloadConfig(object):
             output = "\n".join([l.rstrip() for l in result.output.split('\n')])
             assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
             assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
+
+    def test_reload_config_masic_non_exist_file(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file,
+                            "non_exist.json",
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST
 
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
