@@ -110,3 +110,12 @@ class TestShowRunCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_run_bgp_sasic
+        
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
