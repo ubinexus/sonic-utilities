@@ -1548,43 +1548,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    for inst in range(-1, num_cfg_file-1):
-        # Get the namespace name, for linux host it is None
-        if inst == -1:
-            namespace = None
-        else:
-            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
-
-        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
-        if cfg_files:
-            file = cfg_files[inst+1]
-        else:
-            if file_format == 'config_db':
-                if namespace is None:
-                    file = DEFAULT_CONFIG_DB_FILE
-                else:
-                    file = "/etc/sonic/config_db{}.json".format(inst)
-            else:
-                file = DEFAULT_CONFIG_YANG_FILE
-
-        # Check if the file exists before proceeding
-        # Instead of exiting, skip the current namespace and check the next one
-        if not os.path.exists(file):
-            continue
-
-        # Check the file is properly formatted before proceeding.
-        try:
-            # Load golden config json
-            read_json_file(file)
-        except Exception as e:
-            click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
-                        fg='magenta')
-            sys.exit(1)
-
-    #Stop services before config push
-    if not no_service_restart:
-        log.log_info("'reload' stopping services...")
-        _stop_services()
+    # Create a dictionary to store each cfg_file, namespace, and a bool representing if a the file exists
+    cfg_file_dict = {}
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1609,9 +1574,36 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             else:
                 file = DEFAULT_CONFIG_YANG_FILE
 
-
-        # Check the file exists before proceeding.
+        # Check if the file exists before proceeding
+        # Instead of exiting, skip the current namespace and check the next one
         if not os.path.exists(file):
+            cfg_file_dict[inst] = [file, namespace, False]
+            continue
+        cfg_file_dict[inst] = [file, namespace, True]
+
+        # Check the file is properly formatted before proceeding.
+        try:
+            # Load golden config json
+            read_json_file(file)
+            # In the last iteration, verify INIT_CFG_FILE if it exits
+            if inst == num_cfg_file-2 and os.path.isfile(INIT_CFG_FILE):
+                read_json_file(INIT_CFG_FILE)
+        except Exception as e:
+            click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                        fg='magenta')
+            sys.exit(1)
+
+    #Stop services before config push
+    if not no_service_restart:
+        log.log_info("'reload' stopping services...")
+        _stop_services()
+
+    # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+    # service running in the host + DB services running in each ASIC namespace created per ASIC.
+    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
+    # denoting the current namespace which we are in ( the linux host )
+    for file, namespace, file_exists in cfg_file_dict.values():
+        if not file_exists:
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
