@@ -296,6 +296,7 @@ class TestConfigIP(object):
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.main.is_vrf_exists", mock.Mock(return_value=True))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={"mgmtVrfEnabled": "true"}))
     def test_del_vrf_invalid_configdb_yang_validation(self):
         runner = CliRunner()
