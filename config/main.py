@@ -5189,7 +5189,7 @@ def del_vrf(ctx, vrf_name):
     """Del vrf"""
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
-        ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
+        ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
     syslog_table = config_db.get_table("SYSLOG_SERVER")
@@ -5198,7 +5198,9 @@ def del_vrf(ctx, vrf_name):
         syslog_vrf = syslog_data.get("vrf")
         if syslog_vrf == syslog_vrf_dev:
             ctx.fail("Failed to remove VRF device: {} is in use by SYSLOG_SERVER|{}".format(syslog_vrf, syslog_entry))
-    if (vrf_name == 'mgmt' or vrf_name == 'management'):
+    if not is_vrf_exists(config_db, vrf_name):
+        ctx.fail("VRF {} does not exist!".format(vrf_name))
+    elif (vrf_name == 'mgmt' or vrf_name == 'management'):
         vrf_delete_management_vrf(config_db)
     else:
         del_interface_bind_to_vrf(config_db, vrf_name)
