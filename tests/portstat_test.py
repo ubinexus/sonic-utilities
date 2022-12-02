@@ -1,6 +1,6 @@
 import os
 import shutil
-
+import importlib
 from click.testing import CliRunner
 
 import clear.main as clear
