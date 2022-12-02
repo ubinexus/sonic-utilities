@@ -501,6 +501,13 @@ class TestMultiAsicPortStat(object):
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
+    def test_multi_show_intf_counters_reminder(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"], [])    
+        print("result = {}".format(result.output))
+        assert result.exit_code == 0
+        assert multi_asic_intf_counters_reminder in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -523,7 +530,7 @@ class TestShowIntCountersMasic(object):
 
     def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interface"].commands["counters"], [])    
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"], [])    
         print("result = {}".format(result.output))
         assert result.exit_code == 0
         assert multi_asic_intf_counters_reminder in result.output
