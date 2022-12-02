@@ -1723,11 +1723,9 @@ class TestConfigCableLength(object):
         import config.main
         importlib.reload(config.main)
 
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value=False))
-    def test_add_cablelength_with_invalid_name_valid_length_yang_validation(self):
+    def test_add_cablelength_with_nonexistent_name_valid_length(self):
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
@@ -1756,11 +1754,9 @@ class TestConfigCableLength(object):
         assert result.exit_code != 0
         assert "Invalid ConfigDB. Error" in result.output
     
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Port Info"))
     @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
-    def test_add_cablelength_with_invalid_name_invalid_length_yang_validation(self):
+    def test_add_cablelength_with_invalid_name_invalid_length(self):
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
@@ -1771,7 +1767,6 @@ class TestConfigCableLength(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Invalid cable length" in result.output
-
 
     @classmethod
     def teardown_class(cls):
