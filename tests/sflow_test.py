@@ -68,7 +68,7 @@ class TestShowSflow(object):
         runner = CliRunner()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["sflow"].commands["disable"], [], obj=obj)
+        result = runner.invoke(config.config.commands["sflow"].commands["enable"], [], obj=obj)
         print(result.exit_code, result.output)
         assert "Invalid ConfigDB. Error" in result.output
 
