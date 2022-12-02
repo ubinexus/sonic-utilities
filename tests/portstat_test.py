@@ -523,6 +523,7 @@ class TestShowIntCountersMasic(object):
 
     def test_multi_show_intf_counters_reminder(self, setup_ip_route_commands):
         runner = CliRunner()
+        import show.interfaces.__init__ as show
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"], [])    
         print("result = {}".format(result.output))
         assert result.exit_code == 0
