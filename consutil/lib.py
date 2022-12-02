@@ -286,8 +286,6 @@ class SysInfoProvider(object):
     @staticmethod
     def list_active_console_processes():
         """Lists all active console session processes"""
-        # cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
-        # output = SysInfoProvider.run_command_true(cmd)
         cmd0 = ['ps', '-eo', 'pid,lstart,cmd']
         cmd1 = ['grep', '-E', "(mini|pico)com"]
         output = SysInfoProvider.run_command_pipe(cmd0, cmd1)
@@ -296,8 +294,6 @@ class SysInfoProvider(object):
     @staticmethod
     def get_active_console_process_info(pid):
         """Gets active console process information by PID"""
-        # cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
-        # output = SysInfoProvider.run_command_true(cmd)
         cmd0 = ['ps', '-p', str(pid), '-o', 'pid,lstart,cmd']
         cmd1 = ['grep', '-E', "(mini|pico)com"]
         output = SysInfoProvider.run_command_pipe(cmd0, cmd1)
