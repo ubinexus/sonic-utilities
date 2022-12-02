@@ -241,6 +241,7 @@ class TestPortStat(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == intf_counters_before_clear
+        assert multi_asic_intf_counters_reminder not in result.output
 
         return_code, result = get_result_and_return_code('portstat')
         print("return_code: {}".format(return_code))
