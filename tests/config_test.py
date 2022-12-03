@@ -1640,7 +1640,7 @@ class TestConfigWarmRestart(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_warm_restart_neighsyncd_timer_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -1650,7 +1650,13 @@ class TestConfigWarmRestart(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Invalid ConfigDB. Error" in result.output
-
+    
+    def test_warm_restart_neighsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        
         result = runner.invoke(config.config.commands["warm_restart"].commands["neighsyncd_timer"], ["0"], obj=obj)
         print(result.exit_code)
         print(result.output)
@@ -1660,7 +1666,7 @@ class TestConfigWarmRestart(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_warm_restart_bgp_timer_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -1670,6 +1676,12 @@ class TestConfigWarmRestart(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Invalid ConfigDB. Error" in result.output
+    
+    def test_warm_restart_bgp_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
 
         result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_timer"], ["0"], obj=obj)
         print(result.exit_code)
@@ -1680,7 +1692,7 @@ class TestConfigWarmRestart(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_warm_restart_teamsyncd_timer_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -1691,6 +1703,12 @@ class TestConfigWarmRestart(object):
         assert result.exit_code != 0
         assert "Invalid ConfigDB. Error" in result.output
 
+    def test_warm_restart_teamsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
         result = runner.invoke(config.config.commands["warm_restart"].commands["teamsyncd_timer"], ["0"], obj=obj)
         print(result.exit_code)
         print(result.output)
@@ -1700,7 +1718,7 @@ class TestConfigWarmRestart(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_warm_restart_bgp_eoiu_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
