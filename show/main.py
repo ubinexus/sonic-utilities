@@ -1035,7 +1035,6 @@ def fib(ipaddress, verbose):
         cmd += " -ip {}".format(ipaddress)
     run_command(cmd, display_cmd=verbose)
 
-
 #
 # 'ecmp-egress-port' subcommand ("show ip ecmp-egress-port...")
 #
@@ -1047,9 +1046,18 @@ def fib(ipaddress, verbose):
 @click.option('--debug', '-d', required=False, is_flag=True, help="Run in debug mode")
 def ecmp_egress_port(packet, ingress_port, vrf, debug):
     """Show egress port for given packet"""
+
+    # Check if ECMP calculaor is implemented
+    proc = subprocess.run(['docker', 'exec', '-it', CONTAINER_NAME, 'test', '-f', ECMP_CALC])
+    if proc.returncode != 0:
+        click.echo("ECMP calculator is not available in this image")
+        return
+
+    # Copy packet JSON to syncd
     cmd = "docker cp {} {}:/".format(packet, CONTAINER_NAME)
     run_command(cmd)
 
+    # Call ECMP calculaor
     packet = os.path.basename(packet)
     cmd = "docker exec {} {} --packet {} --interface {}".format(CONTAINER_NAME, ECMP_CALC, packet, ingress_port)
     if vrf is not None:
