@@ -185,7 +185,7 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
     cmd = 'sudo {} {} -c "{}"'.format(
         vtysh_shell_cmd, bgp_instance_id, vtysh_cmd)
     try:
-        output = clicommon.run_command(cmd, return_cmd=True)
+        output = clicommon.run_command(cmd)
     except Exception:
         ctx = click.get_current_context()
         ctx.fail("Unable to get summary from bgp {}".format(bgp_instance_id))
