@@ -64,52 +64,66 @@ Vrf103  Ethernet4
         assert result.exit_code == 0
         assert result.output == expected_output
 
+
         vrf_obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
 
         expected_output_unbind = "Interface Ethernet4 IP disabled and address(es) removed due to unbinding VRF.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet4"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert 'Ethernet4' not in db.cfgdb.get_table('INTERFACE')
         assert result.output == expected_output_unbind
         
         expected_output_unbind = "Interface Loopback0 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Loopback0"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert 'Loopback0' not in db.cfgdb.get_table('LOOPBACK_INTERFACE')
         assert result.output == expected_output_unbind
 
         expected_output_unbind = "Interface Vlan40 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Vlan40"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert 'Vlan40' not in db.cfgdb.get_table('VLAN_INTERFACE')
         assert result.output == expected_output_unbind
 
         expected_output_unbind = "Interface PortChannel0002 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["PortChannel0002"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert 'PortChannel002' not in db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
         assert result.output == expected_output_unbind
         
         expected_output_unbind = "Interface Eth36.10 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth36.10"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('vrf_name', 'Vrf102') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth36.10']
         assert result.output == expected_output_unbind
 
         expected_output_unbind = "Interface Ethernet0.10 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet0.10"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('vrf_name', 'Vrf101') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.10']
         assert result.output == expected_output_unbind
 
         expected_output_unbind = "Interface Po0002.101 IP disabled and address(es) removed due to unbinding VRF.\n"
+
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Po0002.101"], obj=vrf_obj)
+
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('vrf_name', 'Vrf103') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Po0002.101']
