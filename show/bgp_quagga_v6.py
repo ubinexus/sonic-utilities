@@ -22,7 +22,7 @@ def bgp():
 def summary():
     """Show summarized information of IPv6 BGP state"""
     try:
-        device_output, _ = run_command('sudo {} -c "show ipv6 bgp summary"'.format(constants.RVTYSH_COMMAND), return_cmd=True)
+        device_output = run_command('sudo {} -c "show ipv6 bgp summary"'.format(constants.RVTYSH_COMMAND), return_cmd=True)
         get_bgp_summary_extended(device_output)
     except Exception:
         run_command('sudo {} -c "show ipv6 bgp summary"'.format(constants.RVTYSH_COMMAND))
