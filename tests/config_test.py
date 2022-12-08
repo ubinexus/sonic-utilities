@@ -35,6 +35,8 @@ os.environ["PATH"] += os.pathsep + scripts_path
 # Config Reload input Path
 mock_db_path = os.path.join(test_path, "config_reload_input")
 
+# Config Reload input Path
+mock_db_path_for_load = os.path.join(test_path, "config_load_input")
 
 load_minigraph_command_output="""\
 Stopping SONiC target ...
@@ -685,6 +687,40 @@ class TestReloadConfig(object):
         os.remove(cls.dummy_cfg_file)
         print("TEARDOWN")
 
+class TestLoadConfig(object):
+
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            cfg_file = os.path.join(mock_db_path_for_load, "config_db.json")
+
+            result = runner.invoke(
+                config.config.commands["load"],
+                [cfg_file, '-y'])
+
+            print(result.exit_code)
+            print(result.output)
+            expected_output = ['Running command: /usr/local/bin/sonic-cfggen -j /sonic/src/sonic-utilities/tests/config_load_input/config_db.json --write-to-db']
+            output = result.output.split('\n')
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert set(expected_output).issubset(set(output))
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        print("TEARDOWN")
 
 class TestConfigCbf(object):
     @classmethod
