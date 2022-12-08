@@ -116,7 +116,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
     while True:
         if return_cmd:
             output = proc.communicate()[0]
-            return output, proc.returncode
+            return output
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
             break
