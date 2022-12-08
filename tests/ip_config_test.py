@@ -3,11 +3,14 @@ import jsonpatch
 import os
 import traceback
 from unittest import mock
+from mock import patch
 
 from click.testing import CliRunner
+from jsonpatch import JsonPatchConflict
 
 import config.main as config
 import show.main as show
+import config.validated_config_db_connector as validated_config_db_connector
 from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -110,6 +113,18 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ERROR_MSG in result.output
+
+    def test_ip_add_on_interface_which_is_member_of_portchannel(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        # config int ip add Ethernet32 100.10.10.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet32", "100.10.10.1/24"], obj=obj)
+        assert result.exit_code != 0
+        print(result.output)
+        print(result.exit_code)
+        assert 'Error: Ethernet32 is configured as a member of portchannel.' in result.output
 
     '''  Tests for IPv6 '''
 
@@ -262,13 +277,56 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert result.output == INVALID_MGMT_VRF_MSG
-
+        
         result = runner.invoke(config.config.commands["vrf"].commands["add"], ["mgmt"], obj=obj)
         print(result.exit_code, result.output)
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "mgmt"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={"mgmtVrfEnabled": "false"}))
+    def test_add_vrf_invalid_configdb_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["mgmt"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert result.exit_code != 0
+
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["Vrf01"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert result.exit_code != 0
+    
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.main.is_vrf_exists", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={"mgmtVrfEnabled": "true"}))
+    def test_del_vrf_invalid_configdb_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["mgmt"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert result.exit_code != 0 
+
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf01"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert result.exit_code != 0
+    
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
