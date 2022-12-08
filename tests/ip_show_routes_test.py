@@ -30,8 +30,7 @@ class TestShowIpRouteCommands(object):
 
         def mock_run_bgp_command(*args, **kwargs):
             command = args[0]
-            print("% Unknown command: show ip route unknown")
-            return 1
+            return "% Unknown command: show ip route unknown", 1
 
         with mock.patch('utilities_common.cli.run_command', mock.MagicMock(side_effect=mock_run_bgp_command)) as mock_run_command:
             runner = CliRunner()
