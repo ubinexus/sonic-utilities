@@ -18,6 +18,7 @@ INTF_TABLE = 'INTF_TABLE'
 RT_ENTRY_TABLE = 'ASIC_STATE'
 SEPARATOR = ":"
 DEVICE_METADATA = "DEVICE_METADATA"
+MUX_CABLE = "MUX_CABLE"
 
 LOCALHOST = "localhost"
 
@@ -322,6 +323,39 @@ TEST_DATA = {
                     RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            }
+        }
+    },
+    "9": {
+        DESCR: "SOC IPs on Libra ToRs should be ignored",
+        ARGS: "route_check",
+        PRE: {
+            CONFIG_DB: {
+                DEVICE_METADATA: {
+                    LOCALHOST: {"subtype": "DualToR"}
+                },
+                MUX_CABLE: {
+                    "Ethernet4": {
+                        "cable_type": "active-active",
+                        "server_ipv4": "192.168.0.2/32",
+                        "server_ipv6": "fc02:1000::2/128",
+                        "soc_ipv4": "192.168.0.3/32",
+                        "state": "auto"
+                    },
+                }
+            },
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "192.168.0.2/32": {"ifname": "tun0"},
+                    "fc02:1000::2/128": {"ifname": "tun0"}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.2/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::2/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
         }

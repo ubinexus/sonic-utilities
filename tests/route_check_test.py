@@ -22,8 +22,6 @@ tables_returned = {}
 selector_returned = None
 subscribers_returned = {}
 
-
-
 def set_test_case_data(ctdata):
     """
     Setup global variables for each test case
@@ -224,7 +222,7 @@ def config_db_side_effect(table):
     if not CONFIG_DB in tables_returned:
         tables_returned[CONFIG_DB] = {}
     if not table in tables_returned[CONFIG_DB]:
-        tables_returned[CONFIG_DB][table] = current_test_data[PRE][CONFIG_DB][table]
+        tables_returned[CONFIG_DB][table] = current_test_data[PRE][CONFIG_DB].get(table, {})
     return tables_returned[CONFIG_DB][table]
 
 
