@@ -711,11 +711,7 @@ class TestLoadConfig(object):
 
             print(result.exit_code)
             print(result.output)
-            expected_output = ['Running command: /usr/local/bin/sonic-cfggen -j /sonic/src/sonic-utilities/tests/config_load_input/config_db.json --write-to-db']
-            output = result.output.split('\n')
-            traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert set(expected_output).issubset(set(output))
 
     @classmethod
     def teardown_class(cls):
