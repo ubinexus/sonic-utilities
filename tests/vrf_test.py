@@ -103,7 +103,7 @@ Vrf103  Ethernet4
         assert result.output == expected_output_unbind
         
         #Adding ccoverage for namespace as none
-        vrf_obj = {'config_db':db.cfgdb, 'namespace':None}
+        vrf_obj = {'config_db':db.cfgdb, 'namespace':''}
 
         expected_output_unbind = "Interface Eth36.10 IP disabled and address(es) removed due to unbinding VRF.\n"
 
