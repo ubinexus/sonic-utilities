@@ -102,6 +102,9 @@ Vrf103  Ethernet4
         assert 'PortChannel002' not in db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
         assert result.output == expected_output_unbind
         
+        #Adding ccoverage for namespace as none
+        vrf_obj = {'config_db':db.cfgdb, 'namespace':None}
+
         expected_output_unbind = "Interface Eth36.10 IP disabled and address(es) removed due to unbinding VRF.\n"
 
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth36.10"], obj=vrf_obj)
