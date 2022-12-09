@@ -497,7 +497,7 @@ def get_soc_ips(config_db):
     mux_table = config_db.get_table('MUX_CABLE')
     soc_ips = []
     for _, mux_entry in mux_table.items():
-        if "cable_type" in mux_entry and "soc_ipv4" in mux_entry:
+        if mux_entry.get("cable_type", "") == "active-active" and "soc_ipv4" in mux_entry:
             soc_ips.append(mux_entry["soc_ipv4"])
 
     return soc_ips
