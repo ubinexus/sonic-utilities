@@ -18,7 +18,10 @@ def switchport():
 @click.argument("port", metavar="port", required=True)
 @clicommon.pass_db
 def switchport_mode(db, type, port):
-    """switchport mode help commands\nmode_type can either be:\n\t -> access \n\t -> trunk \n\t -> routed"""
+    """switchport mode help commands. mode_type can either be:
+        -> access
+        -> trunk
+        -> routed"""
 
     ctx = click.get_current_context()
 
@@ -53,8 +56,7 @@ def switchport_mode(db, type, port):
     if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
         ctx.fail("{} is part of portchannel!".format(port))
 
-    port_table_data = db.cfgdb.get_table('PORT')
-    port_data = port_table_data[port]
+    port_data = db.cfgdb.get_entry('PORT',port)
 
     # mode type is either access or trunk
     if type != "routed":

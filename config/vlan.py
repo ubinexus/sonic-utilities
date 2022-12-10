@@ -250,8 +250,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             
             # checking mode status of port if its access, trunk or routed
             if is_port:
-                port_table_data = db.cfgdb.get_table('PORT')
-                port_data = port_table_data[port]
+                port_data = config_db.get_entry('PORT',port)
 
                 if "mode" not in port_data: 
                     ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
