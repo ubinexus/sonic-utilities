@@ -1161,6 +1161,8 @@ collect_cisco_8000() {
         echo "'/usr/share/sonic/device/${platform}' does not exist" > /tmp/error
         save_file /tmp/error sai false
     fi
+
+    save_cmd "show platform versions" "platform.versions"
 }
 
 ###############################################################################
