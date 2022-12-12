@@ -1040,10 +1040,10 @@ def fib(ipaddress, verbose):
 #
 
 @ip.command()
-@click.option('--packet', '-p', required=True, help="Json file describing a packet")
-@click.option('--ingress-port', '-i', required=True, help="Ingress port")
-@click.option('--vrf', '-v', required=False, help="VRF name")
-@click.option('--debug', '-d', required=False, is_flag=True, help="Run in debug mode")
+@click.option('--packet', required=True, help="Json file describing a packet")
+@click.option('--ingress-port', required=True, help="Ingress port")
+@click.option('--vrf', required=False, help="VRF name")
+@click.option('--debug', required=False, is_flag=True, help="Run in debug mode")
 def ecmp_egress_port(packet, ingress_port, vrf, debug):
     """Show egress port for given packet"""
 
