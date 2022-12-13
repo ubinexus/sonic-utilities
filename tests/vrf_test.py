@@ -6,7 +6,9 @@ from utilities_common.db import Db
 
 import config.main as config
 import show.main as show
+import threading
 
+DEFAULT_NAMESPACE = ''
 test_path = os.path.dirname(os.path.abspath(__file__))
 mock_db_path = os.path.join(test_path, "vrf_input")
 
@@ -15,6 +17,11 @@ class TestShowVrf(object):
     def setup_class(cls):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
+
+    def update_statedb(self, db, db_name, key):
+        import time
+        time.sleep(0.5)
+        db.delete(db_name, key)
 
     def test_vrf_show(self):
         from .mock_tables import dbconnector
@@ -102,13 +109,18 @@ Vrf103  Ethernet4
         assert 'PortChannel002' not in db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
         assert result.output == expected_output_unbind
         
-        #Adding ccoverage for namespace as none
-        vrf_obj = {'config_db':db.cfgdb, 'namespace':''}
+        vrf_obj = {'config_db':db.cfgdb, 'namespace':DEFAULT_NAMESPACE}
+        state_db = SonicV2Connector(use_unix_socket_path=True, namespace='')
+        state_db.connect(state_db.STATE_DB, False)
+        _hash = "INTERFACE_TABLE|Eth36.10"
+        state_db.set(db.db.STATE_DB, _hash, "state", "ok")
+        vrf_obj['state_db'] = state_db
 
         expected_output_unbind = "Interface Eth36.10 IP disabled and address(es) removed due to unbinding VRF.\n"
-
+        T1 = threading.Thread( target = self.update_statedb, args = (state_db, db.db.STATE_DB, _hash))  
+        T1.start()
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth36.10"], obj=vrf_obj)
-
+        T1.join()
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('vrf_name', 'Vrf102') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth36.10']

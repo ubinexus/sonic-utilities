@@ -5120,17 +5120,20 @@ def unbind(ctx, interface_name):
     if table_name == "VLAN_SUB_INTERFACE":
         # First delete subinterface, once subinterface deletion successful,
         # recreate same with same config on default vrf
-        config_db.set_entry(table_name, interface_name, None)
-        if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
-            state_db = SonicV2Connector(use_unix_socket_path=True)
+        if 'state_db' not in ctx.obj:
+            if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+                state_db = SonicV2Connector(use_unix_socket_path=True)
+            else:
+                state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
+            state_db.connect(state_db.STATE_DB, False)
         else:
-            state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
-        state_db.connect(state_db.STATE_DB, False)
+            state_db = ctx.obj['state_db']
+
+        config_db.set_entry(table_name, interface_name, None)
         _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
         while state_db.exists(state_db.STATE_DB, _hash):
             time.sleep(0.01)
         state_db.close(state_db.STATE_DB)
-
         config_db.set_entry(table_name, interface_name, subintf_entry)
     else:
         config_db.set_entry(table_name, interface_name, None)
