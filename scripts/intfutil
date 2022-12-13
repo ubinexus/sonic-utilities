@@ -100,15 +100,20 @@ def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list,config
     """
     vlan = "routed"
     ports_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
+
     if intf_name in front_panel_ports_list:
         if intf_name in int_to_vlan_dict.keys():
             vlan = int_to_vlan_dict[intf_name]
             if "PortChannel" in vlan:
                 return vlan
+    if "PortChannel" in intf_name and intf_name in port_channel_dict:
+        intf_data = port_channel_dict[intf_name]
     if intf_name in ports_dict:
         intf_data = ports_dict[intf_name]
-        if "mode" in intf_data:
-            vlan = intf_data["mode"]
+
+    if "mode" in intf_data:
+        vlan = intf_data["mode"]
     return vlan
 
 
@@ -368,10 +373,14 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
             return "N/A"
         return status
     if status_type == "vlan":
-        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
-            status = "trunk"
+        port_channel_table = config_db.get_table('PORTCHANNEL')
+        if "PortChannel" in po_name and po_name in port_channel_table:
+            intf_data = port_channel_table[po_name]
+        if "mode" in intf_data:
+            status = intf_data["mode"]
         else:
             status = "routed"
+            
         return status
     if status_type == "mtu":
         status = config_db.get(config_db.CONFIG_DB, po_table_id, status_type)

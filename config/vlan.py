@@ -234,10 +234,6 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             else:
                 ctx.fail("{} does not exist".format(port))
 
-            if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-                    (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                ctx.fail("{} is a router interface!".format(port))
-
             portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
             # TODO: MISSING CONSTRAINT IN YANG MODEL
@@ -251,21 +247,25 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             # checking mode status of port if its access, trunk or routed
             if is_port:
                 port_data = config_db.get_entry('PORT',port)
+            
+            # if not port then is a port channel
+            elif not is_port:
+                port_data = config_db.get_entry('PORTCHANNEL',port)
 
-                if "mode" not in port_data: 
-                    ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
-                else:
-                    existing_mode = port_data["mode"]
-                
-                if existing_mode == "routed":
-                    ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
+            if "mode" not in port_data: 
+                ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
+            else:
+                existing_mode = port_data["mode"]
+            
+            if existing_mode == "routed":
+                ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
 
-                mode_type = "access" if untagged else "trunk"
-                if existing_mode == "access" and mode_type == "trunk":  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                    ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
-                
-                elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
-                    pass
+            mode_type = "access" if untagged else "trunk"
+            if existing_mode == "access" and mode_type == "trunk":  # TODO: MISSING CONSTRAINT IN YANG MODEL
+                ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
+            
+            elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
+                pass
             
             # in case of exception in list last added member will be shown to user
             try:

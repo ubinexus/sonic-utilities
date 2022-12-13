@@ -9345,13 +9345,13 @@ _NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
   This command will add Ethernet4 as member of the vlan 100.
   ```
 
-**config vlan member add/del -m  <vlan_ids> <member_portname>**
+**config vlan member add/del -m  <vlan_ids> <member_portname>/<member_portchannelname>**
 
- _NOTE: This command can only be used after configuring switchport mode on the interface. This is only for adding tagged vlan members to trunk port_
+ _NOTE: This command can only be used after configuring switchport mode on the interface or on a PortChannel. This is only for adding tagged vlan members to trunk port_
 
 - Usage:
   ```
-  config vlan member add/del  [-m|--multiple] <vlan_id> <member_portname>
+  config vlan member add/del  [-m|--multiple] <vlan_id> <member_portname>/<member_portchannelname>
   ```
 
 
@@ -9364,14 +9364,26 @@ _NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
   admin@sonic:~$ sudo config vlan member add -m 100,200,300 Ethernet4
   This command will add Ethernet4 as member of the Vlan100, Vlan200, Vlan300
   ```
+- Example (Add the VLAN "Vlan100, Vlan200, Vlan300" in one command on a PortChannel if they don't exist as members):
+  ```
+  admin@sonic:~$ sudo config vlan member add -m 100,200,300 PortChannel101
+
+  This command will add PortChannel101 as member of the Vlan100, Vlan200, Vlan300
+  ```
+  
 - Example (Add the VLAN "Vlan10, Vlan11, Vlan12, Vlan13" in one command on port if they don't exist as members):
   ```
   admin@sonic:~$ sudo config vlan member add -m 10-13 Ethernet0
   This command will add Ethernet0 as member of the Vlan10, Vlan11, Vlan12, Vlan13
+  ```
+- Example (Add the VLAN "Vlan10, Vlan11, Vlan12, Vlan13" in one command on an existing PortChannel if they don't already exist):
+  ```
+  admin@sonic:~$ sudo config vlan member add -m 10-13 PortChannel1001
+  This command will add PortChannel1001 as member of the Vlan10, Vlan11, Vlan12, Vlan13
 
   ```
 
-- Example (Suppose if Vlan10, Vlan20, Vlan30, Vlan40, Vlan50, Vlan70 are existing Vlans, Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members):
+- Example (Suppose if Vlan10, Vlan20, Vlan30, Vlan40, Vlan50, Vlan70 are existing Vlans, Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members. This works in the same way for PortChannel):
 
   ```
   admin@sonic:~$ sudo config vlan member add -e 10 Ethernet0
@@ -9395,13 +9407,13 @@ _NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
   ```
 
 
-**config vlan member add/del all <member_portname>**
+**config vlan member add/del all <member_portname>/<member_portchannelname>**
 
-This command is to add or delete all existing vlan members onto/from port.
+This command is to add or delete all existing vlan members onto/from port or from a Portchannel.
 
 _This will not work for untagged vlans._
 
-- Example (Add all VLANs except "Vlan100, Vlan300" from existing VLAN on port if they don't exist as members):
+- Example (Add all exisitng VLANs on port if they don't exist as members):
 
   _Suppose if Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700 are existing Vlans._
 
@@ -9410,18 +9422,27 @@ _This will not work for untagged vlans._
   This command will add Ethernet4 as member of Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700
   ```
 
+- Example (Add all VLANs on portchannel if they don't exist):
+
+  _Suppose if Vlan100, Vlan200, Vlan300, Vlan400, Vlan500 are existing Vlans._
+
+  ```
+  admin@sonic:~$ sudo config vlan member add all PortChannel1001
+  This command will add PortChannel1001 as member of Vlan100, Vlan200, Vlan300, Vlan400, Vlan500
+  ```
+
 #### SWITCHPORT Config commands
 
 This sub-section explains how to configure the switchport mode of ports.
 
-**config switchport mode trunk|access|routed <member_portname>**
+**config switchport mode trunk|access|routed <member_portname>/<member_portchannelname>**
 
-This command is to use to add port modes
+This command is to use to add port modes on a specific port or on a por channel
 
 - Usage:
 
   ```
-  config switchport mode trunk <member_portname>
+  config switchport mode trunk <member_portname>/<member_portchannelname>
   ```
 
 - Example:
@@ -9431,10 +9452,16 @@ This command is to use to add port modes
   This command will configure Ethernet0 as trunk port
   ```
 
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config switchport mode trunk PortChannel1001
+  This command will configure already existing PortChannel1001 as trunk 
+  ```
 - Usage:
 
   ```
-  config switchport mode access <member_portname>
+  config switchport mode access <member_portname>/<member_portchannelname>
   ```
 
 - Example:
@@ -9444,10 +9471,16 @@ This command is to use to add port modes
   This command will configure Ethernet0 as access port
   ```
 
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config switchport mode access PortChannel102
+  This command will configure already existing PortChannel102 as access 
+  ```
 - Usage:
 
   ```
-  config switchport mode routed <member_portname>
+  config switchport mode routed <member_portname>/<member_portchannelname>
   ```
 
 - Example:
@@ -9457,7 +9490,7 @@ This command is to use to add port modes
   This command will change mode from either access or trunk to routed mode.
   ```
 
-_NOTE: When the interface is in routed mode, VLAN|s cannot be added to the interface_
+_NOTE: When the interface is in routed mode, VLAN|s cannot be added to the interface or to the PortChannel. If user wants to assign IP address on a port or on a PortChannel, switchport mode should be in "routed" else it will not assign IP_
 
 **config proxy_arp enabled/disabled**
 

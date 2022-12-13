@@ -149,7 +149,7 @@
         "lanes": "17,18,19,20",
         "mtu": "9100",
         "tpid": "0x8100",
-        "mode": "trunk",
+        "mode": "routed",
         "pfc_asym": "off",
         "speed": "40000"
     },
@@ -649,6 +649,7 @@
         "admin_status": "up",
         "members@": "Ethernet32",
         "min_links": "1",
+        "mode":"trunk",
         "tpid": "0x8100",
         "mtu": "9100"
     },

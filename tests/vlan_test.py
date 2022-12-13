@@ -529,6 +529,13 @@ class TestVlan(object):
 
     def test_config_vlan_add_nonexist_portchannel_member(self):
         runner = CliRunner()
+        #switch port mode for PortChannel1011 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel1011"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: PortChannel1011 does not exist" in result.output
+
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
 				["1000", "PortChannel1011"])
         print(result.exit_code)
@@ -539,7 +546,6 @@ class TestVlan(object):
     def test_config_vlan_add_portchannel_member(self):
         runner = CliRunner()
         db = Db()
-
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
 				["1000", "PortChannel1001", "--untagged"], obj=db)
         print(result.exit_code)
@@ -562,7 +568,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: PortChannel0001 is a router interface!" in result.output
+        assert "Error: PortChannel0001 is in routed mode!\nUse switchport mode command to change port mode" in result.output
 
     def test_config_vlan_with_vxlanmap_del_vlan(self):
         runner = CliRunner()
@@ -1113,7 +1119,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet64 switched to routed mode" in result.output
+        assert "Ethernet64 is already in routed mode" in result.output
 
         # add Ethernet64 to vlan 1001 but Ethernet64 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
