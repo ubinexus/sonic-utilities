@@ -8839,7 +8839,7 @@ This command is used to configure syslog rate limit for containers.
 
 - Usage:
   ```
-  config syslog rate-limit-container
+  config syslog rate-limit-container <container-name>
   ```
 
 - Parameters:
