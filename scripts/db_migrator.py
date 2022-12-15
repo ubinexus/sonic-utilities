@@ -187,27 +187,32 @@ class DBMigrator():
                 intf_addr = int_data[1]
                 lo_addr_to_int.update({intf_addr: intf_name})
 
-        lo_data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:lo*")
+        lo_data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
         if lo_data is None:
             return
 
+        if_db = []
         for lo_row in lo_data:
             # Example of lo_row: 'INTF_TABLE:lo:10.1.0.32/32'
             # Delete the old row with name as 'lo'. A new row with name as Loopback will be added
-            self.appDB.delete(self.appDB.APPL_DB, lo_row)
-            lo_addr = lo_row.split('INTF_TABLE:lo:')[1]
-            lo_name = lo_addr_to_int.get(lo_addr)
-            if lo_name is None or lo_name == '':
-                # an unlikely case where a Loopback address is present in APPLDB, but
-                # there is no corresponding interface for this address in CONFIGDB:
-                # Default to legacy implementation: hardcode interface name as Loopback0
-                lo_new_row = lo_row.replace(':lo:', ':{}:'.format('Loopback0'))
-            else:
-                lo_new_row = lo_row.replace(':lo:', ':{}:'.format(lo_name))
-            self.appDB.set(self.appDB.APPL_DB, lo_new_row, 'NULL', 'NULL')
+            lo_name_appdb = lo_row.split(":")[1]
+            if lo_name_appdb == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, lo_row)
+                lo_addr = lo_row.split('INTF_TABLE:lo:')[1]
+                lo_name_configdb = lo_addr_to_int.get(lo_addr)
+                if lo_name_configdb is None or lo_name_configdb == '':
+                    # an unlikely case where a Loopback address is present in APPLDB, but
+                    # there is no corresponding interface for this address in CONFIGDB:
+                    # Default to legacy implementation: hardcode interface name as Loopback0
+                    lo_new_row = lo_row.replace(lo_name_appdb, "Loopback0")
+                else:
+                    lo_new_row = lo_row.replace(lo_name_appdb, lo_name_configdb)
+                self.appDB.set(self.appDB.APPL_DB, lo_new_row, 'NULL', 'NULL')
 
+            if '/' not in lo_row:
+                if_db.append(lo_row.split(":")[1])
+                continue
 
-        if_db = []
         data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
         for key in data:
             if_name = key.split(":")[1]
