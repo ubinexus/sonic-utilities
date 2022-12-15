@@ -190,19 +190,22 @@ class DBMigrator():
         lo_data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:lo*")
         if lo_data is None:
             return
+
         for lo_row in lo_data:
             # Example of lo_row: 'INTF_TABLE:lo:10.1.0.32/32'
-            # Example of lo_dict: {'family': 'IPv4', 'scope': 'global'}
-            lo_dict = self.appDB.get_all(self.appDB.APPL_DB, lo_row)
+            # Delete the old row with name as 'lo'. A new row with name as Loopback will be added
+            self.appDB.delete(self.appDB.APPL_DB, lo_row)
             lo_addr = lo_row.split('INTF_TABLE:lo:')[1]
             lo_name = lo_addr_to_int.get(lo_addr)
-            lo_table = "INTF_TABLE:" + lo_name + ":" + lo_addr
-            for key, value in lo_dict.items():
-                log.log_notice("Set table {} with field {} and value {}".format(
-                    lo_table, key, value))
-                self.appDB.set(self.appDB.APPL_DB, lo_table, key, value)
-            # delete the old row with name as 'lo' as new row has been added
-            self.appDB.delete(self.appDB.APPL_DB, lo_row)
+            if lo_name is None or lo_name == '':
+                # an unlikely case where a Loopback address is present in APPLDB, but
+                # there is no corresponding interface for this address in CONFIGDB:
+                # Default to legacy implementation: hardcode interface name as Loopback0
+                lo_new_row = lo_row.replace(':lo:', ':{}:'.format('Loopback0'))
+            else:
+                lo_new_row = lo_row.replace(':lo:', ':{}:'.format(lo_name))
+            self.appDB.set(self.appDB.APPL_DB, lo_new_row, 'NULL', 'NULL')
+
 
         if_db = []
         data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
