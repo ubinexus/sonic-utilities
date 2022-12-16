@@ -3,8 +3,11 @@ import traceback
 from unittest import mock
 
 from click.testing import CliRunner
+from mock import patch
+from jsonpatch import JsonPatchConflict
 
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 import show.main as show
 from utilities_common.db import Db
 from .mock_tables import dbconnector
@@ -112,6 +115,38 @@ Total count : 1
 
 """
 
+show_vxlan_remotemac_all_output="""\
++---------+-------------------+--------------+-------+---------+
+| VLAN    | MAC               | RemoteVTEP   |   VNI | Type    |
++=========+===================+==============+=======+=========+
+| Vlan200 | 00:02:00:00:47:e2 | 2.2.2.2      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+| Vlan200 | 00:02:00:00:47:e3 | 2.2.2.3      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+Total count : 2
+
+"""
+
+show_vxlan_remotemac_specific_output="""\
++---------+-------------------+--------------+-------+---------+
+| VLAN    | MAC               | RemoteVTEP   |   VNI | Type    |
++=========+===================+==============+=======+=========+
+| Vlan200 | 00:02:00:00:47:e2 | 2.2.2.2      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+Total count : 1
+
+"""
+
+show_vxlan_remotemac_cnt_output="""\
+Total count : 2
+
+"""
+
+show_vxlan_remotemac_specific_cnt_output="""\
+Total count : 1
+
+"""
+
 class TestVxlan(object):
     @classmethod
     def setup_class(cls):
@@ -214,6 +249,66 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_remotevni_specific_cnt_output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'sample_key': 'sample_value'}))
+    def test_config_vxlan_add_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vxlan"].commands["map_range"].commands["del"], ["vtep1", "100", "102", "100"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code != 0
+
+        result = runner.invoke(config.config.commands["vxlan"].commands["map_range"].commands["add"], ["vtep1", "100", "102", "100"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_vxlan_add_yang_validation_json_error(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vxlan"].commands["map"].commands["del"], ["vtep1", "200", "200"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+
+    def test_show_vxlan_remotemac(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["all"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_all_output
+
+    def test_show_vxlan_remotemac_specific(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["2.2.2.2"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_specific_output
+
+    def test_show_vxlan_remotemac_cnt(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["all", "count"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_cnt_output
+
+    def test_show_vxlan_remotemac_specific_cnt(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["2.2.2.2", "count"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_specific_cnt_output
 
     def test_config_vxlan_add(self):
         runner = CliRunner()

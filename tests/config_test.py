@@ -4,6 +4,7 @@ import os
 import traceback
 import json
 import jsonpatch
+import shutil
 import sys
 import unittest
 import ipaddress
@@ -38,7 +39,7 @@ mock_db_path = os.path.join(test_path, "config_reload_input")
 load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
-Running command: config qos reload --no-dynamic-buffer
+Running command: config qos reload --no-dynamic-buffer --no-delay
 Running command: pfcwd start_default
 Restarting SONiC target ...
 Reloading Monit configuration ...
@@ -88,6 +89,12 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
+RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG = """\
+Bad format: json file"""
+
+RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR = """\
+Expecting ',' delimiter: line 12 column 5 (char 321)"""
+
 RELOAD_YANG_CFG_OUTPUT = """\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
@@ -99,6 +106,15 @@ RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST = """\
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+The config file non_exist.json doesn't exist
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
@@ -126,13 +142,13 @@ def mock_run_command_side_effect(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer' , 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled'
+            return 'enabled', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
     command = args[0]
@@ -142,17 +158,17 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'masked'
+            return 'masked', 0
         elif command == "systemctl show swss.service --property ActiveState --value":
-            return 'active'
+            return 'active', 0
         elif command == "systemctl show swss.service --property ActiveEnterTimestampMonotonic --value":
-            return '0'
+            return '0', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
     command = args[0]
@@ -162,15 +178,15 @@ def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled'
+            return 'enabled', 0
         elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
-            return '0'
+            return '0', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_gnmi(*args, **kwargs):
     command = args[0]
@@ -180,13 +196,13 @@ def mock_run_command_side_effect_gnmi(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'gnmi.timer'
+            return 'gnmi.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled gnmi.timer":
-            return 'enabled'
+            return 'enabled', 0
         else:
-            return ''
+            return '', 0
 
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
@@ -195,6 +211,7 @@ sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfg
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
+    dummy_cfg_file_contents = os.path.join(mock_db_path, "config_db.json")
 
     @classmethod
     def setup_class(cls):
@@ -206,7 +223,8 @@ class TestConfigReload(object):
 
         import config.main
         importlib.reload(config.main)
-        open(cls.dummy_cfg_file, 'w').close()
+        shutil.copyfile(cls.dummy_cfg_file_contents, cls.dummy_cfg_file)
+        open(cls.dummy_cfg_file, 'r').close()
 
     def test_config_reload(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
@@ -479,6 +497,8 @@ class TestLoadMinigraph(object):
 
 class TestReloadConfig(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
+    dummy_cfg_file_contents = os.path.join(mock_db_path, "config_db.json")
+    dummy_cfg_file_invalid = os.path.join(mock_db_path, "config_db_invalid.json")
 
     @classmethod
     def setup_class(cls):
@@ -486,7 +506,8 @@ class TestReloadConfig(object):
         print("SETUP")
         import config.main
         importlib.reload(config.main)
-        open(cls.dummy_cfg_file, 'w').close()
+        shutil.copyfile(cls.dummy_cfg_file_contents, cls.dummy_cfg_file)
+        open(cls.dummy_cfg_file, 'r').close()
 
     def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -506,6 +527,27 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_CONFIG_DB_OUTPUT
+
+    def test_reload_config_invalid_config_file(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file_invalid, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 1
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -549,6 +591,54 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_MASIC_CONFIG_DB_OUTPUT
 
+    def test_reload_config_masic_invalid(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file,
+                            self.dummy_cfg_file_invalid,
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 1
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
+
+    def test_reload_config_masic_non_exist_file(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file,
+                            "non_exist.json",
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST
+
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
         with mock.patch(
@@ -567,6 +657,27 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_YANG_CFG_OUTPUT
+
+    def test_reload_yang_config_invalid(self, get_cmd_module,
+                                        setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["reload"],
+                                    [self.dummy_cfg_file_invalid, '-y', '-f', '-t', 'config_yang'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 1
+
+            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
+            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     @classmethod
     def teardown_class(cls):
@@ -681,6 +792,28 @@ class TestConfigQos(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         import config.main
         importlib.reload(config.main)
+
+    def _keys(args, kwargs):
+        if not TestConfigQos._keys_counter:
+            return []
+        TestConfigQos._keys_counter-=1
+        return ["BUFFER_POOL_TABLE:egress_lossy_pool"]
+
+    def test_qos_wait_until_clear_empty(self):
+        from config.main import _wait_until_clear
+
+        with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys',  side_effect=TestConfigQos._keys):
+            TestConfigQos._keys_counter = 1
+            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+        assert empty
+
+    def test_qos_wait_until_clear_not_empty(self):
+        from config.main import _wait_until_clear
+
+        with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys', side_effect=TestConfigQos._keys):
+            TestConfigQos._keys_counter = 10
+            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+        assert not empty
 
     def test_qos_reload_single(
             self, get_cmd_module, setup_qos_mock_apis,
@@ -1603,7 +1736,7 @@ class TestConfigHostname(object):
         import config.main
         importlib.reload(config.main)
 
-    @mock.patch('config.main.ConfigDBConnector')
+    @mock.patch('config.main.ValidatedConfigDBConnector')
     def test_hostname_add(self, db_conn_patch, get_cmd_module):
         db_conn_patch().mod_entry = mock.Mock()
         (config, show) = get_cmd_module
@@ -1624,6 +1757,180 @@ class TestConfigHostname(object):
 
         # Check new hostname was part of args
         assert {'hostname': 'new_hostname'} in args
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_invalid_hostname_add_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["hostname"],
+                               ["invalid_hostname"], obj=obj)
+        assert result.exit_code != 0
+        assert "Failed to write new hostname" in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigWarmRestart(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_neighsyncd_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["neighsyncd_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    def test_warm_restart_neighsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        
+        result = runner.invoke(config.config.commands["warm_restart"].commands["neighsyncd_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "neighsyncd warm restart timer must be in range 1-9999" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_bgp_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    def test_warm_restart_bgp_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "bgp warm restart timer must be in range 1-3600" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_teamsyncd_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["teamsyncd_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+
+    def test_warm_restart_teamsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["teamsyncd_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "teamsyncd warm restart timer must be in range 1-3600" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_bgp_eoiu_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_eoiu"], ["true"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigCableLength(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value=False))
+    def test_add_cablelength_with_nonexistent_name_valid_length(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40m"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Port Ethernet0 doesn't exist" in result.output
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Port Info"))
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_keys", mock.Mock(return_value=["sample_key"]))
+    def test_add_cablelength_invalid_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Port Info"))
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    def test_add_cablelength_with_invalid_name_invalid_length(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid cable length" in result.output
 
     @classmethod
     def teardown_class(cls):

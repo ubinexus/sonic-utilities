@@ -832,7 +832,6 @@
         "platform": "x86_64-mlnx_msn3800-r0",
         "peer_switch": "sonic-switch",
         "type": "ToRRouter",
-        "subtype": "DualToR",
         "suppress-fib-pending": "enabled"
     },
     "SNMP_COMMUNITY|msft": {
