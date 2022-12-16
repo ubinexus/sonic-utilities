@@ -1411,15 +1411,15 @@ def bgp(namespace, verbose):
             for ns in ns_list:
                 output += "\n------------Showing running config bgp on {}------------\n".format(ns)
                 ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
-                cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
+                cmd = 'sudo {} {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
                 output += run_command(cmd, display_cmd = False, return_cmd=True)
         else:
             output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
             ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(namespace))
-            cmd = 'sudo {} {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
+            cmd = 'sudo {} {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
             output += run_command(cmd, display_cmd = False, return_cmd=True)
     else:
-        cmd = 'sudo {} -c "show run bgp"'.format(constants.RVTYSH_COMMAND)
+        cmd = 'sudo {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND)
         output += run_command(cmd, display_cmd = False, return_cmd=True)
     print(output)
 
