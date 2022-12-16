@@ -122,7 +122,7 @@ def switchport_mode(db, type, port):
             # if not port then is a port channel
             elif not is_port:
                 db.cfgdb.set_entry("PORTCHANNEL", port, port_data)
-            click.echo("{} is already in {} mode".format(port, type))
+            ctx.fail("{} is already in {} mode".format(port, type))
         
         elif mode_exists_status and existing_mode == type:
             ctx.fail("{} is already in {} mode".format(port,type))
