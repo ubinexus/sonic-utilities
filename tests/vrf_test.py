@@ -132,7 +132,6 @@ Vrf103  Ethernet4
 
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet0", "Vrf1"], obj=vrf_obj)
         assert result.exit_code == 0
-        assert result.output == expected_output_bind
         assert ('Vrf1') in db.cfgdb.get_table('INTERFACE')['Ethernet0']['vrf_name']
 
 
