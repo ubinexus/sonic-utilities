@@ -25,7 +25,7 @@ stages:
       - script: |
           set -ex
           target_branch=origin/$(System.PullRequest.TargetBranch)
-          files_changed=$(git --no-pager diff $target_branch..HEAD --name-only)
+          files_changed=$(git --no-pager diff $target_branch..HEAD --name-only --diff-filter=d)
           python -m pip install --upgrade pip
           pip install semgrep
           semgrep --config auto --error $files_changed
