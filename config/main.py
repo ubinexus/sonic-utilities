@@ -108,6 +108,8 @@ QUEUE_RANGE = click.IntRange(min=0, max=255)
 GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
 ADHOC_VALIDATION = True
 
+SERVICE_TABLE_MAP = {"SNMP":"snmp","SNMP_COMMUNITY":"snmp","SNMP_AGENT_ADDRESS_CONFIG":"snmp","SNMP_TRAP_CONFIG":"snmp","SNMP_USER":"snmp","NTP_SERVER":"ntp-config","NTP":"ntp-config"}
+
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
@@ -1342,6 +1344,7 @@ def load(filename, yes):
 
     # In case of multi-asic mode we have additional config_db{NS}.json files for
     # various namespaces created per ASIC. {NS} is the namespace index.
+    services_to_be_reloaded = set()
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
         if inst == -1:
@@ -1362,7 +1365,10 @@ def load(filename, yes):
         if not os.path.exists(file):
             click.echo("The config_db file {} doesn't exist".format(file))
             return
-
+        config_file_dictionary = read_json_file(file)
+        for table in SERVICE_TABLE_MAP:
+            if table in config_file_dictionary and len(config_file_dictionary[table].keys()) > 0:
+                services_to_be_reloaded.add(SERVICE_TABLE_MAP[table])
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
         else:
@@ -1370,6 +1376,9 @@ def load(filename, yes):
 
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
+    for service in services_to_be_reloaded:
+        clicommon.run_command("systemctl reset-failed {}".format(service),display_cmd=False)
+        clicommon.run_command("systemctl restart {}".format(service),display_cmd=False)
 
 def print_dry_run_message(dry_run):
     if dry_run:

@@ -1,0 +1,39 @@
+{
+    "DEVICE_METADATA": {
+        "localhost": {
+            "docker_routing_config_mode": "split",
+            "hostname": "sonic",
+            "hwsku": "Seastone-DX010-25-50",
+            "mac": "00:e0:ec:89:6e:48",
+            "platform": "x86_64-cel_seastone-r0",
+            "type": "ToRRouter"
+        }
+    },
+    "VLAN_MEMBER": {
+        "Vlan1000|Ethernet0": {
+            "tagging_mode": "untagged"
+        }
+    },
+    "VLAN": {
+        "Vlan1000": {
+            "vlanid": "1000",
+            "dhcp_servers": [
+                "192.0.0.1",
+                "192.0.0.2",
+                "192.0.0.3",
+                "192.0.0.4"
+            ]
+        }
+    },
+    "NTP_SERVER": {
+        "8.8.8.8": {}
+    },
+    "PORT": {
+        "Ethernet0": {
+            "alias": "Eth1",
+            "lanes": "65, 66, 67, 68",
+            "description": "Ethernet0 10g link",
+            "speed": "100000"
+        }
+    }
+}
