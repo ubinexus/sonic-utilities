@@ -95,6 +95,8 @@ CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
+CLNX_MIRROR_GRE_PROTOCOL_TYPE_II = "35006"
+CLNX_MIRROR_GRE_PROTOCOL_TYPE_III = "8939"
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
@@ -2305,6 +2307,10 @@ def mirror_session():
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """ Add ERSPAN mirror session.(Legacy support) """
+    if "clounix" == asic_type and gre_type != None:
+        if str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_II and str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_III:
+            click.echo("invalid gre_type, choose from {}, {}".format(CLNX_MIRROR_GRE_PROTOCOL_TYPE_II, CLNX_MIRROR_GRE_PROTOCOL_TYPE_III))
+            return
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer)
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='erspan')
@@ -2331,6 +2337,10 @@ def erspan(ctx):
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction):
     """ Add ERSPAN mirror session """
+    if "clounix" == asic_type and gre_type != None:
+        if str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_II and str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_III:
+            click.echo("invalid gre_type, choose from {}, {}".format(CLNX_MIRROR_GRE_PROTOCOL_TYPE_II, CLNX_MIRROR_GRE_PROTOCOL_TYPE_III))
+            return
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
 def gather_session_info(session_info, policer, queue, src_port, direction):
