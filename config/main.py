@@ -95,8 +95,6 @@ CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
-CLNX_MIRROR_GRE_PROTOCOL_TYPE_II = "35006"
-CLNX_MIRROR_GRE_PROTOCOL_TYPE_III = "8939"
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
@@ -2307,10 +2305,6 @@ def mirror_session():
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """ Add ERSPAN mirror session.(Legacy support) """
-    if "clounix" == asic_type and gre_type != None:
-        if str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_II and str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_III:
-            click.echo("invalid gre_type, choose from {}, {}".format(CLNX_MIRROR_GRE_PROTOCOL_TYPE_II, CLNX_MIRROR_GRE_PROTOCOL_TYPE_III))
-            return
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer)
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='erspan')
@@ -2337,10 +2331,6 @@ def erspan(ctx):
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction):
     """ Add ERSPAN mirror session """
-    if "clounix" == asic_type and gre_type != None:
-        if str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_II and str(gre_type) != CLNX_MIRROR_GRE_PROTOCOL_TYPE_III:
-            click.echo("invalid gre_type, choose from {}, {}".format(CLNX_MIRROR_GRE_PROTOCOL_TYPE_II, CLNX_MIRROR_GRE_PROTOCOL_TYPE_III))
-            return
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
 def gather_session_info(session_info, policer, queue, src_port, direction):
@@ -5154,6 +5144,22 @@ def unbind(ctx, interface_name):
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
     if table_name == "VLAN_SUB_INTERFACE":
+        # First delete subinterface, once subinterface deletion successful,
+        # recreate same with same config on default vrf
+        if 'state_db' not in ctx.obj:
+            if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+                state_db = SonicV2Connector(use_unix_socket_path=True)
+            else:
+                state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
+            state_db.connect(state_db.STATE_DB, False)
+        else:
+            state_db = ctx.obj['state_db']
+
+        config_db.set_entry(table_name, interface_name, None)
+        _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
+        while state_db.exists(state_db.STATE_DB, _hash):
+            time.sleep(0.01)
+        state_db.close(state_db.STATE_DB)
         config_db.set_entry(table_name, interface_name, subintf_entry)
     else:
         config_db.set_entry(table_name, interface_name, None)
