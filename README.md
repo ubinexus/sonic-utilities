@@ -1,14 +1,11 @@
 *static analysis:*
 
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/sonic-net/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-utilities/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sonic-net/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-utilities/context:python)
+[![master](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml/badge.svg?branch=master)](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml)
 
 *sonic-utilities builds:*
 
 [![master build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=master&label=master)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=master)
-
 [![202205 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=202205&label=202205)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=202205)
-
 [![202012 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-utilities?branchName=202012&label=202012)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=55&branchName=202012)
 
 
