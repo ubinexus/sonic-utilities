@@ -329,7 +329,7 @@ class SysInfoProvider(object):
 
     @staticmethod
     def run_command(cmd, abort=True):
-        """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
+        """runs command, exit if stderr is written to and abort argument is true, returns stdout, stderr otherwise"""
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         output = proc.stdout.read()
         error = proc.stderr.read()
@@ -340,7 +340,7 @@ class SysInfoProvider(object):
 
     @staticmethod
     def run_command_pipe(*args, abort=True):
-        """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
+        """runs command, exit if stderr is written to and abort argument is true, returns stdout, stderr otherwise"""
         exitcodes, output = getstatusoutput_noshell_pipe(*args)
         if abort and any(exitcodes) and output != '':
             click.echo("Command resulted in error: {}".format(output))
