@@ -276,8 +276,7 @@ save_to_tar() {
     local start_t=$(date +%s%3N)
     local end_t=0
 
-    cd $DUMPDIR
-    $TAR $V -rhf $TARFILE "$BASE"
+    $TAR $V -rhf $TARFILE -C $DUMPDIR "$BASE"
 
     end_t=$(date +%s%3N)
     echo "[ save_to_tar ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1588,6 +1587,8 @@ main() {
 
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
+
+    save_to_tar
 
     $RM $V -rf $TARDIR
     $MKDIR $V -p $TARDIR
