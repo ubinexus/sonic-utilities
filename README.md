@@ -1,6 +1,13 @@
 *static analysis:*
 
+*master*
 [![master](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml/badge.svg?branch=master)](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml)
+
+*202211*
+[![CodeQL](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml/badge.svg?branch=202211)](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml)
+
+*202205*
+[![CodeQL](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml/badge.svg?branch=202205)](https://github.com/sonic-net/sonic-utilities/actions/workflows/codeql-analysis.yml)
 
 *sonic-utilities builds:*
 
