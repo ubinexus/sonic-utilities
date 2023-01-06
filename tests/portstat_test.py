@@ -190,7 +190,6 @@ Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       
 Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 
 Reminder: Please execute 'show interface counters -d all' to include internal links
-
 """
 
 
