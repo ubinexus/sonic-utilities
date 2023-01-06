@@ -146,6 +146,9 @@ The rates are calculated within 3 seconds period
 ---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
 Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counters_period_all = """\
@@ -158,6 +161,9 @@ The rates are calculated within 3 seconds period
   Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counter_period_asic_all = """\
@@ -168,6 +174,9 @@ The rates are calculated within 3 seconds period
    Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 mutli_asic_intf_counters_after_clear = """\
@@ -178,7 +187,11 @@ mutli_asic_intf_counters_after_clear = """\
   Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
   Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
+Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
+"""
 
 
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
