@@ -540,8 +540,6 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
             cmd += " -n {}".format(namespace)
 
         clicommon.run_command(cmd, display_cmd=verbose)
-        if multi_asic.is_multi_asic():
-            click.echo("\n\nReminder: Please execute 'show interface counters -d all' to include internal links\n\n")
 
 
 # 'errors' subcommand ("show interfaces counters errors")
