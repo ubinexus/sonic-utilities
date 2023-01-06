@@ -312,7 +312,9 @@ def setup_ip_route_commands():
     import show.main as show
     return show
 
+
 @pytest.fixture
 def setup_fib_commands():
     import show.main as show
     return show
+
