@@ -23,7 +23,7 @@ import argparse
 import re
 import subprocess
 import sys
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 from sonic_py_common import device_info
 from swsscommon.swsscommon import ConfigDBConnector
 from utilities_common.general import load_db_config
@@ -120,7 +120,7 @@ class Lldpshow(object):
         if lldp_detail_info:
             return
         for lldpraw in self.lldpraw:
-            neis = ET.fromstring(lldpraw)
+            neis = ET.fromstring(bytes(lldpraw, encoding='utf8'))
             intfs = neis.findall('interface')
             for intf in intfs:
                 l_intf = intf.attrib['name']
