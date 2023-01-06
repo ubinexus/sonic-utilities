@@ -103,13 +103,25 @@ class FdbShow(object):
             br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
-            if br_port_id not in self.if_br_oid_map:
-                continue
-            port_id = self.if_br_oid_map[br_port_id]
-            if port_id in self.if_oid_map:
-                if_name = self.if_oid_map[port_id]
+
+            #If we have VXLAN tunnel port FDBs try getting them
+            try:
+                endpoint_ip = ent["SAI_FDB_ENTRY_ATTR_ENDPOINT_IP"]
+            except:
+                endpoint_ip = None
+
+            #If endpoint_ip exists then use that as if_name
+            if not endpoint_ip:
+                if br_port_id not in self.if_br_oid_map:
+                    continue
+                port_id = self.if_br_oid_map[br_port_id]
+                if port_id in self.if_oid_map:
+                    if_name = self.if_oid_map[port_id]
+                else:
+                    if_name = port_id
             else:
-                if_name = port_id
+                if_name = endpoint_ip
+
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             else:
