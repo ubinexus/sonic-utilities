@@ -541,7 +541,6 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
 
         clicommon.run_command(cmd, display_cmd=verbose)
 
-
 # 'errors' subcommand ("show interfaces counters errors")
 @counters.command()
 @click.option('-p', '--period')
