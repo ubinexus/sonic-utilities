@@ -1129,15 +1129,13 @@ def is_fw_switch_done(port_name):
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
     try:
-        MAX_WAIT = 600 # 60s timeout.
-        fw_info = api.get_module_fw_info()
-        cnt = 0
-        is_busy = 1 if (fw_info['status'] == False) and (fw_info['result'] is not None) else 0
-        while is_busy and cnt < MAX_WAIT:
-            time.sleep(0.1)
+        MAX_WAIT = 60 # 60s timeout.
+        is_busy = 1 # Initial to 1 for entering while loop at least one time.
+        timeout_time = time.time() + MAX_WAIT
+        while is_busy and (time.time() < timeout_time):
             fw_info = api.get_module_fw_info()
             is_busy = 1 if (fw_info['status'] == False) and (fw_info['result'] is not None) else 0
-            cnt += 1
+            time.sleep(2)
 
         if fw_info['status'] == True:
             (ImageA, ImageARunning, ImageACommitted, ImageAInvalid,

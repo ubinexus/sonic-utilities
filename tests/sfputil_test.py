@@ -479,7 +479,6 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @pytest.mark.parametrize("mock_response, expected", [
         ({'status': False, 'result': None}                                 , -1),
-        ({'status': False, 'result': None}                                 , -1),
         ({'status': True,  'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0)} , -1),
         ({'status': True,  'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0)} , -1),
         ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0)} ,  1),
