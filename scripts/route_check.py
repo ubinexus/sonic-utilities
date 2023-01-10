@@ -340,7 +340,10 @@ def get_frr_routes():
     """
 
     output = subprocess.check_output('show ip route json', shell=True)
-    return json.loads(output)
+    routes = json.loads(output)
+    output = subprocess.check_output('show ipv6 route json', shell=True)
+    routes.update(json.loads(output))
+    return routes
 
 
 def get_interfaces():
