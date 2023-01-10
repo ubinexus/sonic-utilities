@@ -556,7 +556,7 @@ def check_frr_pending_routes():
     return missed_rt
 
 
-def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt):
+def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl):
     """
     Mitigate installed but not offloaded FRR routes.
     """
@@ -564,6 +564,9 @@ def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt):
     response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
     for entry in missed_frr_rt:
         key = entry['prefix']
+
+        if key not in rt_appl:
+            continue
 
         fvs = swsscommon.FieldValuePairs([('err_str', 'SWSS_RC_SUCCESS'), ('protocol', entry['protocol'])])
         response_producer.send('SWSS_RC_SUCCESS', key, fvs)
@@ -695,7 +698,7 @@ def check_routes():
         if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
             print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR but all routes in APPL_DB and ASIC_DB are in sync")
             if is_suppress_fib_pending_enabled():
-                mitigate_installed_not_offloaded_frr_routes(rt_frr_miss)
+                mitigate_installed_not_offloaded_frr_routes(rt_frr_miss, rt_appl)
 
         return -1, results
     else:
