@@ -5,6 +5,7 @@ import json
 import subprocess
 from sonic_py_common import device_info
 from swsscommon.swsscommon import ConfigDBConnector
+from show.plugins.barefoot import check_profile, get_profile_format, get_chip_family
 
 def abort_if_false(ctx, param, value):
     if not value:
@@ -14,41 +15,65 @@ def abort_if_false(ctx, param, value):
 def barefoot():
     pass
 
+def check_profile_naming_tf3(profile, chip_family):
+    """Check if profile <profile_name>_<chip_family> exists"""
+    return subprocess.run(['docker', 'exec', '-it', 'syncd',
+        'test', '-d', '/opt/bfn/install_' + profile + '_' + chip_family])
+
+def check_profile_naming_tf2(profile):
+    """Check if profile <profile_name>_profile exists"""
+    return subprocess.run(['docker', 'exec', '-it', 'syncd',
+        'test', '-d', '/opt/bfn/install_' + profile + '_profile'])
+
+def check_supported_profile(profile, chip_family):
+    """Check if profile is supported"""
+    if chip_family == 'tofino' and profile[0] != 'x' or \
+        chip_family == 'tofino2' and profile[0] != 'y':
+        return False
+    return True
+
+def check_profile_exist(profile, chip_family):
+    """Check if profile exists"""
+    no_arch_information = False
+    completed_process = check_profile_naming_tf3(profile, chip_family)
+
+    if completed_process.returncode != 0:
+        if chip_family == 'tofino' or chip_family == 'tofino2':
+            completed_process = check_profile_naming_tf2(profile)
+            no_arch_information = True
+
+    if completed_process.returncode != 0:
+        click.echo('No profile with the provided name found for {}'.format(chip_family))
+        raise click.Abort()
+
+    return no_arch_information
+
 @barefoot.command()
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
     expose_value=False, prompt='Swss service will be restarted, continue?')
 @click.argument('profile')
 def profile(profile):
     # Check if profile can be changed
-    completed_process = subprocess.run(['docker', 'exec', '-it', 'syncd',
-        'test', '-h', '/opt/bfn/install'])
-    if completed_process.returncode != 0:
+    if check_profile():
         click.echo('Cannot change profile: default one is in use')
         raise click.Abort()
-    
+
     # Get chip family
-    hwsku_dir = device_info.get_path_to_hwsku_dir()
-    with open(hwsku_dir + '/switch-tna-sai.conf') as file:
-        chip_family = json.load(file)['chip_list'][0]['chip_family'].lower()
-    
+    chip_family = get_chip_family()
+
     # Check if profile is supported
-    if chip_family == 'tofino' and profile[0] == 'y' or \
-        chip_family == 'tofino2' and profile[0] == 'x':
+    if check_supported_profile(profile, chip_family) == False:
         click.echo('Specified profile is unsupported on the system')
         raise click.Abort()
-    
+
     # Check if profile exists
-    completed_process = subprocess.run(['docker', 'exec', '-it', 'syncd',
-        'test', '-d', '/opt/bfn/install_' + profile + '_profile'])
-    if completed_process.returncode != 0:
-        click.echo('No profile with the provided name found')
-        raise click.Abort()
-    
+    no_arch_information = check_profile_exist(profile, chip_family)
+
     # Update configuration
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('DEVICE_METADATA', 'localhost',
-        {'p4_profile': profile + '_profile'})
+    profile += '_profile' if no_arch_information else '_' + chip_family
+    config_db.mod_entry('DEVICE_METADATA', 'localhost', {'p4_profile': profile})
     subprocess.run(['systemctl', 'restart', 'swss'], check=True)
 
 def register(cli):

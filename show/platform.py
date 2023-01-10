@@ -154,3 +154,10 @@ def firmware(args):
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
+
+# 'barefoot' subcommand ("show platform barefoot")
+@platform.command()
+def barefoot():
+    """Show Barefoot profile information"""
+    cmd = "barefoot profile"
+    clicommon.run_command(cmd)
