@@ -32,6 +32,9 @@ import sys
 import os
 import re
 
+#Option used to display only locally learnt mac(s)
+display_only_local = False
+
 # mock the redis for unit test purposes #
 try: # pragma: no cover
     if os.environ["UTILITIES_UNIT_TESTING"] == "1": 
@@ -120,6 +123,10 @@ class FdbShow(object):
                 else:
                     if_name = port_id
             else:
+                if display_only_local:
+                    #User requested option to display only the local mac address,
+                    #So skip logging this entry
+                    continue
                 if_name = endpoint_ip
 
             if 'vlan' in fdb:
@@ -209,6 +216,7 @@ class FdbShow(object):
         return True
 
 def main():
+    global display_only_local
     
     parser = argparse.ArgumentParser(description='Display ASIC FDB entries',
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -217,7 +225,10 @@ def main():
     parser.add_argument('-a', '--address', type=str, help='FDB display based on specific mac address', default=None)
     parser.add_argument('-t', '--type', type=str, help='FDB display of specific type of mac address', default=None)
     parser.add_argument('-c', '--count', action='store_true', help='FDB display count of mac address')
+    parser.add_argument('-l', '--local', action='store_true', help='Display only the locally learnt mac address')
     args = parser.parse_args()
+
+    display_only_local = args.local
 
     try:
         fdb = FdbShow()
