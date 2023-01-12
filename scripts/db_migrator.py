@@ -8,7 +8,6 @@ import traceback
 import re
 
 from sonic_py_common import device_info, logger
-from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
 
@@ -179,22 +178,39 @@ class DBMigrator():
         if self.appDB is None:
             return
 
-        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        # Get Lo interface corresponding to IP(v4/v6) address from CONFIG_DB.
+        configdb_data = self.configDB.get_keys('LOOPBACK_INTERFACE')
+        lo_addr_to_int = dict()
+        for int_data in configdb_data:
+            if type(int_data) == tuple and len(int_data) > 1:
+                intf_name = int_data[0]
+                intf_addr = int_data[1]
+                lo_addr_to_int.update({intf_addr: intf_name})
 
-        if data is None:
+        lo_data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        if lo_data is None:
             return
 
         if_db = []
-        for key in data:
-            if_name = key.split(":")[1]
-            if if_name == "lo":
-                self.appDB.delete(self.appDB.APPL_DB, key)
-                key = key.replace(if_name, "Loopback0")
-                log.log_info('Migrating lo entry to ' + key)
-                self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
+        for lo_row in lo_data:
+            # Example of lo_row: 'INTF_TABLE:lo:10.1.0.32/32'
+            # Delete the old row with name as 'lo'. A new row with name as Loopback will be added
+            lo_name_appdb = lo_row.split(":")[1]
+            if lo_name_appdb == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, lo_row)
+                lo_addr = lo_row.split('INTF_TABLE:lo:')[1]
+                lo_name_configdb = lo_addr_to_int.get(lo_addr)
+                if lo_name_configdb is None or lo_name_configdb == '':
+                    # an unlikely case where a Loopback address is present in APPLDB, but
+                    # there is no corresponding interface for this address in CONFIGDB:
+                    # Default to legacy implementation: hardcode interface name as Loopback0
+                    lo_new_row = lo_row.replace(lo_name_appdb, "Loopback0")
+                else:
+                    lo_new_row = lo_row.replace(lo_name_appdb, lo_name_configdb)
+                self.appDB.set(self.appDB.APPL_DB, lo_new_row, 'NULL', 'NULL')
 
-            if '/' not in key:
-                if_db.append(key.split(":")[1])
+            if '/' not in lo_row:
+                if_db.append(lo_row.split(":")[1])
                 continue
 
         data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
@@ -868,7 +884,12 @@ class DBMigrator():
                 new_cfg = {**init_cfg, **curr_cfg}
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
-        self.migrate_copp_table()
+        # Avoiding copp table migration is platform specific at the moment as I understood this might cause issues for some
+        # vendors, probably Broadcom. This change can be checked with any specific vendor and if this works fine the platform
+        # condition can be modified and extend. If no vendor has an issue with not clearing copp tables the condition can be
+        # removed together with calling to migrate_copp_table function.
+        if self.asic_type != "mellanox":
+            self.migrate_copp_table()
         if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
             self.migrate_mgmt_ports_on_s6100()
         else:
