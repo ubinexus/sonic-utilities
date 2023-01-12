@@ -8,7 +8,11 @@ from sonic_py_common import multi_asic, device_info
 from swsscommon.swsscommon import FRONT_PANEL_PORT_PREFIX_REGEX
 
 platform_sfputil = None
+platform_chassis = None
+platform_sfp_base = None
+platform_porttab_mapping_read = False
 
+RJ45_PORT_TYPE = 'RJ45'
 
 def load_platform_sfputil():
 
@@ -24,6 +28,10 @@ def load_platform_sfputil():
 
 
 def platform_sfputil_read_porttab_mappings():
+    global platform_porttab_mapping_read
+
+    if platform_porttab_mapping_read:
+        return 0
 
     try:
 
@@ -37,6 +45,8 @@ def platform_sfputil_read_porttab_mappings():
             # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
             port_config_file_path = device_info.get_path_to_port_config_file()
             platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
+
+        platform_porttab_mapping_read = True
     except Exception as e:
         click.echo("Error reading port info (%s)" % str(e))
         sys.exit(1)
@@ -45,14 +55,17 @@ def platform_sfputil_read_porttab_mappings():
 
 
 def logical_port_name_to_physical_port_list(port_name):
-    if re.search(FRONT_PANEL_PORT_PREFIX_REGEX, port_name):
-        if platform_sfputil.is_logical_port(port_name):
-            return platform_sfputil.get_logical_to_physical(port_name)
+    try:
+        if re.search(FRONT_PANEL_PORT_PREFIX_REGEX, port_name):
+            if platform_sfputil.is_logical_port(port_name):
+                return platform_sfputil.get_logical_to_physical(port_name)
         else:
-            click.echo("Invalid port '{}'".format(port_name))
-            return None
-    else:
-        return [int(port_name)]
+            return [int(port_name)]
+    except ValueError:
+        pass
+
+    click.echo("Invalid port '{}'".format(port_name))
+    return None
 
 
 def get_logical_list():
@@ -72,7 +85,7 @@ def get_physical_to_logical():
 
 def get_interface_name(port, db):
 
-    if port is not "all" and port is not None:
+    if port != "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         if clicommon.get_interface_naming_mode() == "alias":
@@ -85,7 +98,7 @@ def get_interface_name(port, db):
 
 def get_interface_alias(port, db):
 
-    if port is not "all" and port is not None:
+    if port != "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         if clicommon.get_interface_naming_mode() == "alias":
@@ -95,3 +108,42 @@ def get_interface_alias(port, db):
                 sys.exit(1)
 
     return port
+
+
+def is_rj45_port(port_name):
+    global platform_sfputil
+    global platform_chassis
+    global platform_sfp_base
+    global platform_sfputil_loaded
+
+    try:
+        if not platform_chassis:
+            import sonic_platform
+            platform_chassis = sonic_platform.platform.Platform().get_chassis()
+        if not platform_sfp_base:
+            import sonic_platform_base
+            platform_sfp_base = sonic_platform_base.sfp_base.SfpBase
+    except ModuleNotFoundError as e:
+        # This method is referenced by intfutil which is called on vs image
+        # However, there is no platform API supported on vs image
+        # So False is returned in such case
+        return False
+
+    if platform_chassis and platform_sfp_base:
+        if not platform_sfputil:
+            load_platform_sfputil()
+
+        if not platform_porttab_mapping_read:
+            platform_sfputil_read_porttab_mappings()
+
+        port_type = None
+        try:
+            physical_port = platform_sfputil.get_logical_to_physical(port_name)
+            if physical_port:
+                port_type = platform_chassis.get_port_or_cage_type(physical_port[0])
+        except Exception as e:
+            pass
+
+        return port_type == platform_sfp_base.SFP_PORT_TYPE_BIT_RJ45
+
+    return False

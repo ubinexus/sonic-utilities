@@ -10,6 +10,7 @@ from sonic_py_common.multi_asic import get_external_ports
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
+from utilities_common.general import load_db_config
 from sonic_py_common import logger
 from swsscommon.swsscommon import FRONT_PANEL_PORT_PREFIX_REGEX
 
@@ -64,7 +65,7 @@ PORT_QOS_MAP =  "PORT_QOS_MAP"
 @click.group()
 def cli():
     """ SONiC PFC Watchdog """
-
+    load_db_config()
 
 def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')

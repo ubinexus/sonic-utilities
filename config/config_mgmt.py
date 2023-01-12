@@ -15,7 +15,7 @@ from time import sleep as tsleep
 
 import sonic_yang
 from jsondiff import diff
-from swsssdk import port_util
+from sonic_py_common import port_util
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_module_from_source
 
@@ -281,7 +281,7 @@ class ConfigMgmt():
         """
 
         # Instantiate new context since parse_module_mem() loads the module into context.
-        sy = sonic_yang.SonicYang(YANG_DIR, sonic_yang_options=self.sonicYangOptions)
+        sy = sonic_yang.SonicYang(YANG_DIR)
         module = sy.ctx.parse_module_mem(yang_module_str, ly.LYS_IN_YANG)
         return module.name()
 

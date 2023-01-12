@@ -41,6 +41,7 @@ from . import acl
 from . import bgp_common
 from . import chassis_modules
 from . import dropcounters
+from . import fabric
 from . import feature
 from . import fgnhg
 from . import flow_counters
@@ -60,6 +61,7 @@ from . import vxlan
 from . import system_health
 from . import warm_restart
 from . import plugins
+from . import syslog
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -262,6 +264,7 @@ def cli(ctx):
 cli.add_command(acl.acl)
 cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
+cli.add_command(fabric.fabric)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(flow_counters.flowcnt_route)
@@ -281,6 +284,9 @@ cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
 cli.add_command(warm_restart.warm_restart)
+
+# syslog module
+cli.add_command(syslog.syslog)
 
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():
@@ -321,6 +327,7 @@ def vrf(vrf_name):
             vrfs = [vrf_name]
         for vrf in vrfs:
             intfs = get_interface_bind_to_vrf(config_db, vrf)
+            intfs = natsorted(intfs)
             if len(intfs) == 0:
                 body.append([vrf, ""])
             else:
@@ -328,6 +335,32 @@ def vrf(vrf_name):
                 for intf in intfs[1:]:
                     body.append(["", intf])
     click.echo(tabulate(body, header))
+
+#
+# 'events' command ("show event-counters")
+#
+
+@cli.command()
+def event_counters():
+    """Show events counter"""
+    # dump keys as formatted
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    header = ['name', 'count']
+    keys = counters_db.keys(counters_db.COUNTERS_DB, 'COUNTERS_EVENTS*')
+    table = []
+
+    for key in natsorted(keys):
+        key_list = key.split(':')
+        data_dict = counters_db.get_all(counters_db.COUNTERS_DB, key)
+        table.append((key_list[1], data_dict["value"]))
+
+    if table:
+        click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
+    else:
+        click.echo('No data available in COUNTERS_EVENTS\n')
+
 
 #
 # 'arp' command ("show arp")
@@ -668,7 +701,8 @@ def queue():
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
-def counters(interfacename, verbose, json):
+@click.option('--voq', is_flag=True, help="VOQ counters")
+def counters(interfacename, verbose, json, voq):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -682,6 +716,9 @@ def counters(interfacename, verbose, json):
 
     if json:
         cmd += " -j"
+
+    if voq:
+        cmd += " -V"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -929,15 +966,49 @@ def ip():
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
-@ip.command()
-@multi_asic_util.multi_asic_click_options
-def interfaces(namespace, display):
-    cmd = "sudo ipintutil -a ipv4"
-    if namespace is not None:
-        cmd += " -n {}".format(namespace)
 
-    cmd += " -d {}".format(display)
-    clicommon.run_command(cmd)
+@ip.group(invoke_without_command=True)
+@multi_asic_util.multi_asic_click_options
+@click.pass_context
+def interfaces(ctx, namespace, display):
+    if ctx.invoked_subcommand is None:
+        cmd = "sudo ipintutil -a ipv4"
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
+
+        cmd += " -d {}".format(display)
+        clicommon.run_command(cmd)
+
+#
+# 'show ip interfaces loopback-action' command
+#
+
+@interfaces.command()
+def loopback_action():
+    """show ip interfaces loopback-action"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Interface', 'Action']
+    body = []
+
+    if_tbl = config_db.get_table('INTERFACE')
+    vlan_if_tbl = config_db.get_table('VLAN_INTERFACE')
+    po_if_tbl = config_db.get_table('PORTCHANNEL_INTERFACE')
+    sub_if_tbl = config_db.get_table('VLAN_SUB_INTERFACE')
+
+    all_tables = {}
+    for tbl in [if_tbl, vlan_if_tbl, po_if_tbl, sub_if_tbl]:
+        all_tables.update(tbl)
+
+    if all_tables:
+        ifs_action = []
+        ifs = list(all_tables.keys())
+        for iface in ifs:
+            if 'loopback_action' in all_tables[iface]:
+                action = all_tables[iface]['loopback_action']
+                ifs_action.append([iface, action])
+        body = natsorted(ifs_action)
+    click.echo(tabulate(body, header))
 
 #
 # 'route' subcommand ("show ip route")
@@ -1262,7 +1333,7 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
-@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
+@click.option('-g', '--global-timeout', required=False, type=int, help="Global timeout in minutes. WARN: Dump might be incomplete if enforced")
 @click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
@@ -1271,7 +1342,10 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
+    cmd = "sudo"
+
+    if global_timeout:
+        cmd += " timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
 
     if allow_process_stop:
         cmd += " -a"
@@ -1544,34 +1618,25 @@ def show_run_snmp(db, ctx):
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syslog(verbose):
-    """Show Syslog running configuration
-    To match below cases(port is optional):
-    *.* @IPv4:port
-    *.* @@IPv4:port
-    *.* @[IPv4]:port
-    *.* @@[IPv4]:port
-    *.* @[IPv6]:port
-    *.* @@[IPv6]:port
-    """
-    syslog_servers = []
-    syslog_dict = {}
-    re_ipv4_1 = re.compile(r'^\*\.\* @{1,2}(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?')
-    re_ipv4_2 = re.compile(r'^\*\.\* @{1,2}\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\](:\d+)?')
-    re_ipv6 = re.compile(r'^\*\.\* @{1,2}\[([0-9a-fA-F:.]+)\](:\d+)?')
-    with open("/etc/rsyslog.conf") as syslog_file:
-        data = syslog_file.readlines()
+    """Show Syslog running configuration"""
+
+    header = ["Syslog Servers"]
+    body = []
+
+    re_syslog = re.compile(r'^\*\.\* action\(.*target=\"{1}(.+?)\"{1}.*\)')
+
+    try:
+        with open("/etc/rsyslog.conf") as syslog_file:
+            data = syslog_file.readlines()
+    except Exception as e:
+        raise click.ClickException(str(e))
+
     for line in data:
-        if re_ipv4_1.match(line):
-            server =  re_ipv4_1.match(line).group(1)
-        elif re_ipv4_2.match(line):
-            server =  re_ipv4_2.match(line).group(1)
-        elif re_ipv6.match(line):
-            server =  re_ipv6.match(line).group(1)
-        else:
-            continue
-        syslog_servers.append("[{}]".format(server))
-    syslog_dict['Syslog Servers'] = syslog_servers
-    print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
+        re_match = re_syslog.match(line)
+        if re_match:
+            body.append(["[{}]".format(re_match.group(1))])
+
+    click.echo(tabulate(body, header, tablefmt="simple", stralign="left", missingval=""))
 
 
 #

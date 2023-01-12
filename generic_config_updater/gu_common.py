@@ -16,6 +16,9 @@ SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 class GenericConfigUpdaterError(Exception):
     pass
 
+class EmptyTableError(ValueError):
+    pass
+
 class JsonChange:
     """
     A class that describes a partial change to a JSON object.
@@ -113,6 +116,10 @@ class ConfigWrapper:
     def validate_config_db_config(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
 
+        # TODO: Move these validators to YANG models
+        supplemental_yang_validators = [self.validate_bgp_peer_group,
+                                        self.validate_lanes]
+
         try:
             tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
 
@@ -120,10 +127,53 @@ class ConfigWrapper:
 
             sy.validate_data_tree()
 
-            # TODO: modularize custom validations better or move directly to sonic-yang module
-            return self.validate_bgp_peer_group(config_db_as_json)
+            for supplemental_yang_validator in supplemental_yang_validators:
+                success, error = supplemental_yang_validator(config_db_as_json)
+                if not success:
+                    return success, error
         except sonic_yang.SonicYangException as ex:
             return False, ex
+
+        return True, None
+
+    def validate_lanes(self, config_db):
+        if "PORT" not in config_db:
+            return True, None
+
+        ports = config_db["PORT"]
+
+        # Validate each lane separately, make sure it is not empty, and is a number
+        port_to_lanes_map = {}
+        for port in ports:
+            attrs = ports[port]
+            if "lanes" in attrs:
+                lanes_str = attrs["lanes"]
+                lanes_with_whitespaces = lanes_str.split(",")
+                lanes = [lane.strip() for lane in lanes_with_whitespaces]
+                for lane in lanes:
+                    if not lane:
+                        return False, f"PORT '{port}' has an empty lane"
+                    if not lane.isdigit():
+                        return False, f"PORT '{port}' has an invalid lane '{lane}'"
+                port_to_lanes_map[port] = lanes
+
+        # Validate lanes are unique
+        # TODO: Move this attribute (platform with duplicated lanes in ports) to YANG models
+        dup_lanes_platforms = [
+            'x86_64-arista_7050cx3_32s',
+            'x86_64-dellemc_s5232f_c3538-r0',
+        ]
+        metadata = config_db.get("DEVICE_METADATA", {})
+        platform = metadata.get("localhost", {}).get("platform", None)
+        if platform not in dup_lanes_platforms:
+            existing = {}
+            for port in port_to_lanes_map:
+                lanes = port_to_lanes_map[port]
+                for lane in lanes:
+                    if lane in existing:
+                        return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
+                    existing[lane] = port
+        return True, None
 
     def validate_bgp_peer_group(self, config_db):
         if "BGP_PEER_RANGE" not in config_db:

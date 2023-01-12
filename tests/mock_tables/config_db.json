@@ -376,11 +376,27 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10|10.11.12.13/24": {
         "NULL" : "NULL"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10": {
+    "VLAN_SUB_INTERFACE|Eth36.10": {
         "admin_status": "up",
+        "loopback_action": "drop",
+        "vrf_name": "Vrf1",
         "vlan": "100"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10|32.10.11.12/24": {
+    "VLAN_SUB_INTERFACE|Eth36.10|32.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Eth36.10|3210::12/126": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10": {
+        "admin_status": "up",
+        "vrf_name": "Vrf1",
+        "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|10.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|1010::12/126": {
         "NULL" : "NULL"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
@@ -562,6 +578,9 @@
     "VLAN_INTERFACE|Vlan2000": {
         "proxy_arp": "enabled"
     },
+    "VLAN_INTERFACE|Vlan3000": {
+        "loopback_action": "forward"
+    },
     "VLAN_INTERFACE|Vlan1000|192.168.0.1/21": {
         "NULL": "NULL"
     },
@@ -646,7 +665,8 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "drop"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
@@ -682,10 +702,14 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "forward"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
+    },
+    "INTERFACE|Ethernet40": {
+        "ipv6_use_link_local_only": "enable"
     },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
@@ -1642,7 +1666,11 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|ACL": {
-        "POLL_INTERVAL": "10000",
+        "POLL_INTERVAL": "5000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|TUNNEL": {
+        "POLL_INTERVAL": "3000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
@@ -1740,11 +1768,14 @@
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-active",
+	"soc_ipv4": "10.1.1.2",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-standby",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {
