@@ -562,16 +562,11 @@ def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl):
     """
     db = swsscommon.DBConnector('APPL_STATE_DB', 0)
     response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
-    for entry in missed_frr_rt:
-        key = entry['prefix']
-
-        if key not in rt_appl:
-            continue
-
+    for entry in [entry for entry in missed_frr_rt if entry['prefix'] in rt_appl]]:
         fvs = swsscommon.FieldValuePairs([('err_str', 'SWSS_RC_SUCCESS'), ('protocol', entry['protocol'])])
-        response_producer.send('SWSS_RC_SUCCESS', key, fvs)
+        response_producer.send('SWSS_RC_SUCCESS', entry['prefix'], fvs)
 
-        print_message(syslog.LOG_ERR, f'Mitigated route {key}')
+        print_message(syslog.LOG_ERR, f'Mitigated route {entry["prefix"]}')
 
 
 def get_soc_ips(config_db):
