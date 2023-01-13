@@ -1383,7 +1383,7 @@ def runningconfiguration():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Show full running configuration"""
-    cmd = "sonic-cfggen -d --print-data"
+    cmd = "sonic-cfggen -d --print-data | sed 's/\\\"passkey\\\": \\\".*\\\"/\\\"passkey\\\": \\\"********\\\"/g'"
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1779,12 +1779,16 @@ def tacacs():
     tacplus = {
         'global': {
             'auth_type': 'pap (default)',
-            'timeout': '5 (default)',
-            'passkey': '<EMPTY_STRING> (default)'
+            'timeout': '5 (default)'
         }
     }
     if 'global' in data:
         tacplus['global'].update(data['global'])
+        if 'passkey' in data['global']:
+            tacplus['global']['passkey'] = data['global']['passkey'][0:2] + '******'
+    if not 'passkey' in tacplus['global']:
+        tacplus['global']['passkey'] = '<EMPTY_STRING> (default)'
+
     for key in tacplus['global']:
         output += ('TACPLUS global %s %s\n' % (str(key), str(tacplus['global'][key])))
 
