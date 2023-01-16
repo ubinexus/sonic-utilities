@@ -87,6 +87,7 @@ class TestMclag(object):
         return False
 
     def test_add_mclag_with_invalid_src_ip(self):
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
