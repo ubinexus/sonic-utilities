@@ -152,7 +152,7 @@ class ConfigWrapper:
                                             'remove': ['/PFC_WD/GLOBAL/POLL_INTERVAL', '/PFC_WD/GLOBAL']}
         for operation, field_list in illegal_operations_to_fields_map.items():
             for field in field_list:
-                if any(op['op'] == operation and field in op['path'] for op in patch):
+                if any(op['op'] == operation and field == op['path'] for op in patch):
                     raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
 
     def validate_lanes(self, config_db):
