@@ -27,20 +27,15 @@ def get_chip_family():
 def get_current_profile():
     """Get current profile"""
     return subprocess.run('docker exec -it syncd readlink /opt/bfn/install | sed '
-            r's/install_\\\(.\*\\\)_profile/\\1/'
-            r' | sed s/install_\\\(.\*\\\)_tofino.\*/\\1/', check=True, shell=True)
-
-def get_profile_format(chip_family):
-    """Get profile naming format. Check if contains tofino family information"""
-    output = subprocess.check_output(['docker', 'exec', '-it', 'syncd', 'ls', '/opt/bfn']).strip().decode()
-    return '_' + chip_family if '_tofino' in output else '_profile'
+           r's/install_\\\(.\*\\\)_tofino.\*/\\1/'
+            r' | sed "s/$/\r/"', check=True, shell=True).stdout
 
 def get_available_profiles(opts):
     """Get available profiles"""
     return subprocess.run('docker exec -it syncd find /opt/bfn -mindepth 1 '
-        r'-maxdepth 1 -type d,l ' + opts + '| sed '
-        r's%/opt/bfn/install_\\\(.\*\\\)_profile%\\1%'
-        r' | sed s%/opt/bfn/install_\\\(.\*\\\)_tofino.\*%\\1%', shell=True)
+        r'-maxdepth 1 -type d,l ' + opts + 
+        r' | sed s%/opt/bfn/install_\\\(.\*\\\)_tofino.\*%\\1%'
+        r' | sed "s/$/\r/"', shell=True).stdout
 
 @barefoot.command()
 def profile():
@@ -54,25 +49,20 @@ def profile():
 
     # Print current profile
     click.echo('Current profile: ', nl=False)
-    current_profile = get_current_profile()
-    click.echo(current_profile.stdout, nl=False)
-
-    # Check if profile naming format contains tofino family information 
-    suffix = get_profile_format(chip_family)
+    click.echo(get_current_profile(), nl=False)
 
     # Check supported profiles 
     opts = ''
     if chip_family == 'tofino':
-        opts = r' -name install_x\*' + suffix
+        opts = r' -name install_x\*_' + chip_family
     elif chip_family == 'tofino2':
-        opts = r' -name install_y\*' + suffix
+        opts = r' -name install_y\*_' + chip_family
     else:
-        opts = r' -name \*' + suffix
+        opts = r' -name \*_' + chip_family
 
     # Print profile list
     click.echo('Available profile(s):')
-    available_profiles = get_available_profiles(opts)
-    click.echo(available_profiles.stdout, nl=False)
+    click.echo(get_available_profiles(opts), nl=False)
 
 def register(cli):
     version_info = device_info.get_sonic_version_info()

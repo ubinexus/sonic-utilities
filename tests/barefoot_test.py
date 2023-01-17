@@ -41,42 +41,12 @@ class TestShowPlatformBarefoot(object):
         print("result.output:", result.output)
         assert result.output == expected_output
 
-    def test_check_profile_naming_tf3(self):
-        with patch('config.plugins.barefoot.subprocess.run', return_value=0):
-            result = bfconfig.check_profile_naming_tf3("y2", "tofino3")
-            assert result == 0
-
-    def test_check_profile_naming_tf2(self):
-        with patch('config.plugins.barefoot.subprocess.run', return_value=0):
-            result = bfconfig.check_profile_naming_tf2("y2")
-            assert result == 0
-
-    def test_check_profile_naming_tf3_t(self):
-        with patch('config.plugins.barefoot.subprocess.run', return_value=1):
-            result = bfconfig.check_profile_naming_tf3("y2", "tofino3")
-            assert result == 1
-
-    def test_check_profile_naming_tf2_t(self):
-        with patch('config.plugins.barefoot.subprocess.run', return_value=1):
-            result = bfconfig.check_profile_naming_tf2("y2")
-            assert result == 1
-
-    def test_check_profile_exist1(self):
-        completed_process = TestReturncode()
-        completed_process.returncode = 0
-        with patch('config.plugins.barefoot.check_profile_naming_tf3', return_value=completed_process):
+    def test_check_profile_exist(self):
+        ret = TestReturncode()
+        ret.returncode = 0
+        with patch('show.plugins.barefoot.subprocess.run', return_value=ret):
             result = bfconfig.check_profile_exist("x1", "tofino")
-            assert result == 0
-
-    def test_check_profile_exist2(self):
-        completed_process1  = TestReturncode() 
-        completed_process2  = TestReturncode()
-        completed_process1.returncode = 1
-        completed_process2.returncode = 0
-        with patch('config.plugins.barefoot.check_profile_naming_tf3', return_value=completed_process1):
-            with patch('config.plugins.barefoot.check_profile_naming_tf2', return_value=completed_process2):
-                result = bfconfig.check_profile_exist("x1", "tofino")
-                assert result == 1
+            assert result == True
 
     def test_show_profile(self):
         runner = CliRunner()
@@ -163,18 +133,16 @@ class TestShowPlatformBarefoot(object):
         assert result == False
 
     def test_get_current_profile(self):
-        with patch('show.plugins.barefoot.subprocess.run', return_value="y2"):
+        profile = TestStdout()
+        profile.stdout = "y2"
+        with patch('show.plugins.barefoot.subprocess.run', return_value=profile):
             result = bfshow.get_current_profile()
             assert result == "y2"
-    
-    def test_get_profile_format(self):
-        with patch('show.plugins.barefoot.subprocess') as subprocess:
-            subprocess.return_value = 0
-            result = bfshow.get_profile_format("tofino")
-            assert result == "_profile"
 
     def test_get_available_profiles(self):
-        with patch('show.plugins.barefoot.subprocess.run', return_value="x2"):
+        profile = TestStdout()
+        profile.stdout = "x2"
+        with patch('show.plugins.barefoot.subprocess.run', return_value=profile):
             result = bfshow.get_available_profiles("install_x1_tofino")
             assert result == "x2"
 
@@ -190,14 +158,9 @@ y3
 """
         with patch("show.plugins.barefoot.check_profile", return_value=False):
             with patch("show.plugins.barefoot.get_chip_family", return_value="tofino"):
-                current_profile = TestStdout()
-                current_profile.stdout = "y2\n"
-                with patch("show.plugins.barefoot.get_current_profile", return_value=current_profile):
-                    with patch("show.plugins.barefoot.get_profile_format", return_value="_profile"):
-                        available_profile = TestStdout()
-                        available_profile.stdout = "x1\nx2\ny2\ny3\n"
-                        with patch("show.plugins.barefoot.get_available_profiles", return_value=available_profile):
-                            result = runner.invoke(bfshow.barefoot.commands['profile'], [])
-                            print("result.exit_code:", result.exit_code)
-                            print("result.output:", result.output)
-                            assert result.output == expected_output
+                with patch("show.plugins.barefoot.get_current_profile", return_value="y2\n"):
+                    with patch("show.plugins.barefoot.get_available_profiles", return_value="x1\nx2\ny2\ny3\n"):
+                        result = runner.invoke(bfshow.barefoot.commands['profile'], [])
+                        print("result.exit_code:", result.exit_code)
+                        print("result.output:", result.output)
+                        assert result.output == expected_output
