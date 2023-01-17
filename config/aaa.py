@@ -562,7 +562,7 @@ def delete(address):
     config_db.connect()
     try:
         config_db.set_entry('RADIUS_SERVER', address, None)
-    except JsonPatchConflict as e:
+    except (JsonPointerException, JsonPatchConflict) as e:
         ctx = click.get_current_context()
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 radius.add_command(delete)
