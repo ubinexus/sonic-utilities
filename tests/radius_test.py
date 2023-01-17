@@ -8,6 +8,7 @@ from utilities_common.db import Db
 from mock import patch
 
 import config.main as config
+import config.aaa as aaa
 import show.main as show
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -197,10 +198,12 @@ class TestRadius(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     def test_config_radius_server_invalidkey_yang_validation(self):
-        config.ADHOC_VALIDATION = False
+        aaa.ADHOC_VALIDATION = False
         runner = CliRunner()
         result = runner.invoke(config.config.commands["radius"],\
                                ["add", "10.10.10.10", "-r", "1", "-t", "3",\
                                 "-k", "comma,invalid", "-s", "eth0"])
         print(result.output)
         assert "Invalid ConfigDB. Error" in result.output
+
+   
