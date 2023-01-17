@@ -214,6 +214,11 @@ def run_command(command, display_cmd=False, return_cmd=False):
         sys.exit(rc)
 
 
+def get_cmd_output(cmd):
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    return proc.communicate()[0], proc.returncode
+
+
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
@@ -1653,8 +1658,25 @@ def runningconfiguration():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Show full running configuration"""
-    cmd = "sonic-cfggen -d --print-data"
-    run_command(cmd, display_cmd=verbose)
+    cmd = ['sonic-cfggen', '-d', '--print-data']
+    stdout, rc = get_cmd_output(cmd)
+    if rc:
+        click.echo("Failed to get cmd output '{}':rc {}".format(cmd, rc))
+        raise click.Abort()
+
+    try:
+        output = json.loads(stdout)
+    except ValueError as e:
+        click.echo("Failed to load output '{}':{}".format(cmd, e))
+        raise click.Abort()
+
+    if not multi_asic.is_multi_asic():
+        bgpraw_cmd = [constants.RVTYSH_COMMAND, '-c', 'show running-config']
+        bgpraw, rc = get_cmd_output(bgpraw_cmd)
+        if rc:
+            bgpraw = ""
+        output['bgpraw'] = bgpraw
+    click.echo(json.dumps(output, indent=4))
 
 
 # 'acl' subcommand ("show runningconfiguration acl")
