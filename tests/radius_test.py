@@ -73,7 +73,6 @@ class TestRadius(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        config.ADHOC_VALIDATION = True
         print("TEARDOWN")
 
     def test_show_radius_default(self):
@@ -205,5 +204,3 @@ class TestRadius(object):
                                 "-k", "comma,invalid", "-s", "eth0"])
         print(result.output)
         assert "Invalid ConfigDB. Error" in result.output
-
-   
