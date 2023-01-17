@@ -58,12 +58,19 @@ class TestShowPlatformBarefoot(object):
 
     def test_get_chip_family1(self):
         with patch('show.plugins.barefoot.device_info.get_path_to_hwsku_dir', return_value=""):
-            chip_family = json.dumps({"chip_list": [{"instance": 0,"chip_family": "tofino3"}]})
+            chip_family = json.dumps({"chip_list": [{"instance": 0,"chip_family": "tofino"}]})
             with patch('show.plugins.barefoot.open', mock_open(read_data=chip_family)):
                 result = bfshow.get_chip_family()
-                assert result == "tofino3"
+                assert result == "tofino"
 
     def test_get_chip_family2(self):
+        with patch('config.plugins.barefoot.device_info.get_path_to_hwsku_dir', return_value=""):
+            chip_family = json.dumps({"chip_list": [{"instance": 0,"chip_family": "tofino2"}]})
+            with patch('show.plugins.barefoot.open', mock_open(read_data=chip_family)):
+                result = bfconfig.get_chip_family()
+                assert result == "tofino2"
+
+    def test_get_chip_family3(self):
         with patch('config.plugins.barefoot.device_info.get_path_to_hwsku_dir', return_value=""):
             chip_family = json.dumps({"chip_list": [{"instance": 0,"chip_family": "tofino3"}]})
             with patch('show.plugins.barefoot.open', mock_open(read_data=chip_family)):
@@ -149,7 +156,7 @@ class TestShowPlatformBarefoot(object):
     def test_show_profile(self):
         runner = CliRunner()
         expected_output = """\
-Current profile: y2
+Current profile: x2
 Available profile(s):
 x1
 x2
@@ -158,6 +165,44 @@ y3
 """
         with patch("show.plugins.barefoot.check_profile", return_value=False):
             with patch("show.plugins.barefoot.get_chip_family", return_value="tofino"):
+                with patch("show.plugins.barefoot.get_current_profile", return_value="x2\n"):
+                    with patch("show.plugins.barefoot.get_available_profiles", return_value="x1\nx2\ny2\ny3\n"):
+                        result = runner.invoke(bfshow.barefoot.commands['profile'], [])
+                        print("result.exit_code:", result.exit_code)
+                        print("result.output:", result.output)
+                        assert result.output == expected_output
+
+    def test_show_profile2(self):
+        runner = CliRunner()
+        expected_output = """\
+Current profile: y2
+Available profile(s):
+x1
+x2
+y2
+y3
+"""
+        with patch("show.plugins.barefoot.check_profile", return_value=False):
+            with patch("show.plugins.barefoot.get_chip_family", return_value="tofino2"):
+                with patch("show.plugins.barefoot.get_current_profile", return_value="y2\n"):
+                    with patch("show.plugins.barefoot.get_available_profiles", return_value="x1\nx2\ny2\ny3\n"):
+                        result = runner.invoke(bfshow.barefoot.commands['profile'], [])
+                        print("result.exit_code:", result.exit_code)
+                        print("result.output:", result.output)
+                        assert result.output == expected_output
+
+    def test_show_profile3(self):
+        runner = CliRunner()
+        expected_output = """\
+Current profile: y2
+Available profile(s):
+x1
+x2
+y2
+y3
+"""
+        with patch("show.plugins.barefoot.check_profile", return_value=False):
+            with patch("show.plugins.barefoot.get_chip_family", return_value="tofino3"):
                 with patch("show.plugins.barefoot.get_current_profile", return_value="y2\n"):
                     with patch("show.plugins.barefoot.get_available_profiles", return_value="x1\nx2\ny2\ny3\n"):
                         result = runner.invoke(bfshow.barefoot.commands['profile'], [])
