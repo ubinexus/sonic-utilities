@@ -2,10 +2,12 @@ import imp
 import os
 import sys
 import mock
+import jsonpatch
 
 from click.testing import CliRunner
 from utilities_common.db import Db
 from mock import patch
+from jsonpointer import JsonPointerException
 
 import config.main as config
 import config.aaa as aaa
@@ -206,4 +208,12 @@ class TestRadius(object):
         print(result.output)
         assert "Invalid ConfigDB. Error" in result.output
 
-   
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPointerException))
+    def test_config_radius_server_invalid_delete_yang_validation(self):
+        aaa.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["delete", "10.10.10.x"])
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output

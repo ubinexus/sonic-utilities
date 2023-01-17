@@ -4,6 +4,7 @@ import re
 from swsscommon.swsscommon import ConfigDBConnector
 from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
+from jsonpointer import JsonPointerException
 import utilities_common.cli as clicommon
 
 ADHOC_VALIDATION = True
