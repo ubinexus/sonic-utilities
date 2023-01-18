@@ -703,7 +703,7 @@ def queue():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
 @click.option('--voq', is_flag=True, help="VOQ counters")
-def counters(interfacename, verbose, json, voq):
+def counters(interfacename, namespace, display, verbose, json, voq):
     """Show queue counters"""
 
     cmd = "queuestat"
