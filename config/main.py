@@ -1435,6 +1435,7 @@ def load_mgmt_config(filename):
 @clicommon.pass_db
 def load_minigraph(db, no_service_restart):
     """Reconfigure based on minigraph."""
+
     log.log_info("'load_minigraph' executing...")
 
     #Stop services before config push
