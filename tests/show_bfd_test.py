@@ -67,9 +67,9 @@ Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Int
 
         expected_output = """\
 Total number of BFD sessions for peer IP 10.0.2.1: 1
-Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop    Local Discriminator
+Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop      Local Discriminator
 -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------  ---------------------
-10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false       88
+10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false                          88
 """
 
         result = runner.invoke(show.cli.commands['bfd'].commands['peer'], ['10.0.2.1'], obj=db)
