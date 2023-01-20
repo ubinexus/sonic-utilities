@@ -204,9 +204,9 @@ QSFP_DD_DOM_VALUE_UNIT_MAP = {
 
 ZR_PM_HEADER = ['Parameter', 'Unit', 'Min', 'Avg', 'Max',
                 'Threshold\nHigh\nAlarm', 'Threshold\nHigh\nWarning',
-                'Threshold\nCrossing\nAlart-High',
+                'Threshold\nCrossing\nAlert-High',
                 'Threshold\nLow\nAlarm', 'Threshold\nLow\nWarning',
-                'Threshold\nCrossing\nAlart-Low']
+                'Threshold\nCrossing\nAlert-Low']
 
 ZR_PM_VALUE_KEY_SUFFIXS = ['min', 'avg', 'max']
 

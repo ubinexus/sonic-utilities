@@ -197,7 +197,7 @@ test_qsfp_dd_pm_output = """\
 Ethernet44: Transceiver performance monitoring applicable
     Parameter        Unit              Min            Avg            Max  Threshold    Threshold             Threshold     Threshold    Threshold    Threshold
                                                                           High         High                  Crossing      Low          Low          Crossing
-                                                                          Alarm        Warning               Alart-High    Alarm        Warning      Alart-Low
+                                                                          Alarm        Warning               Alert-High    Alarm        Warning      Alert-Low
     ---------------  ------  -------------  -------------  -------------  -----------  --------------------  ------------  -----------  -----------  -----------
     Tx Power         dBm      -8.22          -8.23          -8.24         -5.0         -6.0                  False         -16.99       -16.003      False
     Rx Total Power   dBm     -10.61         -10.62         -10.62         2.0          0.0                   False         -21.0        -18.0        False
