@@ -6,6 +6,7 @@
 * [Introduction](#introduction)
 * [Basic Tasks](#basic-tasks)
   * [SSH Login](#ssh-login)
+  * [Show Management Interface](#show-management-interface)
   * [Configuring Management Interface](#configuring-management-interface)
 * [Getting Help](#getting-help)
   * [Help for Config Commands](#help-for-config-commands)
@@ -56,8 +57,16 @@
 * [Flow Counters](#flow-counters)
   * [Flow Counters show commands](#flow-counters-show-commands)
   * [Flow Counters clear commands](#flow-counters-clear-commands)
+  * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Generic Configuration Update and Rollback](#Generic-Configuration-Update-and-Rollback)  
+  * [Apply-patch command](#Apply-patch-command)
+  * [Replace Command](#Replace-Command)
+  * [Rollback Command](#Rollback-Command)
+  * [Checkpoint Command](#Checkpoint-Command)
+  * [Delete-checkpoint Command](#Delete-checkpoint-Command)
+  * [List-checkpoints Command](#List-checkpoints-Command)  
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -77,8 +86,8 @@
   * [Kubernetes show commands](#Kubernetes-show-commands)
   * [Kubernetes config commands](#Kubernetes-config-commands)
 * [Linux Kernel Dump](#kdump)
-  * [Linux Kernel Dump show commands](#kdump-show-commands)
-  * [Linux Kernel Dump config commands](#kdump-config-commands)
+  * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
+  * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-command)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -88,6 +97,7 @@
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
 * [VRF Configuration](#vrf-configuration)
     * [VRF show commands](#vrf-show-commands)
@@ -108,6 +118,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [NVGRE](#nvgre)
+  * [NVGRE show commands](#nvgre-show-commands)
+  * [NVGRE config commands](#nvgre-config-commands)
 * [PBH](#pbh)
   * [PBH show commands](#pbh-show-commands)
   * [PBH config commands](#pbh-config-commands)
@@ -117,6 +130,8 @@
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
   * [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
 * [Platform Specific Commands](#platform-specific-commands)
+  * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
+  * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
   * [PortChannel Config commands](#portchannel-config-commands)
@@ -126,6 +141,9 @@
     * [Queue And Priority-Group](#queue-and-priority-group)
     * [Buffer Pool](#buffer-pool)
   * [QoS config commands](#qos-config-commands)
+* [Radius](#radius)
+  * [radius show commands](#show-radius-commands)
+  * [radius config commands](#Radius-config-commands)  
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
   * [sFlow Config commands](#sflow-config-commands)
@@ -140,6 +158,7 @@
   * [Subinterfaces Show Commands](#subinterfaces-show-commands)
   * [Subinterfaces Config Commands](#subinterfaces-config-commands)
 * [Syslog](#syslog)
+  * [Syslog show commands](#syslog-show-commands)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
   * [Processes](#processes)
@@ -174,6 +193,11 @@
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
   * [ ZTP show commands](#ztp-show-commands)
   * [ZTP configuration commands](#ztp-configuration-commands)
+* [MACsec Commands](#macsec-commands)
+  * [MACsec config command](#macsec-config-command)
+  * [MACsec show command](#macsec-show-command)
+  * [MACsec clear command](#macsec-clear-command)
+
 
 ## Document History
 
@@ -254,6 +278,10 @@ Refer the following section for configuring the IP address for management interf
 By default, login takes the user to the default prompt from which all the show commands can be executed.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-tasks)
+
+### Show Management Interface
+
+Please check [show ip interfaces](#show-ip-interfaces)
 
 ### Configuring Management Interface
 
@@ -376,7 +404,7 @@ This command displays the full list of show commands available in the software; 
     ipv6                  Show IPv6 commands
     kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
-    lldp                  LLDP (Link Layer Discovery Protocol)...
+    lldp                  Show LLDP information
     logging               Show system log
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
@@ -388,10 +416,10 @@ This command displays the full list of show commands available in the software; 
     pfc                   Show details of the priority-flow-control...
     platform              Show platform-specific hardware info
     priority-group        Show details of the PGs
-    processes             Display process information
+    processes             Show process information
     queue                 Show details of the queues
     reboot-cause          Show cause of most recent reboot
-    route-map             show route-map
+    route-map             Show route-map
     runningconfiguration  Show current running configuration...
     services              Show all daemon services
     startupconfiguration  Show startup configuration information
@@ -469,6 +497,7 @@ This command displays relevant information as the SONiC and Linux kernel version
   Model Number: MSN2700-CS2FO
   Hardware Rev: A1
   Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
+  Date: Fri 22 Mar 2019 14:40:15
 
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
@@ -1566,7 +1595,7 @@ This command displays the state and key parameters of all BFD sessions.
 
 - Usage:
   ```
-  show bgp summary
+  show bfd summary
   ```
 - Example:
   ```
@@ -3125,9 +3154,10 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#featur
 
 ## Flow Counters
 
-This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+This section explains all the Flow Counters show commands, clear commands and config commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
 
   - Host interface traps (number of received traps per Trap ID)
+  - Routes matching the configured prefix pattern (number of hits and number of bytes)
 
 ### Flow Counters show commands
 
@@ -3157,6 +3187,50 @@ Because clear (see below) is handled on a per-user basis different users may see
     asic1         dhcp        200    3,000  45.25/s
   ```
 
+**show flowcnt-route stats**
+
+This command is used to show the current statistics for route flow patterns. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-route stats
+  show flowcnt-route stats pattern <route_pattern> [--vrf <vrf>]
+  show flowcnt-route stats route <route_prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  2000::/64           default           2000::1/128              100              4543
+  ```
+
+The "pattern" subcommand is used to display the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats pattern 3.3.0.0/16
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  ```
+
+The "route" subcommand is used to display the route flow counter statistics by route prefix.
+  ```
+  admin@sonic:~$ show flowcnt-route stats route 3.3.3.2/32 --vrf Vrf_1
+  Route                     VRF              Route Pattern           Packets          Bytes
+  -----------------------------------------------------------------------------------------
+  3.3.3.2/32                Vrf_1            3.3.0.0/16              100              4543
+  ```
+
 ### Flow Counters clear commands
 
 **sonic-clear flowcnt-trap**
@@ -3173,6 +3247,70 @@ This command is used to clear the current statistics for the registered host int
   admin@sonic:~$ sonic-clear flowcnt-trap
   Trap Flow Counters were successfully cleared
   ```
+
+**sonic-clear flowcnt-route**
+
+This command is used to clear the current statistics for the route flow counter. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-route
+  sonic-clear flowcnt-route pattern <route_pattern> [--vrf <vrf>]
+  sonic-clear flowcnt-route route <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route
+  Route Flow Counters were successfully cleared
+  ```
+
+The "pattern" subcommand is used to clear the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route pattern 3.3.0.0/16 --vrf Vrf_1
+  Flow Counters of all routes matching the configured route pattern were successfully cleared
+  ```
+
+The "route" subcommand is used to clear the route flow counter statistics by route prefix.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route route 3.3.3.2/32 --vrf Vrf_1
+  Flow Counters of the specified route were successfully cleared
+  ```
+
+### Flow Counters config commands
+
+**config flowcnt-route pattern add**
+
+This command is used to add or update the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern add <prefix> [--vrf <vrf>] [--max <max_match_count>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern add 2.2.0.0/16 --vrf Vrf_1 --max 50
+  ```
+
+**config flowcnt-route pattern remove**
+
+This command is used to remove the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern remove <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern remove 2.2.0.0/16 --vrf Vrf_1
+  ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
@@ -3243,6 +3381,151 @@ This command is used to change device hostname without traffic being impacted.
   admin@sonic:~$ sudo config hostname CSW06
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
+
+
+## Generic Configuration Update and Rollback
+
+The below command displays the brief summary of apply-patch, rollback, replace, checkpoint, delete-checkpoint, list-checkpoints functionality. This GCU feature is an initial version in 202111 release and may not function properly.
+
+### Apply-patch command
+
+Usage:
+
+```
+
+admin@sonic:~$ sudo config apply-patch --help
+Usage: config apply-patch [OPTIONS] PATCH_FILE_PATH
+
+  Apply given patch of updates to Config. A patch is a JsonPatch which
+  follows rfc6902. This command can be used do partial updates to the config
+  with minimum disruption to running processes. It allows addition as well
+  as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+  format or SonicYang format.
+
+  <patch-file-path>: Path to the patch file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of config of the patch is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Replace Command
+
+
+Usage :
+
+```
+
+admin@sonic:~$ sudo config replace --help
+Usage: config replace [OPTIONS] TARGET_FILE_PATH
+
+  Replace the whole config with the specified config. The config is replaced
+  with minimum disruption e.g. if ACL config is different between current
+  and target config only ACL config is updated, and other config/services
+  such as DHCP will not be affected. **WARNING** The target config file
+  should be the whole config, not just the part intended to be updated.
+
+  <target-file-path>: Path to the target file on the file-system.
+
+Options:
+  -f, --format [CONFIGDB|SONICYANG]
+                                  format of target config is either
+                                  ConfigDb(ABNF) or SonicYang
+  -d, --dry-run                   test out the command without affecting
+                                  config state
+  -v, --verbose                   print additional details of what the
+                                  operation is doing
+  -h, -?, --help                  Show this message and exit.
+
+```
+
+### Rollback Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config rollback --help
+Usage: config rollback [OPTIONS] CHECKPOINT_NAME
+
+  Rollback the whole config to the specified checkpoint. The config is
+  rolled back with minimum disruption e.g. if ACL config is different
+  between current and checkpoint config only ACL config is updated, and
+  other config/services such as DHCP will not be affected.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -d, --dry-run   test out the command without affecting config state
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+
+```
+
+### Checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config checkpoint --help
+Usage: config checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Take a checkpoint of the whole current config with the specified
+  checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### Delete-checkpoint Command
+
+
+Usage :
+
+```
+admin@sonic:~$ sudo config delete-checkpoint --help
+Usage: config delete-checkpoint [OPTIONS] CHECKPOINT_NAME
+
+  Delete a checkpoint with the specified checkpoint name.
+
+  <checkpoint-name>: The checkpoint name, use `config list-checkpoints`
+  command to see available checkpoints.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -h, -?, --help  Show this message and exit.
+
+```
+
+### List-checkpoints Command
+
+Usage :
+
+```
+admin@sonic:~$ sudo config list-checkpoints --help
+Usage: config list-checkpoints [OPTIONS]
+
+  List the config checkpoints available.
+
+Options:
+  -v, --verbose   print additional details of what the operation is doing
+  -?, -h, --help  Show this message and exit.
+		
+```
 
 ## Interfaces
 
@@ -3535,6 +3818,25 @@ This command is used to display the configured MPLS state for the list of config
   Ethernet4    enable
   ```
 
+**show interfaces loopback-action**
+
+This command displays the configured loopback action
+
+- Usage:
+  ```
+  show ip interfaces loopback-action
+  ```
+
+- Example:
+  ```
+  root@sonic:~# show ip interfaces loopback-action
+  Interface     Action
+  ------------  ----------
+  Ethernet232   drop
+  Vlan100       forward
+  ```
+
+
 **show interfaces tpid**
 
 This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
@@ -3681,6 +3983,7 @@ This sub-section explains the following list of configuration on the interfaces.
 9) advertised-types - to set interface advertised types
 10) type - to set interface type
 11) mpls - To add or remove MPLS operation for the interface
+12) loopback-action - to set action for packet that ingress and gets routed on the same IP interface
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -4214,6 +4517,29 @@ MPLS operation for either physical, portchannel, or VLAN interface can be config
   admin@sonic:~$ sudo config interface mpls remove Ethernet4
   ```
 
+**config interface ip loopback-action <interface_name> <action> (Versions >= 202205)**
+
+This command is used for setting the action being taken on packets that ingress and get routed on the same IP interface.
+Loopback action can be set on IP interface from type physical, portchannel, VLAN interface and VLAN subinterface.
+Loopback action can be drop or forward.
+
+- Usage:
+  ```
+  config interface ip loopback-action --help
+  Usage: config interface ip loopback-action [OPTIONS] <interface_name> <action>
+
+    Set IP interface loopback action
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config interface ip loopback-action Ethernet0 drop
+  admin@sonic:~$ config interface ip loopback-action Ethernet0 forward
+
+  ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
@@ -4315,7 +4641,7 @@ This will move the interface to default vrf.
 
 - Usage:
   ```
-  config interface vrf unbind <interface_name> <vrf_name>
+  config interface vrf unbind <interface_name>
   ```
   
   ### Interface vrf binding show commands
@@ -4335,7 +4661,7 @@ This sub-section explains the various IP protocol specific show commands that ar
 4) prefix-list
 5) protocol
 
-**show ip route**
+#### show ip route
 
 This command displays either all the route entries from the routing table or a specific route.
 
@@ -4390,7 +4716,7 @@ This command displays either all the route entries from the routing table or a s
        * directly connected, Loopback11
    ```
 
-**show ip interfaces**
+#### show ip interfaces
 
 This command displays the details about all the Layer3 IP interfaces in the device for which IP address has been assigned.
 The type of interfaces include the following.
@@ -4425,7 +4751,7 @@ The type of interfaces include the following.
   lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
-**show ip protocol**
+#### show ip protocol
 
 This command displays the route-map that is configured for the routing protocol.
 Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
@@ -4835,6 +5161,27 @@ last number of lines.
   [ 656.337476] gpio_ich(E) ahci(E) mlxsw_core(E) libahci(E) devlink(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) lpc_ich(E) mfd_core(E) ehci_pci(E) ehci_hcd(E) usbcore(E) e1000e(E) usb_common(E) fan(E) thermal(E)
   [ 656.569590] CR2: 0000000000000000
   ```
+### Linux Kernel Dump config command 
+ 
+**config kdump**
+
+Administrative state of kdump is stored in ConfigDB.
+
+The variable USE_KDUMP in the file /etc/default/kdump-tools is set to 0 to disable kdump, and set to 1 to enable kdump.
+
+Since this command might require changing the kernel parameters to specify the amount of memory reserved for the capture kernel (the kernel parameters which are exported through /proc/cmdline), a reboot is necessary. The command displays a message showing that kdump functionality will be either enabled or disabled following the next reboot. 
+  
+- Usage:
+```
+	admin@sonic:~$ config kdump
+
+Commands:
+  disable    Disable the KDUMP mechanism
+  enable     Enable the KDUMP mechanism
+  memory     Configure the memory for KDUMP mechanism
+  num_dumps  Configure the maximum dump files of KDUMP mechanism
+  
+```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#kdump)
 
 ## LLDP
@@ -4984,9 +5331,11 @@ When user specifies the optional argument "-n" or "--no-service-restart", this c
 running on the device. One use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
 running on the device.
 
+When user specifies the optional argument "-t" or "--traffic-shift-away", this command executes TSA command at the end to ensure the device remains in maintenance after loading minigraph.
+
 - Usage:
   ```
-  config load_minigraph [-y|--yes] [-n|--no-service-restart]
+  config load_minigraph [-y|--yes] [-n|--no-service-restart] [-t|--traffic-shift-away]
   ```
 
 - Example:
@@ -5070,7 +5419,7 @@ When user specifies the optional argument "-f" or "--force", this command ignore
 
 This command is used to reconfigure hostname and mgmt interface based on device description file.
 This command either uses the optional file specified as arguement or looks for the file "/etc/sonic/device_desc.xml".
-If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress", it fails.
+If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress" (or "ManagementAddressV6"), it fails.
 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
@@ -5114,7 +5463,11 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#loadin
 
 ## Loopback Interfaces
 
-### Loopback Config commands
+### Loopback show commands
+
+Please check [show ip interfaces](#show-ip-interfaces)
+
+### Loopback config commands
 
 This sub-section explains how to create and delete loopback interfaces.
 
@@ -6215,8 +6568,8 @@ This command starts PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
-  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  config pfcwd start --action drop all 400 --restoration-time 400
+  config pfcwd start --action forward Ethernet0 Ethernet8 400
   ```
 
 **config pfcwd stop**
@@ -6577,6 +6930,8 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#platfo
 
 ## Platform Specific Commands
 
+### Mellanox Platform Specific Commands
+
 There are few commands that are platform specific. Mellanox has used this feature and implemented Mellanox specific commands as follows.
 
 **show platform mlnx sniffer**
@@ -6646,6 +7001,41 @@ In order to avoid that confirmation the -y / --yes option should be used.
   NOTE: In order to avoid that confirmation the -y / --yes option should be used.
   ```
 
+### Barefoot Platform Specific Commands
+
+**show platform barefoot profile**
+
+This command displays active P4 profile and lists available ones.
+
+- Usage:
+  ```
+  show platform barefoot profile
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform barefoot profile
+  Current profile: x1
+  Available profile(s):
+  x1
+  x2
+  ```
+
+**config platform barefoot profile**
+
+This command sets P4 profile.
+
+- Usage:
+  ```
+  config platform barefoot profile <p4_profile> [-y|--yes]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config platform barefoot profile x1
+  Swss service will be restarted, continue? [y/N]: y
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-specific-commands)
 
 
@@ -6692,12 +7082,13 @@ When any port is already member of any other portchannel and if user tries to ad
 Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
 2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
+3) fast-rate - true/false, default is false (slow). Option specifying the rate in which we'll ask our link partner to transmit LACPDU packets in 802.3ad mode. slow - request partner to transmit LACPDUs every 30 seconds, fast - request partner to transmit LACPDUs every 1 second. In slow mode 60-90 seconds needed to detect linkdown, in fast mode only 2-3 seconds.
 
 A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
 
 - Usage:
   ```
-  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)]
+  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)  [--fast-rate (true | false)]
   ```
 
 - Example (Create the portchannel with name "PortChannel0011"):
@@ -6720,6 +7111,97 @@ This command adds or deletes a member port to/from the already created portchann
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
+
+## NVGRE
+
+This section explains the various show commands and configuration commands available for users.
+
+### NVGRE show commands
+
+This subsection explains how to display the NVGRE configuration.
+
+**show nvgre-tunnel**
+
+This command displays the NVGRE tunnel configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel
+TUNNEL NAME    SRC IP
+-------------  --------
+tunnel_1       10.0.0.1
+```
+
+**show nvgre-tunnel-map**
+
+This command displays the NVGRE tunnel map configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel-map
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel-map
+TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
+-------------  -----------------  ---------  ------
+tunnel_1       Vlan1000           1000       5000
+tunnel_1       Vlan2000           2000       6000
+```
+
+### NVGRE config commands
+
+This subsection explains how to configure the NVGRE.
+
+**config nvgre-tunnel**
+
+This command is used to manage the NVGRE tunnel objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
+config nvgre-tunnel delete <tunnel-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _src-ip_: source ip address
+
+- Examples:
+```bash
+config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
+config nvgre-tunnel delete 'tunnel_1'
+```
+
+**config nvgre-tunnel-map**
+
+This command is used to manage the NVGRE tunnel map objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
+config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _tunnel-map-name_: the name of the NVGRE tunnel map
+  - _vlan-id_: VLAN identifier
+  - _vsid_: Virtual Subnet Identifier
+
+- Examples:
+```bash
+config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
+config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
+```
 
 ## PBH
 
@@ -7445,8 +7927,83 @@ Some of the example QOS configurations that users can modify are given below.
   When there are no changes in the platform specific configutation files, they internally use the file "/usr/share/sonic/templates/buffers_config.j2" and "/usr/share/sonic/templates/qos_config.j2" to generate the configuration.
   ```
 
+**config qos reload --ports port_list**
+
+This command is used to reload the default QoS configuration on a group of ports.
+Typically, the default QoS configuration is in the following tables.
+1) PORT_QOS_MAP
+2) QUEUE
+3) BUFFER_PG
+4) BUFFER_QUEUE
+5) BUFFER_PORT_INGRESS_PROFILE_LIST
+6) BUFFER_PORT_EGRESS_PROFILE_LIST
+7) CABLE_LENGTH
+
+If there was QoS configuration in the above tables for the ports:
+
+  - if `--force` option is provied, the existing QoS configuration will be replaced by the default QoS configuration,
+  - otherwise, the command will exit with nothing updated.
+
+- Usage:
+  ```
+  config qos reload --ports <port>[,port]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config qos reload --ports Ethernet0,Ethernet4
+
+  In this example, it updates the QoS configuration on port Ethernet0 and Ethernet4 to default.
+  If there was QoS configuration on the ports, the command will clear the existing QoS configuration on the port and reload to default.
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)
 
+## Radius
+
+### show radius commands
+
+This command displays the global radius configuration that includes the auth_type, retransmit, timeout  and passkey.
+
+- Usage:
+  ```
+  show radius
+  ```
+- Example:
+
+  ```
+  admin@sonic:~$ show radius
+	RADIUS global auth_type pap (default)
+	RADIUS global retransmit 3 (default)
+	RADIUS global timeout 5 (default)
+	RADIUS global passkey <EMPTY_STRING> (default)
+
+  ```
+ 
+### Radius config commands
+
+This command is to config the radius server for various parameter listed.
+
+ - Usage:
+  ```
+  config radius
+  ```
+- Example:
+  ```
+  admin@sonic:~$ config radius
+  
+  add         Specify a RADIUS server
+  authtype    Specify RADIUS server global auth_type [chap | pap | mschapv2]
+  default     set its default configuration
+  delete      Delete a RADIUS server
+  nasip       Specify RADIUS server global NAS-IP|IPV6-Address <IPAddress>
+  passkey     Specify RADIUS server global passkey <STRING>
+  retransmit  Specify RADIUS server global retry attempts <0 - 10>
+  sourceip    Specify RADIUS server global source ip <IPAddress>
+  statistics  Specify RADIUS server global statistics [enable | disable |...
+  timeout     Specify RADIUS server global timeout <1 - 60>
+
+  ```
 ## sFlow
 
 ### sFlow Show commands
@@ -8147,6 +8704,7 @@ This command is used to add a static route. Note that prefix /nexthop vrf`s and 
 
   ```
   admin@sonic:~$ config route add prefix 2.2.3.4/32 nexthop 30.0.0.9
+  admin@sonic:~$ config route add prefix 4.0.0.0/24 nexthop dev Ethernet32.10
   ```
 
 It also supports ECMP, and adding a new nexthop to the existing prefix will complement it and not overwrite them.
@@ -8260,40 +8818,71 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#static
 
 ## Syslog
 
+### Syslog Show Commands
+
+This subsection explains how to display configured syslog servers.
+
+**show syslog**
+
+This command displays configured syslog servers.
+
+- Usage:
+  ```
+  show syslog
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog
+  SERVER IP    SOURCE IP    PORT    VRF
+  -----------  -----------  ------  -------
+  2.2.2.2      1.1.1.1      514     default
+  ```
+
 ### Syslog Config Commands
 
-This sub-section of commands is used to add or remove the configured syslog servers.
+This subsection explains how to configure syslog servers.
 
 **config syslog add**
 
-This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
+This command is used to add a syslog server to the syslog server list.  
+Note that more that one syslog server can be added in the device.
 
 - Usage:
   ```
-  config syslog add <ip_address>
+  config syslog add <server_address>
   ```
+
+- Parameters:
+  - _server_address_: syslog server IP address
+  - _source_: syslog source IP address
+  - _port_: syslog server UDP port
+  - _vrf_: syslog VRF device
 
 - Example:
   ```
-  admin@sonic:~$ sudo config syslog add 1.1.1.1
-  Syslog server 1.1.1.1 added to configuration
-  Restarting rsyslog-config service...
+  admin@sonic:~$ sudo config syslog add 2.2.2.2 --source 1.1.1.1 --port 514 --vrf default
+  Running command: systemctl reset-failed rsyslog-config
+  Running command: systemctl restart rsyslog-config
   ```
 
-**config syslog delete**
+**config syslog del**
 
-This command is used to delete the syslog server configured.
+This command is used to delete the configured syslog server.
 
 - Usage:
   ```
-  config syslog del <ip_address>
+  config syslog del <server_address>
   ```
+
+- Parameters:
+  - _server_address_: syslog server IP address
 
 - Example:
   ```
-  admin@sonic:~$ sudo config syslog del 1.1.1.1
-  Syslog server 1.1.1.1 removed from configuration
-  Restarting rsyslog-config service...
+  admin@sonic:~$ sudo config syslog del 2.2.2.2
+  Running command: systemctl reset-failed rsyslog-config
+  Running command: systemctl restart rsyslog-config
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
@@ -10590,3 +11179,251 @@ Running command: ztp run -y
 ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
+
+# MACsec Commands
+
+This sub-section explains the list of the configuration options available for MACsec. MACsec feature is as a plugin to SONiC, So please install MACsec package before using MACsec commands.
+
+## MACsec config command
+
+- Add MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile add --help
+Usage: config macsec profile add [OPTIONS] <profile_name>
+
+  Add MACsec profile
+
+Options:
+  --priority <priority>           For Key server election. In 0-255 range with
+                                  0 being the highest priority.  [default:
+                                  255]
+  --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
+                                  AES-128]
+  --primary_cak <primary_cak>     Primary Connectivity Association Key.
+                                  [required]
+  --primary_ckn <primary_cak>     Primary CAK Name.  [required]
+  --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
+                                  except EAPOL, will be converted to MACsec
+                                  packets without encryption.  SECURITY: All
+                                  traffic, except EAPOL, will be encrypted by
+                                  SecY.  [default: security]
+  --enable_replay_protect / --disable_replay_protect
+                                  Whether enable replay protect.  [default:
+                                  False]
+  --replay_window <enable_replay_protect>
+                                  Replay window size that is the number of
+                                  packets that could be out of order. This
+                                  field works only if ENABLE_REPLAY_PROTECT is
+                                  true.  [default: 0]
+  --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
+                                  [default: True]
+  --rekey_period <rekey_period>   The period of proactively refresh (Unit
+                                  second).  [default: 0]
+  -?, -h, --help                  Show this message and exit.
+```
+
+- Delete MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile del --help
+Usage: config macsec profile del [OPTIONS] <profile_name>
+
+  Delete MACsec profile
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Enable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port add --help
+Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
+
+  Add MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+
+- Disable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port del --help
+Usage: config macsec port del [OPTIONS] <port_name>
+
+  Delete MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+
+```
+
+
+## MACsec show command
+
+- Show MACsec
+
+```
+admin@vlab-02:~$ show macsec --help
+Usage: show macsec [OPTIONS] [INTERFACE_NAME]
+
+Options:
+  -d, --display [all]  Show internal interfaces  [default: all]
+  -n, --namespace []   Namespace name or all
+  -h, -?, --help       Show this message and exit.
+
+```
+
+```
+admin@vlab-02:~$ show macsec
+MACsec port(Ethernet0)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  2
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
+		next_pn                                1
+		sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+		MACsec Egress SA (2)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               5A8B8912139551D3678B43DD0F10FFA5
+		next_pn                                1
+		sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
+		lowest_acceptable_pn                     1
+		sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+		MACsec Ingress SA (2)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
+		lowest_acceptable_pn                     1
+		sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+MACsec port(Ethernet1)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  1
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
+		next_pn                                1
+		sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
+		lowest_acceptable_pn                     1
+		sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+```
+
+## MACsec clear command
+
+Clear MACsec counters which is to reset all MACsec counters to ZERO.
+
+```
+admin@sonic:~$ sonic-clear macsec --help
+Usage: sonic-clear macsec [OPTIONS]
+
+  Clear MACsec counts. This clear command will generated a cache for next
+  show commands which will base on this cache as the zero baseline to show
+  the increment of counters.
+
+Options:
+  --clean-cache BOOLEAN  If the option of clean cache is true, next show
+                         commands will show the raw counters which based on
+                         the service booted instead of the last clear command.
+  -h, -?, --help         Show this message and exit.
+```
+
+
+
