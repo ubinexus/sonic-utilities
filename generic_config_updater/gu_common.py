@@ -8,6 +8,7 @@ import yang as ly
 import copy
 import re
 from sonic_py_common import logger
+from sonic_py_common import device_info
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
@@ -154,6 +155,26 @@ class ConfigWrapper:
             for field in field_list:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
                     raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
+
+        def is_mellanox_device():
+            version_info = device_info.get_sonic_version_info()
+            asic_type = version_info.get('asic_type')
+            return asic_type == "mellanox"
+
+        # tables_to_validating_function_map[list of tables] yields a list of validating functions that must return True for modification to be allowed to any table in the list of tables via GCU
+        tables_to_validating_function_map = {
+            ('/PFC_WD', '/BUFFER_POOL', '/WRED_PROFILE', 'QUEUE', '/BUFFER_PROFILE'): [is_mellanox_device]
+        }
+
+        for element in patch:
+            path = element["path"]
+            for key in tables_to_validating_function_map:
+                for table in key:
+                    if table in path:
+                        for func in table_to_validating_function_map[key]:
+                            if not func():
+                                raise IllegalPatchOperationError("Modification of {} table is illegal due to corresponding validating function {}".format(table, func.__name__))
+ 
 
     def validate_lanes(self, config_db):
         if "PORT" not in config_db:
