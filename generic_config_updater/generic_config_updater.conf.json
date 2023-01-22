@@ -48,7 +48,22 @@
         },
         "NTP_SERVER": {
             "services_to_validate": [ "ntp-service" ]
-        }
+        },
+	"PFC_WD": {
+            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
+	},
+	"BUFFER_POOL": {
+            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
+	},
+	"WRED_PROFILE": {
+            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
+	},
+	"QUEUE": {
+            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
+	},
+	"BUFFER_PROFILE": {
+            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
+	}
     },
     "services": {
         "system_health": { 
@@ -58,19 +73,19 @@
             "validate_commands": [ ]
         },
         "rsyslog": {
-            "validate_commands": [ "generic_config_updater.services_validator.rsyslog_validator" ]
+            "validate_commands": [ "generic_config_updater.validators.rsyslog_validator" ]
         },
         "dhcp-relay": {
-            "validate_commands": [ "generic_config_updater.services_validator.dhcp_validator" ]
+            "validate_commands": [ "generic_config_updater.validators.dhcp_validator" ]
         },
         "vlan-service": {
-            "validate_commands": [ "generic_config_updater.services_validator.vlan_validator" ]
+            "validate_commands": [ "generic_config_updater.validators.vlan_validator" ]
         },
         "caclmgrd-service": {
-            "validate_commands": [ "generic_config_updater.services_validator.caclmgrd_validator" ]
+            "validate_commands": [ "generic_config_updater.validators.caclmgrd_validator" ]
         },
         "ntp-service": {
-            "validate_commands": [ "generic_config_updater.services_validator.ntp_validator" ]
+            "validate_commands": [ "generic_config_updater.validators.ntp_validator" ]
         }
     }
 }

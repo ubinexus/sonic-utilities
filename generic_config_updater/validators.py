@@ -1,8 +1,9 @@
 import os
 import time
 from .gu_common import genericUpdaterLogging
+from sonic_py_common import device_info
 
-logger = genericUpdaterLogging.get_logger(title="Service Validator")
+logger = genericUpdaterLogging.get_logger(title="GCU Validator")
 
 print_to_console = False
 
@@ -101,3 +102,9 @@ def caclmgrd_validator(old_config, upd_config, keys):
 
 def ntp_validator(old_config, upd_config, keys):
     return _service_restart("ntp-config")
+
+
+def is_mellanox_device_validator():
+    version_info = device_info.get_sonic_version_info()
+    asic_type = version_info.get('asic_type')
+    return asic_type == "mellanox"

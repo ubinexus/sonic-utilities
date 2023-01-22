@@ -1,5 +1,6 @@
 import json
 import jsonpatch
+import importlib
 from jsonpointer import JsonPointer
 import sonic_yang
 import sonic_yang_ext
@@ -7,12 +8,14 @@ import subprocess
 import yang as ly
 import copy
 import re
+import os
 from sonic_py_common import logger
-from sonic_py_common import device_info
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
 SYSLOG_IDENTIFIER = "GenericConfigUpdater"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
 
 class GenericConfigUpdaterError(Exception):
     pass
@@ -156,24 +159,30 @@ class ConfigWrapper:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
                     raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
 
-        def is_mellanox_device():
-            version_info = device_info.get_sonic_version_info()
-            asic_type = version_info.get('asic_type')
-            return asic_type == "mellanox"
+        def _invoke_validating_function(cmd):
+            # cmd is in the format as <package/module name>.<method name>
+            method_name = cmd.split(".")[-1]
+            module_name = ".".join(cmd.split(".")[0:-1])
+            module = importlib.import_module(module_name, package=None)
+            method_to_call = getattr(module, method_name)
+            return method_to_call()
 
-        # tables_to_validating_function_map[list of tables] yields a list of validating functions that must return True for modification to be allowed to any table in the list of tables via GCU
-        tables_to_validating_function_map = {
-            ('/PFC_WD', '/BUFFER_POOL', '/WRED_PROFILE', 'QUEUE', '/BUFFER_PROFILE'): [is_mellanox_device]
-        }
-
+        if os.path.exists(UPDATER_CONF_FILE):
+            with open(UPDATER_CONF_FILE, "r") as s:
+                updater_conf = json.load(s)
+        else:
+            raise GenericConfigUpdaterError("GCU Config file not found") 
+        
         for element in patch:
             path = element["path"]
-            for key in tables_to_validating_function_map:
-                for table in key:
-                    if table in path:
-                        for func in table_to_validating_function_map[key]:
-                            if not func():
-                                raise IllegalPatchOperationError("Modification of {} table is illegal due to corresponding validating function {}".format(table, func.__name__))
+            table = re.search(r'\/([^\/]+)(\/|$)', path).group(1)
+            validating_functions = set()
+            tables = updater_conf["tables"]
+            validating_functions.update(tables.get(table, {}).get("table_modification_validators", []))
+            
+            for function in validating_functions:
+                if not _invoke_validating_function(function):
+                    raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))   
  
 
     def validate_lanes(self, config_db):
