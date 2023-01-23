@@ -370,7 +370,7 @@ def mode(db, state, port, json_output):
         sys.exit(CONFIG_SUCCESSFUL)
 
 
-# 'muxcable' command ("config muxcable kill radv <enable|disable> ")
+# 'muxcable' command ("config muxcable kill-radv <enable|disable> ")
 @muxcable.command(short_help="Kill radv service when it is meant to be stopped, so no good-bye packet is sent for ceasing To Be an Advertising Interface")
 @click.argument('knob', metavar='<feature_knob>', required=True, type=click.Choice(["enable", "disable"]))
 @clicommon.pass_db
