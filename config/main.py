@@ -1923,7 +1923,7 @@ def override_config_table(db, input_config_db, dry_run):
             print(json.dumps(updated_config, sort_keys=True,
                              indent=4, cls=minigraph_encoder))
         else:
-            override_config_db(config_db, config_input)
+            override_config_db(ns, config_db, config_input)
 
 
 def validate_config_by_cm(cm, config_json, jname):
@@ -1944,7 +1944,7 @@ def update_config(current_config, config_input):
     return updated_config
 
 
-def override_config_db(config_db, config_input):
+def override_config_db(ns, config_db, config_input):
     namespace = "Host" if ns is DEFAULT_NAMESPACE else ns
     # Deserialized golden config to DB recognized format
     sonic_cfggen.FormatConverter.to_deserialized(config_input)
