@@ -6,7 +6,7 @@ import unittest
 from collections import defaultdict
 from unittest.mock import patch
 
-from generic_config_updater.services_validator import vlan_validator, rsyslog_validator, caclmgrd_validator
+from generic_config_updater.validators import vlan_validator, rsyslog_validator, caclmgrd_validator
 import generic_config_updater.gu_common
 
 
@@ -177,7 +177,7 @@ class TestServiceValidator(unittest.TestCase):
         rc = rsyslog_validator("", "", "")
         assert not rc, "rsyslog_validator expected to fail"
 
-    @patch("generic_config_updater.services_validator.time.sleep")
+    @patch("generic_config_updater.validators.time.sleep")
     def test_change_apply_time_sleep(self, mock_time_sleep):
         global time_sleep_calls, time_sleep_call_index
 
