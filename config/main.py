@@ -1893,36 +1893,37 @@ def override_config_table(db, input_config_db, dry_run):
                     fg='magenta')
         sys.exit(1)
 
-    config_db = db.cfgdb
+    # Do the yang validation and config override for host namespace and 
+    # other namespaces in case of multi-asic platform
+    for ns, config_db in db.cfgdb_clients.items():
+        # Read config from configDB
+        current_config = config_db.get_config()
+        # Serialize to the same format as json input
+        sonic_cfggen.FormatConverter.to_serialized(current_config)
 
-    # Read config from configDB
-    current_config = config_db.get_config()
-    # Serialize to the same format as json input
-    sonic_cfggen.FormatConverter.to_serialized(current_config)
+        updated_config = update_config(current_config, config_input)
 
-    updated_config = update_config(current_config, config_input)
+        yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
+        if yang_enabled:
+            # The ConfigMgmt will load YANG and running
+            # config during initialization.
+            try:
+                cm = ConfigMgmt()
+                cm.validateConfigData()
+            except Exception as ex:
+                click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
+                sys.exit(1)
 
-    yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
-    if yang_enabled:
-        # The ConfigMgmt will load YANG and running
-        # config during initialization.
-        try:
-            cm = ConfigMgmt()
-            cm.validateConfigData()
-        except Exception as ex:
-            click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
-            sys.exit(1)
+            # Validate input config
+            validate_config_by_cm(cm, config_input, "config_input")
+            # Validate updated whole config
+            validate_config_by_cm(cm, updated_config, "updated_config")
 
-        # Validate input config
-        validate_config_by_cm(cm, config_input, "config_input")
-        # Validate updated whole config
-        validate_config_by_cm(cm, updated_config, "updated_config")
-
-    if dry_run:
-        print(json.dumps(updated_config, sort_keys=True,
-                         indent=4, cls=minigraph_encoder))
-    else:
-        override_config_db(config_db, config_input)
+        if dry_run:
+            print(json.dumps(updated_config, sort_keys=True,
+                             indent=4, cls=minigraph_encoder))
+        else:
+            override_config_db(config_db, config_input)
 
 
 def validate_config_by_cm(cm, config_json, jname):
@@ -1944,17 +1945,17 @@ def update_config(current_config, config_input):
 
 
 def override_config_db(config_db, config_input):
+    namespace = "Host" if ns is DEFAULT_NAMESPACE else ns
     # Deserialized golden config to DB recognized format
     sonic_cfggen.FormatConverter.to_deserialized(config_input)
     # Delete table from DB then mod_config to apply golden config
-    click.echo("Removing configDB overriden table first ...")
+    click.echo("{} namespace - Removing configDB overriden table first ...".format(namespace))
     for table in config_input:
         config_db.delete_table(table)
-    click.echo("Overriding input config to configDB ...")
+    click.echo("{} namespace - Overriding input config to configDB ...".format(namespace))
     data = sonic_cfggen.FormatConverter.output_to_db(config_input)
     config_db.mod_config(data)
-    click.echo("Overriding completed. No service is restarted.")
-
+    click.echo("{} namespace - Overriding completed. No service is restarted.".format(namespace))
 
 #
 # 'hostname' command
