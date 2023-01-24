@@ -1456,6 +1456,7 @@ def bgp(namespace, verbose):
         ctx.fail("-n/--namespace is not available for single asic")
 
     output = ""
+    cmd = "show running-config bgp"
     import utilities_common.bgp_util as bgp_util
     if multi_asic.is_multi_asic():
         if not namespace:
