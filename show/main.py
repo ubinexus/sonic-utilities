@@ -1432,7 +1432,6 @@ def ports(portname, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-    
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")

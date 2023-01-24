@@ -141,7 +141,7 @@ class TestShowRunBgpSingleAsic(object):
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              [
-								'show_run_bgp',
+			        'show_run_bgp',
                              ],
                              indirect=['setup_single_bgp_instance'])
 
@@ -174,7 +174,7 @@ class TestShowRunBgpMultiAsic(object):
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              [
-								'show_run_bgp',
+				'show_run_bgp',
                              ],
                              indirect=['setup_multi_asic_bgp_instance'])
     def test_show_run_bgp_all_asics(self,
