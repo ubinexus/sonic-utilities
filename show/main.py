@@ -1382,6 +1382,7 @@ def ports(portname, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+    
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1405,22 +1406,18 @@ def bgp(namespace, verbose):
         ctx.fail("-n/--namespace is not available for single asic")
 
     output = ""
+    import utilities_common.bgp_util as bgp_util
     if multi_asic.is_multi_asic():
         if not namespace:
             ns_list = multi_asic.get_namespace_list()
             for ns in ns_list:
                 output += "\n------------Showing running config bgp on {}------------\n".format(ns)
-                ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(ns))
-                cmd = 'sudo {} {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
-                output += run_command(cmd, display_cmd = False, return_cmd=True)
+                output += bgp_util.run_bgp_command(cmd, ns)
         else:
             output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
-            ns_id = " -n {} ".format(multi_asic.get_asic_id_from_name(namespace))
-            cmd = 'sudo {} {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND, ns_id)
-            output += run_command(cmd, display_cmd = False, return_cmd=True)
+            output += bgp_util.run_bgp_command(cmd, namespace)
     else:
-        cmd = 'sudo {} -c "show running-config bgp"'.format(constants.RVTYSH_COMMAND)
-        output += run_command(cmd, display_cmd = False, return_cmd=True)
+        output += bgp_util.run_bgp_command(cmd)
     print(output)
 
 
