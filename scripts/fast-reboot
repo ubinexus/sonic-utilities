@@ -444,7 +444,7 @@ function load_aboot_secureboot_kernel() {
 
 function load_kernel() {
     # Load kernel into the memory
-    /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+    /sbin/kexec -a -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 }
 
 function unload_kernel()
@@ -532,7 +532,7 @@ case "$REBOOT_TYPE" in
         check_warm_restart_in_progress
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "210" &>/dev/null
         config warm_restart enable system
         ;;
     "warm-reboot")
@@ -727,8 +727,6 @@ for service in ${SERVICES_TO_STOP}; do
             sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
         fi
 
-        # TODO: backup_database preserves FDB_TABLE
-        # need to cleanup as well for fastfast boot case
         backup_database
 
     fi
