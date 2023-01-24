@@ -283,6 +283,8 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_special_recursive_route.json'
     elif request.param == 'ip_route_summary':
         m_asic_json_file = 'ip_route_summary.txt'
+    elif request.param == 'show_run_bgp':
+        m_asic_json_file = 'show_run_bgp.txt'
     elif request.param.startswith('bgp_v4_network') or \
         request.param.startswith('bgp_v6_network') or \
         request.param.startswith('bgp_v4_neighbor') or \
