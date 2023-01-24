@@ -196,7 +196,7 @@ def setup_single_bgp_instance(request):
             return mock_frr_data
         return ""
 
-    def mock_show_run_bgp(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
+    def mock_show_run_bgp(request):
         if os.path.isfile(bgp_mocked_json):
             with open(bgp_mocked_json) as json_data:
                 mock_frr_data = json_data.read()
