@@ -316,7 +316,7 @@ class TestInterfaces(object):
         print(result.output)
         assert result.exit_code != 0
 
-def test_parse_interface_in_filter(self):
+    def test_parse_interface_in_filter(self):
         intf_filter = "Ethernet0"
         intf_list = parse_interface_in_filter(intf_filter)
         assert len(intf_list) == 1
