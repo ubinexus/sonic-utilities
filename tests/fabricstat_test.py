@@ -91,6 +91,7 @@ multi_asic_fabric_counters_queue_asic0 = """\
 """
 
 multi_asic_fabric_reachability = """\
+
 asic0
   Local Link    Remote Module    Remote Link    Status
 ------------  ---------------  -------------  --------
@@ -99,6 +100,7 @@ asic0
            4                0             85        up
            6                0             84        up
            7                0             93        up
+
 asic1
   Local Link    Remote Module    Remote Link    Status
 ------------  ---------------  -------------  --------
@@ -107,6 +109,7 @@ asic1
 """
 
 multi_asic_fabric_reachability_asic0 = """\
+
 asic0
   Local Link    Remote Module    Remote Link    Status
 ------------  ---------------  -------------  --------
