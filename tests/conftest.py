@@ -193,10 +193,10 @@ def setup_single_bgp_instance(request):
             return mock_frr_data
         return ""
 
-    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=constants.RVTYSH_COMMAND):
-        if vtysh_cmd == "show ip route vrf all static":
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=[], vtysh_shell_cmd=constants.RVTYSH_COMMAND):
+        if vtysh_cmd == ["show ip route vrf all static"]:
             return config_int_ip_common.show_ip_route_with_static_expected_output
-        elif vtysh_cmd == "show ipv6 route vrf all static":
+        elif vtysh_cmd == ["show ipv6 route vrf all static"]:
             return config_int_ip_common.show_ipv6_route_with_static_expected_output
         else:
             return ""
@@ -282,9 +282,9 @@ def setup_multi_asic_bgp_instance(request):
     def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=constants.RVTYSH_COMMAND):
         if bgp_namespace != 'test_ns':
             return ""
-        if vtysh_cmd == "show ip route vrf all static":
+        if vtysh_cmd == ["show ip route vrf all static"]:
             return config_int_ip_common.show_ip_route_with_static_expected_output
-        elif vtysh_cmd == "show ipv6 route vrf all static":
+        elif vtysh_cmd == ["show ipv6 route vrf all static"]:
             return config_int_ip_common.show_ipv6_route_with_static_expected_output
         else:
             return ""

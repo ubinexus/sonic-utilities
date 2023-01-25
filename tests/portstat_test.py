@@ -278,7 +278,7 @@ class TestPortStat(object):
     def test_show_intf_counters_ethernet4(self):
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["interfaces"].commands["counters"], ["-i Ethernet4"])
+            show.cli.commands["interfaces"].commands["counters"], ["-i", "Ethernet4"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0

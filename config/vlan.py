@@ -82,10 +82,10 @@ def del_vlan(db, vid):
         ctx.fail("{} does not exist".format(vlan))
 
 def restart_ndppd():
-    verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
-    docker_exec_cmd = "docker exec -i swss {}"
-    ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
-    ndppd_restart_cmd = "supervisorctl restart ndppd"
+    verify_swss_running_cmd = ['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss']
+    docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
+    ndppd_config_gen_cmd = ['sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']
+    ndppd_restart_cmd =['supervisorctl', 'restart', 'ndppd']
 
     output, _ = clicommon.run_command(verify_swss_running_cmd, return_cmd=True)
 
@@ -93,9 +93,9 @@ def restart_ndppd():
         click.echo(click.style('SWSS container is not running, changes will take effect the next time the SWSS container starts', fg='red'),)
         return
 
-    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd), display_cmd=True)
+    clicommon.run_command(docker_exec_cmd + ndppd_config_gen_cmd, display_cmd=True)
     sleep(3)
-    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), display_cmd=True)
+    clicommon.run_command(docker_exec_cmd + ndppd_restart_cmd, display_cmd=True)
 
 
 @vlan.command('proxy_arp')
