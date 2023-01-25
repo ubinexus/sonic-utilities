@@ -2003,3 +2003,155 @@ def tunnel_route(db, port, json_output):
             click.echo(tabulate(print_data, headers=headers))
 
     sys.exit(STATUS_SUCCESSFUL)
+
+
+def get_grpc_cached_version_mux_direction_per_port(db, port):
+
+
+    state_db = {}
+    mux_info_dict = {}
+    mux_info_full_dict = {}
+    trans_info_full_dict = {}
+    mux_info_dict["rc"] = False
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        state_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        state_db[asic_id].connect(state_db[asic_id].STATE_DB)
+
+    if platform_sfputil is not None:
+        asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+
+    if asic_index is None:
+        # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+        # is fully mocked
+        import sonic_platform_base.sonic_sfp.sfputilhelper
+        asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            click.echo("Got invalid asic index for port {}, cant retrieve mux cable table entries".format(port))
+            return mux_info_dict
+
+
+    mux_info_full_dict[asic_index] = state_db[asic_index].get_all(
+        state_db[asic_index].STATE_DB, 'MUX_CABLE_INFO|{}'.format(port))
+    trans_info_full_dict[asic_index] = state_db[asic_index].get_all(
+        state_db[asic_index].STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(port))
+
+    res_dir = {}
+    res_dir = mux_info_full_dict[asic_index]
+    mux_info_dict["self_mux_direction"] = res_dir.get("self_mux_direction", None)
+    mux_info_dict["peer_mux_direction"] = res_dir.get("peer_mux_direction", None)
+    mux_info_dict["grpc_connection_status"] = res_dir.get("grpc_connection_status", None)
+
+    trans_dir = {}
+    trans_dir = trans_info_full_dict[asic_index]
+    
+    status = trans_dir.get("status", "0")
+    presence = "True" if status == "1" else "False"
+
+    mux_info_dict["presence"] = presence
+
+    mux_info_dict["rc"] = True
+
+    return mux_info_dict
+
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def grpc():
+    """Shows the muxcable hardware information directly"""
+    pass
+
+
+@grpc.command()
+@click.argument('port', metavar='<port_name>', required=False, default=None)
+@clicommon.pass_db
+def muxdirection(db, port):
+    """Shows the current direction of the FPGA facing port on Tx Side {active/standy}"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+
+    if port is not None:
+
+        if check_port_in_mux_cable_table(port) == False:
+            click.echo("Not Y-cable port")
+            return CONFIG_FAIL
+
+        res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
+
+        body = []
+        temp_list = []
+        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        temp_list.append(port)
+        temp_list.append(res_dict["self_mux_direction"])
+        temp_list.append(res_dict["peer_mux_direction"])
+        temp_list.append(res_dict["presence"])
+        temp_list.append(res_dict["grpc_connection_status"])
+        body.append(temp_list)
+
+        rc = res_dict["rc"]
+        click.echo(tabulate(body, headers=headers))
+
+        return rc
+
+    else:
+
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        rc_exit = True
+        body = []
+
+        for port in natsorted(logical_port_list):
+
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+            if not isinstance(physical_port_list, list):
+                continue
+            if len(physical_port_list) != 1:
+                continue
+
+            if not check_port_in_mux_cable_table(port):
+                continue
+
+            physical_port = physical_port_list[0]
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
+            temp_list = []
+
+            res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
+
+            port = platform_sfputil_helper.get_interface_alias(port, db)
+            temp_list.append(port)
+            temp_list.append(res_dict["self_mux_direction"])
+            temp_list.append(res_dict["peer_mux_direction"])
+            temp_list.append(res_dict["presence"])
+            temp_list.append(res_dict["grpc_connection_status"])
+            body.append(temp_list)
+            rc = res_dict["rc"]
+            if rc != True:
+                rc_exit = False
+
+        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+
+        click.echo(tabulate(body, headers=headers))
+
+        if rc_exit == False:
+            sys.exit(EXIT_FAIL)
+
+
