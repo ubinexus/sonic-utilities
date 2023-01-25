@@ -164,14 +164,14 @@ class TestMultiAsicFabricStat(object):
         assert result == multi_asic_fabric_counters_queue_asic0
 
     def test_multi_show_fabric_reachability(self):
-        return_code, result = get_result_and_return_code('fabricstat -r')
+        return_code, result = get_result_and_return_code(['fabricstat', '-r'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_reachability
 
     def test_multi_show_fabric_reachability_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -r -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-r', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
