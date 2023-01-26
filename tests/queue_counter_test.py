@@ -1281,7 +1281,7 @@ class TestQueue(object):
         )
         print(result.output)
         # remove the counters snapshot
-        show.run_command("queuestat -d")
+        show.run_command(['queuestat', '-d'])
         assert result.exit_code == 0
         assert "Ethernet0 Last cached time was" in result.output and \
                 "Ethernet4 Last cached time was" in result.output and \
@@ -1319,7 +1319,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet8 --json"]
+            ["Ethernet8", "--json"]
         )
         assert result.exit_code == 0
         print(result.output)
@@ -1344,7 +1344,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet0 --voq"]
+            ["Ethernet0", "--voq"]
         )
         print(result.output)
         assert result.exit_code == 0
