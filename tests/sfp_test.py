@@ -193,6 +193,46 @@ Ethernet40: SFP EEPROM detected
         Vendor SN: INKAO2900002A
 """
 
+test_cmis_eeprom_output = """\
+Ethernet48: SFP EEPROM detected
+        Active Firmware: 61.20
+        Active application selected code assigned to host lane 1: 1
+        Active application selected code assigned to host lane 2: 1
+        Active application selected code assigned to host lane 3: 1
+        Active application selected code assigned to host lane 4: 1
+        Active application selected code assigned to host lane 5: 1
+        Active application selected code assigned to host lane 6: 1
+        Active application selected code assigned to host lane 7: 1
+        Active application selected code assigned to host lane 8: 1
+        Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                   400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                   100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+        CMIS Rev: 4.1
+        Connector: LC
+        Encoding: N/A
+        Extended Identifier: Power Class 8 (20.0W Max)
+        Extended RateSelect Compliance: N/A
+        Host Lane Count: 8
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Inactive Firmware: 161.10
+        Length Cable Assembly(m): 0.0
+        Media Interface Technology: 1550 nm DFB
+        Media Lane Count: 1
+        Module Hardware Rev: 1.1
+        Nominal Bit Rate(100Mbs): 0
+        Specification Compliance: sm_media_interface
+        Supported Max Laser Frequency: 196100
+        Supported Max TX Power: 4.0
+        Supported Min Laser Frequency: 191300
+        Supported Min TX Power: -22.9
+        Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
+        Vendor Name: Acacia Comm Inc.
+        Vendor OUI: 7c-b2-5c
+        Vendor PN: DP04QSDD-E20-001
+        Vendor Rev: A
+        Vendor SN: 214455197
+"""
+
 test_sfp_eeprom_dom_all_output = """\
 Ethernet0: SFP EEPROM detected
         Application Advertisement: N/A
@@ -434,6 +474,12 @@ Ethernet36  Present
         print(result.output)
         assert result.output == test_qsfp_dd_eeprom_adv_app_output
 
+    def test_cmis_info(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"], ["Ethernet48"])
+        assert result.exit_code == 0
+        assert result.output == test_cmis_eeprom_output
+
     def test_rj45_eeprom(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet36"])
@@ -507,6 +553,12 @@ Ethernet200  Not present
         result_lines = result.output.strip('\n')
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
+
+    def test_cmis_sfp_info_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"], ["Ethernet48 -n asic0"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_cmis_eeprom_output
 
     def test_sfp_eeprom_all(self):
         runner = CliRunner()
