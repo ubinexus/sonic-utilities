@@ -57,8 +57,8 @@ class ConfigWrapper:
         return json.loads(text)
 
     def _get_config_db_as_text(self):
-        # Use sonic-cfggen to generate data only from CONFIG_DB
-        cmd = "sonic-cfggen -d --print-data"
+        # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
+        cmd = "show runningconfiguration all"
         result = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         text, err = result.communicate()
         return_code = result.returncode
