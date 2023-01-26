@@ -17,7 +17,7 @@ from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
-from utilities_common.sfp_helper import QSFP_DATA_MAP
+from utilities_common.sfp_helper import QSFP_DATA_MAP, CMIS_DATA_MAP
 from tabulate import tabulate
 
 # Mock the redis DB for unit test purposes
@@ -245,8 +245,26 @@ class SFPShow(object):
                                                 units)
         return output
 
-    # Convert sfp info in DB to cli output string
-    def convert_sfp_info_to_output_string(self, sfp_info_dict):
+    # Convert cmis sfp info in DB to cli output string
+    def convert_cmis_sfp_info_to_output_string(self, sfp_info_dict):
+        indent = ' ' * 8
+        output = ''
+
+        sorted_cmis_data_map_keys = sorted(CMIS_DATA_MAP, key=CMIS_DATA_MAP.get)
+        for key in sorted_cmis_data_map_keys:
+            if key == 'cable_type':
+                output += '{}{}: {}\n'.format(indent, sfp_info_dict['cable_type'], sfp_info_dict['cable_length'])
+            elif key == 'cable_length':
+                pass
+            elif key == 'application_advertisement':
+                output += covert_application_advertisement_to_output_string(indent, sfp_info_dict)
+            else:
+                output += '{}{}: {}\n'.format(indent, CMIS_DATA_MAP[key], sfp_info_dict[key])
+
+        return output
+
+    # Convert non cmis sfp info in DB to cli output string
+    def convert_non_cmis_sfp_info_to_output_string(self, sfp_info_dict):
         indent = ' ' * 8
         output = ''
 
@@ -385,7 +403,10 @@ class SFPShow(object):
                 output = 'SFP EEPROM is not applicable for RJ45 port\n'
             else:
                 output = 'SFP EEPROM detected\n'
-                sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
+                if 'cmis_rev' in sfp_info_dict:
+                    sfp_info_output = self.convert_cmis_sfp_info_to_output_string(sfp_info_dict)
+                else:
+                    sfp_info_output = self.convert_non_cmis_sfp_info_to_output_string(sfp_info_dict)
                 output += sfp_info_output
 
                 if dump_dom:
@@ -473,6 +494,23 @@ def eeprom(port, dump_dom, namespace):
             sys.exit(1)
 
     sfp = SFPShow(port, namespace, dump_dom)
+    sfp.get_eeprom()
+    sfp.display_eeprom()
+
+# 'eeprom' subcommand
+
+@cli.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def info(port, namespace):
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            namespace = multi_asic.get_namespace_for_port(port)
+        except Exception:
+            display_invalid_intf_eeprom(port)
+            sys.exit(1)
+
+    sfp = SFPShow(port, namespace)
     sfp.get_eeprom()
     sfp.display_eeprom()
 
