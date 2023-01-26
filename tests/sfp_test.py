@@ -194,24 +194,25 @@ Ethernet40: SFP EEPROM detected
 """
 
 test_qsfp_dd_pm_output = """\
-Ethernet44: Transceiver performance monitoring applicable
-    Parameter        Unit              Min            Avg            Max  Threshold    Threshold             Threshold     Threshold    Threshold    Threshold
-                                                                          High         High                  Crossing      Low          Low          Crossing
-                                                                          Alarm        Warning               Alert-High    Alarm        Warning      Alert-Low
-    ---------------  ------  -------------  -------------  -------------  -----------  --------------------  ------------  -----------  -----------  -----------
-    Tx Power         dBm      -8.22          -8.23          -8.24         -5.0         -6.0                  False         -16.99       -16.003      False
-    Rx Total Power   dBm     -10.61         -10.62         -10.62         2.0          0.0                   False         -21.0        -18.0        False
-    Rx Signal Power  dBm     -40              0             40            13.0         10.0                  True          -18.0        -15.0        True
-    PDL              dB        0.5            0.6            0.6          4.0          4.0                   False         0.0          0.0          False
-    OSNR             dB       36.5           36.5           36.5          99.0         99.0                  False         0.0          0.0          False
-    eSNR             dB       30.5           30.5           30.5          99.0         99.0                  False         0.0          0.0          False
-    CFO              MHz      54             70            121            3800.0       3800.0                False         -3800.0      -3800.0      False
-    DGD              ps        5.37           5.56           5.81         7.0          7.0                   False         0.0          0.0          False
-    SOPMD            ps^2      0              0              0            655.35       655.35                False         0.0          0.0          False
-    SOP ROC          krad/s    1              1              2            N/A          N/A                   N/A           N/A          N/A          N/A
-    Pre-FEC BER      N/A       0.000457501    0.000465781    0.000575639  0.0125       0.011000000000000001  False         0.0          0.0          False
-    Post-FEC BER     N/A       0              0              0            1000.0       1.0                   False         0.0          0.0          False
-    EVM              %       100            100            100            N/A          N/A                   N/A           N/A          N/A          N/A
+Ethernet44:
+    Parameter        Unit    Min       Avg       Max       Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
+                                                           High         High         Crossing      Low          Low          Crossing
+                                                           Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
+    ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
+    Tx Power         dBm     -8.22     -8.23     -8.24     -5.0         -6.0         False         -16.99       -16.003      False
+    Rx Total Power   dBm     -10.61    -10.62    -10.62    2.0          0.0          False         -21.0        -18.0        False
+    Rx Signal Power  dBm     -40.0     0.0       40.0      13.0         10.0         True          -18.0        -15.0        True
+    CD-short link    ps/nm   0.0       0.0       0.0       1000.0       500.0        False         -1000.0      -500.0       False
+    PDL              dB      0.5       0.6       0.6       4.0          4.0          False         0.0          0.0          False
+    OSNR             dB      36.5      36.5      36.5      99.0         99.0         False         0.0          0.0          False
+    eSNR             dB      30.5      30.5      30.5      99.0         99.0         False         0.0          0.0          False
+    CFO              MHz     54.0      70.0      121.0     3800.0       3800.0       False         -3800.0      -3800.0      False
+    DGD              ps      5.37      5.56      5.81      7.0          7.0          False         0.0          0.0          False
+    SOPMD            ps^2    0.0       0.0       0.0       655.35       655.35       False         0.0          0.0          False
+    SOP ROC          krad/s  1.0       1.0       2.0       N/A          N/A          N/A           N/A          N/A          N/A
+    Pre-FEC BER      N/A     4.58E-04  4.66E-04  5.76E-04  1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
+    Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
+    EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
 """
 
 test_sfp_eeprom_dom_all_output = """\
@@ -363,11 +364,11 @@ Ethernet64  Present
 """
 
 test_qsfp_dd_pm_all_output = """\
-Ethernet0: Transceiver performance monitoring Not applicable
+Ethernet0: Transceiver performance monitoring not applicable
 
-Ethernet4: Transceiver performance monitoring Not applicable
+Ethernet4: Transceiver performance monitoring not applicable
 
-Ethernet64: Transceiver performance monitoring Not applicable
+Ethernet64: Transceiver performance monitoring not applicable
 """
 
 class TestSFP(object):
@@ -478,7 +479,7 @@ Ethernet36  Present
 
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["pm"], ["Ethernet200"])
         result_lines = result.output.strip('\n')
-        expected = "Ethernet200: Transceiver performance monitoring Not applicable"
+        expected = "Ethernet200: Transceiver performance monitoring not applicable"
         assert result_lines == expected
 
     @classmethod
@@ -541,7 +542,7 @@ Ethernet200  Not present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["pm"], ["Ethernet0 -n asic0"])
         result_lines = result.output.strip('\n')
-        expected = "Ethernet0: Transceiver performance monitoring Not applicable"
+        expected = "Ethernet0: Transceiver performance monitoring not applicable"
         assert result_lines == expected
 
     def test_sfp_eeprom_all(self):
