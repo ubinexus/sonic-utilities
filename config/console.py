@@ -135,7 +135,7 @@ def upate_console_remote_device_name(db, linenum, devicename):
             data.pop(dataKey, None)
             try:
                 config_db.mod_entry(table, linenum, data)
-            except valueError as e:
+            except ValueError as e:
                 ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif isExistingSameDevice(config_db, devicename, table):
             ctx.fail("Given device name {} has been used. Please enter a valid device name or remove the existing one !!".format(devicename))
