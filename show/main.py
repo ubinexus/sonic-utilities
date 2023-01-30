@@ -1462,12 +1462,12 @@ def bgp(namespace, verbose):
             ns_list = multi_asic.get_namespace_list()
             for ns in ns_list:
                 output += "\n------------Showing running config bgp on {}------------\n".format(ns)
-                output += bgp_util.run_bgp_command(cmd, ns)
+                output += bgp_util.run_bgp_show_command(cmd, ns)
         else:
             output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
-            output += bgp_util.run_bgp_command(cmd, namespace)
+            output += bgp_util.run_bgp_show_command(cmd, namespace)
     else:
-        output += bgp_util.run_bgp_command(cmd)
+        output += bgp_util.run_bgp_show_command(cmd)
     print(output)
 
 
