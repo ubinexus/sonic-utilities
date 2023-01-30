@@ -114,17 +114,6 @@ _multi_asic_click_options = [
 ]
 
 def multi_asic_namespace_validation_callback(ctx, param, value):
-    # TODO: this condition has a bug: it should be either "multi_asic.is_multi_asic()"
-    # or "self.is_multi_asic", but changing it to correct version will lead to the 
-    # following cli not working on single-asic:
-    # show ip(v6) bgp neighbors/network, show storm_control add/del
-    # e.g. 
-    # admin@str2-7050cx3-acs-02:/usr$ show ip bgp neighbor -n asic0
-    # -n/--namespace is not available for single asic
-    # Aborted!
-    # admin@str2-7050cx3-acs-02:/usr$ show ip bgp neighbor
-    # -n/--namespace is not available for single asic
-    # Aborted!
     if not multi_asic.is_multi_asic:
         click.echo("-n/--namespace is not available for single asic")
         ctx.abort()
