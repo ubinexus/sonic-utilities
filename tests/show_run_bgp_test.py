@@ -130,6 +130,13 @@ neighbor fc00::6 description ARISTA03T2
 
 """
 
+show_run_bgp_not_running = \
+"""
+------------Showing running config bgp on asic0------------
+Error response from daemon: Container 70e3d3bafd1ab5faf796892acff3e2ccbea3dcd5dcfefcc34f25f7cc916b67bb is not running
+
+"""
+
 class TestShowRunBgpSingleAsic(object):
     @classmethod
     def setup_class(cls):
@@ -191,7 +198,6 @@ class TestShowRunBgpMultiAsic(object):
 				'show_run_bgp',
                              ],
                              indirect=['setup_multi_asic_bgp_instance'])
-
     def test_show_run_bgp_asic0(self,
                                 setup_multi_asic_bgp_instance):
         runner = CliRunner()
@@ -199,7 +205,20 @@ class TestShowRunBgpMultiAsic(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_run_bgp_masic_asic0
-
+	
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             [
+                             'show_not_running_bgp',
+                             ],
+                             indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp0_not_running(self,
+                             setup_multi_asic_bgp_instance):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["bgp"], ["-nasic0"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_run_bgp_not_running
+	
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
