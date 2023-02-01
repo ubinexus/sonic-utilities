@@ -926,7 +926,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status | pm [-hw|--fetch-from-hardware]) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -1011,7 +1011,6 @@ This command displays information for all the interfaces for the transceiver req
       Pre-FEC BER      N/A     4.58E-04  4.66E-04  5.76E-04  1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
       Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
       EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
-
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
