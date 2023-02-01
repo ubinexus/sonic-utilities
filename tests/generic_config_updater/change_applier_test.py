@@ -7,7 +7,7 @@ from collections import defaultdict
 from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
-import generic_config_updater.services_validator
+import generic_config_updater.validators
 import generic_config_updater.gu_common
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -232,7 +232,7 @@ class TestChangeApplier(unittest.TestCase):
 
         generic_config_updater.change_applier.UPDATER_CONF_FILE = CONF_FILE
         generic_config_updater.change_applier.set_verbose(True)
-        generic_config_updater.services_validator.set_verbose(True)
+        generic_config_updater.validators.set_verbose(True)
         
         applier = generic_config_updater.change_applier.ChangeApplier()
         debug_print("invoked applier")
