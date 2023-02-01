@@ -2255,6 +2255,54 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     except JsonPatchConflict:
         ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
+@portchannel.group(cls=clicommon.AbbreviationGroup, name='retry-count')
+@click.pass_context
+def portchannel_retry_count(ctx):
+    pass
+
+@portchannel_retry_count.command('get')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.pass_context
+def get_portchannel_retry_count(ctx, portchannel_name):
+    """Get the retry count for a port channel"""
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    if ADHOC_VALIDATION:
+        # Dont proceed if the port channel name is not valid
+        if is_portchannel_name_valid(portchannel_name) is False:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
+
+    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.retry_count"], text=True, stdout=subprocess.PIPE)
+    output, err = proc.communicate()
+    output = output.strip()
+    click.echo(output)
+
+@portchannel_retry_count.command('set')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('retry_count', metavar='<retry_count>', required=True, type=click.IntRange(3,10))
+@click.pass_context
+def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
+    """Set the retry count for a port channel"""
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    if ADHOC_VALIDATION:
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
+
+    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "set", "runner.retry_count", str(retry_count)], text=True, stdout=subprocess.PIPE)
+    output, err = proc.communicate()
+
 
 #
 # 'mirror_session' group ('config mirror_session ...')

@@ -268,6 +268,30 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "PortChannel1001 has vlan Vlan4000 configured, remove vlan membership to proceed" in result.output
 
+    def test_get_non_existing_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # get the retry count of a portchannel with portchannel not yet created
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel0005"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: PortChannel0005 is not present." in result.output
+
+    def test_set_non_existing_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # set the retry count of a portchannel with portchannel not yet created
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel0005", "5"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: PortChannel0005 is not present." in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
