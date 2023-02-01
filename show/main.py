@@ -704,10 +704,11 @@ def queue():
 # 'counters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
 @click.option('--voq', is_flag=True, help="VOQ counters")
-def counters(interfacename, verbose, json, voq):
+def counters(interfacename, namespace, display, verbose, json, voq):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -718,6 +719,9 @@ def counters(interfacename, verbose, json, voq):
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     if json:
         cmd += " -j"
@@ -1435,10 +1439,40 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def bgp(verbose):
-    """Show BGP running configuration"""
-    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+def bgp(namespace, verbose):
+    """
+    Show BGP running configuration
+    Note:
+        multi-asic can run 'show run bgp' and show from all asics, or 'show run bgp -n <ns>'
+        single-asic only run 'show run bgp', '-n' is not available
+    """
+
+    if multi_asic.is_multi_asic():
+        if namespace and namespace not in multi_asic.get_namespace_list():
+            ctx = click.get_current_context()
+            ctx.fail("invalid value for -n/--namespace option. provide namespace from list {}".format(multi_asic.get_namespace_list()))
+    if not multi_asic.is_multi_asic() and namespace:
+        ctx = click.get_current_context()
+        ctx.fail("-n/--namespace is not available for single asic")
+
+    output = ""
+    cmd = "show running-config bgp"
+    import utilities_common.bgp_util as bgp_util
+    if multi_asic.is_multi_asic():
+        if not namespace:
+            ns_list = multi_asic.get_namespace_list()
+            for ns in ns_list:
+                output += "\n------------Showing running config bgp on {}------------\n".format(ns)
+                output += bgp_util.run_bgp_show_command(cmd, ns)
+        else:
+            output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
+            output += bgp_util.run_bgp_show_command(cmd, namespace)
+    else:
+        output += bgp_util.run_bgp_show_command(cmd)
+    print(output)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
@@ -2005,7 +2039,7 @@ def bfd():
 def summary(db):
     """Show bfd session information"""
     bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
-                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+                "TX Interval", "RX Interval", "Multiplier", "Multihop", "Local Discriminator"]
 
     bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*")
 
@@ -2016,8 +2050,10 @@ def summary(db):
         for key in bfd_keys:
             key_values = key.split('|')
             values = db.db.get_all(db.db.STATE_DB, key)
+            if "local_discriminator" not in values.keys():
+                values["local_discriminator"] = "NA"            
             bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
-                                values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"]])
+                                values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"], values["local_discriminator"]])
 
     click.echo(tabulate(bfd_body, bfd_headers))
 
@@ -2029,7 +2065,7 @@ def summary(db):
 def peer(db, peer_ip):
     """Show bfd session information for BFD peer"""
     bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
-                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+                "TX Interval", "RX Interval", "Multiplier", "Multihop", "Local Discriminator"]
 
     bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*|{}".format(peer_ip))
     delimiter = db.db.get_db_separator(db.db.STATE_DB)
@@ -2045,8 +2081,10 @@ def peer(db, peer_ip):
         for key in bfd_keys:
             key_values = key.split(delimiter)
             values = db.db.get_all(db.db.STATE_DB, key)
+            if "local_discriminator" not in values.keys():
+                values["local_discriminator"] = "NA"            
             bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
-                                values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop")])
+                                values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 
     click.echo(tabulate(bfd_body, bfd_headers))
 
