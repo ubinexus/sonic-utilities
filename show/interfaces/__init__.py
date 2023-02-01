@@ -462,20 +462,12 @@ def pm(interfacename, namespace, verbose):
         interfacename = try_convert_interfacename_from_alias(
             ctx, interfacename)
 
-@transceiver.command()
-@click.argument('interfacename', required=False)
-@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
-              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def info(interfacename, namespace, verbose):
-    """Show interface transceiver information"""
+        cmd += " -p {}".format(interfacename)
 
-    ctx = click.get_current_context()
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
-    cmd = "sfpshow info"
-
-    if interfacename is not None:
-        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+    clicommon.run_command(cmd, display_cmd=verbose)
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
@@ -491,6 +483,7 @@ def info(interfacename, namespace, verbose):
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
         cmd += " -p {}".format(interfacename)
 
     if namespace is not None:

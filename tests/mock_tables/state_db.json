@@ -227,7 +227,6 @@
         "nominal_bit_rate": "Not supported for CMIS cables",
         "application_advertisement": "{1: {'host_electrical_interface_id': '400G CR8', 'module_media_interface_id': 'Copper cable', 'media_lane_count': 8, 'host_lane_count': 8, 'host_lane_assignment_options': 1, 'media_lane_assignment_options': 2}, 2: {'host_electrical_interface_id': '200GBASE-CR4 (Clause 136)'}}"
     },
-
     "TRANSCEIVER_DOM_THRESHOLD|Ethernet44":{
         "temphighalarm": "80.0",
         "templowalarm": "-5.0",
@@ -374,7 +373,6 @@
         "rx_sig_power_min": "-40",
         "rx_sig_power_max": "40"
     },
-
     "TRANSCEIVER_INFO|Ethernet48": {
         "type" : "QSFP-DD Double Density 8X Pluggable Transceiver",
         "hardware_rev" : "1.1",
