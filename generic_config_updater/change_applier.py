@@ -141,7 +141,6 @@ class ChangeApplier:
 
     def apply(self, change):
         run_data = self._get_running_config()
-        print(change)
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
