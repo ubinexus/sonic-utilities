@@ -15,7 +15,7 @@ from enum import Enum
 YANG_DIR = "/usr/local/yang-models"
 SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
+GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_table_modification_validators.conf.json"
 
 class GenericConfigUpdaterError(Exception):
     pass
@@ -168,21 +168,27 @@ class ConfigWrapper:
             return method_to_call()
 
         if os.path.exists(UPDATER_CONF_FILE):
-            with open(UPDATER_CONF_FILE, "r") as s:
-                updater_conf = json.load(s)
+            with open(GCU_TABLE_MOD_CONF_FILE, "r") as s:
+                gcu_table_modification_conf = json.load(s)
         else:
-            raise GenericConfigUpdaterError("GCU Config file not found") 
+            raise GenericConfigUpdaterError("GCU table modification validators config file not found") 
         
         for element in patch:
             path = element["path"]
-            table = re.search(r'\/([^\/]+)(\/|$)', path).group(1)
-            validating_functions = set()
-            tables = updater_conf["tables"]
-            validating_functions.update(tables.get(table, {}).get("table_modification_validators", []))
+            table = re.search(r'\/([^\/]+)(\/|$)', path).group(1) # This matches the table name in the path, eg. PFC_WD without the forward slashes
+            validating_functions_and = set()
+            validating_functions_or = set()
+            tables = gcu_table_modification_conf["tables"]
+            validating_functions_and.update(tables.get(table, {}).get("table_modification_validators_and", []))
+            validating_functions_or.update(tables.get(table, {}).get("table_modification_validators_or", [])) 
+            # For added flexibility in the future, we can extend the table to store a list of lists, to account for (X AND Y AND Z) OR (S AND T)
             
-            for function in validating_functions:
+            for function in validating_functions_and:
                 if not _invoke_validating_function(function):
-                    raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))   
+                    raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
+
+            if not any(_invoke_validating_function(function) for function in validating_functions_or):
+                raise IllegalPatchOperationError("Modification of {} table is illegal- all validating functions returned False".format(table))
  
 
     def validate_lanes(self, config_db):

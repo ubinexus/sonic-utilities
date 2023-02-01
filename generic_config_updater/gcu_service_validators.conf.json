@@ -48,22 +48,7 @@
         },
         "NTP_SERVER": {
             "services_to_validate": [ "ntp-service" ]
-        },
-	"PFC_WD": {
-            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
-	},
-	"BUFFER_POOL": {
-            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
-	},
-	"WRED_PROFILE": {
-            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
-	},
-	"QUEUE": {
-            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
-	},
-	"BUFFER_PROFILE": {
-            "table_modification_validators": [ "generic_config_updater.validators.is_mellanox_device_validator" ]
-	}
+        }
     },
     "services": {
         "system_health": { 
