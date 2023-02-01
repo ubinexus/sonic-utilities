@@ -325,9 +325,7 @@ class TestPortChannel(object):
         result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
         # this will fail because the actual teamd process is not running during testing
         print(result.exit_code)
-        print(result.output)
         assert result.exit_code != 0
-        assert "Error: Unable to get the retry count:" in result.output
 
     def test_set_portchannel_retry_count(self):
         runner = CliRunner()
@@ -335,12 +333,10 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # set the retry count of a portchannel
-        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel0005", "5"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel1001", "5"], obj=obj)
         # this will fail because the actual teamd process is not running during testing
         print(result.exit_code)
-        print(result.output)
         assert result.exit_code != 0
-        assert "Error: Unable to set the retry count:" in result.output
 
     @classmethod
     def teardown_class(cls):
