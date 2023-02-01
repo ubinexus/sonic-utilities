@@ -1,6 +1,6 @@
 import pytest
 import show.main
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from click.testing import CliRunner
 
 EXPECTED_BASE_COMMAND = 'sudo '
