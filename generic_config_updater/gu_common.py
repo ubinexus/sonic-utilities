@@ -167,7 +167,7 @@ class ConfigWrapper:
             method_to_call = getattr(module, method_name)
             return method_to_call()
 
-        if os.path.exists(UPDATER_CONF_FILE):
+        if os.path.exists(GCU_TABLE_MOD_CONF_FILE):
             with open(GCU_TABLE_MOD_CONF_FILE, "r") as s:
                 gcu_table_modification_conf = json.load(s)
         else:
@@ -187,7 +187,7 @@ class ConfigWrapper:
                 if not _invoke_validating_function(function):
                     raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
 
-            if not any(_invoke_validating_function(function) for function in validating_functions_or):
+            if validating_functions_or and not any(_invoke_validating_function(function) for function in validating_functions_or):
                 raise IllegalPatchOperationError("Modification of {} table is illegal- all validating functions returned False".format(table))
  
 

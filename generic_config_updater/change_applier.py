@@ -9,7 +9,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_service_validators.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
@@ -141,6 +141,7 @@ class ChangeApplier:
 
     def apply(self, change):
         run_data = self._get_running_config()
+        print(change)
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
