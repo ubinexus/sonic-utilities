@@ -268,6 +268,30 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "PortChannel1001 has vlan Vlan4000 configured, remove vlan membership to proceed" in result.output
 
+    def test_get_invalid_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # get the retry count of a portchannel with an invalid portchannel name
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["Ethernet48"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Ethernet48 is invalid!" in result.output
+
+    def test_set_invalid_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # set the retry count of a portchannel with an invalid portchannel name
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["Ethernet48", "5"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Ethernet48 is invalid!" in result.output
+
     def test_get_non_existing_portchannel_retry_count(self):
         runner = CliRunner()
         db = Db()
@@ -291,6 +315,32 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
+
+    def test_get_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # get the retry count of a portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
+        # this will fail because the actual teamd process is not running during testing
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Unable to get the retry count:" in result.output
+
+    def test_set_portchannel_retry_count(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # set the retry count of a portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel0005", "5"], obj=obj)
+        # this will fail because the actual teamd process is not running during testing
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Unable to set the retry count:" in result.output
 
     @classmethod
     def teardown_class(cls):

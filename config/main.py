@@ -2277,10 +2277,11 @@ def get_portchannel_retry_count(ctx, portchannel_name):
         if is_portchannel_present_in_db(db, portchannel_name) is False:
             ctx.fail("{} is not present.".format(portchannel_name))
 
-    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.retry_count"], text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.retry_count"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = proc.communicate()
-    output = output.strip()
-    click.echo(output)
+    if proc.returncode != 0:
+        ctx.fail("Unable to get the retry count: {}".format(err.strip()))
+    click.echo(output.strip())
 
 @portchannel_retry_count.command('set')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -2300,8 +2301,10 @@ def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
         if is_portchannel_present_in_db(db, portchannel_name) is False:
             ctx.fail("{} is not present.".format(portchannel_name))
 
-    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "set", "runner.retry_count", str(retry_count)], text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "set", "runner.retry_count", str(retry_count)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = proc.communicate()
+    if proc.returncode != 0:
+        ctx.fail("Unable to set the retry count: {}".format(err.strip()))
 
 
 #
