@@ -36,6 +36,21 @@ VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 
+def get_asic_index_for_port(port):
+    asic_index = None
+    if platform_sfputil is not None:
+        asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                port_name = platform_sfputil_helper.get_interface_alias(port, db)
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port_name))
+                return 0
+    return asic_index
+
 def db_connect(db_name, namespace=EMPTY_NAMESPACE):
     return swsscommon.DBConnector(db_name, REDIS_TIMEOUT_MSECS, True, namespace)
 
@@ -1238,6 +1253,40 @@ def get_hwmode_mux_direction_port(db, port):
 
     return res_dict
 
+def create_active_active_mux_direction_result(body, port, db):
+
+    res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
+    temp_list = []
+    port = platform_sfputil_helper.get_interface_alias(port, db)
+    temp_list.append(port)
+    temp_list.append(res_dict["self_mux_direction"])
+    temp_list.append(res_dict["peer_mux_direction"])
+    temp_list.append(res_dict["presence"])
+    temp_list.append(res_dict["grpc_connection_status"])
+    body.append(temp_list)
+
+    rc = res_dict["rc"]
+
+    return rc
+
+def create_active_standby_mux_direction_result(body, port, db):
+
+    res_dict = get_hwmode_mux_direction_port(db, port)
+
+    temp_list = []
+    port = platform_sfputil_helper.get_interface_alias(port, db)
+    temp_list.append(port)
+    temp_list.append(res_dict[1])
+    temp_list.append(res_dict[2])
+    body.append(temp_list)
+
+    rc = res_dict[0]
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RES")
+
+    return rc
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def hwmode():
@@ -1256,30 +1305,32 @@ def muxdirection(db, port):
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RES")
+    per_npu_configdb = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
 
     if port is not None:
-
+        
+        asic_index = get_asic_index_for_port(port)
+        cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "cable_type", "MUX_CABLE")
         if check_port_in_mux_cable_table(port) == False:
             click.echo("Not Y-cable port")
             return CONFIG_FAIL
 
-        res_dict = get_hwmode_mux_direction_port(db, port)
-
         body = []
-        temp_list = []
-        headers = ['Port', 'Direction', 'Presence']
-        port = platform_sfputil_helper.get_interface_alias(port, db)
-        temp_list.append(port)
-        temp_list.append(res_dict[1])
-        temp_list.append(res_dict[2])
-        body.append(temp_list)
-
-        rc = res_dict[0]
+        click.echo("cable type= {} ".format(cable_type))
+        if cable_type == "active-active":
+            headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+            rc = create_active_active_mux_direction_result(body, port, db)
+        else:
+            rc = create_active_standby_mux_direction_result(body, port, db)
+            headers = ['Port', 'Direction', 'Presence']
         click.echo(tabulate(body, headers=headers))
-
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RES")
 
         return rc
 
@@ -1290,7 +1341,7 @@ def muxdirection(db, port):
         rc_exit = True
         body = []
 
-        for port in logical_port_list:
+        for port in natsorted(logical_port_list):
 
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
@@ -1316,26 +1367,24 @@ def muxdirection(db, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-            temp_list = []
 
-            res_dict = get_hwmode_mux_direction_port(db, port)
-
-            port = platform_sfputil_helper.get_interface_alias(port, db)
-            temp_list.append(port)
-            temp_list.append(res_dict[1])
-            temp_list.append(res_dict[2])
-            body.append(temp_list)
-            rc = res_dict[0]
+            asic_index = get_asic_index_for_port(port)
+            cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "cable_type", "MUX_CABLE")
+            if cable_type == 'active-active':
+                rc = create_active_active_mux_direction_result(body, port, db)
+                active = True
+            else:
+                rc = create_active_standby_mux_direction_result(body, port, db)
+                headers = ['Port', 'Direction', 'Presence']
             if rc != 0:
                 rc_exit = False
 
-        headers = ['Port', 'Direction', 'Presence']
-
+        if active:
+            headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+        else:
+            headers = ['Port', 'Direction', 'Presence']
         click.echo(tabulate(body, headers=headers))
 
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RES")
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
@@ -2080,20 +2129,11 @@ def muxdirection(db, port):
             click.echo("Not Y-cable port")
             return CONFIG_FAIL
 
-        res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
 
         body = []
-        temp_list = []
-        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
-        port = platform_sfputil_helper.get_interface_alias(port, db)
-        temp_list.append(port)
-        temp_list.append(res_dict["self_mux_direction"])
-        temp_list.append(res_dict["peer_mux_direction"])
-        temp_list.append(res_dict["presence"])
-        temp_list.append(res_dict["grpc_connection_status"])
-        body.append(temp_list)
 
-        rc = res_dict["rc"]
+        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+        rc = create_active_active_mux_direction_result(body, port, db)
         click.echo(tabulate(body, headers=headers))
 
         return rc
@@ -2132,18 +2172,8 @@ def muxdirection(db, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-            temp_list = []
+            rc = create_active_active_mux_direction_result(body, port, db)
 
-            res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
-
-            port = platform_sfputil_helper.get_interface_alias(port, db)
-            temp_list.append(port)
-            temp_list.append(res_dict["self_mux_direction"])
-            temp_list.append(res_dict["peer_mux_direction"])
-            temp_list.append(res_dict["presence"])
-            temp_list.append(res_dict["grpc_connection_status"])
-            body.append(temp_list)
-            rc = res_dict["rc"]
             if rc != True:
                 rc_exit = False
 
