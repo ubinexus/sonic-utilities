@@ -394,7 +394,6 @@ show_muxcable_grpc_muxdirection_active_expected_all_output = """\
 Port       Direction    PeerDirection    Presence    ConnectivityState
 ---------  -----------  ---------------  ----------  -------------------
 Ethernet0  active       active           False       READY
-Ethernet4  standby      active           True        READY
 """
 
 expected_muxcable_cableinfo_output = """\
@@ -2394,7 +2393,7 @@ class TestMuxcable(object):
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
     @mock.patch('re.match', mock.MagicMock(return_value=(True)))
-    def test_show_muxcable_hwmode_muxdirection_port_standby(self):
+    def test_show_muxcable_grpc_muxdirection_port_standby_with_patch(self):
         runner = CliRunner()
         db = Db()
 
@@ -2415,7 +2414,7 @@ class TestMuxcable(object):
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
     @mock.patch('re.match', mock.MagicMock(return_value=(True)))
-    def test_show_muxcable_hwmode_muxdirection_port_standby(self):
+    def test_show_muxcable_grpc_muxdirection_port_standby(self):
         runner = CliRunner()
         db = Db()
 
@@ -2432,11 +2431,11 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet4", "Ethernet0"]}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet4", "Ethernet0"]}))
-    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[1]))
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
     @mock.patch('re.match', mock.MagicMock(return_value=(True)))
-    def test_show_muxcable_hwmode_muxdirection_port_standby(self):
+    def test_show_muxcable_grpc_muxdirection_port_all(self):
         runner = CliRunner()
         db = Db()
 
