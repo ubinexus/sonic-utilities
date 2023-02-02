@@ -862,23 +862,8 @@ def _get_sonic_services():
     return (unit.strip() for unit in out.splitlines())
 
 
-def _get_delayed_sonic_units(get_timers=False):
-    rc1, _ = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
-    rc2, _ = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
-    timer = [line.strip() for line in rc1.splitlines()]
-    state = [line.strip() for line in rc2.splitlines()]
-    services = []
-    for unit in timer:
-        if state[timer.index(unit)] == "enabled":
-            if not get_timers:
-                services.append(re.sub('\.timer$', '', unit, 1))
-            else:
-                services.append(unit)
-    return services
-
-
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_units()):
+    for service in itertools.chain(_get_sonic_services()):
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -897,12 +882,6 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-def _delay_timers_elapsed():
-    for timer in _get_delayed_sonic_units(get_timers=True):
-        out, _ = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
-        if out.strip() == "0":
-            return False
-    return True
 
 def _per_namespace_swss_ready(service_name):
     out, _ = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
@@ -1531,10 +1510,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            sys.exit(CONFIG_RELOAD_NOT_READY)
-
-        if not _delay_timers_elapsed():
-            click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
             sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
