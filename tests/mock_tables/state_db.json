@@ -373,7 +373,7 @@
         "rx_sig_power_min": "-40",
         "rx_sig_power_max": "40"
     },
-    "TRANSCEIVER_INFO|Ethernet48": {
+    "TRANSCEIVER_INFO|Ethernet64": {
         "type" : "QSFP-DD Double Density 8X Pluggable Transceiver",
         "hardware_rev" : "1.1",
         "serial" : "214455197",

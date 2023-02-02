@@ -19,23 +19,7 @@ QSFP_DATA_MAP = {
     'application_advertisement': 'Application Advertisement'
 }
 
-CMIS_DATA_MAP = {
-    'model': 'Vendor PN',
-    'vendor_oui': 'Vendor OUI',
-    'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
-    'manufacturer': 'Vendor Name',
-    'vendor_rev': 'Vendor Rev',
-    'serial': 'Vendor SN',
-    'type': 'Identifier',
-    'ext_identifier': 'Extended Identifier',
-    'ext_rateselect_compliance': 'Extended RateSelect Compliance',
-    'cable_length': 'cable_length',
-    'cable_type': 'Length',
-    'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
-    'specification_compliance': 'Specification Compliance',
-    'encoding': 'Encoding',
-    'connector': 'Connector',
-    'application_advertisement': 'Application Advertisement',
+QSFP_CMIS_DELTA_DATA_MAP = {
     'host_lane_count': 'Host Lane Count',
     'media_lane_count': 'Media Lane Count',
     'active_apsel_hostlane1': 'Active application selected code assigned to host lane 1',
@@ -56,6 +40,8 @@ CMIS_DATA_MAP = {
     'supported_max_laser_freq': 'Supported Max Laser Frequency',
     'supported_min_laser_freq': 'Supported Min Laser Frequency'
 }
+
+CMIS_DATA_MAP = {**QSFP_DATA_MAP, **QSFP_CMIS_DELTA_DATA_MAP}
 
 def covert_application_advertisement_to_output_string(indent, sfp_info_dict):
     key = 'application_advertisement'
