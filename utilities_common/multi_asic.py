@@ -114,7 +114,12 @@ _multi_asic_click_options = [
 ]
 
 def multi_asic_namespace_validation_callback(ctx, param, value):
-    if not multi_asic.is_multi_asic:
+    if param != 'namespace':
+        click.echo("this callback is only used for -n/--namespace option")
+        ctx.abort()
+    # e.g. issue "show run bgp -n asic0" on single-asic, value will be asic0, should abort in this case
+    # we want to make sure no value for single-asic here
+    if not multi_asic.is_multi_asic() and value:
         click.echo("-n/--namespace is not available for single asic")
         ctx.abort()
     return value
