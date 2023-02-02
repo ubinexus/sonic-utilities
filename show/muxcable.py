@@ -1323,7 +1323,6 @@ def muxdirection(db, port):
             return CONFIG_FAIL
 
         body = []
-        click.echo("cable type= {} ".format(cable_type))
         if cable_type == "active-active":
             headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
             rc = create_active_active_mux_direction_result(body, port, db)
