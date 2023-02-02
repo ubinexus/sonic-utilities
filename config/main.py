@@ -245,8 +245,8 @@ def _get_device_type():
     TODO: move to sonic-py-common
     """
 
-    command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    command = [SONIC_CFGGEN_PATH, "-m", "-v", "DEVICE_METADATA.localhost.type"]
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     device_type, err = proc.communicate()
     if err:
         click.echo("Could not get the device type from minigraph, setting device type to Unknown")
@@ -847,7 +847,7 @@ def _get_disabled_services_list(config_db):
 
 def _stop_services():
     try:
-        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(['sudo', 'monit', 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Disabling container monitoring ...")
         clicommon.run_command("sudo monit unmonitor container_checker")
     except subprocess.CalledProcessError as err:
@@ -887,7 +887,7 @@ def _restart_services():
     clicommon.run_command("sudo systemctl restart sonic.target")
 
     try:
-        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(['sudo', 'monit', 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Enabling container monitoring ...")
         clicommon.run_command("sudo monit monitor container_checker")
     except subprocess.CalledProcessError as err:
@@ -1218,7 +1218,7 @@ def config(ctx):
     load_db_config()
 
     if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
+        sys.exit("Root privileges are required for this operation")
 
     ctx.obj = Db()
 
@@ -1603,8 +1603,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
         if load_sysinfo:
             try:
-                command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
-                proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+                command = [SONIC_CFGGEN_PATH, "-j", file, '-v', "DEVICE_METADATA.localhost.hwsku"]
+                proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
                 output, err = proc.communicate()
 
             except FileNotFoundError as e:
@@ -2904,7 +2904,7 @@ def warm_restart_enable(ctx, module):
     config_db = ctx.obj['db']
     feature_table = config_db.get_table('FEATURE')
     if module != 'system' and module not in feature_table:
-        exit('Feature {} is unknown'.format(module))
+        sys.exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'true')
@@ -2918,7 +2918,7 @@ def warm_restart_enable(ctx, module):
     config_db = ctx.obj['db']
     feature_table = config_db.get_table('FEATURE')
     if module != 'system' and module not in feature_table:
-        exit('Feature {} is unknown'.format(module))
+        sys.exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'false')
@@ -6152,10 +6152,10 @@ def firmware():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def install(args):
     """Install platform firmware"""
-    cmd = "fwutil install {}".format(" ".join(args))
+    cmd = ["fwutil", "install"] + list(args)
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
@@ -6170,10 +6170,10 @@ def install(args):
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def update(args):
     """Update platform firmware"""
-    cmd = "fwutil update {}".format(" ".join(args))
+    cmd = ["fwutil", "update"] + list(args)
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
@@ -6333,10 +6333,10 @@ def del_loopback(ctx, loopback_name):
 def ztp():
     """ Configure Zero Touch Provisioning """
     if os.path.isfile('/usr/bin/ztp') is False:
-        exit("ZTP feature unavailable in this image version")
+        sys.exit("ZTP feature unavailable in this image version")
 
     if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
+        sys.exit("Root privileges are required for this operation")
 
 @ztp.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -6447,7 +6447,7 @@ def enable(ctx):
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     try:
-        proc = subprocess.Popen("systemctl is-active sflow", shell=True, text=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(['systemctl', 'is-active', 'sflow'], text=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
     except SystemExit as e:
         ctx.fail("Unable to check sflow status {}".format(e))
