@@ -384,6 +384,11 @@ Port        Direction    PeerDirection    Presence    ConnectivityState
 Ethernet12  active       active           True        READY
 """
 
+show_muxcable_grpc_muxdirection_standby_expected_output = """\
+Port       Direction    PeerDirection    Presence    ConnectivityState
+---------  -----------  ---------------  ----------  -------------------
+Ethernet4  standby      active           True        READY
+"""
 
 expected_muxcable_cableinfo_output = """\
 Vendor    Model
@@ -2390,6 +2395,27 @@ class TestMuxcable(object):
                                ["Ethernet12"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_grpc_muxdirection_active_expected_output
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
+    @mock.patch('show.muxcable.check_port_in_mux_cable_table', mock.MagicMock(return_value=True))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet4"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet4", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet4", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
+    @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
+    def test_show_muxcable_hwmode_muxdirection_port_standby(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["grpc"].commands["muxdirection"],
+                               ["Ethernet4"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_grpc_muxdirection_standby_expected_output
 
     @classmethod
     def teardown_class(cls):
