@@ -1339,6 +1339,7 @@ def muxdirection(db, port):
 
         rc_exit = True
         body = []
+        active_active = False
 
         for port in natsorted(logical_port_list):
 
@@ -1366,19 +1367,19 @@ def muxdirection(db, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-
+            
             asic_index = get_asic_index_for_port(port)
             cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "cable_type", "MUX_CABLE")
             if cable_type == 'active-active':
                 rc = create_active_active_mux_direction_result(body, port, db)
-                active = True
+                active_active = True
             else:
                 rc = create_active_standby_mux_direction_result(body, port, db)
                 headers = ['Port', 'Direction', 'Presence']
             if rc != 0:
                 rc_exit = False
 
-        if active:
+        if active_active:
             headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
         else:
             headers = ['Port', 'Direction', 'Presence']
