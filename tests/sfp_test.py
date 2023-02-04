@@ -217,7 +217,7 @@ Ethernet44:
 
 test_cmis_eeprom_output = """\
 Ethernet64: SFP EEPROM detected
-        Active Firmware: 61.20
+        Active Firmware: X.X
         Active application selected code assigned to host lane 1: 1
         Active application selected code assigned to host lane 2: 1
         Active application selected code assigned to host lane 3: 1
@@ -236,11 +236,11 @@ Ethernet64: SFP EEPROM detected
         Extended RateSelect Compliance: N/A
         Host Lane Count: 8
         Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
-        Inactive Firmware: 161.10
+        Inactive Firmware: X.X
         Length Cable Assembly(m): 0.0
         Media Interface Technology: 1550 nm DFB
         Media Lane Count: 1
-        Module Hardware Rev: 1.1
+        Module Hardware Rev: X.X
         Nominal Bit Rate(100Mbs): 0
         Specification compliance: sm_media_interface
         Supported Max Laser Frequency: 196100
@@ -248,11 +248,11 @@ Ethernet64: SFP EEPROM detected
         Supported Min Laser Frequency: 191300
         Supported Min TX Power: -22.9
         Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
-        Vendor Name: Acacia Comm Inc.
-        Vendor OUI: 7c-b2-5c
-        Vendor PN: DP04QSDD-E20-001
-        Vendor Rev: A
-        Vendor SN: 214455197
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
 """
 
 test_sfp_eeprom_dom_all_output = """\
@@ -307,7 +307,7 @@ Ethernet0: SFP EEPROM detected
 Ethernet4: SFP EEPROM Not detected
 
 Ethernet64: SFP EEPROM detected
-        Active Firmware: 61.20
+        Active Firmware: X.X
         Active application selected code assigned to host lane 1: 1
         Active application selected code assigned to host lane 2: 1
         Active application selected code assigned to host lane 3: 1
@@ -326,11 +326,11 @@ Ethernet64: SFP EEPROM detected
         Extended RateSelect Compliance: N/A
         Host Lane Count: 8
         Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
-        Inactive Firmware: 161.10
+        Inactive Firmware: X.X
         Length Cable Assembly(m): 0.0
         Media Interface Technology: 1550 nm DFB
         Media Lane Count: 1
-        Module Hardware Rev: 1.1
+        Module Hardware Rev: X.X
         Nominal Bit Rate(100Mbs): 0
         Specification compliance: sm_media_interface
         Supported Max Laser Frequency: 196100
@@ -338,11 +338,11 @@ Ethernet64: SFP EEPROM detected
         Supported Min Laser Frequency: 191300
         Supported Min TX Power: -22.9
         Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
-        Vendor Name: Acacia Comm Inc.
-        Vendor OUI: 7c-b2-5c
-        Vendor PN: DP04QSDD-E20-001
-        Vendor Rev: A
-        Vendor SN: 214455197
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
         ChannelMonitorValues:
                 RX1Power: 0.3802dBm
                 RX2Power: -0.4871dBm
@@ -397,7 +397,7 @@ Ethernet0: SFP EEPROM detected
 Ethernet4: SFP EEPROM Not detected
 
 Ethernet64: SFP EEPROM detected
-        Active Firmware: 61.20
+        Active Firmware: X.X
         Active application selected code assigned to host lane 1: 1
         Active application selected code assigned to host lane 2: 1
         Active application selected code assigned to host lane 3: 1
@@ -416,11 +416,11 @@ Ethernet64: SFP EEPROM detected
         Extended RateSelect Compliance: N/A
         Host Lane Count: 8
         Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
-        Inactive Firmware: 161.10
+        Inactive Firmware: X.X
         Length Cable Assembly(m): 0.0
         Media Interface Technology: 1550 nm DFB
         Media Lane Count: 1
-        Module Hardware Rev: 1.1
+        Module Hardware Rev: X.X
         Nominal Bit Rate(100Mbs): 0
         Specification compliance: sm_media_interface
         Supported Max Laser Frequency: 196100
@@ -428,11 +428,11 @@ Ethernet64: SFP EEPROM detected
         Supported Min Laser Frequency: 191300
         Supported Min TX Power: -22.9
         Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
-        Vendor Name: Acacia Comm Inc.
-        Vendor OUI: 7c-b2-5c
-        Vendor PN: DP04QSDD-E20-001
-        Vendor Rev: A
-        Vendor SN: 214455197
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
 """
 
 test_sfp_presence_all_output = """\
