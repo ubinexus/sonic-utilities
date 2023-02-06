@@ -559,6 +559,14 @@ def check_frr_pending_routes():
 def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl):
     """
     Mitigate installed but not offloaded FRR routes.
+
+    In case route exists in APPL_DB, this function will manually send a notification to fpmsyncd
+    to trigger the flow that sends offload flag to zebra.
+
+    It is designed to mitigate a problem when orchagent fails to send notification about installed route to fpmsyncd
+    or fpmsyncd not being able to read the notification or in case zebra fails to receive offload update due to variety of reasons.
+    All of the above mentioned cases must be considered as a bug, but even in that case we will report an error in the log but
+    given that this script ensures the route is installed in the hardware it will automitigate such a bug.
     """
     db = swsscommon.DBConnector('APPL_STATE_DB', 0)
     response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
