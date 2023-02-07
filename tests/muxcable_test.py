@@ -2467,7 +2467,7 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["grpc"].commands["muxdirection"],
                                ["Ethernet4", "--json"], obj=db)
         assert result.exit_code == 0
-        assert result.output == show_muxcable_grpc_muxdirection_standby_expected_output
+        assert result.output == show_muxcable_grpc_muxdirection_standby_expected_output_json
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
@@ -2487,7 +2487,7 @@ class TestMuxcable(object):
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["grpc"].commands["muxdirection"], obj=db)
         assert result.exit_code == 0
-        assert result.output == show_muxcable_grpc_muxdirection_active_expected_all_output_json
+        assert result.output == show_muxcable_grpc_muxdirection_active_expected_all_output
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
