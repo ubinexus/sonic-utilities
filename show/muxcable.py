@@ -2171,8 +2171,9 @@ def grpc():
 
 @grpc.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def muxdirection(db, port):
+def muxdirection(db, port, json_output):
     """Shows the current direction of the FPGA facing port on Tx Side {active/standy}"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
@@ -2184,12 +2185,18 @@ def muxdirection(db, port):
             click.echo("Not Y-cable port")
             return CONFIG_FAIL
 
+        if json_output:
+            result = {}
+            result ["HWMODE"] = {}
+            rc = create_active_active_mux_direction_json_result(result, port, db)
+            click.echo("{}".format(json.dumps(result, indent=4)))
 
-        body = []
+        else:
+            body = []
 
-        headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
-        rc = create_active_active_mux_direction_result(body, port, db)
-        click.echo(tabulate(body, headers=headers))
+            headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
+            rc = create_active_active_mux_direction_result(body, port, db)
+            click.echo(tabulate(body, headers=headers))
 
         return rc
 
@@ -2200,6 +2207,9 @@ def muxdirection(db, port):
 
         rc_exit = True
         body = []
+        if json_output:
+            result = {}
+            result ["HWMODE"] = {}
 
         for port in natsorted(logical_port_list):
 
@@ -2227,14 +2237,20 @@ def muxdirection(db, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-            rc = create_active_active_mux_direction_result(body, port, db)
+            if json_output:
+                rc = create_active_active_mux_direction_json_result(result, port, db)
+            else:
+                rc = create_active_active_mux_direction_result(body, port, db)
 
             if rc != True:
                 rc_exit = False
 
-        headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
 
-        click.echo(tabulate(body, headers=headers))
+            click.echo(tabulate(body, headers=headers))
 
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
