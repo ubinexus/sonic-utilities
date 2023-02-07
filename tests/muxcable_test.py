@@ -419,6 +419,7 @@ show_muxcable_grpc_muxdirection_standby_expected_output_json = """\
             "ConnectivityState": "READY"
         }
     }
+}
 """
 
 expected_muxcable_cableinfo_output = """\
