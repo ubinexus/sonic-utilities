@@ -439,6 +439,17 @@ Port        Direction    Presence
 Ethernet12  active       True
 """
 
+show_muxcable_hwmode_muxdirection_active_expected_output_json = """\
+{
+    "HWMODE": {
+        "Ethernet12": {
+            "Direction": "active",
+            "Presence": "True"
+        }
+    }
+}
+"""
+
 show_muxcable_hwmode_muxdirection_active_expected_output_alias = """\
 Port    Direction    Presence
 ------  -----------  ----------
@@ -2509,6 +2520,30 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["grpc"].commands["muxdirection"], ["--json"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_grpc_muxdirection_active_expected_all_output_json
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('show.muxcable.get_hwmode_mux_direction_port', mock.MagicMock(return_value={0: 0,
+                                                                                            1: "active",
+                                                                                            2: "True"}))
+    @mock.patch('show.muxcable.check_port_in_mux_cable_table', mock.MagicMock(return_value=True))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
+    @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(1)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
+    def test_show_muxcable_hwmode_muxdirection_port_active(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["hwmode"].commands["muxdirection"],
+                               ["Ethernet12", "--json"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_hwmode_muxdirection_active_expected_output_json
 
     @classmethod
     def teardown_class(cls):
