@@ -379,21 +379,21 @@ json_data_config_output_active_expected_alias = """\
 """
 
 show_muxcable_grpc_muxdirection_active_expected_output = """\
-Port        Direction    PeerDirection    Presence    ConnectivityState
-----------  -----------  ---------------  ----------  -------------------
-Ethernet12  active       active           True        READY
+Port        Direction    Presence    PeerDirection    ConnectivityState
+----------  -----------  ----------  ---------------  -------------------
+Ethernet12  active       True        active           READY
 """
 
 show_muxcable_grpc_muxdirection_standby_expected_output = """\
-Port       Direction    PeerDirection    Presence    ConnectivityState
----------  -----------  ---------------  ----------  -------------------
-Ethernet4  standby      active           True        READY
+Port       Direction    Presence    PeerDirection    ConnectivityState
+---------  -----------  ----------  ---------------  -------------------
+Ethernet4  standby      True        active           READY
 """
 
 show_muxcable_grpc_muxdirection_active_expected_all_output = """\
-Port       Direction    PeerDirection    Presence    ConnectivityState
----------  -----------  ---------------  ----------  -------------------
-Ethernet0  active       active           False       READY
+Port       Direction    Presence    PeerDirection    ConnectivityState
+---------  -----------  ----------  ---------------  -------------------
+Ethernet0  active       False       active           READY
 """
 
 expected_muxcable_cableinfo_output = """\
