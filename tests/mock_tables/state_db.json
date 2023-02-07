@@ -166,7 +166,30 @@
         "is_replaceable": "False",
         "led_status": "green"
     },
-    
+    "MUX_CABLE_INFO|Ethernet0": {
+        "version_peer_next": "0.2MS",
+        "version_peer_active": "0.2MS",
+        "version_peer_inactive": "0.2MS",
+        "version_nic_next": "0.2MS",
+        "version_nic_active": "0.2MS",
+        "version_nic_inactive": "0.2MS",
+        "version_self_next": "0.2MS",
+        "version_self_active": "0.2MS",
+        "version_self_inactive": "0.2MS",
+        "Value": "AABB"
+    },
+    "MUX_CABLE_INFO|Ethernet12": {
+        "version_peer_next": "0.1MS",
+        "version_peer_active": "0.1MS",
+        "version_peer_inactive": "0.1MS",
+        "version_nic_next": "0.1MS",
+        "version_nic_active": "0.1MS",
+        "version_nic_inactive": "0.1MS",
+        "version_self_next": "0.1MS",
+        "version_self_active": "0.1MS",
+        "version_self_inactive": "0.1MS",
+        "Value": "AABB"
+    },
     "SWITCH_CAPABILITY|switch": {
         "MIRROR": "true",
         "MIRRORV6": "true",
@@ -708,7 +731,7 @@
         "state":"active"
     },
     "VNET_ROUTE_TUNNEL_TABLE|Vnet_v6_in_v6-0|fddd:a156:a251::a6:1/128": {
-        "active_endpoints":"fddd:a100:a251::a10:1,fddd:a101:a251::a10:1",
+        "active_endpoints":"fddd:a100:a251::a10:1,fddd:a101:a251::a10:1,fddd:a102:a251::a10:1,fddd:a103:a251::a10:1",
         "state":"active"
     },
     "BFD_SESSION_TABLE|default|default|100.251.7.1": {
@@ -728,5 +751,20 @@
         "rx_interval" : "500",
         "multiplier" : "3",
         "multihop": "true"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.63.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.62.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.64.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|fddd:a150:a251::a6:1/128": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
+        "profile": ""
     }
 }
