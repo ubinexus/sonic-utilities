@@ -413,7 +413,7 @@ show_muxcable_grpc_muxdirection_standby_expected_output_json = """\
 {
     "HWMODE": {
         "Ethernet4": {
-            "Direction": "active",
+            "Direction": "standby",
             "Presence": "True",
             "PeerDirection": "active",
             "ConnectivityState": "READY"
