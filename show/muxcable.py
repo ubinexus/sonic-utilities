@@ -1253,6 +1253,33 @@ def get_hwmode_mux_direction_port(db, port):
 
     return res_dict
 
+
+def create_active_active_mux_direction_json_result(result, port, db):
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
+    result["HWMODE"][port] = {}
+    res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
+    result["HWMODE"][port]["Direction"] = res_dict["self_mux_direction"]
+    result["HWMODE"][port]["Presence"] = res_dict["presence"]
+    result["HWMODE"][port]["PeerDirection"] = res_dict["peer_mux_direction"]
+    result["HWMODE"][port]["ConnectivityState"] = res_dict["grpc_connection_status"]
+
+    rc = res_dict["rc"]
+
+    return rc
+
+def create_active_standby_mux_direction_json_result(result, port, db):
+
+    res_dict = get_hwmode_mux_direction_port(db, port)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
+    result["HWMODE"][port] = {}
+    result["HWMODE"][port]["Direction"] = res_dict[1]
+    result["HWMODE"][port]["Presence"] = res_dict[2]
+
+    rc = res_dict[0]
+
+    return rc
+
 def create_active_active_mux_direction_result(body, port, db):
 
     res_dict = get_grpc_cached_version_mux_direction_per_port(db, port)
@@ -1260,8 +1287,8 @@ def create_active_active_mux_direction_result(body, port, db):
     port = platform_sfputil_helper.get_interface_alias(port, db)
     temp_list.append(port)
     temp_list.append(res_dict["self_mux_direction"])
-    temp_list.append(res_dict["peer_mux_direction"])
     temp_list.append(res_dict["presence"])
+    temp_list.append(res_dict["peer_mux_direction"])
     temp_list.append(res_dict["grpc_connection_status"])
     body.append(temp_list)
 
@@ -1296,8 +1323,9 @@ def hwmode():
 
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def muxdirection(db, port):
+def muxdirection(db, port, json_output):
     """Shows the current direction of the muxcable {active/standy}"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
@@ -1322,14 +1350,25 @@ def muxdirection(db, port):
             click.echo("Not Y-cable port")
             return CONFIG_FAIL
 
-        body = []
-        if cable_type == "active-active":
-            headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
-            rc = create_active_active_mux_direction_result(body, port, db)
+        if json_output:
+            result = {}
+            result ["HWMODE"] = {}
+            if cable_type == "active-active":
+                rc = create_active_active_mux_direction_json_result(result, port, db)
+            else:
+                rc = False
+                rc = create_active_standby_mux_direction_json_result(result, port, db)
+            click.echo("{}".format(json.dumps(result, indent=4)))
+
         else:
-            rc = create_active_standby_mux_direction_result(body, port, db)
-            headers = ['Port', 'Direction', 'Presence']
-        click.echo(tabulate(body, headers=headers))
+            body = []
+            if cable_type == "active-active":
+                headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
+                rc = create_active_active_mux_direction_result(body, port, db)
+            else:
+                rc = create_active_standby_mux_direction_result(body, port, db)
+                headers = ['Port', 'Direction', 'Presence']
+            click.echo(tabulate(body, headers=headers))
 
         return rc
 
@@ -1340,6 +1379,9 @@ def muxdirection(db, port):
         rc_exit = True
         body = []
         active_active = False
+        if json_output:
+            result = {}
+            result ["HWMODE"] = {}
 
         for port in natsorted(logical_port_list):
 
@@ -1370,20 +1412,33 @@ def muxdirection(db, port):
             
             asic_index = get_asic_index_for_port(port)
             cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_index], port, "cable_type", "MUX_CABLE")
-            if cable_type == 'active-active':
-                rc = create_active_active_mux_direction_result(body, port, db)
-                active_active = True
-            else:
-                rc = create_active_standby_mux_direction_result(body, port, db)
-                headers = ['Port', 'Direction', 'Presence']
-            if rc != 0:
-                rc_exit = False
+            if json_output:
+                if cable_type == "active-active":
+                    rc = create_active_active_mux_direction_json_result(result, port, db)
+                    active_active = True
+                else:
+                    rc = create_active_standby_mux_direction_json_result(result, port, db)
 
-        if active_active:
-            headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+            else:
+                if cable_type == 'active-active':
+                    rc = create_active_active_mux_direction_result(body, port, db)
+                    active_active = True
+                else:
+                    rc = create_active_standby_mux_direction_result(body, port, db)
+                if rc != 0:
+                    rc_exit = False
+
+
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['Port', 'Direction', 'Presence']
-        click.echo(tabulate(body, headers=headers))
+            if active_active:
+
+                headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
+            else:
+                headers = ['Port', 'Direction', 'Presence']
+            click.echo(tabulate(body, headers=headers))
 
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
@@ -2132,7 +2187,7 @@ def muxdirection(db, port):
 
         body = []
 
-        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+        headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
         rc = create_active_active_mux_direction_result(body, port, db)
         click.echo(tabulate(body, headers=headers))
 
@@ -2177,7 +2232,7 @@ def muxdirection(db, port):
             if rc != True:
                 rc_exit = False
 
-        headers = ['Port', 'Direction', 'PeerDirection', 'Presence', 'ConnectivityState']
+        headers = ['Port', 'Direction', 'Presence', 'PeerDirection', 'ConnectivityState']
 
         click.echo(tabulate(body, headers=headers))
 
