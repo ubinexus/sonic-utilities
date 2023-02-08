@@ -2429,7 +2429,7 @@ def operationtime(db, port, json_output):
         actual_time = result.get("cable")
         if actual_time is not None:
             time = '{0:02.0f}:{1:02.0f}'.format(*divmod(int(actual_time) * 60, 60))
-            result['cable'] = time
+            result['operation_time'] = time
 
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
