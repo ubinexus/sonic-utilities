@@ -96,10 +96,10 @@ class TestSkuCreate(object):
             if (os.path.exists(output_xml_dir_path)):
                 shutil.rmtree(output_xml_dir_path)
 
-            my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
+            my_command = [sku_create_script, "-f", sku_def_file, "-d", xml_input_path]
 
             #Test case execution without stdout
-            result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+            result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
             print(result)
 
             #Check if the Output file exists
@@ -118,10 +118,10 @@ class TestSkuCreate(object):
         if (os.path.exists(output_minigraph_dir_path)):
             shutil.rmtree(output_minigraph_dir_path)
 
-        my_command = sku_create_script + " -m "  + minigraph_file  + " -d " + minigraph_input_path
+        my_command = [sku_create_script, "-m", minigraph_file, "-d", minigraph_input_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Check if the Output file exists
@@ -140,10 +140,10 @@ class TestSkuCreate(object):
         if (os.path.exists(output_config_db_dir_path)):
             shutil.rmtree(output_config_db_dir_path)
 
-        my_command = sku_create_script + " -j "  + config_db_file  + " -d " + config_db_input_path
+        my_command = [sku_create_script, "-j", config_db_file, "-d", config_db_input_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Check if the Output file exists
@@ -171,10 +171,10 @@ class TestSkuCreate(object):
         else:
              shutil.copyfile(model_config_db_file_path, port_split_pc_ini_file_output_path)
            
-        my_command = sku_create_script + " -s Ethernet16 2x50 -d " + port_split_input_path + " -q " + port_split_output_path
+        my_command = [sku_create_script, "-s", "Ethernet16", "2x50", "-d", port_split_input_path, "-q", port_split_output_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Verify the output of port_config.ini file
@@ -242,10 +242,10 @@ class TestSkuCreate(object):
         else:
              shutil.copyfile(model_config_db_file_path, port_unsplit_pc_ini_file_output_path)
            
-        my_command = sku_create_script + " -s Ethernet112 1x100 -d " + port_unsplit_input_path + " -q " + port_unsplit_output_path
+        my_command = [sku_create_script, "-s", "Ethernet112", "1x100", "-d", port_unsplit_input_path, "-q", port_unsplit_output_path]
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT)
         print(result)
 
         #Verify the output of port_config.ini file
