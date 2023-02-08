@@ -79,11 +79,17 @@ function stop_sonic_services()
         if [[ ($NUM_ASIC -gt 1) ]]; then
             asic_num=0
             while [[ ($asic_num -lt $NUM_ASIC) ]]; do
+                PLATFORM_PRE_SHUTDOWN="/usr/share/sonic/device/$PLATFORM/plugins/syncd_pre_shutdown.sh"
+                [ -f $PLATFORM_PRE_SHUTDOWN ] && $PLATFORM_PRE_SHUTDOWN start $asic_num
+
                 debug "Stopping syncd$asic_num process..."
                 docker exec -i syncd$asic_num /usr/bin/syncd_request_shutdown --cold > /dev/null
                 ((asic_num = asic_num + 1))
             done
         else
+            PLATFORM_PRE_SHUTDOWN="/usr/share/sonic/device/$PLATFORM/plugins/syncd_pre_shutdown.sh"
+            [ -f $PLATFORM_PRE_SHUTDOWN ] && $PLATFORM_PRE_SHUTDOWN start
+
             debug "Stopping syncd process..."
             docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         fi
