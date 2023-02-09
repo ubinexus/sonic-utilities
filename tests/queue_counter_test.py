@@ -1199,7 +1199,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet8 --json"]
+            ["Ethernet8", "--json"]
         )
         assert result.exit_code == 0
         print(result.output)
@@ -1224,7 +1224,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet0 --voq"]
+            ["Ethernet0", "--voq"]
         )
         print(result.output)
         assert result.exit_code == 0
