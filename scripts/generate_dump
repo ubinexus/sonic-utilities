@@ -1211,8 +1211,13 @@ collect_broadcom() {
     fi
 
     if [ "$bcm_family" == "broadcom-dnx" ]; then
-       switch_type=$(sonic-cfggen -d -v "DEVICE_METADATA['localhost']['switch_type']")
-       if [ $switch_type != "fabric" ]; then
+       supervisor=0
+       PLATFORM_ENV_CONF=/usr/share/sonic/device/${platform}/platform_env.conf
+       if [ -f "$PLATFORM_ENV_CONF" ]; then
+          source $PLATFORM_ENV_CONF
+       fi
+       if [[ x"$supervisor" != x"1" ]]; then
+
           save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
           save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
           total_fp_groups=34
