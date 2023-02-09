@@ -75,7 +75,7 @@ class TestConfigWrapper(unittest.TestCase):
         config_wrapper = gu_common.ConfigWrapper()
         config_wrapper.validate_field_operation(old_config, target_config)
 
-    def test_validate_field_operation_legal__loopback0(self):
+    def test_validate_field_operation_legal__rm_loopback1(self):
         old_config = {
             "LOOPBACK_INTERFACE": {
                 "Loopback0": {},
@@ -99,7 +99,7 @@ class TestConfigWrapper(unittest.TestCase):
         config_wrapper = gu_common.ConfigWrapper()
         self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
 
-    def test_validate_field_operation_illegal__loopback0(self):
+    def test_validate_field_operation_illegal__rm_loopback0(self):
         old_config = {
             "LOOPBACK_INTERFACE": {
                 "Loopback0": {},
