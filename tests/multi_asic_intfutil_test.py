@@ -10,7 +10,7 @@ modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 intf_status_all = """\
-      Interface         Lanes    Speed    MTU    FEC           Alias             Vlan    Oper    Admin                                             Type    Asym PFC
+      Interface         Lanes    Speed    MTU    FEC           Alias             Mode    Oper    Admin                                             Type    Asym PFC
 ---------------  ------------  -------  -----  -----  --------------  ---------------  ------  -------  -----------------------------------------------  ----------
       Ethernet0   33,34,35,36      40G   9100    N/A     Ethernet1/1  PortChannel1002      up       up                                  QSFP28 or later         off
       Ethernet4   29,30,31,32      40G   9100    N/A     Ethernet1/2  PortChannel1002      up       up                                              N/A         off
