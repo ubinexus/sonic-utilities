@@ -499,7 +499,7 @@ def validate_positive_int(ctx, param, value):
 def sonic_installer():
     """ SONiC image installation manager """
     if os.geteuid() != 0:
-        exit("Root privileges required for this operation")
+        sys.exit("Root privileges required for this operation")
 
     # Warn the user if they are calling the deprecated version of the command (with an underscore instead of a hyphen)
     if os.path.basename(sys.argv[0]) == "sonic_installer":
