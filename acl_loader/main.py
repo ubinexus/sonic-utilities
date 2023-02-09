@@ -165,8 +165,15 @@ class AclLoader(object):
         self.read_rules_info()
         self.read_sessions_info()
         self.read_policers_info()
-        self.read_acl_object_status_info(self.CFG_ACL_TABLE, self.STATE_ACL_TABLE)
-        self.read_acl_object_status_info(self.CFG_ACL_RULE, self.STATE_ACL_RULE)
+        self.acl_table_status = self.read_acl_object_status_info(self.CFG_ACL_TABLE, self.STATE_ACL_TABLE)
+        self.acl_rule_status = self.read_acl_object_status_info(self.CFG_ACL_RULE, self.STATE_ACL_RULE)
+
+    def read_tables_info(self):
+        """
+        Read ACL_TABLE table from configuration database
+        :return:
+        """
+        self.tables_db_info = self.configdb.get_table(self.ACL_TABLE)
 
     def get_tables_db_info(self):
         return self.tables_db_info
@@ -234,19 +241,27 @@ class AclLoader(object):
         """
         if self.per_npu_configdb:
             namespace_configdb = list(self.per_npu_configdb.values())[0]
-            self.acl_table_status = namespace_configdb.get_table(cfg_db_table_name)
+            keys = namespace_configdb.get_table(cfg_db_table_name).keys()
         else:
-            self.acl_table_status = self.configdb.get_table(cfg_db_table_name)
-        
-        for key in self.acl_table_status:
-            if self.per_npu_statedb:
-                self.acl_table_status[key]['status'] = {}
-                for namespace_key, namespace_statedb in self.per_npu_statedb.items():
-                    state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(state_db_table_name, key))
-                    self.acl_table_status[key]['status'][namespace_key] = state_db_info.get("status", "N/A") if state_db_info else "N/A"
+            keys = self.configdb.get_table(cfg_db_table_name).keys()
+
+        status = {}
+        for key in keys:
+            # For ACL_RULE, the key is (acl_table_name, acl_rule_name)
+            if isinstance(key, tuple):
+                state_db_key = key[0] + "|" + key[1]
             else:
-                state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(state_db_table_name, key))
-                self.acl_table_status[key]['status'][namespace_key] = state_db_info.get("status", "N/A") if state_db_info else "N/A"
+                state_db_key = key
+            status[key] = {}
+            if self.per_npu_statedb:
+                for namespace_key, namespace_statedb in self.per_npu_statedb.items():
+                    state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(state_db_table_name, state_db_key))
+                    status[key]['status'][namespace_key] = state_db_info.get("status", "N/A") if state_db_info else "N/A"
+            else:
+                state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(state_db_table_name, state_db_key))
+                status[key]['status'] = state_db_info.get("status", "N/A") if state_db_info else "N/A"
+        
+        return status
 
     def get_sessions_db_info(self):
         return self.sessions_db_info
@@ -819,7 +834,10 @@ class AclLoader(object):
             
             stage = val.get("stage", Stage.INGRESS).lower()
             # Get ACL table status from STATE_DB
-            status = self.acl_table_status.get(table_name, "N/A")
+            if key in self.acl_table_status:
+                status = self.acl_table_status[key]['status']
+            else:
+                status = 'N/A'
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
                 services = natsorted(val["services"])
                 data.append([key, val["type"], services[0], val["policy_desc"], stage, status])
@@ -945,8 +963,11 @@ class AclLoader(object):
             action = pop_action(val)
             matches = pop_matches(val)
             # Get ACL rule status from STATE_DB
-            status = self.acl_rule_status.get(rule_id, "N/A")
-
+            status_key = (tname, rid)
+            if status_key in self.acl_rule_status:
+                status = self.acl_rule_status[status_key]['status']
+            else:
+                status = "N/A"
             rule_data = [[tname, rid, priority, action, matches[0], status]]
             if len(matches) > 1:
                 for m in matches[1:]:
