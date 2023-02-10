@@ -2319,7 +2319,15 @@ def queueinfo(db, port, option, json_output):
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def health(db, port, json_output):
-    """Show muxcable health information as Ok or Not Ok """
+    """Show muxcable health information as Ok or Not Ok"""
+
+    """
+    in order to detemine whether the health of the cable is Ok
+    the following are checked
+     - the vendor name is correct able to be read
+     - the FW is correctly loaded for SerDes by reading the appropriate register val
+     - the Counters for UART are displaying healthy status 
+       i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
 
     port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_tables_helper()
