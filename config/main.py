@@ -1893,9 +1893,23 @@ def override_config_table(db, input_config_db, dry_run):
                     fg='magenta')
         sys.exit(1)
 
-    # Do the yang validation and config override for host namespace and 
+
+    # List of Tables that needs to be populated in host and asic namespaces
+    tables_per_namespace = {"MACSEC_PROFILE"}
+
+    # Get the namespace db connector where we really need to override the config.
+    # if any of the table in config_input is part of the list tables_per_namespace
+    # we override config in all namespaces, else do it only in host namespace.
+    db_list = {}
+    db_list[DEFAULT_NAMESPACE] = db.cfgdb
+    for table in config_input:
+        if table in tables_per_namespace:
+            db_list = db.cfgdb_clients
+            break
+
+    # Do the yang validation and config override for host namespace and
     # other namespaces in case of multi-asic platform
-    for ns, config_db in db.cfgdb_clients.items():
+    for ns, config_db in db_list.items():
         # Read config from configDB
         current_config = config_db.get_config()
         # Serialize to the same format as json input
@@ -1923,8 +1937,9 @@ def override_config_table(db, input_config_db, dry_run):
             print(json.dumps(updated_config, sort_keys=True,
                              indent=4, cls=minigraph_encoder))
         else:
-            override_config_db(ns, config_db, config_input)
-
+            namespace = "Host" if ns is DEFAULT_NAMESPACE else ns
+            click.echo("Working in {} namespace :".format(namespace))
+            override_config_db(config_db, config_input)
 
 def validate_config_by_cm(cm, config_json, jname):
     tmp_config_json = copy.deepcopy(config_json)
@@ -1944,18 +1959,17 @@ def update_config(current_config, config_input):
     return updated_config
 
 
-def override_config_db(ns, config_db, config_input):
-    namespace = "Host" if ns is DEFAULT_NAMESPACE else ns
+def override_config_db(config_db, config_input):
     # Deserialized golden config to DB recognized format
     sonic_cfggen.FormatConverter.to_deserialized(config_input)
     # Delete table from DB then mod_config to apply golden config
-    click.echo("{} namespace - Removing configDB overriden table first ...".format(namespace))
+    click.echo("  - Removing configDB overriden table first ...")
     for table in config_input:
         config_db.delete_table(table)
-    click.echo("{} namespace - Overriding input config to configDB ...".format(namespace))
+    click.echo("  - Overriding input config to configDB ...")
     data = sonic_cfggen.FormatConverter.output_to_db(config_input)
     config_db.mod_config(data)
-    click.echo("{} namespace - Overriding completed. No service is restarted.".format(namespace))
+    click.echo("  - Overriding completed. No service is restarted.")
 
 #
 # 'hostname' command
