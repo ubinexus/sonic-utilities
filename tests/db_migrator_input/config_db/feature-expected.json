@@ -19,7 +19,7 @@
 		"auto_restart": "enabled",
 		"has_global_scope": "False",
 		"has_per_asic_scope": "True",
-		"delayed": "False",
+		"delayed": "True",
 		"high_mem_alert": "disabled",
 		"state": "enabled"
 	}
