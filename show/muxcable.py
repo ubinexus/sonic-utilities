@@ -2353,14 +2353,14 @@ def health(db, port, json_output):
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        cable_health = result.get("cable_health", None)
+        cable_health = result.get("health_check", None)
 
         if cable_health == "False":
-            result["cable_health"] = "Not Ok"
+            result["health_check"] = "Not Ok"
         elif cable_health == "True":
-            result["cable_health"] = "Ok"
+            result["health_check"] = "Ok"
         else:
-            result["cable_health"] = "Unknown"
+            result["health_check"] = "Unknown"
 
             
 

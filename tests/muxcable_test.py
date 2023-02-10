@@ -624,7 +624,7 @@ Ethernet0  operation_time  200:00
 show_muxcable_health_expected_port_output="""\
 PORT       ATTR          HEALTH
 ---------  ------------  --------
-Ethernet0  cable_health  Ok
+Ethernet0  health_check  Ok
 """
 
 
