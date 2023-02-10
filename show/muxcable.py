@@ -35,6 +35,11 @@ STATUS_SUCCESSFUL = 0
 VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
+#define table names that interact with Cli
+XCVRD_GET_BER_CMD_TABLE = "XCVRD_GET_BER_CMD"
+XCVRD_GET_BER_RSP_TABLE = "XCVRD_GET_BER_RSP"
+XCVRD_GET_BER_RES_TABLE = "XCVRD_GET_BER_RES"
+XCVRD_GET_BER_CMD_ARG_TABLE = "XCVRD_GET_BER_CMD_ARG"
 
 def get_asic_index_for_port(port):
     asic_index = None
@@ -408,6 +413,17 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     delete_all_keys_in_db_table("STATE_DB", rsp_table_name)
 
     return res_dict
+
+
+def delete_all_keys_in_db_tables_helper():
+
+    delete_all_keys_in_db_table("APPL_DB", XCVRD_GET_BER_CMD_TABLE)
+    delete_all_keys_in_db_table("STATE_DB", XCVRD_GET_BER_RSP_TABLE)
+    delete_all_keys_in_db_table("STATE_DB", XCVRD_GET_BER_RES_TABLE)
+    delete_all_keys_in_db_table("APPL_DB", XCVRD_GET_BER_CMD_ARG_TABLE)
+
+    return 0 
+
 
 
 # 'muxcable' command ("show muxcable")
@@ -2261,13 +2277,10 @@ def muxdirection(db, port, json_output):
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def queueinfo(db, port, option, json_output):
-    """Show muxcable debug deump registers information, preagreed by vendors"""
+    """Show muxcable queue info information, preagreed by vendors"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-    delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2287,10 +2300,7 @@ def queueinfo(db, port, option, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        delete_all_keys_in_db_tables_helper()
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if json_output:
@@ -2300,7 +2310,7 @@ def queueinfo(db, port, option, json_output):
             res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
-        click.echo("Did not get a valid Port for debug dump registers".format(port))
+        click.echo("Did not get a valid Port for queue info information".format(port))
         sys.exit(CONFIG_FAIL)
 
 
@@ -2309,12 +2319,10 @@ def queueinfo(db, port, option, json_output):
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def health(db, port, json_output):
-    """Show muxcable health information """
+    """Show muxcable health information as Ok or Not Ok """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2332,11 +2340,20 @@ def health(db, port, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        cable_health = result.get("health_check", None)
+
+        if cable_health == "False":
+            result["health_check"] = "Not Ok"
+        else if cable_health == "True":
+            result["health_check"] = "Ok"
+        else if cable_health is None:
+            result["health_check"] = "Unknown"
+
+            
 
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
@@ -2345,7 +2362,7 @@ def health(db, port, json_output):
             res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
-        click.echo("Did not get a valid Port for cable alive status".format(port))
+        click.echo("Did not get a valid Port for cable health status".format(port))
         sys.exit(CONFIG_FAIL)
 
 @muxcable.command()
@@ -2353,12 +2370,10 @@ def health(db, port, json_output):
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def resetcause(db, port, json_output):
-    """Show muxcable health information """
+    """Show muxcable resetcause information """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2376,9 +2391,7 @@ def resetcause(db, port, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
@@ -2389,7 +2402,7 @@ def resetcause(db, port, json_output):
             res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
-        click.echo("Did not get a valid Port for cable alive status".format(port))
+        click.echo("Did not get a valid Port for cable resetcause information".format(port))
         sys.exit(CONFIG_FAIL)
 
 @muxcable.command()
@@ -2397,12 +2410,10 @@ def resetcause(db, port, json_output):
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def operationtime(db, port, json_output):
-    """Show muxcable operation time """
+    """Show muxcable operation time hh:mm:ss forrmat"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-    delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2419,14 +2430,12 @@ def operationtime(db, port, json_output):
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
-
-        delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
-        delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        
+        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        actual_time = result.get("cable")
+        actual_time = result.get("operation_time", 0)
         if actual_time is not None:
             time = '{0:02.0f}:{1:02.0f}'.format(*divmod(int(actual_time) * 60, 60))
             result['operation_time'] = time
@@ -2438,5 +2447,5 @@ def operationtime(db, port, json_output):
             res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
-        click.echo("Did not get a valid Port for cable alive status".format(port))
+        click.echo("Did not get a valid Port for operation time".format(port))
         sys.exit(CONFIG_FAIL)
