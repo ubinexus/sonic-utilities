@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 import itertools
 import copy
 
@@ -1189,6 +1190,18 @@ def load_backend_acl(cfg_db, device_type):
         if os.path.isfile(BACKEND_ACL_FILE):
             clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
 
+def validate_config_file(file):
+    """
+    A validator to check config files for syntax errors
+    """
+    try:
+        # Load golden config json
+        read_json_file(file)
+    except Exception as e:
+        click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                    fg='magenta')
+        sys.exit(1)
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1567,10 +1580,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    #Stop services before config push
-    if not no_service_restart:
-        log.log_info("'reload' stopping services...")
-        _stop_services()
+    # Create a dictionary to store each cfg_file, namespace, and a bool representing if a the file exists
+    cfg_file_dict = {}
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1597,7 +1608,46 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
 
         # Check the file exists before proceeding.
+        # Instead of exiting, skip the current namespace and check the next one
         if not os.path.exists(file):
+            cfg_file_dict[inst] = [file, namespace, False]
+            continue
+
+        # Check the file is properly formatted before proceeding.
+        if not sys.stdin.isatty():
+            # Pathway to store /dev/stdin contents in a temporary file
+            TMP_FILE = os.path.join('/', "tmp", f"tmp_config_stdin_{str(uuid.uuid4())}.json")
+            if os.path.exists(TMP_FILE):
+                click.secho("Unable to validate '{}' contents".format(file),
+                            fg='magenta')
+                sys.exit(1)
+            with open(file, 'r' ) as input_file, open( TMP_FILE, 'w') as tmp:
+                for line in input_file:
+                    tmp.write(line)
+            try:
+                # Load golden config json
+                read_json_file(file)
+            except Exception as e:
+                os.remove(TMP_FILE)
+                click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                            fg='magenta')
+                sys.exit(1)
+            cfg_file_dict[inst] = [TMP_FILE, namespace, True]  
+        else:
+            validate_config_file(file)
+            cfg_file_dict[inst] = [file, namespace, True]
+
+    #Validate INIT_CFG_FILE if it exits
+    if os.path.isfile(INIT_CFG_FILE):
+        validate_config_file(INIT_CFG_FILE)
+
+    #Stop services before config push
+    if not no_service_restart:
+        log.log_info("'reload' stopping services...")
+        _stop_services()
+
+    for file, namespace, file_exists in cfg_file_dict.values():
+        if not file_exists:
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
@@ -2166,7 +2216,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
             parent_intf = get_intf_longname(intf)
             if parent_intf == port_name:
                 ctx.fail(" {} has subinterfaces configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
-
+    
         # Dont allow a port to be member of port channel if it is configured as a VLAN member
         for k,v in db.get_table('VLAN_MEMBER'):
             if v == port_name:
