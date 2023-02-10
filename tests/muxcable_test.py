@@ -616,8 +616,9 @@ Ethernet0  server_ipv4  10.2.1.1        added     added
 
 show_muxcable_operationtime_expected_port_output="""\
 PORT       ATTR              OPERATION_TIME
+PORT       ATTR            OPERATION_TIME
 ---------  --------------  ----------------
-Ethernet0  operation_time               200
+Ethernet0  operation_time  200:00
 """
 
 show_muxcable_health_expected_port_output="""\
