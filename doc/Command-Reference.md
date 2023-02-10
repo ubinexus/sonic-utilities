@@ -6021,7 +6021,67 @@ While displaying the muxcable queueinfo, users need to provide the following fie
            }
     ```
 
+**show muxcable operationtime <port>**
 
+This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format.
+
+- Usage:
+  ```
+  show muxcable operationtime [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable operationtime, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4
+      PORT       ATTR            OPERATION_TIME
+      ---------  --------------  ----------------
+      Ethernet4  operation_time  22.22
+    ```
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4 --json
+    ```
+    ```json
+           {
+               "operation_time": "22.22"
+           }
+    ```
+
+**show muxcable resetcause <port>**
+
+This command displays the resetcause of  the Y-cable which are connected to muxcable. The resultant table or json output will show the most recent reset cause of the cable as string format.
+
+- Usage:
+  ```
+  show muxcable resetcause [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable resetcause, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4
+      PORT       ATTR           RESETCAUSE
+      ---------  -----------  ------------
+      Ethernet4  reset_cause             0
+    ```
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4 --json
+    ```
+    ```json
+           {
+               "reset_cause": "0"
+           }
+    ```
 
 
 ### Muxcable Config commands
