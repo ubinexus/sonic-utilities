@@ -5953,6 +5953,77 @@ This command displays the eye info in mv(milli volts) of the port user provides 
         632      622
     ```
 
+
+**show muxcable health <port>**
+
+This command displays the hardware health of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current hadrware health of the cable as Ok, Not Ok, Unknown.
+
+- Usage:
+  ```
+  show muxcable health [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable health, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4
+      PORT       ATTR    HEALTH
+      ---------  ------  --------
+      Ethernet4  health  Ok
+    ```
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4 --json
+    ```
+    ```json
+           {
+               "health": "Ok"
+           }
+
+    ```
+
+
+**show muxcable queueinfo <port>**
+
+This command displays the queue info of  the Y-cable which are connected to muxcable. The resultant table or json output will show the queue info in terms transactions for the UART stats in particular currently relevant to the MCU of the cable.
+
+- Usage:
+  ```
+  show muxcable queueinfo [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable queueinfo, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable queueinfo Ethernet0
+      PORT       ATTR          VALUE
+      ---------  ----------  -------
+      Ethernet0  uart_stat1        2
+      Ethernet0  uart_stat2        1
+    ```
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4 --json
+    ```
+    ```json
+           {
+               "uart_stat1": "2",
+               "uart_stat2": "1",
+                 
+           }
+    ```
+
+
+
+
 ### Muxcable Config commands
 
 

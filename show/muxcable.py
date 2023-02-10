@@ -2328,6 +2328,7 @@ def health(db, port, json_output):
      - the FW is correctly loaded for SerDes by reading the appropriate register val
      - the Counters for UART are displaying healthy status 
        i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
+    """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_tables_helper()
