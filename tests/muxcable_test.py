@@ -615,7 +615,6 @@ Ethernet0  server_ipv4  10.2.1.1        added     added
 
 
 show_muxcable_operationtime_expected_port_output="""\
-PORT       ATTR              OPERATION_TIME
 PORT       ATTR            OPERATION_TIME
 ---------  --------------  ----------------
 Ethernet0  operation_time  200:00
@@ -2590,7 +2589,7 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
-    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"cable_health": "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"health_check": "True"}))
     def test_show_mux_health(self):
         runner = CliRunner()
         db = Db()
