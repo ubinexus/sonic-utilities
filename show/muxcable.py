@@ -2357,9 +2357,9 @@ def health(db, port, json_output):
 
         if cable_health == "False":
             result["health_check"] = "Not Ok"
-        else if cable_health == "True":
+        elif cable_health == "True":
             result["health_check"] = "Ok"
-        else if cable_health is None:
+        else:
             result["health_check"] = "Unknown"
 
             
