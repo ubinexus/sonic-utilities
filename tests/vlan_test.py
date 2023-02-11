@@ -449,7 +449,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Vlan1001 does not exist" in result.output
 
-    def test_config_vlan_add_vlan_with_multiple_vlanids(self):
+    def test_config_vlan_add_vlan_with_multiple_vlanids(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["10,20,30,40", "--multiple"])
         print(result.exit_code)
@@ -457,7 +457,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == test_config_vlan_add_vlan_with_multiple_vlanids_output 
 
-    def test_config_vlan_add_vlan_with_multiple_vlanids_with_range(self):
+    def test_config_vlan_add_vlan_with_multiple_vlanids_with_range(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["10-20", "--multiple"])
         print(result.exit_code)
@@ -465,7 +465,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == test_config_vlan_add_vlan_with_multiple_vlanids_with_range_output
 
-    def  test_config_vlan_add_vlan_with_multiple_vlanids_with_range_and_multiple_ids(self):
+    def  test_config_vlan_add_vlan_with_multiple_vlanids_with_range_and_multiple_ids(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["10-15,20,25,30", "--multiple"])
         print(result.exit_code)
@@ -801,7 +801,7 @@ class TestVlan(object):
 
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
-    def test_config_add_del_multiple_vlan_and_vlan_member(self):
+    def test_config_add_del_multiple_vlan_and_vlan_member(self,mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -864,7 +864,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_output
 
-    def test_config_add_del_add_vlans_and_add_vlans_member_except_vlan(self):
+    def test_config_add_del_add_vlans_and_add_vlans_member_except_vlan(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -943,7 +943,7 @@ class TestVlan(object):
         assert result.output == show_vlan_brief_output
 
 
-    def test_config_add_del_add_vlans_and_add_all_vlan_member(self):
+    def test_config_add_del_add_vlans_and_add_all_vlan_member(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -1010,7 +1010,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_output
 
-    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes(self):
+    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -1126,7 +1126,7 @@ class TestVlan(object):
         assert result.output == show_vlan_brief_output
 
 
-    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types(self):
+    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
