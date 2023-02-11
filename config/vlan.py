@@ -1,5 +1,6 @@
 import click
 import utilities_common.cli as clicommon
+import utilities_common.dhcp_relay_util as dhcp_relay_util
 
 from jsonpatch import JsonPatchConflict
 from time import sleep
@@ -20,6 +21,11 @@ def vlan():
     pass
 
 
+
+def set_dhcp_relay_table(table, config_db, vlan_name, value):
+    config_db.set_entry(table, vlan_name, value)
+
+
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True)
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
@@ -28,6 +34,7 @@ def add_vlan(db, vid, multiple):
     """Add VLAN"""
 
     ctx = click.get_current_context()
+    
     config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     vid_list = []
@@ -60,12 +67,23 @@ def add_vlan(db, vid, multiple):
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
                 log.log_info("{} already exists".format(vlan))
                 ctx.fail("{} already exists".format(vlan))
+				
+            if clicommon.check_if_vlanid_exist(db.cfgdb, vlan, "DHCP_RELAY"):
+                ctx.fail("DHCPv6 relay config for {} already exists".format(vlan))
 
             try:
+				# set dhcpv4_relay / VLAN table
                 config_db.set_entry('VLAN', vlan, {'vlanid': str(vid)})
                 click.echo("Vlan{} has been added".format(vid))
+				
+				# set dhcpv6_relay table
+				set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, {'vlanid': str(vid)})
+				# We need to restart dhcp_relay service after dhcpv6_relay config change
+				dhcp_relay_util.handle_restart_dhcp_relay_service()
+				
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
+
 
 
 @vlan.command('del')
@@ -117,11 +135,18 @@ def del_vlan(db, vid, multiple):
                 if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
                     ctx.fail("vlan: {} can not be removed. First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)))
             try:
+			
+				# set dhcpv4_relay / VLAN table
                 config_db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
                 click.echo("Vlan{} has deleted added".format(vid))
+				
+				# set dhcpv6_relay table
+				set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
+				# We need to restart dhcp_relay service after dhcpv6_relay config change
+				dhcp_relay_util.handle_restart_dhcp_relay_service()
+				
             except JsonPatchConflict:
                 ctx.fail("{} does not exist".format(vlan))
-                
 
 
 def restart_ndppd():
