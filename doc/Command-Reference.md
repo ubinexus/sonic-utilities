@@ -6089,14 +6089,14 @@ Currently the known resetcauses that could be displayed are
       admin@sonic:~$ show muxcable resetcause Ethernet4
       PORT       ATTR           RESETCAUSE
       ---------  -----------  ------------
-      Ethernet4  reset_cause             0
+      Ethernet4  reset_cause  reset by ToR
     ```
     ```
       admin@sonic:~$ show muxcable resetcause Ethernet4 --json
     ```
     ```json
            {
-               "reset_cause": "0"
+               "reset_cause": "reset by ToR"
            }
     ```
 
