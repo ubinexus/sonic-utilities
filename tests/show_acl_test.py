@@ -91,3 +91,4 @@ class TestShowACLMultiASIC(object):
         result_top = result.output.split('\n')[2]
         expected_output = "DATAACL_5  RULE_1        9999  FORWARD   IP_PROTOCOL: 126  {'asic0': 'Active', 'asic2': 'Active'}"
         assert result_top == expected_output
+        
