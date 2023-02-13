@@ -415,7 +415,7 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     return res_dict
 
 
-def delete_all_keys_in_db_tables_helper():
+def delete_all_keys_in_db_tables_helper(db= None):
 
     delete_all_keys_in_db_table("APPL_DB", XCVRD_GET_BER_CMD_TABLE)
     delete_all_keys_in_db_table("STATE_DB", XCVRD_GET_BER_RSP_TABLE)
