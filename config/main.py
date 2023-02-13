@@ -863,7 +863,7 @@ def _get_sonic_services():
 
 
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services()):
+    for service in _get_sonic_services():
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
