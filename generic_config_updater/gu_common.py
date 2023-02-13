@@ -176,7 +176,6 @@ class ConfigWrapper:
         for element in patch:
             path = element["path"]
             table = re.search(r'\/([^\/]+)(\/|$)', path).group(1) # This matches the table name in the path, eg. PFC_WD without the forward slashes
-            print('hi')
             validating_functions= set()
             tables = gcu_table_modification_conf["tables"]
             validating_functions.update(tables.get(table, {}).get("table_modification_validators", []))
