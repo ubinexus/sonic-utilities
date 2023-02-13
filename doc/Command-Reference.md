@@ -441,14 +441,15 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
     -?, -h, --help  Show this message and exit.
 
   Commands:
-    counters     Show interface counters
-    description  Show interface status, protocol and...
-    naming_mode  Show interface naming_mode status
-    neighbor     Show neighbor related information
-    portchannel  Show PortChannel information
-    status       Show Interface status information
-    tpid         Show Interface tpid information
-    transceiver  Show SFP Transceiver information
+    counters       Show interface counters
+    description    Show interface status, protocol and...
+    link-training  Show interface link-training information
+    naming_mode    Show interface naming_mode status
+    neighbor       Show neighbor related information
+    portchannel    Show PortChannel information
+    status         Show Interface status information
+    tpid           Show Interface tpid information
+    transceiver    Show SFP Transceiver information
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
@@ -926,7 +927,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware]) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | info | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -964,6 +965,48 @@ This command displays information for all the interfaces for the transceiver req
                   Vcc : 0.0000Volts
   ```
 
+- Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet16):
+  ```
+  admin@sonic:~$ show interfaces transceiver info Ethernet16
+  Ethernet16: SFP EEPROM detected
+          Active Firmware: 61.20
+          Active application selected code assigned to host lane 1: 1
+          Active application selected code assigned to host lane 2: 1
+          Active application selected code assigned to host lane 3: 1
+          Active application selected code assigned to host lane 4: 1
+          Active application selected code assigned to host lane 5: 1
+          Active application selected code assigned to host lane 6: 1
+          Active application selected code assigned to host lane 7: 1
+          Active application selected code assigned to host lane 8: 1
+          Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                    400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                    100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+          CMIS Rev: 4.1
+          Connector: LC
+          Encoding: N/A
+          Extended Identifier: Power Class 8 (20.0W Max)
+          Extended RateSelect Compliance: N/A
+          Host Lane Count: 8
+          Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+          Inactive Firmware: 61.20
+          Length Cable Assembly(m): 0.0
+          Media Interface Technology: 1550 nm DFB
+          Media Lane Count: 1
+          Module Hardware Rev: 49.49
+          Nominal Bit Rate(100Mbs): 0
+          Specification Compliance: sm_media_interface
+          Supported Max Laser Frequency: 196100
+          Supported Max TX Power: 4.0
+          Supported Min Laser Frequency: 191300
+          Supported Min TX Power: -22.9
+          Vendor Date Code(YYYY-MM-DD Lot): 2020-21-02 17
+          Vendor Name: Acacia Comm Inc.
+          Vendor OUI: 7c-b2-5c
+          Vendor PN: DP04QSDD-E20-00E
+          Vendor Rev: 01
+          Vendor SN: 210753986
+  ```
+
 - Example (Display status of low-power mode of SFP transceiver connected to Ethernet100):
   ```
   admin@sonic:~$ show interfaces transceiver lpmode Ethernet100
@@ -987,6 +1030,30 @@ This command displays information for all the interfaces for the transceiver req
   Port         Error Status
   -----------  --------------
   Ethernet100  OK
+  ```
+
+- Example (Display performance monitoring info of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver pm Ethernet100
+  Ethernet100:
+      Parameter        Unit    Min       Avg       Max       Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
+                                                             High         High         Crossing      Low          Low          Crossing
+                                                             Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
+      ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
+      Tx Power         dBm     -8.22     -8.23     -8.24     -5.0         -6.0         False         -16.99       -16.003      False
+      Rx Total Power   dBm     -10.61    -10.62    -10.62    2.0          0.0          False         -21.0        -18.0        False
+      Rx Signal Power  dBm     -40.0     0.0       40.0      13.0         10.0         True          -18.0        -15.0        True
+      CD-short link    ps/nm   0.0       0.0       0.0       1000.0       500.0        False         -1000.0      -500.0       False
+      PDL              dB      0.5       0.6       0.6       4.0          4.0          False         0.0          0.0          False
+      OSNR             dB      36.5      36.5      36.5      99.0         99.0         False         0.0          0.0          False
+      eSNR             dB      30.5      30.5      30.5      99.0         99.0         False         0.0          0.0          False
+      CFO              MHz     54.0      70.0      121.0     3800.0       3800.0       False         -3800.0      -3800.0      False
+      DGD              ps      5.37      5.56      5.81      7.0          7.0          False         0.0          0.0          False
+      SOPMD            ps^2    0.0       0.0       0.0       655.35       655.35       False         0.0          0.0          False
+      SOP ROC          krad/s  1.0       1.0       2.0       N/A          N/A          N/A           N/A          N/A          N/A
+      Pre-FEC BER      N/A     4.58E-04  4.66E-04  5.76E-04  1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
+      Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
+      EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
@@ -1988,6 +2055,26 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
+**show suppress-fib-pending**
+
+This command is used to show the status of suppress pending FIB feature.
+When enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  show suppress-fib-pending
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show suppress-fib-pending
+  Enabled
+  ```
+  ```
+  admin@sonic:~$ show suppress-fib-pending
+  Disabled
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ### BGP config commands
@@ -2078,6 +2165,24 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
+  ```
+
+**config suppress-fib-pending**
+
+This command is used to enable or disable announcements of routes not yet installed in the HW.
+Once enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  config suppress-fib-pending <enabled|disabled>
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config suppress-fib-pending enabled
+  ```
+  ```
+  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -2345,6 +2450,74 @@ This command is used to delete a configured DHCP Relay Destination IP address or
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7 1.1.1.1
   Removed DHCP relay destination address ('7.7.7.7', '1.1.1.1') from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+**config dhcp_relay ipv4 helper add/del**
+
+This command is used to add or delete IPv4 DHCP Relay helper addresses to a VLAN. Note that more than one DHCP Relay helper addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv4 helper (add | del) <vlan_id> <dhcp_helper_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7
+  Added DHCP relay address [7.7.7.7] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7 1.1.1.1
+  Added DHCP relay address [7.7.7.7, 1.1.1.1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7
+  Removed DHCP relay address [7.7.7.7] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7 1.1.1.1
+  Removed DHCP relay address [7.7.7.7, 1.1.1.1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+**config dhcp_relay ipv6 destination add/del**
+
+This command is used to add or del IPv6 DHCP Relay destination addresses to a VLAN. Note that more than one DHCP Relay Destination addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv6 destination (add | del) <vlan_id> <dhcp_destination_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1
+  Added DHCP relay address [fc02:2000::1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1 fc02:2000::2
+  Added DHCP relay address [fc02:2000::1, fc02:2000::2] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1
+  Removed DHCP relay address [fc02:2000::1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1 fc02:2000::2
+  Removed DHCP relay address [fc02:2000::1, fc02:2000::2] from Vlan1000
   Restarting DHCP relay service...
   ```
 
@@ -3643,6 +3816,35 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces link-training (Versions >= 202211)**
+
+This command is to display the link-training status of the selected interfaces. If **interface_name** is not specicied, this command shows the link-training status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces link-training status [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces link-training status
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet0      trained          on      up       up
+    Ethernet8      trained          on      up       up
+   Ethernet16          off         off    down       up
+   Ethernet24  not trained          on    down       up
+   Ethernet32          off         off    down       up
+  ```
+
+- Example (to only display the link-training status of interface Ethernet8):
+  ```
+  admin@sonic:~$ show interfaces link-training status Ethernet8
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet8      trained          on      up       up
+  ```
+
 **show interfaces mpls**
 
 This command is used to display the configured MPLS state for the list of configured interfaces.
@@ -3841,6 +4043,7 @@ This sub-section explains the following list of configuration on the interfaces.
 10) type - to set interface type
 11) mpls - To add or remove MPLS operation for the interface
 12) loopback-action - to set action for packet that ingress and gets routed on the same IP interface
+13) link-training - to set interface link-training mode
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -4411,6 +4614,29 @@ Loopback action can be drop or forward.
   admin@sonic:~$ config interface ip loopback-action Ethernet0 forward
 
   ```
+
+**config interface link-training <interface_name> (Versions >= 202211)**
+
+This command is used for setting link-training mode of a interface.
+
+- Usage:
+  ```
+  sudo config interface link-training --help
+  Usage: config interface link-training [OPTIONS] <interface_name> <mode>
+
+    Set interface link-training mode
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface link-training Ethernet0 on
+  admin@sonic:~$ sudo config interface link-training Ethernet0 off
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
