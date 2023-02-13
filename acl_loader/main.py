@@ -254,6 +254,7 @@ class AclLoader(object):
                 state_db_key = key
             status[key] = {}
             if self.per_npu_statedb:
+                status[key]['status'] = {}
                 for namespace_key, namespace_statedb in self.per_npu_statedb.items():
                     state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(state_db_table_name, state_db_key))
                     status[key]['status'][namespace_key] = state_db_info.get("status", "N/A") if state_db_info else "N/A"
