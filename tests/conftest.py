@@ -20,6 +20,7 @@ from .bgp_commands_input.bgp_network_test_vector import (
     )
 from . import config_int_ip_common
 import utilities_common.constants as constants
+import config.main as config
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -169,6 +170,9 @@ def setup_single_bgp_instance(request):
     elif request.param == 'v6':
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'ipv6_bgp_summary.json')
+    elif request.param == 'show_run_bgp':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'show_run_bgp.txt')
     elif request.param == 'ip_route':
         bgp_mocked_json = 'ip_route.json'
     elif request.param == 'ip_specific_route': 
@@ -187,6 +191,13 @@ def setup_single_bgp_instance(request):
         return "{}"
 
     def mock_show_bgp_summary(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
+        if os.path.isfile(bgp_mocked_json):
+            with open(bgp_mocked_json) as json_data:
+                mock_frr_data = json_data.read()
+            return mock_frr_data
+        return ""
+
+    def mock_show_run_bgp(request):
         if os.path.isfile(bgp_mocked_json):
             with open(bgp_mocked_json) as json_data:
                 mock_frr_data = json_data.read()
@@ -239,6 +250,9 @@ def setup_single_bgp_instance(request):
     elif request.param == "show_bgp_summary_no_neigh":
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_summary_no_neigh("", ""))
+    elif request.param.startswith('show_run_bgp'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_run_bgp(request))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_summary("", ""))
@@ -270,6 +284,10 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_special_recursive_route.json'
     elif request.param == 'ip_route_summary':
         m_asic_json_file = 'ip_route_summary.txt'
+    elif request.param == 'show_run_bgp':
+        m_asic_json_file = 'show_run_bgp.txt'
+    elif request.param == 'show_not_running_bgp':
+        m_asic_json_file = 'show_not_running_bgp.txt'
     elif request.param.startswith('bgp_v4_network') or \
         request.param.startswith('bgp_v6_network') or \
         request.param.startswith('bgp_v4_neighbor') or \
@@ -339,3 +357,13 @@ def setup_fib_commands():
     import show.main as show
     return show
 
+
+@pytest.fixture(scope='function')
+def mock_restart_dhcp_relay_service():
+    print("We are mocking restart dhcp_relay")
+    origin_func = config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service
+    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+
+    yield
+
+    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = origin_func

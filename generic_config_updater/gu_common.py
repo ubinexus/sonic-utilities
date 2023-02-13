@@ -58,7 +58,9 @@ class ConfigWrapper:
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
-        return json.loads(text)
+        config_db_json = json.loads(text)
+        config_db_json.pop("bgpraw", None)
+        return config_db_json
 
     def _get_config_db_as_text(self):
         # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
@@ -151,9 +153,14 @@ class ConfigWrapper:
         patch = jsonpatch.JsonPatch.from_diff(old_config, target_config)
         
         # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation 
-        illegal_operations_to_fields_map = {'add':[],
-                                            'replace': [],
-                                            'remove': ['/PFC_WD/GLOBAL/POLL_INTERVAL', '/PFC_WD/GLOBAL']}
+        illegal_operations_to_fields_map = {
+            'add':[],
+            'replace': [],
+            'remove': [
+                '/PFC_WD/GLOBAL/POLL_INTERVAL',
+                '/PFC_WD/GLOBAL',
+                '/LOOPBACK_INTERFACE/Loopback0']
+        }
         for operation, field_list in illegal_operations_to_fields_map.items():
             for field in field_list:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
