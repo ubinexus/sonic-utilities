@@ -5968,6 +5968,15 @@ While displaying the muxcable health, users need to provide the following fields
 - PORT     required - Port name should be a valid port
 - --json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
+-Ok means the cable is healthy
+
+in order to detemine whether the health of the cable is Ok
+the following are checked
+- the vendor name is correct able to be read
+- the FW is correctly loaded for SerDes by reading the appropriate register val
+- the Counters for UART are displaying healthy status 
+       i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
+
 
 - Example:
     ```
@@ -6001,6 +6010,10 @@ While displaying the muxcable queueinfo, users need to provide the following fie
 - PORT     required - Port name should be a valid port
 - --json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
+the result will be displayed like this, each item in the dictionary shows the health of the attribute in the queue
+```
+"{'VSC': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 0, 'node_size': 0}, 'UART1': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 209870, 'node_size': 1682183}, 'UART2': {'r_ptr': 13262, 'w_ptr': 3, 'total_count': 0, 'free_count': 0, 'buff_addr': 12, 'node_size': 0}
+```
 
 - Example:
     ```
@@ -6023,7 +6036,7 @@ While displaying the muxcable queueinfo, users need to provide the following fie
 
 **show muxcable operationtime <port>**
 
-This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format.
+This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format. Operation time means the time since the last time the start/reset of the cable is done, and the time would be in the format specified
 
 - Usage:
   ```
@@ -6066,6 +6079,10 @@ While displaying the muxcable resetcause, users need to provide the following fi
 - PORT     required - Port name should be a valid port
 - --json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
+Currently the known resetcauses that could be displayed are
+- Reset Issue by the ToR
+- Cable Powered on/off from the NiC
+- Cable reseated from server side
 
 - Example:
     ```
