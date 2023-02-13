@@ -2271,6 +2271,7 @@ def muxdirection(db, port, json_output):
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
+@delete_all_keys_in_db_tables_helper()
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.argument('option', required=False, default=None)
@@ -2280,7 +2281,6 @@ def queueinfo(db, port, option, json_output):
     """Show muxcable queue info information, preagreed by vendors"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2300,7 +2300,6 @@ def queueinfo(db, port, option, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_tables_helper()
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if json_output:
@@ -2314,6 +2313,7 @@ def queueinfo(db, port, option, json_output):
         sys.exit(CONFIG_FAIL)
 
 
+@delete_all_keys_in_db_tables_helper()
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
@@ -2331,7 +2331,6 @@ def health(db, port, json_output):
     """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2349,7 +2348,6 @@ def health(db, port, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
@@ -2374,6 +2372,7 @@ def health(db, port, json_output):
         click.echo("Did not get a valid Port for cable health status".format(port))
         sys.exit(CONFIG_FAIL)
 
+@delete_all_keys_in_db_tables_helper()
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
@@ -2382,7 +2381,6 @@ def resetcause(db, port, json_output):
     """Show muxcable resetcause information """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2400,7 +2398,6 @@ def resetcause(db, port, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
 
-        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
@@ -2414,6 +2411,7 @@ def resetcause(db, port, json_output):
         click.echo("Did not get a valid Port for cable resetcause information".format(port))
         sys.exit(CONFIG_FAIL)
 
+@delete_all_keys_in_db_tables_helper()
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
@@ -2422,7 +2420,6 @@ def operationtime(db, port, json_output):
     """Show muxcable operation time hh:mm:ss forrmat"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
-    delete_all_keys_in_db_tables_helper()
 
     if port is not None:
 
@@ -2440,7 +2437,6 @@ def operationtime(db, port, json_output):
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
 
         
-        delete_all_keys_in_db_tables_helper()
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
 
