@@ -2271,7 +2271,7 @@ def muxdirection(db, port, json_output):
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
-@delete_all_keys_in_db_tables_helper()
+@delete_all_keys_in_db_tables_helper
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.argument('option', required=False, default=None)
@@ -2313,7 +2313,7 @@ def queueinfo(db, port, option, json_output):
         sys.exit(CONFIG_FAIL)
 
 
-@delete_all_keys_in_db_tables_helper()
+@delete_all_keys_in_db_tables_helper
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
@@ -2372,7 +2372,7 @@ def health(db, port, json_output):
         click.echo("Did not get a valid Port for cable health status".format(port))
         sys.exit(CONFIG_FAIL)
 
-@delete_all_keys_in_db_tables_helper()
+@delete_all_keys_in_db_tables_helper
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
@@ -2411,7 +2411,7 @@ def resetcause(db, port, json_output):
         click.echo("Did not get a valid Port for cable resetcause information".format(port))
         sys.exit(CONFIG_FAIL)
 
-@delete_all_keys_in_db_tables_helper()
+@delete_all_keys_in_db_tables_helper
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
