@@ -3,8 +3,10 @@ import json
 import jsonpatch
 import sonic_yang
 import unittest
-from unittest.mock import MagicMock, Mock
+import mock
 
+from unittest.mock import MagicMock, Mock
+from mock import patch
 from .gutest_helpers import create_side_effect_dict, Files
 import generic_config_updater.gu_common as gu_common
 
@@ -57,6 +59,7 @@ class TestConfigWrapper(unittest.TestCase):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
         self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
 
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"asic_type": "mellanox", "build_version": "201811"}))
     def test_validate_field_operation_legal(self):
         old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
         target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "40"}}}
@@ -64,8 +67,15 @@ class TestConfigWrapper(unittest.TestCase):
         config_wrapper.validate_field_operation(old_config, target_config)
     
     def test_validate_field_operation_illegal(self):
-        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": 60}}}
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
         target_config = {"PFC_WD": {"GLOBAL": {}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+    
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"asic_type": "invalid-asic", "build_version": "201811"}))
+    def test_validate_field_modification_illegal(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "80"}}}
         config_wrapper = gu_common.ConfigWrapper()
         self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
 

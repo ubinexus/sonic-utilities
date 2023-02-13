@@ -9,31 +9,13 @@
         "",
         "e.g. 'show.acl.test_acl'",
         "",
-	"table_modification_validators_and for a given table defines a list of validators that all must pass for modification to the table to be allowed",
-	"table_modification_validators_or for a given table defines a list of validators, at least one of which must pass for modification of the table to be allowed",
+        "table_modification_validators for a given table defines a list of validators that all must pass for modification to the table to be allowed",
         ""
     ],
     "tables": {
-	"PFC_WD": {
-            "table_modification_validators_and": [ "generic_config_updater.validators.is_mellanox_device_validator" ],
-            "table_modification_validators_or": [  ]
-	},
-	"BUFFER_POOL": {
-            "table_modification_validators_and": [ "generic_config_updater.validators.is_mellanox_device_validator" ],
-	    "table_modification_validators_or": [  ]
-	},
-	"WRED_PROFILE": {
-            "table_modification_validators_and": [ "generic_config_updater.validators.is_mellanox_device_validator" ],
-	    "table_modification_validators_or": [  ]
-	},
-	"QUEUE": {
-            "table_modification_validators_and": [ "generic_config_updater.validators.is_mellanox_device_validator" ],
-	    "table_modification_validators_or": [  ]
-	},
-	"BUFFER_PROFILE": {
-            "table_modification_validators_and": [ "generic_config_updater.validators.is_mellanox_device_validator" ],
-	    "table_modification_validators_or": [  ]
-	}
+        "PFC_WD": {
+            "table_modification_validators": [ "generic_config_updater.validators.rdma_config_update_validator" ]
+        }
     }
 }
 

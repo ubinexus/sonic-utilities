@@ -172,24 +172,19 @@ class ConfigWrapper:
                 gcu_table_modification_conf = json.load(s)
         else:
             raise GenericConfigUpdaterError("GCU table modification validators config file not found") 
-        
+
         for element in patch:
             path = element["path"]
             table = re.search(r'\/([^\/]+)(\/|$)', path).group(1) # This matches the table name in the path, eg. PFC_WD without the forward slashes
-            validating_functions_and = set()
-            validating_functions_or = set()
+            print('hi')
+            validating_functions= set()
             tables = gcu_table_modification_conf["tables"]
-            validating_functions_and.update(tables.get(table, {}).get("table_modification_validators_and", []))
-            validating_functions_or.update(tables.get(table, {}).get("table_modification_validators_or", [])) 
-            # For added flexibility in the future, we can extend the table to store a list of lists, to account for (X AND Y AND Z) OR (S AND T)
-            
-            for function in validating_functions_and:
+            validating_functions.update(tables.get(table, {}).get("table_modification_validators", []))
+
+            for function in validating_functions:
                 if not _invoke_validating_function(function):
                     raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
 
-            if validating_functions_or and not any(_invoke_validating_function(function) for function in validating_functions_or):
-                raise IllegalPatchOperationError("Modification of {} table is illegal- all validating functions returned False".format(table))
- 
 
     def validate_lanes(self, config_db):
         if "PORT" not in config_db:
