@@ -24,10 +24,7 @@ def cli():
     pass
 
 
-vtysh_cmd = ["sudo", "vtysh", "-c"]
-bgp_cmd = "no debug bgp "
-zebra_cmd = "no debug zebra "
-p = subprocess.check_output(vtysh_cmd + ['show version'], text=True)
+p = subprocess.check_output(["sudo", "vtysh", "-c", 'show version'], text=True)
 if 'FRRouting' in p:
     #
     # 'bgp' group for FRR ###
@@ -40,62 +37,62 @@ if 'FRRouting' in p:
     @bgp.command('allow-martians')
     def allow_martians():
         """BGP allow martian next hops"""
-        command = vtysh_cmd + [bgp_cmd + "allow-martians"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp allow-martians"]
         run_command(command)
 
     @bgp.command()
     @click.argument('additional', type=click.Choice(['segment']), required=False)
     def as4(additional):
         """BGP AS4 actions"""
-        command = vtysh_cmd + ["no debug bgp as4"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp as4"]
         if additional is not None:
-            command = vtysh_cmd + [bgp_cmd + "as4 segment"]
+            command = ["sudo", "vtysh", "-c", "no debug bgp as4 segment"]
         run_command(command)
 
     @bgp.command()
     @click.argument('prefix', required=True)
     def bestpath(prefix):
         """BGP bestpath"""
-        command = vtysh_cmd + [bgp_cmd + "bestpath %s" % prefix]
+        command = ["sudo", "vtysh", "-c", "no debug bgp bestpath %s" % prefix]
         run_command(command)
 
     @bgp.command()
     @click.argument('prefix_or_iface', required=False)
     def keepalives(prefix_or_iface):
         """BGP Neighbor Keepalives"""
-        command = vtysh_cmd + [bgp_cmd + "keepalives"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp keepalives"]
         if prefix_or_iface is not None:
-            command = vtysh_cmd + [bgp_cmd + "keepalives " + prefix_or_iface]
+            command = ["sudo", "vtysh", "-c", "no debug bgp keepalives " + prefix_or_iface]
         run_command(command)
 
     @bgp.command('neighbor-events')
     @click.argument('prefix_or_iface', required=False)
     def neighbor_events(prefix_or_iface):
         """BGP Neighbor Events"""
-        command = vtysh_cmd + [bgp_cmd + "neighbor-events"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp neighbor-events"]
         if prefix_or_iface is not None:
-            command = vtysh_cmd + [bgp_cmd + "neighbor-events " + prefix_or_iface]
+            command = ["sudo", "vtysh", "-c", "no debug bgp neighbor-events " + prefix_or_iface]
         run_command(command)
 
     @bgp.command()
     def nht():
         """BGP nexthop tracking events"""
-        command = vtysh_cmd + [bgp_cmd + "nht"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp nht"]
         run_command(command)
 
     @bgp.command()
     @click.argument('additional', type=click.Choice(['error']), required=False)
     def pbr(additional):
         """BGP policy based routing"""
-        command = vtysh_cmd + [bgp_cmd + "pbr"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp pbr"]
         if additional is not None:
-            command = vtysh_cmd + [bgp_cmd + "pbr error"]
+            command = ["sudo", "vtysh", "-c", "no debug bgp pbr error"]
         run_command(command)
 
     @bgp.command('update-groups')
     def update_groups():
         """BGP update-groups"""
-        command = vtysh_cmd + [bgp_cmd + "update-groups"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp update-groups"]
         run_command(command)
 
     @bgp.command()
@@ -103,22 +100,22 @@ if 'FRRouting' in p:
     @click.argument('prefix', required=False)
     def updates(direction, prefix):
         """BGP updates"""
-        bgp_ud_cmd = "no debug bgp updates"
+        bgp_cmd = "no debug bgp updates"
         if direction is not None:
-            bgp_ud_cmd += ' ' + direction
+            bgp_cmd += ' ' + direction
         if prefix is not None:
-            bgp_ud_cmd += ' ' + prefix
-        command = vtysh_cmd + [bgp_ud_cmd]
+            bgp_cmd += ' ' + prefix
+        command = ["sudo", "vtysh", "-c", bgp_cmd]
         run_command(command)
 
     @bgp.command()
     @click.argument('prefix', required=False)
     def zebra(prefix):
         """BGP Zebra messages"""
-        bgp_zb_cmd = "no debug bgp zebra"
+        bgp_cmd = "no debug bgp zebra"
         if prefix is not None:
-            bgp_zb_cmd += ' ' + prefix
-        command = vtysh_cmd + [bgp_zb_cmd]
+            bgp_cmd += ' ' + prefix
+        command = ["sudo", "vtysh", "-c", bgp_cmd]
         run_command(command)
 
     #
@@ -133,55 +130,55 @@ if 'FRRouting' in p:
     @click.argument('detailed', type=click.Choice(['detailed']), required=False)
     def dplane(detailed):
         """Debug zebra dataplane events"""
-        zebra_dplane_cmd = "no debug zebra dplane"
+        zb_cmd = "no debug zebra dplane"
         if detailed is not None:
-            zebra_dplane_cmd += ' ' + "detailed"
-        command = vtysh_cmd + [zebra_dplane_cmd]
+            zb_cmd += ' ' + "detailed"
+        command = ["sudo", "vtysh", "-c", zb_cmd]
         run_command(command)
 
     @zebra.command()
     def events():
         """Debug option set for zebra events"""
-        command = vtysh_cmd + ["events"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra events"]
         run_command(command)
 
     @zebra.command()
     def fpm():
         """Debug zebra FPM events"""
-        command = vtysh_cmd + [zebra_cmd + "fpm"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra fpm"]
         run_command(command)
 
     @zebra.command()
     def kernel():
         """Debug option set for zebra between kernel interface"""
-        command = vtysh_cmd + [zebra_cmd + "kernel"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra kernel"]
         run_command(command)
 
     @zebra.command()
     def nht():
         """Debug option set for zebra next hop tracking"""
-        command = vtysh_cmd + [zebra_cmd + "nht"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra nht"]
         run_command(command)
 
     @zebra.command()
     def packet():
         """Debug option set for zebra packet"""
-        command = vtysh_cmd + [zebra_cmd + "packet"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra packet"]
         run_command(command)
 
     @zebra.command()
     @click.argument('detailed', type=click.Choice(['detailed']), required=False)
     def rib(detailed):
         """Debug RIB events"""
-        command = vtysh_cmd + [zebra_cmd + "rib"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra rib"]
         if detailed is not None:
-            command = vtysh_cmd + [zebra_cmd + "rib detailed"]
+            command = ["sudo", "vtysh", "-c", "no debug zebra rib detailed"]
         run_command(command)
 
     @zebra.command()
     def vxlan():
         """Debug option set for zebra VxLAN (EVPN)"""
-        command = vtysh_cmd + [zebra_cmd + "vxlan"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra vxlan"]
         run_command(command)
 
 else:
@@ -199,43 +196,43 @@ else:
     @bgp.command()
     def events():
         """debug bgp events off"""
-        command = vtysh_cmd + [bgp_cmd + "events"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp events"]
         run_command(command)
 
     @bgp.command()
     def updates():
         """debug bgp updates off"""
-        command = vtysh_cmd + [bgp_cmd + "updates"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp updates"]
         run_command(command)
 
     @bgp.command()
     def as4():
         """debug bgp as4 actions off"""
-        command = vtysh_cmd + [bgp_cmd + "as4"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp as4"]
         run_command(command)
 
     @bgp.command()
     def filters():
         """debug bgp filters off"""
-        command = vtysh_cmd + [bgp_cmd + "filters"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp filters"]
         run_command(command)
 
     @bgp.command()
     def fsm():
         """debug bgp finite state machine off"""
-        command = vtysh_cmd + [bgp_cmd + "fsm"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp fsm"]
         run_command(command)
 
     @bgp.command()
     def keepalives():
         """debug bgp keepalives off"""
-        command = vtysh_cmd + [bgp_cmd + "keepalives"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp keepalives"]
         run_command(command)
 
     @bgp.command()
     def zebra():
         """debug bgp zebra messages off"""
-        command = vtysh_cmd + [bgp_cmd + "zebra"]
+        command = ["sudo", "vtysh", "-c", "no debug bgp zebra"]
         run_command(command)
 
     #
@@ -249,31 +246,31 @@ else:
     @zebra.command()
     def events():
         """debug option set for zebra events"""
-        command = vtysh_cmd + [zebra_cmd + "events"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra events"]
         run_command(command)
 
     @zebra.command()
     def fpm():
         """debug zebra FPM events"""
-        command = vtysh_cmd + [zebra_cmd + "fpm"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra fpm"]
         run_command(command)
 
     @zebra.command()
     def kernel():
         """debug option set for zebra between kernel interface"""
-        command = vtysh_cmd + [zebra_cmd + "kernel"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra kernel"]
         run_command(command)
 
     @zebra.command()
     def packet():
         """debug option set for zebra packet"""
-        command = vtysh_cmd + [zebra_cmd + "packet"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra packet"]
         run_command(command)
 
     @zebra.command()
     def rib():
         """debug RIB events"""
-        command = vtysh_cmd + [zebra_cmd + "rib"]
+        command = ["sudo", "vtysh", "-c", "no debug zebra rib"]
         run_command(command)
 
 
