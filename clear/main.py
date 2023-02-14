@@ -82,8 +82,8 @@ def get_routing_stack():
     cmd0 = ["sudo", "docker", "ps"]
     cmd1 = ["grep", "bgp"]
     cmd2 = ["awk", '{print$2}']
-    cmd3 = ["cut", "-d", '-', "-f3"]
-    cmd4 = ["cut", "-d", ':', "-f1"]
+    cmd3 = ["cut", "-d-", "-f3"]
+    cmd4 = ["cut", "-d:", "-f1"]
 
     try:
         _, result = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2, cmd3, cmd4)
