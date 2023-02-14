@@ -15,7 +15,7 @@ from enum import Enum
 YANG_DIR = "/usr/local/yang-models"
 SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_table_modification_validators.conf.json"
+GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 
 class GenericConfigUpdaterError(Exception):
     pass
@@ -174,18 +174,18 @@ class ConfigWrapper:
             method_to_call = getattr(module, method_name)
             return method_to_call()
 
-        if os.path.exists(GCU_TABLE_MOD_CONF_FILE):
-            with open(GCU_TABLE_MOD_CONF_FILE, "r") as s:
-                gcu_table_modification_conf = json.load(s)
+        if os.path.exists(GCU_FIELD_OP_CONF_FILE):
+            with open(GCU_FIELD_OP_CONF_FILE, "r") as s:
+                gcu_field_operation_conf = json.load(s)
         else:
-            raise GenericConfigUpdaterError("GCU table modification validators config file not found") 
+            raise GenericConfigUpdaterError("GCU field operation validators config file not found") 
 
         for element in patch:
             path = element["path"]
             table = re.search(r'\/([^\/]+)(\/|$)', path).group(1) # This matches the table name in the path, eg. PFC_WD without the forward slashes
             validating_functions= set()
-            tables = gcu_table_modification_conf["tables"]
-            validating_functions.update(tables.get(table, {}).get("table_modification_validators", []))
+            tables = gcu_field_operation_conf["tables"]
+            validating_functions.update(tables.get(table, {}).get("field_operation_validators", []))
 
             for function in validating_functions:
                 if not _invoke_validating_function(function):
