@@ -853,9 +853,13 @@ class DBMigrator():
         """
         log.log_info('Handling version_4_0_0')
         # Update state-db fast-reboot entry to enable if set to enable fast-reboot finalizer when using upgrade with fast-reboot
+        # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
         fastreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'FAST_REBOOT|system', '1')
         if fastreboot_state == 'true':
-            self.stateDB.set(self.stateDB.STATE_DB, 'FAST_REBOOT|system', 'enable')
+            enable_state = 'enable'
+        else:
+            enable_state = 'disable'
+        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', enable_state)
         self.set_version('version_4_0_1')
         return None
     
