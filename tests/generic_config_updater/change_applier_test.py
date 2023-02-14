@@ -86,7 +86,6 @@ def os_system_cfggen(cmd):
     return 0
 
 
-
 # mimics config_db.set_entry
 #
 def set_entry(config_db, tbl, key, data):
