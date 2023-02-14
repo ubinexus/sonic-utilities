@@ -132,7 +132,7 @@ if 'FRRouting' in p:
         """Debug zebra dataplane events"""
         zb_cmd = "no debug zebra dplane"
         if detailed is not None:
-            zb_cmd += ' ' + "detailed"
+            zb_cmd += " detailed"
         command = ["sudo", "vtysh", "-c", zb_cmd]
         run_command(command)
 
@@ -190,7 +190,7 @@ else:
     def bgp(ctx):
         """debug bgp off"""
         if ctx.invoked_subcommand is None:
-            command = vtysh_cmd + [bgp_cmd]
+            command = ["sudo", "vtysh", "-c", "no debug bgp"]
             run_command(command)
 
     @bgp.command()
