@@ -48,6 +48,7 @@ from . import fgnhg
 from . import flow_counters
 from . import gearbox
 from . import interfaces
+from . import isis_frr
 from . import kdump
 from . import kube
 from . import muxcable
@@ -276,6 +277,7 @@ cli.add_command(flow_counters.flowcnt_route)
 cli.add_command(flow_counters.flowcnt_trap)
 cli.add_command(kdump.kdump)
 cli.add_command(interfaces.interfaces)
+cli.add_command(isis_frr.isis)
 cli.add_command(kdump.kdump)
 cli.add_command(kube.kubernetes)
 cli.add_command(muxcable.muxcable)
