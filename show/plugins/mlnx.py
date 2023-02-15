@@ -26,8 +26,7 @@ try:
     import sys
     import subprocess
     import click
-    from shlex import join
-    from lxml import etree as ET
+    import xml.etree.ElementTree as ET
     from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -46,11 +45,10 @@ SAI_PROFILE_DELIMITER = '='
 def run_command(command, display_cmd=False, ignore_error=False, print_to_console=True):
     """Run bash command and print output to stdout
     """
-    if display_cmd:
-        command_str = join(command)
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command_str, fg='green'))
+    if display_cmd == True:
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
 
     if len(out) > 0 and print_to_console:
@@ -72,9 +70,9 @@ def mlnx():
 # get current status of sniffer from conf file
 def sniffer_status_get(env_variable_name):
     enabled = False
-    command = ["docker", "exec", CONTAINER_NAME, "bash", "-c", 'touch {}'.format(SNIFFER_CONF_FILE)]
+    command = "docker exec {} bash -c 'touch {}'".format(CONTAINER_NAME, SNIFFER_CONF_FILE)
     run_command(command)
-    command = ['docker', 'cp', SNIFFER_CONF_FILE_IN_CONTAINER, TMP_SNIFFER_CONF_FILE]
+    command = 'docker cp {} {}'.format(SNIFFER_CONF_FILE_IN_CONTAINER, TMP_SNIFFER_CONF_FILE)
     run_command(command)
     conf_file = open(TMP_SNIFFER_CONF_FILE, 'r')
     for env_variable_string in conf_file:
@@ -82,7 +80,7 @@ def sniffer_status_get(env_variable_name):
             enabled = True
             break
     conf_file.close()
-    command = ['rm', '-rf', TMP_SNIFFER_CONF_FILE]
+    command = 'rm -rf {}'.format(TMP_SNIFFER_CONF_FILE)
     run_command(command)
     return enabled
 
@@ -99,8 +97,10 @@ def is_issu_status_enabled():
     # Get the SAI XML path from sai.profile
     sai_profile_path = '/{}/sai.profile'.format(HWSKU_PATH)
 
-    DOCKER_CAT_COMMAND = ['docker', 'exec', CONTAINER_NAME, 'cat', sai_profile_path]
-    sai_profile_content, _ = run_command(DOCKER_CAT_COMMAND, print_to_console=False)
+    DOCKER_CAT_COMMAND = 'docker exec {container_name} cat {path}'
+
+    command = DOCKER_CAT_COMMAND.format(container_name=CONTAINER_NAME, path=sai_profile_path)
+    sai_profile_content, _ = run_command(command, print_to_console=False)
 
     sai_profile_kvs = {}
 
@@ -117,8 +117,8 @@ def is_issu_status_enabled():
         sys.exit(1)
 
     # Get ISSU from SAI XML
-    DOCKER_CAT_COMMAND = ['docker', 'exec', CONTAINER_NAME, 'cat', sai_xml_path]
-    sai_xml_content, _ = run_command(DOCKER_CAT_COMMAND, print_to_console=False)
+    command = DOCKER_CAT_COMMAND.format(container_name=CONTAINER_NAME, path=sai_xml_path)
+    sai_xml_content, _ = run_command(command, print_to_console=False)
 
     try:
         root = ET.fromstring(sai_xml_content)

@@ -105,9 +105,14 @@ def readJsonFile(fileName):
         raise click.Abort()
     return result
 
-def run_command(command, display_cmd=False, return_cmd=False):
-    command_list = command
-    command = ' '.join(command)
+def run_command(*args, display_cmd=False, return_cmd=False):
+    if len(args) == 1:
+        command_list = args[0]
+        command = ' '.join(args[0])
+    elif len(args) > 1:
+        command_lists = [' '.join(arg) for arg in args]
+        command = ' | '.join(command_lists)
+
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -117,47 +122,31 @@ def run_command(command, display_cmd=False, return_cmd=False):
         clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
+    if len(args) == 1:
+        proc = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
+        while True:
+            if return_cmd:
+                output = proc.communicate()[0]
+                return output
+            output = proc.stdout.readline()
+            if output == "" and proc.poll() is not None:
+                break
+            if output:
+                click.echo(output.rstrip('\n'))
+        rc = proc.poll()
+        if rc != 0:
+            sys.exit(rc)
 
-    while True:
-        if return_cmd:
-            output = proc.communicate()[0]
-            return output
-        output = proc.stdout.readline()
-        if output == "" and proc.poll() is not None:
-            break
-        if output:
-            click.echo(output.rstrip('\n'))
-
-    rc = proc.poll()
-    if rc != 0:
-        sys.exit(rc)
-
-def run_command_pipe(*args, display_cmd=False, return_cmd=False):
-    command_lists = [' '.join(arg) for arg in args]
-    command = ' | '.join(command_lists)
-    if display_cmd:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-
-    # No conversion needed for intfutil commands as it already displays
-    # both SONiC interface name and alias name for all interfaces.
-    if clicommon.get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
-        clicommon.run_command_in_alias_mode(command)
-        raise sys.exit(0)
-
-    exitcodes, output = getstatusoutput_noshell_pipe(*args)
-
-    while True:
+    elif len(args) > 1:
+        exitcodes, output = getstatusoutput_noshell_pipe(*args)
         if return_cmd:
             return output
-        output = proc.stdout.readline()
         if output:
             click.echo(output.rstrip('\n'))
-
-    if any(exitcodes):
-        for rc in exitcodes:
-            if rc != 0:
-                sys.exit(rc)
+        if any(exitcodes):
+            for rc in exitcodes:
+                if rc != 0:
+                    sys.exit(rc)
 
 def get_cmd_output(cmd):
     proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
@@ -982,7 +971,7 @@ def route_map(route_map_name, verbose):
     """show route-map"""
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show route-map']
     if route_map_name is not None:
-        cmd += [str(route_map_name)]
+        cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show route-map ' + str(route_map_name)]
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1072,7 +1061,7 @@ def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ip prefix-list']
     if prefix_list_name is not None:
-        cmd += [str(prefix_list_name)]
+        cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ip prefix-list ' + str(prefix_list_name)]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1081,7 +1070,7 @@ def prefix_list(prefix_list_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv4 protocol information"""
-    cmd = ['sudo', constants.rvtysh_command, '-c', "show ip protocol"]
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', "show ip protocol"]
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1119,7 +1108,7 @@ def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ipv6 prefix-list']
     if prefix_list_name is not None:
-        cmd += [str(prefix_list_name)]
+        cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ipv6 prefix-list ' + str(prefix_list_name)]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1292,26 +1281,22 @@ def logging(process, lines, follow, verbose):
         cmd = ['sudo', 'tail', '-F', '{}/syslog'.format(log_path)]
         run_command(cmd, display_cmd=verbose)
     else:
+        args = []
         if os.path.isfile("{}/syslog.1".format(log_path)):
             cmd0 = ['sudo', 'cat', '{}/syslog.1'.format(log_path), '{}/syslog'.format(log_path)]
         else:
             cmd0 = ['sudo', 'cat', '{}/syslog'.format(log_path)]
+        args.append(cmd0)
 
         if process is not None:
             cmd1 = ['grep', str(process)]
+            args.append(cmd1)
 
         if lines is not None:
             cmd2 = ['tail', "-" + str(lines)]
+            args.append(cmd2)
 
-        if cmd1 is None and cmd2 is None:
-            run_command(cmd0, display_cmd=verbose)
-        elif cmd1 is not None and cmd2 is None:
-            run_command_pipe(cmd0, cmd1, display_cmd=verbose)
-        elif cmd1 is None and cmd2 is not None:
-            run_command_pipe(cmd0, cmd2, display_cmd=verbose)
-        elif cmd1 is not None and cmd2 is not None:
-            run_command_pipe(cmd0, cmd1, cmd2, display_cmd=verbose)
-
+        run_command(*args, display_cmd=verbose)
 
 #
 # 'version' command ("show version")
@@ -1751,17 +1736,17 @@ def bgp(verbose):
     cmd0 = ['sudo', 'docker', 'ps']
     cmd1 = ['grep', 'bgp']
     cmd2 = ['awk', '{print$2}']
-    cmd3 = ['cut', '-d', '-', '-f3']
-    cmd4 = ['cut', '-d', ':', "-f1"]
+    cmd3 = ['cut', '-d-', '-f3']
+    cmd4 = ['cut', '-d:', "-f1"]
     _, stdout = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2, cmd3, cmd4)
     result = stdout.rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
-        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat /etc/quagga/bgpd.conf'], display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/quagga/bgpd.conf'], display_cmd=verbose)
     elif result == "frr":
-        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat /etc/frr/bgpd.conf'], display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/frr/bgpd.conf'], display_cmd=verbose)
     elif result == "gobgp":
-        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat /etc/gpbgp/bgpd.conf'], display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/gpbgp/bgpd.conf'], display_cmd=verbose)
     else:
         click.echo("Unidentified routing-stack")
 
@@ -1775,8 +1760,8 @@ def bgp(verbose):
 def ntp(ctx, verbose):
     """Show NTP information"""
     from pkg_resources import parse_version
-    ntpstat_cmd = "ntpstat"
-    ntpcmd = "ntpq -p -n"
+    ntpstat_cmd = ["ntpstat"]
+    ntpcmd = ["ntpq", "-p", "-n"]
     if is_mgmt_vrf_enabled(ctx) is True:
         #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version
         os_info =  os.uname()
@@ -2046,7 +2031,7 @@ def information():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def line(brief, verbose):
     """Show all console lines and their info include available ttyUSB devices unless specified brief mode"""
-    cmd = ['consutil', 'show'] + ["-b"] if brief else []
+    cmd = ['consutil', 'show'] + (["-b"] if brief else [])
     run_command(cmd, display_cmd=verbose)
     return
 

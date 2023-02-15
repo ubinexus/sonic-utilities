@@ -54,7 +54,6 @@ class TestShowRunAllCommands(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
 @patch('show.main.run_command')
-@patch('show.main.run_command_pipe')
 @pytest.mark.parametrize(
         "cli_arguments,expected",
         [
@@ -69,15 +68,14 @@ class TestShowRunAllCommands(object):
             (['-l', '10'], ['cat', '/var/log/syslog'], ['tail', '-10']),
         ]
 )
-def test_show_logging_default(run_cmd_pipe, run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_default(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
     run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
     result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd_pipe.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
 
 @patch('show.main.run_command')
-@patch('show.main.run_command_pipe')
 @patch('os.path.isfile', MagicMock(return_value=True))
 @pytest.mark.parametrize(
         "cli_arguments,expected",
@@ -94,15 +92,14 @@ def test_show_logging_default(run_cmd_pipe, run_cmd, cli_arguments, expected, cl
         ]
 )
 
-def test_show_logging_syslog_1(run_cmd_pipe, run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_syslog_1(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
     run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
     result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd_pipe.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
 
 @patch('show.main.run_command')
-@patch('show.main.run_command_pipe')
 @patch('os.path.exists', MagicMock(return_value=True))
 @pytest.mark.parametrize(
         "cli_arguments,expected",
@@ -118,15 +115,14 @@ def test_show_logging_syslog_1(run_cmd_pipe, run_cmd, cli_arguments, expected, c
             (['-l', '10'], ['cat', '/var/log.tmpfs/syslog'], ['tail', '-10']),
         ]
 )
-def test_show_logging_tmpfs(run_cmd_pipe, run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_tmpfs(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
     run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
     result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd_pipe.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
 
 @patch('show.main.run_command')
-@patch('show.main.run_command_pipe')
 @patch('os.path.isfile', MagicMock(return_value=True))
 @patch('os.path.exists', MagicMock(return_value=True))
 @pytest.mark.parametrize(
@@ -143,9 +139,9 @@ def test_show_logging_tmpfs(run_cmd_pipe, run_cmd, cli_arguments, expected, cli_
             (['-l', '10'], ['cat', '/var/log.tmpfs/syslog.1', '/var/log.tmpfs/syslog'], ['tail', '-10']),
         ]
 )
-def test_show_logging_tmpfs_syslog_1(run_cmd_pipe, run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_tmpfs_syslog_1(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
     run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
     result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd_pipe.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
