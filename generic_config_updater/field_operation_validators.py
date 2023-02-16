@@ -8,14 +8,18 @@ def rdma_config_update_validator():
     if (asic_type != 'mellanox' and asic_type != 'broadcom' and asic_type != 'cisco-8000'):
         return False
 
-    if len(build_version) >= 6:
-        if build_version[:6].isdigit():
-            branch_int = int(build_version[:6])
-        else:
-            return False
-        if asic_type == 'cisco-8000':
-            return branch_int >= 202012
-        else:
-            return branch_int >= 201811
-    else:
+    version_substrings = build_version.split('.')
+    branch_int = None
+
+    for substring in version_substrings:
+        if substring.isdigit() and (substring.startswith("202") or substring.startswith("201")):
+            branch_int = int(substring)
+            break
+
+    if branch_int is None:
         return False
+
+    if asic_type == 'cisco-8000':
+        return branch_int >= 202012
+    else:
+        return branch_int >= 201811

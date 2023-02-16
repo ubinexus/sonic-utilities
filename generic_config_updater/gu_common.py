@@ -170,6 +170,8 @@ class ConfigWrapper:
             # cmd is in the format as <package/module name>.<method name>
             method_name = cmd.split(".")[-1]
             module_name = ".".join(cmd.split(".")[0:-1])
+            if module_name != "generic_config_updater.field_operation_validators" or "validator" not in method_name:
+                raise GenericConfigUpdaterError("Attempting to call invalid method {} in module {}. Module must be generic_config_updater.field_operation_validators, and method must be a defined validator".format(method_name, module_name))
             module = importlib.import_module(module_name, package=None)
             method_to_call = getattr(module, method_name)
             return method_to_call()
@@ -182,7 +184,11 @@ class ConfigWrapper:
 
         for element in patch:
             path = element["path"]
-            table = re.search(r'\/([^\/]+)(\/|$)', path).group(1) # This matches the table name in the path, eg. PFC_WD without the forward slashes
+            match = re.search(r'\/([^\/]+)(\/|$)', path)
+            if match is not None:
+                table = match.group(1)
+            else:
+                raise GenericConfigUpdaterError("Invalid jsonpatch path: {}".format(path))
             validating_functions= set()
             tables = gcu_field_operation_conf["tables"]
             validating_functions.update(tables.get(table, {}).get("field_operation_validators", []))
