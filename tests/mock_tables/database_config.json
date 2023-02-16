@@ -56,6 +56,11 @@
             "id" : 12,
             "separator": "|",
             "instance" : "redis"
+        },
+        "PROFILE_DB" : {
+            "id" : 15,
+            "separator": ":",
+            "instance" : "redis"
         }
     },
     "VERSION" : "1.1"
