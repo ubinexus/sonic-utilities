@@ -427,6 +427,9 @@ def delete_all_keys_in_db_tables_helper(cmd_table_name, rsp_table_name, cmd_arg_
     if cmd_arg_table is not None:
         delete_all_keys_in_db_table("APPL_DB", cmd_arg_table_name)
 
+    if res_table_name is not None:
+        delete_all_keys_in_db_table("STATE_DB", res_table_name)
+
     return 0 
 
 
