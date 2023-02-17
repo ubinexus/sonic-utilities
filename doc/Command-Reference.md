@@ -6036,7 +6036,7 @@ the result will be displayed like this, each item in the dictionary shows the he
 
 **show muxcable operationtime <port>**
 
-This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format. Operation time means the time since the last time the start/reset of the cable is done, and the time would be in the format specified
+This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format. Operation time means the time since the last time the reseated/reset of the cable is done, and the time would be in the format specified
 
 - Usage:
   ```
@@ -6079,24 +6079,24 @@ While displaying the muxcable resetcause, users need to provide the following fi
 - PORT     required - Port name should be a valid port
 - --json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
-Currently the known resetcauses that could be displayed are
-- Reset Issue by the ToR
-- Cable Powered on/off from the NiC
-- Cable reseated from server side
+the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
+return 0 if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
+return 1 if the last reset is warn reset (ex. sudo config mux firmware activate....)
+the value is persistent, no clear on read
 
 - Example:
     ```
       admin@sonic:~$ show muxcable resetcause Ethernet4
       PORT       ATTR           RESETCAUSE
       ---------  -----------  ------------
-      Ethernet4  reset_cause  reset by ToR
+      Ethernet4  reset_cause             0
     ```
     ```
       admin@sonic:~$ show muxcable resetcause Ethernet4 --json
     ```
     ```json
            {
-               "reset_cause": "reset by ToR"
+               "reset_cause": "0"
            }
     ```
 

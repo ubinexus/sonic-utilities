@@ -641,8 +641,11 @@ Ethernet0  reset_cause  reboot by xyz
 """
 
 
-
-
+show_muxcable_health_expected_port_output_json="""\
+{
+    "health_check": "Ok"
+}
+"""
 
 class TestMuxcable(object):
     @classmethod
@@ -2597,6 +2600,21 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["health"],
                                ["Ethernet0"], obj=db)
         assert result.output == show_muxcable_health_expected_port_output
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"health_check": "True"}))
+    def test_show_mux_health_json(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["health"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.output == show_muxcable_health_expected_port_output_json
+
+
 
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
