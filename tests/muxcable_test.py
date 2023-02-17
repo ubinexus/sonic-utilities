@@ -2674,7 +2674,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["resetcause"],
-                               ["Ethernet0"], obj=db)
+                               ["Ethernet0", "--json"], obj=db)
         assert result.output == show_muxcable_resetcause_expected_port_output_json
 
 
