@@ -1108,6 +1108,8 @@ collect_mellanox() {
       echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
     fi
 
+    # Temporarily collect information for debugging the issue that asic_table.json not rendered
+    save_file "/usr/share/sonic/templates/asic_table.j2" dump false
 }
 
 ###############################################################################
