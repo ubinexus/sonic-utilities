@@ -77,7 +77,7 @@ def add_vlan(db, vid, multiple):
                 click.echo("Vlan{} has been added".format(vid))
 				
                 # set dhcpv6_relay table
-                set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, {'vlanid': str(vid)})
+                set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
                 # We need to restart dhcp_relay service after dhcpv6_relay config change
                 dhcp_relay_util.handle_restart_dhcp_relay_service()
 				
