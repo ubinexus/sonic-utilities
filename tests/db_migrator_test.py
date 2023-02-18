@@ -290,7 +290,7 @@ class TestLacpKeyMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'portchannel-expected')
         expected_db = Db()
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_3_0_2')
-
+        
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
