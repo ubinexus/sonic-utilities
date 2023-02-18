@@ -873,7 +873,7 @@ class AclLoader(object):
         :param rule_id: Optional. ACL rule name. Filter rule by specified rule name.
         :return:
         """
-        header = ("Table", "Rule", "Priority", "Action", "Match")
+        header = ("Table", "Rule", "Priority", "Action", "Match", "Packets", "Bytes")
 
         def pop_priority(val):
             priority = "N/A"
@@ -907,6 +907,9 @@ class AclLoader(object):
                 matches.append("N/A")
             return matches
 
+        counter_db = SonicV2Connector(host="127.0.0.1")
+        counter_db.connect(counter_db.COUNTERS_DB)
+
         raw_data = []
         for (tname, rid), val in self.get_rules_db_info().items():
 
@@ -920,7 +923,15 @@ class AclLoader(object):
             action = pop_action(val)
             matches = pop_matches(val)
 
-            rule_data = [[tname, rid, priority, action, matches[0]]]
+            count_packets = "N/A"
+            count_bytes = "N/A"
+            counters = counter_db.get_all(counter_db.COUNTERS_DB, "COUNTERS:{}:{}".format(tname, rid))
+            if isinstance(counters, dict):
+                if 'Packets' in counters:
+                    count_packets = counters['Packets']
+                if 'Bytes' in counters:
+                    count_bytes = counters['Bytes']
+            rule_data = [[tname, rid, priority, action, matches[0], count_packets, count_bytes]]
             if len(matches) > 1:
                 for m in matches[1:]:
                     rule_data.append(["", "", "", "", m])
