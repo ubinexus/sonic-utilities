@@ -449,12 +449,12 @@ class DBMigrator():
         vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
         for key, value in port_table.items():
             if 'mode' in value:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", key), 'mode', value['mode'])
+                self.configDB.set('{}|{}'.format("PORT", key), 'mode', value['mode'])
             else:
                 if key in vlan_member_table.keys():
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", key), 'mode', 'trunk')
+                    self.configDB.set('{}|{}'.format("PORT", key), 'mode', 'trunk')
                 else:
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format('PORT', key), 'mode', 'routed')
+                    self.configDB.set('{}|{}'.format('PORT', key), 'mode', 'routed')
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
@@ -866,6 +866,15 @@ class DBMigrator():
         """
         log.log_info('Handling version_4_0_0')
         self.migrate_config_db_port_table_for_switchport_mode()
+        self.set_version('version_4_0_1')
+        return 'version_4_0_1'
+    
+    def version_4_0_1(self):
+        """
+        Version 4_0_1
+        """
+
+        log.log_info('Handling version_4_0_1')
         return None
 
     def get_version(self):
