@@ -447,13 +447,22 @@ class DBMigrator():
 
     def migrate_config_db_port_table_for_switchport_mode(self):
         port_table = self.configDB.get_table('PORT')
+        portchannel_table = self.configDB.get_table('PORTCHANNEL')
         vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
-        for key, value in port_table.items():
-            if 'mode' in value:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", key), 'mode', value['mode'])
+        
+        for p_key, p_value in port_table.items():
+            if 'mode' in p_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
             else:
-                if key in vlan_member_table.keys():
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", key), 'mode', 'trunk')
+                if p_key in vlan_member_table.keys():
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', 'trunk')
+
+        for pc_key, pc_value in portchannel_table.items():
+            if 'mode' in pc_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', pc_value['mode'])
+            else:
+                if pc_key in vlan_member_table.keys():
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', 'trunk')
 
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
