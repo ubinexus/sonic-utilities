@@ -796,12 +796,16 @@ class AclLoader(object):
             stage = val.get("stage", Stage.INGRESS).lower()
 
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
-                services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"], stage])
+                service_array = val.get("services", [])
+                if not service_array:
+                    data.append([key, val["type"], "", val["policy_desc"], stage])
+                else:
+                    services = natsorted(service_array)
+                    data.append([key, val["type"], services[0], val["policy_desc"], stage])
 
-                if len(services) > 1:
-                    for service in services[1:]:
-                        data.append(["", "", service, "", ""])
+                    if len(services) > 1:
+                        for service in services[1:]:
+                            data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
                     data.append([key, val["type"], "", val["policy_desc"], stage])
