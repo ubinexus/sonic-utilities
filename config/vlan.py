@@ -78,12 +78,13 @@ def add_vlan(db, vid, multiple):
 				
                 # set dhcpv6_relay table
                 set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
-                # We need to restart dhcp_relay service after dhcpv6_relay config change
-                dhcp_relay_util.handle_restart_dhcp_relay_service()
-				
+                
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
+        # We need to restart dhcp_relay service after dhcpv6_relay config changes
+        # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
+        dhcp_relay_util.handle_restart_dhcp_relay_service()
 
 
 @vlan.command('del')
