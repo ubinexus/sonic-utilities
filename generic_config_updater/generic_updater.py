@@ -1,10 +1,11 @@
 import json
 import os
 from enum import Enum
-from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
+from .gu_common import GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
-from .patch_sorter import PatchSorter
-from .change_applier import ChangeApplier
+from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
+                          TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
+from .change_applier import ChangeApplier, DryRunChangeApplier
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
@@ -32,17 +33,12 @@ class PatchApplier:
         self.logger = genericUpdaterLogging.get_logger(title="Patch Applier", print_all_to_console=True)
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
-        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(self.config_wrapper, self.patch_wrapper)
+        self.patchsorter = patchsorter if patchsorter is not None else StrictPatchSorter(self.config_wrapper, self.patch_wrapper)
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
 
     def apply(self, patch):
         self.logger.log_notice("Patch application starting.")
         self.logger.log_notice(f"Patch: {patch}")
-
-        # validate patch is only updating tables with yang models
-        self.logger.log_notice("Validating patch is not making changes to tables without YANG models.")
-        if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
-            raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
 
         # Get old config
         self.logger.log_notice("Getting current config db.")
@@ -51,6 +47,10 @@ class PatchApplier:
         # Generate target config
         self.logger.log_notice("Simulating the target full config after applying the patch.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
+        
+        # Validate all JsonPatch operations on specified fields
+        self.logger.log_notice("Validating all JsonPatch operations are permitted on the specified fields")
+        self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
         self.logger.log_notice("Validating target config does not have empty tables, " \
@@ -58,14 +58,9 @@ class PatchApplier:
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables: # if there are empty tables
             empty_tables_txt = ", ".join(empty_tables)
-            raise ValueError("Given patch is not valid because it will result in empty tables " \
+            raise EmptyTableError("Given patch is not valid because it will result in empty tables " \
                              "which is not allowed in ConfigDb. " \
                             f"Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
-
-        # Validate target config according to YANG models
-        self.logger.log_notice("Validating target config according to YANG models.")
-        if not(self.config_wrapper.validate_config_db_config(target_config)):
-            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
 
         # Generate list of changes to apply
         self.logger.log_notice("Sorting patch updates.")
@@ -86,6 +81,8 @@ class PatchApplier:
         # Validate config updated successfully
         self.logger.log_notice("Verifying patch updates are reflected on ConfigDB.")
         new_config = self.config_wrapper.get_config_db_as_json()
+        self.changeapplier.remove_backend_tables_from_config(target_config)
+        self.changeapplier.remove_backend_tables_from_config(new_config)
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
 
@@ -101,10 +98,6 @@ class ConfigReplacer:
     def replace(self, target_config):
         self.logger.log_notice("Config replacement starting.")
         self.logger.log_notice(f"Target config length: {len(json.dumps(target_config))}.")
-
-        self.logger.log_notice("Validating target config according to YANG models.")
-        if not(self.config_wrapper.validate_config_db_config(target_config)):
-            raise ValueError(f"The given target config is not valid")
 
         self.logger.log_notice("Getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
@@ -155,11 +148,6 @@ class FileSystemConfigRollbacker:
 
         self.logger.log_notice("Getting current config db.")
         json_content = self.config_wrapper.get_config_db_as_json()
-
-        # if current config are not valid, we might not be able to rollback to it. So fail early by not taking checkpoint at all.
-        self.logger.log_notice("Validating current config according to YANG models.")
-        if not self.config_wrapper.validate_config_db_config(json_content):
-            raise ValueError(f"Running configs on the device are not valid.")
 
         self.logger.log_notice("Getting checkpoint full-path.")
         path = self._get_checkpoint_full_path(checkpoint_name)
@@ -314,14 +302,16 @@ class ConfigLockDecorator(Decorator):
         self.config_lock.release_lock()
 
 class GenericUpdateFactory:
-    def create_patch_applier(self, config_format, verbose, dry_run):
+    def create_patch_applier(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         self.init_verbose_logging(verbose)
-
         config_wrapper = self.get_config_wrapper(dry_run)
-
-        patch_applier = PatchApplier(config_wrapper=config_wrapper)
-
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
         patch_wrapper = PatchWrapper(config_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
         if config_format == ConfigFormat.CONFIGDB:
             pass
@@ -336,14 +326,17 @@ class GenericUpdateFactory:
 
         return patch_applier
 
-    def create_config_replacer(self, config_format, verbose, dry_run):
+    def create_config_replacer(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
-
-        patch_applier = PatchApplier(config_wrapper=config_wrapper)
-
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
         patch_wrapper = PatchWrapper(config_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
         config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
         if config_format == ConfigFormat.CONFIGDB:
@@ -359,12 +352,18 @@ class GenericUpdateFactory:
 
         return config_replacer
 
-    def create_config_rollbacker(self, verbose, dry_run=False):
+    def create_config_rollbacker(self, verbose, dry_run=False, ignore_non_yang_tables=False, ignore_paths=[]):
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
+        patch_wrapper = PatchWrapper(config_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
-        patch_applier = PatchApplier(config_wrapper=config_wrapper)
         config_replacer = ConfigReplacer(config_wrapper=config_wrapper, patch_applier=patch_applier)
         config_rollbacker = FileSystemConfigRollbacker(config_wrapper = config_wrapper, config_replacer = config_replacer)
 
@@ -382,21 +381,42 @@ class GenericUpdateFactory:
         else:
             return ConfigWrapper()
 
+    def get_change_applier(self, dry_run, config_wrapper):
+        if dry_run:
+            return DryRunChangeApplier(config_wrapper)
+        else:
+            return ChangeApplier()
+
+    def get_patch_sorter(self, ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper):
+        if not ignore_non_yang_tables and not ignore_paths:
+            return StrictPatchSorter(config_wrapper, patch_wrapper)
+
+        inner_config_splitters = []
+        if ignore_non_yang_tables:
+            inner_config_splitters.append(TablesWithoutYangConfigSplitter(config_wrapper))
+
+        if ignore_paths:
+            inner_config_splitters.append(IgnorePathsFromYangConfigSplitter(ignore_paths, config_wrapper))
+
+        config_splitter = ConfigSplitter(config_wrapper, inner_config_splitters)
+
+        return NonStrictPatchSorter(config_wrapper, patch_wrapper, config_splitter)
+
 class GenericUpdater:
     def __init__(self, generic_update_factory=None):
         self.generic_update_factory = \
             generic_update_factory if generic_update_factory is not None else GenericUpdateFactory()
 
-    def apply_patch(self, patch, config_format, verbose, dry_run):
-        patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run)
+    def apply_patch(self, patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         patch_applier.apply(patch)
 
-    def replace(self, target_config, config_format, verbose, dry_run):
-        config_replacer = self.generic_update_factory.create_config_replacer(config_format, verbose, dry_run)
+    def replace(self, target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        config_replacer = self.generic_update_factory.create_config_replacer(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         config_replacer.replace(target_config)
 
-    def rollback(self, checkpoint_name, verbose, dry_run):
-        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
+    def rollback(self, checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         config_rollbacker.rollback(checkpoint_name)
 
     def checkpoint(self, checkpoint_name, verbose):

@@ -4,7 +4,7 @@ import jsondiff
 import os
 import unittest
 from collections import defaultdict
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
 import generic_config_updater.services_validator
@@ -158,6 +158,7 @@ def system_health(old_cfg, new_cfg, keys):
     if svcs != None:
         assert svc_name in svcs
         svcs.remove(svc_name)
+    return True
 
 
 def _validate_keys(keys):
@@ -201,11 +202,13 @@ def _validate_svc(svc_name, old_cfg, new_cfg, keys):
 def acl_validate(old_cfg, new_cfg, keys):
     debug_print("acl_validate called")
     _validate_svc("acl_validate", old_cfg, new_cfg, keys)
+    return True
 
 
 def vlan_validate(old_cfg, new_cfg, keys):
     debug_print("vlan_validate called")
     _validate_svc("vlan_validate", old_cfg, new_cfg, keys)
+    return True
 
 
 class TestChangeApplier(unittest.TestCase):
@@ -269,4 +272,17 @@ class TestChangeApplier(unittest.TestCase):
         debug_print("all good for applier")
 
 
- 
+class TestDryRunChangeApplier(unittest.TestCase):
+    def test_apply__calls_apply_change_to_config_db(self):
+        # Arrange
+        change = Mock()
+        config_wrapper = Mock()
+        applier = generic_config_updater.change_applier.DryRunChangeApplier(config_wrapper)
+
+        # Act
+        applier.apply(change)
+        applier.remove_backend_tables_from_config(change)
+
+        # Assert
+        applier.config_wrapper.apply_change_to_config_db.assert_has_calls([call(change)])
+

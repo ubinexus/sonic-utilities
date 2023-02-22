@@ -134,7 +134,7 @@ def get_docker_tag_name(image):
 
 
 def echo_and_log(msg, priority=LOG_NOTICE, fg=None):
-    if priority >= LOG_ERR:
+    if priority == LOG_ERR:
         # Print to stderr if priority is error
         click.secho(msg, fg=fg, err=True)
     else:
@@ -272,7 +272,7 @@ def update_sonic_environment(bootloader, binary_image_version):
     SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
     SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
 
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
     env_dir = os.path.join(new_image_dir, "sonic-config")
@@ -306,25 +306,38 @@ def update_sonic_environment(bootloader, binary_image_version):
             umount(new_image_mount)
 
 
+def get_docker_opts():
+    """ Get options dockerd is started with """
+    with open("/var/run/docker.pid") as pid_file:
+        pid = int(pid_file.read())
+
+    with open("/proc/{}/cmdline".format(pid)) as cmdline_file:
+        return cmdline_file.read().strip().split("\x00")[1:]
+
+
 def migrate_sonic_packages(bootloader, binary_image_version):
     """ Migrate SONiC packages to new SONiC image. """
 
+    TMP_DIR = "tmp"
     SONIC_PACKAGE_MANAGER = "sonic-package-manager"
     PACKAGE_MANAGER_DIR = "/var/lib/sonic-package-manager/"
     DOCKER_CTL_SCRIPT = "/usr/lib/docker/docker.sh"
     DOCKERD_SOCK = "docker.sock"
     VAR_RUN_PATH = "/var/run/"
+    RESOLV_CONF_FILE = os.path.join("etc", "resolv.conf")
+    RESOLV_CONF_BACKUP_FILE = os.path.join("/", TMP_DIR, "resolv.conf.backup")
 
-    tmp_dir = "tmp"
     packages_file = "packages.json"
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
     new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)
     new_image_docker_dir = os.path.join(new_image_dir, DOCKERDIR_NAME)
-    new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
+    new_image_mount = os.path.join("/", TMP_DIR, "image-{0}-fs".format(sonic_version))
     new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
+    docker_default_config = os.path.join(new_image_mount, "etc", "default", "docker")
+    docker_default_config_backup = os.path.join(new_image_mount, TMP_DIR, "docker_config_backup")
 
     if not os.path.isdir(new_image_docker_dir):
         # NOTE: This codepath can be reached if the installation process did not
@@ -349,21 +362,36 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             if not os.path.exists(os.path.join(new_image_mount, os.path.relpath(DOCKER_CTL_SCRIPT, os.path.abspath(os.sep)))):
                 echo_and_log("Warning: SONiC Application Extension is not supported in this image", LOG_WARN, fg="yellow")
                 return
+
+            # Start dockerd with same docker bridge, iptables configuration as on the host to not override docker configurations on the host.
+            # Dockerd has an option to start without creating a bridge, using --bridge=none option, however dockerd will remove the host docker0 in that case.
+            # Also, it is not possible to configure dockerd to start using a different bridge as it will also override the ip of the default docker0.
+            # Considering that, we start dockerd with same options the host dockerd is started.
+            run_command_or_raise(["cp", docker_default_config, docker_default_config_backup])
+            run_command_or_raise(["sh", "-c", "echo 'DOCKER_OPTS=\"$DOCKER_OPTS {}\"' >> {}".format(" ".join(get_docker_opts()), docker_default_config)])
+
             run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
             docker_started = True
-            run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
+            run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, TMP_DIR, packages_file)])
             run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
             run_command_or_raise(["mount", "--bind",
                                 os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
                                 os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+
+            run_command_or_raise(["cp", os.path.join(new_image_mount, RESOLV_CONF_FILE), RESOLV_CONF_BACKUP_FILE])
+            run_command_or_raise(["cp", os.path.join("/", RESOLV_CONF_FILE), os.path.join(new_image_mount, RESOLV_CONF_FILE)])
+
             run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
             run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
-                                os.path.join("/", tmp_dir, packages_file),
-                                "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
+                                os.path.join("/", TMP_DIR, packages_file),
+                                "--dockerd-socket", os.path.join("/", TMP_DIR, DOCKERD_SOCK),
                                 "-y"])
         finally:
             if docker_started:
                 run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
+            if os.path.exists(docker_default_config_backup):
+                run_command_or_raise(["mv", docker_default_config_backup, docker_default_config], raise_exception=False);
+            run_command_or_raise(["cp", RESOLV_CONF_BACKUP_FILE, os.path.join(new_image_mount, RESOLV_CONF_FILE)], raise_exception=False)
             umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
             umount(new_image_mount, raise_exception=False)
 
@@ -439,8 +467,10 @@ class SWAPAllocator(object):
             meminfo = self.read_from_meminfo()
             mem_total_in_bytes = meminfo["MemTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
             mem_avail_in_bytes = meminfo["MemAvailable"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
-            if (mem_total_in_bytes < self.total_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR
-                    or mem_avail_in_bytes < self.available_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR):
+            swap_total_in_bytes = meminfo["SwapTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            swap_free_in_bytes = meminfo["SwapFree"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            if (mem_total_in_bytes + swap_total_in_bytes < self.total_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR
+                    or mem_avail_in_bytes + swap_free_in_bytes < self.available_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR):
                 echo_and_log("Setup SWAP memory")
                 swapfile = SWAPAllocator.SWAP_FILE_PATH
                 if os.path.exists(swapfile):
@@ -481,7 +511,8 @@ def sonic_installer():
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
               expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', '--skip-secure-check', is_flag=True,
-              help="Force installation of an image of a non-secure type than secure running image")
+              help="Force installation of an image of a non-secure type than secure running " +
+              " image, this flag does not affect secure upgrade image verification")
 @click.option('--skip-platform-check', is_flag=True,
               help="Force installation of an image of a type which is not of the same platform")
 @click.option('--skip_migration', is_flag=True,
@@ -545,6 +576,14 @@ def install(url, force, skip_platform_check=False, skip_migration=False, skip_pa
                 "If you are sure you want to install this image, use --skip-platform-check.\n" +
                 "Aborting...", LOG_ERR)
             raise click.Abort()
+
+        # Calling verification script by default - signature will be checked if enabled in bios
+        echo_and_log("Verifing image {} signature...".format(binary_image_version))
+        if not bootloader.verify_image_sign(image_path):
+            echo_and_log('Error: Failed verify image signature', LOG_ERR)
+            raise click.Abort()
+        else:
+            echo_and_log('Verification successful')
 
         echo_and_log("Installing image {} and setting it as default...".format(binary_image_version))
         with SWAPAllocator(not skip_setup_swap, swap_mem_size, total_mem_threshold, available_mem_threshold):
@@ -616,6 +655,38 @@ def set_next_boot(image):
         sys.exit(1)
     bootloader.set_next_image(image)
 
+# Set fips for image
+@sonic_installer.command('set-fips')
+@click.argument('image', required=False)
+@click.option('--enable-fips/--disable-fips', is_flag=True, default=True,
+              help="Enable or disable FIPS, the default value is to enable FIPS")
+def set_fips(image, enable_fips):
+    """ Set fips for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    bootloader.set_fips(image, enable=enable_fips)
+    click.echo('Set FIPS for the image successfully')
+
+# Get fips for image
+@sonic_installer.command('get-fips')
+@click.argument('image', required=False)
+def get_fips(image):
+    """ Get the fips enabled or disabled status for the image """
+    bootloader = get_bootloader()
+    if not image:
+        image =  bootloader.get_next_image()
+    if image not in bootloader.get_installed_images():
+        echo_and_log('Error: Image does not exist', LOG_ERR)
+        sys.exit(1)
+    enable = bootloader.get_fips(image)
+    if enable:
+       click.echo("FIPS is enabled")
+    else:
+       click.echo("FIPS is disabled")
 
 # Uninstall image
 @sonic_installer.command('remove')
@@ -690,7 +761,8 @@ DOCKER_CONTAINER_LIST = [
     "swss",
     "syncd",
     "teamd",
-    "telemetry"
+    "telemetry",
+    "mgmt-framework"
 ]
 
 # Upgrade docker image
@@ -733,16 +805,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         echo_and_log("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path), LOG_ERR)
         raise click.Abort()
 
-    warm_configured = False
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, container_name)
-    if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
-        warm_configured = True
-    state_db.close(state_db.STATE_DB)
+    warm_configured = hget_warm_restart_table('STATE_DB', 'WARM_RESTART_ENABLE_TABLE', container_name, 'enable') == "true"
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         if warm_configured is False and warm:
@@ -813,23 +877,19 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
     run_command("systemctl restart %s" % container_name)
 
-    # All images id under the image name
-    image_id_all = get_container_image_id_all(image_name)
-
-    # this is image_id for image with "latest" tag
-    image_id_latest = get_container_image_id(image_latest)
-
-    for id in image_id_all:
-        if id != image_id_latest:
-            # Unless requested, the previoud docker image will be preserved
-            if not cleanup_image and id == image_id_previous:
-                continue
-            run_command("docker rmi -f %s" % id)
+    if cleanup_image:
+        # All images id under the image name
+        image_id_all = get_container_image_id_all(image_name)
+        # Unless requested, the previoud docker image will be preserved
+        for id in image_id_all:
+            if id == image_id_previous:
+                run_command("docker rmi -f %s" % id)
+                break
 
     exp_state = "reconciled"
     state = ""
     # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
-    if warm_configured is True or warm:
+    if warm_app_names and (warm_configured is True or warm):
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
@@ -886,6 +946,7 @@ def rollback_docker(container_name):
     for id in image_id_all:
         if id != image_id_previous:
             version_tag = get_docker_tag_name(id)
+            break
 
     # make previous image as latest
     run_command("docker tag %s:%s %s:latest" % (image_name, version_tag, image_name))
@@ -905,6 +966,7 @@ def verify_next_image():
         echo_and_log('Image verification failed', LOG_ERR)
         sys.exit(1)
     click.echo('Image successfully verified')
+
 
 if __name__ == '__main__':
     sonic_installer()

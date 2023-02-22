@@ -32,10 +32,17 @@ def name(vxlan_name):
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
                                         'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, vxlan_name, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
+            for key in natsorted(vxlan_map_keys):
+                vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, key)
+                r.append(key.split(config_db.KEY_SEPARATOR, 2)[2])
+                r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
+                table.append(r)
+                r = []
+                r.append(' ')
+                r.append(' ')
+                r.append(' ')
+        else:
+            table.append(r)
 
     click.echo(tabulate(table, header))
 
@@ -59,10 +66,17 @@ def tunnel():
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
                                         'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, k, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
+            for key in natsorted(vxlan_map_keys):
+                vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, key)
+                r.append(key.split(config_db.KEY_SEPARATOR, 2)[2])
+                r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
+                table.append(r)
+                r = []
+                r.append(' ')
+                r.append(' ')
+                r.append(' ')
+        else:
+            table.append(r)
 
     click.echo(tabulate(table, header))
 
@@ -84,14 +98,14 @@ def interface():
           vtepname = key1.pop();
           if 'src_ip' in vxlan_table[key]:
             vtep_sip = vxlan_table[key]['src_ip']
-          if vtep_sip is not '0.0.0.0':
+          if vtep_sip != '0.0.0.0':
              output = '\tVTEP Name : ' + vtepname + ', SIP  : ' + vxlan_table[key]['src_ip']
           else:
-             output = '\tVTEP Name : ' + vtepname 
+             output = '\tVTEP Name : ' + vtepname
 
           click.echo(output)
 
-    if vtep_sip is not '0.0.0.0':
+    if vtep_sip != '0.0.0.0':
        vxlan_table = config_db.get_table('VXLAN_EVPN_NVO')
        vxlan_keys = vxlan_table.keys()
        if vxlan_keys is not None:
@@ -109,7 +123,7 @@ def interface():
              if len(key1) == 3 and key1[2] == vtep_sip+'/32':
                 loopback = key1[1]
                 break
-         output = '\tSource interface  : ' + loopback 
+         output = '\tSource interface  : ' + loopback
          if vtep_sip != '0.0.0.0':
             click.echo(output)
 
@@ -133,7 +147,7 @@ def vlanvnimap(count):
         vxlan_count = len(vxlan_keys)
 
       output = 'Total count : '
-      output += ('%s \n' % (str(vxlan_count)))
+      output += ('%s\n' % (str(vxlan_count)))
       click.echo(output)
     else:
        vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
@@ -145,7 +159,7 @@ def vlanvnimap(count):
              num += 1
        click.echo(tabulate(body, header, tablefmt="grid"))
        output = 'Total count : '
-       output += ('%s \n' % (str(num)))
+       output += ('%s\n' % (str(num)))
        click.echo(output)
 
 @vxlan.command()
@@ -168,7 +182,7 @@ def vrfvnimap():
               num += 1
     click.echo(tabulate(body, header, tablefmt="grid"))
     output = 'Total count : '
-    output += ('%s \n' % (str(num)))
+    output += ('%s\n' % (str(num)))
     click.echo(output)
 
 @vxlan.command()
@@ -183,7 +197,7 @@ def remotevtep(count):
     header = ['SIP', 'DIP', 'Creation Source', 'OperStatus']
     body = []
     db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB) 
+    db.connect(db.STATE_DB)
 
     vxlan_keys = db.keys(db.STATE_DB, 'VXLAN_TUNNEL_TABLE|*')
 
@@ -194,9 +208,9 @@ def remotevtep(count):
 
     if (count is not None):
         output = 'Total count : '
-        output += ('%s \n' % (str(vxlan_count)))
+        output += ('%s\n' % (str(vxlan_count)))
         click.echo(output)
-    else: 
+    else:
         num = 0
         if vxlan_keys is not None:
            for key in natsorted(vxlan_keys):
@@ -207,7 +221,7 @@ def remotevtep(count):
                 num += 1
         click.echo(tabulate(body, header, tablefmt="grid"))
         output = 'Total count : '
-        output += ('%s \n' % (str(num)))
+        output += ('%s\n' % (str(num)))
         click.echo(output)
 
 @vxlan.command()
@@ -219,11 +233,11 @@ def remotevni(remote_vtep_ip, count):
     if (remote_vtep_ip != 'all') and (clicommon.is_ipaddress(remote_vtep_ip ) is False):
         click.echo("Remote VTEP IP {} invalid format".format(remote_vtep_ip))
         return
-  
+
     header = ['VLAN', 'RemoteVTEP', 'VNI']
     body = []
     db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.APPL_DB) 
+    db.connect(db.APPL_DB)
 
     if(remote_vtep_ip == 'all'):
       vxlan_keys = db.keys(db.APPL_DB, 'VXLAN_REMOTE_VNI_TABLE:*')
@@ -237,7 +251,7 @@ def remotevni(remote_vtep_ip, count):
         vxlan_count = len(vxlan_keys)
 
       output = 'Total count : '
-      output += ('%s \n' % (str(vxlan_count)))
+      output += ('%s\n' % (str(vxlan_count)))
       click.echo(output)
     else:
       num = 0
@@ -254,7 +268,7 @@ def remotevni(remote_vtep_ip, count):
             num += 1
       click.echo(tabulate(body, header, tablefmt="grid"))
       output = 'Total count : '
-      output += ('%s \n' % (str(num)))
+      output += ('%s\n' % (str(num)))
       click.echo(output)
 
 @vxlan.command()
@@ -263,14 +277,14 @@ def remotevni(remote_vtep_ip, count):
 def remotemac(remote_vtep_ip, count):
     """Show MACs pointing to the remote VTEP"""
 
-    if (remote_vtep_ip != 'all') and (clicommon.is_ipaddress(remote_vtep_ip ) is False): 
+    if (remote_vtep_ip != 'all') and (clicommon.is_ipaddress(remote_vtep_ip ) is False):
         click.echo("Remote VTEP IP {} invalid format".format(remote_vtep_ip))
         return
 
     header = ['VLAN', 'MAC', 'RemoteVTEP', 'VNI', 'Type']
     body = []
     db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.APPL_DB) 
+    db.connect(db.APPL_DB)
 
     vxlan_keys = db.keys(db.APPL_DB, 'VXLAN_FDB_TABLE:*')
 
@@ -281,7 +295,7 @@ def remotemac(remote_vtep_ip, count):
         vxlan_count = len(vxlan_keys)
 
       output = 'Total count : '
-      output += ('%s \n' % (str(vxlan_count)))
+      output += ('%s\n' % (str(vxlan_count)))
       click.echo(output)
     else:
       num = 0
@@ -293,8 +307,8 @@ def remotemac(remote_vtep_ip, count):
             vxlan_table = db.get_all(db.APPL_DB, key);
             if vxlan_table is None:
              continue
-            rmtip = vxlan_table['remote_vtep']
-            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip:
+            rmtip = vxlan_table.get('remote_vtep')
+            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip or rmtip is None:
                continue
             if count is None:
                body.append([vlan, mac, rmtip, vxlan_table['vni'], vxlan_table['type']])
@@ -302,7 +316,7 @@ def remotemac(remote_vtep_ip, count):
       if count is None:
          click.echo(tabulate(body, header, tablefmt="grid"))
       output = 'Total count : '
-      output += ('%s \n' % (str(num)))
+      output += ('%s\n' % (str(num)))
       click.echo(output)
 
 @vxlan.command()

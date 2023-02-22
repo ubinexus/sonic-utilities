@@ -3,15 +3,28 @@ import time
 import sys
 import pyfakefs
 import unittest
+import signal
 from pyfakefs.fake_filesystem_unittest import Patcher
 from swsscommon import swsscommon
+import utilities_common.auto_techsupport_helper as ts_helper
 from utilities_common.general import load_module_from_source
 from utilities_common.db import Db
+from utilities_common.auto_techsupport_helper import EXT_RETRY
 from .mock_tables import dbconnector
 
 sys.path.append("scripts")
 import coredump_gen_handler as cdump_mod
 
+AUTO_TS_STDOUT="""
+Techsupport is running with silent option. This command might take a long time.
+The SAI dump is generated to /tmp/saisdkdump/sai_sdk_dump_11_22_2021_11_07_PM
+/tmp/saisdkdump
+"""
+
+TS_DEFAULT_CMD = "show techsupport --silent --global-timeout 60 --since 2 days ago"
+
+def signal_handler(signum, frame):
+    raise Exception("Timed out!")
 
 def set_auto_ts_cfg(redis_mock, state="disabled",
                     rate_limit_interval="0",
@@ -74,13 +87,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock)
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -105,13 +119,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock)
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -138,13 +153,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                                               "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
@@ -167,13 +183,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                                               "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -197,13 +214,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock, {})
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/snmpd.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("snmpd.12345.123.core.gz", "whatevver", redis_mock)
@@ -225,13 +243,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock, {})
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/python3.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("python3.12345.123.core.gz", "snmp", redis_mock)
@@ -251,15 +270,16 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock)
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "show techsupport --since '4 days ago'" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
-                    return 0, "", ""
-                elif "date --date='4 days ago'" in cmd_str:
+                if "--since 4 days ago" in cmd_str:
+                    patcher.fs.create_file(ts_dump)
+                    return 0, AUTO_TS_STDOUT + ts_dump, ""
+                elif "date --date=4 days ago" in cmd_str:
                     return 0, "", ""
                 else:
                     return 1, "", "Invalid Command"
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -284,13 +304,14 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock)
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                    patcher.fs.create_file(ts_dump)
                 else:
                     return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -315,15 +336,17 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock)
         with Patcher() as patcher:
             def mock_cmd(cmd, env):
+                ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "show techsupport --since '2 days ago'" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
-                    return 0, "", ""
-                elif "date --date='whatever'" in cmd_str:
+                if "--since 2 days ago" in cmd_str:
+                    patcher.fs.create_file(ts_dump)
+                    print(AUTO_TS_STDOUT + ts_dump)
+                    return 0, AUTO_TS_STDOUT + ts_dump, ""
+                elif "date --date=whatever" in cmd_str:
                     return 1, "", "Invalid Date Format"
                 else:
                     return 1, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -370,7 +393,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
-                return 0, "", ""
+                return 0, AUTO_TS_STDOUT + ts_dump, ""
             patcher.fs.set_disk_usage(2000, path="/var/core/")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz", st_size=25)
             patcher.fs.create_file("/var/core/lldpmgrd.12345.22.core.gz", st_size=25)
@@ -381,3 +404,68 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             assert "orchagent.12345.123.core.gz" in current_fs
             assert "lldpmgrd.12345.22.core.gz" in current_fs
             assert "python3.12345.21.core.gz" in current_fs
+
+    def test_max_retry_ts_failure(self):
+        """
+        Scenario: TS subprocess is continously returning EXT_RETRY
+                  Make sure auto-ts is not exceeding the limit
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled")
+        set_feature_table_cfg(redis_mock, state="enabled")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                return EXT_RETRY, "", ""
+
+            ts_helper.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+
+            signal.signal(signal.SIGALRM, signal_handler)
+            signal.alarm(5)   # 5 seconds
+            try:
+                cls.handle_core_dump_creation_event()
+            except Exception:
+                assert False, "Method should not time out"
+            finally:
+                signal.alarm(0)
+
+    def test_auto_ts_options(self):
+        """
+        Scenario: Check if the techsupport is called as expected
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled", since_cfg="2 days ago")
+        set_feature_table_cfg(redis_mock, state="enabled")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                cmd_str = " ".join(cmd)
+                if "show techsupport" in cmd_str and cmd_str != TS_DEFAULT_CMD:
+                    assert False, "Expected TS_CMD: {}, Recieved: {}".format(TS_DEFAULT_CMD, cmd_str)
+                return 0, AUTO_TS_STDOUT, ""
+            ts_helper.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+            cls.handle_core_dump_creation_event()
+
+    def test_auto_ts_empty_state_db(self):
+        """
+        Scenario: Check if the techsupport is called as expected even when the history table in empty
+                  and container cooloff is non-zero
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled", since_cfg="2 days ago")
+        set_feature_table_cfg(redis_mock, state="enabled", rate_limit_interval="300")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                cmd_str = " ".join(cmd)
+                if "show techsupport" in cmd_str and cmd_str != TS_DEFAULT_CMD:
+                    assert False, "Expected TS_CMD: {}, Recieved: {}".format(TS_DEFAULT_CMD, cmd_str)
+                return 0, AUTO_TS_STDOUT, ""
+            ts_helper.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+            cls.handle_core_dump_creation_event()

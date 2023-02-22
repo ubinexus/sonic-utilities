@@ -3,7 +3,6 @@ import os
 import click
 from click.testing import CliRunner
 import pytest
-import swsssdk
 import traceback
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +47,11 @@ show_interface_tpid_output="""\
       Interface      Alias    Oper    Admin    TPID
 ---------------  ---------  ------  -------  ------
       Ethernet0  Ethernet0    down       up  0x9200
+     Ethernet16       etp5      up       up     N/A
+     Ethernet24       etp6      up       up  0x8100
+     Ethernet28       etp8      up       up     N/A
      Ethernet32       etp9      up       up  0x8100
+     Ethernet36      etp10      up       up  0x8100
     Ethernet112      etp29      up       up  0x8100
     Ethernet116      etp30      up       up  0x8100
     Ethernet120      etp31      up       up  0x8100
@@ -98,7 +101,8 @@ class TestTpid(object):
         
     def test_tpid_add_lag_mbr_with_non_default_tpid(self):
         db = Db()
-        obj = {'db':db.cfgdb}
+        obj = {'db': db.cfgdb}
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0001","Ethernet20"], obj=obj)
         print(result.exit_code)

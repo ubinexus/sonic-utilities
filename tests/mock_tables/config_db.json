@@ -70,11 +70,11 @@
         "alias": "etp5",
         "description": "Servers3:eth0",
         "index": "4",
-        "lanes": "45,46,47,48",
+        "lanes": "16",
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "100"
     },
     "PORT|Ethernet20": {
         "admin_status": "up",
@@ -96,7 +96,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -107,7 +107,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet32": {
         "admin_status": "up",
@@ -129,7 +129,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "10"
     },
     "PORT|Ethernet40": {
         "admin_status": "up",
@@ -373,9 +373,31 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10": {
+    "VLAN_SUB_INTERFACE|Ethernet0.10|10.11.12.13/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Eth36.10": {
         "admin_status": "up",
+        "loopback_action": "drop",
+        "vrf_name": "Vrf1",
         "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Eth36.10|32.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Eth36.10|3210::12/126": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10": {
+        "admin_status": "up",
+        "vrf_name": "Vrf1",
+        "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|10.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|1010::12/126": {
+        "NULL" : "NULL"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
@@ -469,6 +491,11 @@
         "priority": "9989",
         "SRC_IP": "10.0.0.3/32"
     },
+    "ACL_RULE|DATAACL_NO_COUNTER|RULE_NO_COUNTER": {
+        "IP_PROTOCOL": "126",
+        "PACKET_ACTION": "FORWARD",
+        "PRIORITY": "9995"
+    },
     "ACL_TABLE|NULL_ROUTE_V4": {
         "policy_desc": "DATAACL",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023",
@@ -480,6 +507,11 @@
         "type": "L3V6"
     },
     "ACL_TABLE|DATAACL": {
+        "policy_desc": "DATAACL",
+        "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
+        "type": "L3"
+    },
+    "ACL_TABLE|DATAACL_NO_COUNTER": {
         "policy_desc": "DATAACL",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
         "type": "L3"
@@ -522,6 +554,10 @@
         "services@": "SSH",
         "type": "CTRLPLANE"
     },
+    "PBH_TABLE|pbh_table1": {
+        "description": "NVGRE",
+        "interface_list@": "Ethernet8,Ethernet60"
+    },
     "VLAN|Vlan1000": {
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "1000"
@@ -542,6 +578,9 @@
     },
     "VLAN_INTERFACE|Vlan2000": {
         "proxy_arp": "enabled"
+    },
+    "VLAN_INTERFACE|Vlan3000": {
+        "loopback_action": "forward"
     },
     "VLAN_INTERFACE|Vlan1000|192.168.0.1/21": {
         "NULL": "NULL"
@@ -627,7 +666,8 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "drop"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
@@ -663,10 +703,14 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "forward"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
+    },
+    "INTERFACE|Ethernet40": {
+        "ipv6_use_link_local_only": "enable"
     },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
@@ -1102,6 +1146,34 @@
     "FG_NHG_PREFIX|fc:05::/128": {
 	    "FG_NHG": "fgnhg_v6"
 	},
+    "FG_NHG|fgnhg_v4": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG|fgnhg_v6": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG_MEMBER|200.200.200.4": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200.200.200.5": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::4": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::5": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",
@@ -1534,6 +1606,44 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "PORT_STORM_CONTROL|Ethernet0|broadcast": {
+        "kbps":"100000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-unicast": {
+        "kbps":"200000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-multicast": {
+        "kbps":"300000"
+    },
+    "PORT_STORM_CONTROL|Ethernet4|broadcast": {
+        "kbps":"400000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-unicast": {
+        "kbps":"500000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-multicast": {
+        "kbps":"600000"
+    },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc6-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.7": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc7-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
     "FLEX_COUNTER_TABLE|QUEUE": {
             "POLL_INTERVAL": "10000",
             "FLEX_COUNTER_STATUS": "enable"
@@ -1547,11 +1657,9 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|QUEUE_WATERMARK": {
-        "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|PG_WATERMARK": {
-        "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|PG_DROP": {
@@ -1559,10 +1667,18 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|ACL": {
-        "POLL_INTERVAL": "10000",
+        "POLL_INTERVAL": "5000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|TUNNEL": {
+        "POLL_INTERVAL": "3000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|FLOW_CNT_ROUTE": {
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
@@ -1653,11 +1769,14 @@
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-active",
+	"soc_ipv4": "10.1.1.2",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-standby",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {
@@ -1748,11 +1867,24 @@
         "pool": "ingress_lossless_pool",
         "headroom_type": "dynamic"
     },
+    "BUFFER_PROFILE|egress_lossless_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossless_pool",
+        "size": "0"
+    },
+    "BUFFER_PROFILE|egress_lossy_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossy_pool",
+        "size": "0"
+    },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
     },
     "BUFFER_PG|Ethernet0|0": {
         "profile": "ingress_lossy_profile"
+    },
+    "BUFFER_QUEUE|Ethernet0|3-4": {
+        "profile": "egress_lossless_profile"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"
@@ -2484,5 +2616,10 @@
     },
     "SAG|GLOBAL": {
         "gateway_mac": "00:11:22:33:44:55"
+    },
+    "MIRROR_SESSION|test_session_db1": {
+        "dst_port": "Ethernet44",
+        "src_port": "Ethernet40,Ethernet48",
+        "direction": "RX"
     }
 }

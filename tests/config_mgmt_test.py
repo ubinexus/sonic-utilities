@@ -11,6 +11,7 @@ from utilities_common.general import load_module_from_source
 config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
 config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
 
+model = "module test_name {namespace urn:test_urn; prefix test_prefix;}"
 
 class TestConfigMgmt(TestCase):
     '''
@@ -20,6 +21,13 @@ class TestConfigMgmt(TestCase):
     def setUp(self):
         config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.json"
         config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.json"
+        return
+
+    def test_config_get_module_check(self):
+        curConfig = deepcopy(configDbJson)
+        self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
+        cm = config_mgmt.ConfigMgmt(source=config_mgmt.CONFIG_DB_JSON_FILE)
+        assert cm.get_module_name(model) == "test_name"
         return
 
     def test_config_validation(self):
@@ -55,6 +63,78 @@ class TestConfigMgmt(TestCase):
         for k in out['ACL_TABLE']:
             # only ports must be chosen
             len(out['ACL_TABLE'][k]) == 1
+        return
+
+    def test_upper_case_mac_fix(self):
+        '''
+        Issue:
+        https://github.com/Azure/sonic-buildimage/issues/9478
+
+        LibYang converts ietf yang types to lower case internally,which
+        creates false config diff for us while DPB.
+        This tests is to verify the fix done in config_mgmt.py to resolve this
+        issue.
+
+        Example:
+        For DEVICE_METADATA['localhost']['mac'] type is yang:mac-address.
+        Libyang converts from 'XX:XX:XX:E4:B3:DD' -> 'xx:xx:xx:e4:b3:dd'
+        '''
+        curConfig = deepcopy(configDbJson)
+        # Keep only PORT part to skip dependencies.
+        curConfig = {'PORT': curConfig['PORT']}
+        # add DEVICE_METADATA Config
+        curConfig['DEVICE_METADATA'] = {
+            "localhost": {
+                "bgp_asn": "65100",
+                "default_bgp_status": "up",
+                "default_pfcwd_status": "disable",
+                "docker_routing_config_mode": "split",
+                "hostname": "sonic",
+                "hwsku": "Seastone-DX010",
+                "mac": "00:11:22:BB:CC:DD",
+                "platform": "x86_64-cel_seastone-r0",
+                "type": "LeafRouter"
+            }
+        }
+        cmdpb = self.config_mgmt_dpb(curConfig)
+        # create ARGS
+        dPorts, pJson = self.generate_args(portIdx=0, laneIdx=65, \
+            curMode='4x25G', newMode='2x50G')
+
+        # use side effect to mock _createConfigToLoad but with call to same
+        # function
+        cmdpb._createConfigToLoad = mock.MagicMock(side_effect=cmdpb._createConfigToLoad)
+
+        # Try to breakout and see if writeConfigDB is called thrice
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, \
+            force=True, loadDefConfig=False)
+
+        '''
+        assert call to _createConfigToLoad has
+        DEVICE_METADATA': {'localhost': {'mac': ['XX:XX:XX:E4:B3:DD',
+        'xx:xx:xx:e4:b3:dd']}} in diff
+        '''
+        (args, kwargs) = cmdpb._createConfigToLoad.call_args_list[0]
+        print(args)
+        # in case of tuple get first arg, which is diff
+        if type(args) == tuple:
+            args = args[0]
+        assert args['DEVICE_METADATA']['localhost']['mac'] == \
+            ['00:11:22:BB:CC:DD', '00:11:22:bb:cc:dd']
+
+        # verify correct function call to writeConfigDB
+        assert cmdpb.writeConfigDB.call_count == 3
+        print(cmdpb.writeConfigDB.call_args_list[0])
+        # args is populated if call is done as writeConfigDB(a, b), kwargs is
+        # populated if call is done as writeConfigDB(A=a, B=b)
+        (args, kwargs) = cmdpb.writeConfigDB.call_args_list[0]
+        print(args)
+        # in case of tuple also, we should have only one element writeConfigDB
+        if type(args) == tuple:
+            args = args[0]
+        # Make sure no DEVICE_METADATA in the args to func
+        assert "DEVICE_METADATA" not in args
+
         return
 
     @pytest.mark.skip(reason="not stable")

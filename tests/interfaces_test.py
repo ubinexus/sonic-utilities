@@ -3,6 +3,7 @@ import traceback
 
 from click.testing import CliRunner
 from unittest import mock
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import show.main as show
 
@@ -293,7 +294,7 @@ class TestInterfaces(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_portchannel_in_alias_mode_output
-        
+       
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     def test_supervisor_show_interfaces_alias_etp1_with_waring(self):
         runner = CliRunner()
@@ -303,8 +304,7 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Configuration database contains no ports" in result.output
-        
+
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     @mock.patch('sonic_py_common.device_info.is_supervisor', mock.MagicMock(return_value=True))
     def test_supervisor_show_interfaces_alias_etp1_without_waring(self):
@@ -315,8 +315,28 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Configuration database contains no ports" not in result.output
-        
+
+    def test_parse_interface_in_filter(self):
+        intf_filter = "Ethernet0"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 1
+        assert intf_list[0] == "Ethernet0"
+
+        intf_filter = "Ethernet1-3"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 3
+        assert intf_list == ["Ethernet1", "Ethernet2", "Ethernet3"]
+
+        intf_filter = "Ethernet-BP10"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 1
+        assert intf_list[0] == "Ethernet-BP10"
+
+        intf_filter = "Ethernet-BP10-12"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 3
+        assert intf_list == ["Ethernet-BP10", "Ethernet-BP11", "Ethernet-BP12"]
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

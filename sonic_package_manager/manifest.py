@@ -177,6 +177,7 @@ class ManifestSchema:
             ManifestField('asic-service', DefaultMarshaller(bool), False),
             ManifestField('host-service', DefaultMarshaller(bool), True),
             ManifestField('delayed', DefaultMarshaller(bool), False),
+            ManifestField('check_up_status', DefaultMarshaller(bool), False),
             ManifestRoot('warm-shutdown', [
                 ManifestArray('after', DefaultMarshaller(str)),
                 ManifestArray('before', DefaultMarshaller(str)),
@@ -184,6 +185,9 @@ class ManifestSchema:
             ManifestRoot('fast-shutdown', [
                 ManifestArray('after', DefaultMarshaller(str)),
                 ManifestArray('before', DefaultMarshaller(str)),
+            ]),
+            ManifestRoot('syslog', [
+                ManifestField('support-rate-limit', DefaultMarshaller(bool), False),
             ]),
         ]),
         ManifestRoot('container', [

@@ -9,6 +9,7 @@ import re
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
+from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -44,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_4'
+        self.CURRENT_VERSION = 'version_4_0_0'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -70,9 +71,14 @@ class DBMigrator():
         if self.stateDB is not None:
             self.stateDB.connect(self.stateDB.STATE_DB)
 
+        self.loglevelDB = SonicV2Connector(host='127.0.0.1')
+        if self.loglevelDB is not None:
+            self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
+
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
         self.asic_type = asic_type
+        self.hwsku = device_info.get_hwsku()
 
         if asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
@@ -125,6 +131,43 @@ class DBMigrator():
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
 
+    def migrate_mgmt_ports_on_s6100(self):
+        '''
+        During warm-reboot, add back two 10G management ports which got removed from 6100
+        to ensure no change in bcm.config from older image
+        '''
+        if device_info.is_warm_restart_enabled('swss') == False:
+            log.log_notice("Skip migration on {}, warm-reboot flag not set".format(self.hwsku))
+            return True
+
+        entries = {}
+        entries['Ethernet64'] = {'alias': 'tenGigE1/1', 'description': 'tenGigE1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        entries['Ethernet65'] = {'alias': 'tenGigE1/2', 'description': 'tenGigE1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        added_ports = 0
+        for portName in entries.keys():
+            if self.configDB.get_entry('PORT', portName):
+                log.log_notice("Skipping migration for port {} - entry exists".format(portName))
+                continue
+
+            log.log_notice("Migrating port {} to configDB for warm-reboot on {}".format(portName, self.hwsku))
+            self.configDB.set_entry('PORT', portName, entries[portName])
+
+            #Copy port to APPL_DB
+            key = 'PORT_TABLE:' + portName
+            for field, value in entries[portName].items():
+                self.appDB.set(self.appDB.APPL_DB, key, field, value)
+            self.appDB.set(self.appDB.APPL_DB, key, 'admin_status', 'down')
+            log.log_notice("Copied port {} to appdb".format(key))
+            added_ports += 1
+
+        #Update port count in APPL_DB
+        portCount = self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')
+        if portCount != '':
+            total_count = int(portCount) + added_ports
+            self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
+            log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
+        return True
+        
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -135,22 +178,39 @@ class DBMigrator():
         if self.appDB is None:
             return
 
-        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        # Get Lo interface corresponding to IP(v4/v6) address from CONFIG_DB.
+        configdb_data = self.configDB.get_keys('LOOPBACK_INTERFACE')
+        lo_addr_to_int = dict()
+        for int_data in configdb_data:
+            if type(int_data) == tuple and len(int_data) > 1:
+                intf_name = int_data[0]
+                intf_addr = int_data[1]
+                lo_addr_to_int.update({intf_addr: intf_name})
 
-        if data is None:
+        lo_data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        if lo_data is None:
             return
 
         if_db = []
-        for key in data:
-            if_name = key.split(":")[1]
-            if if_name == "lo":
-                self.appDB.delete(self.appDB.APPL_DB, key)
-                key = key.replace(if_name, "Loopback0")
-                log.log_info('Migrating lo entry to ' + key)
-                self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
+        for lo_row in lo_data:
+            # Example of lo_row: 'INTF_TABLE:lo:10.1.0.32/32'
+            # Delete the old row with name as 'lo'. A new row with name as Loopback will be added
+            lo_name_appdb = lo_row.split(":")[1]
+            if lo_name_appdb == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, lo_row)
+                lo_addr = lo_row.split('INTF_TABLE:lo:')[1]
+                lo_name_configdb = lo_addr_to_int.get(lo_addr)
+                if lo_name_configdb is None or lo_name_configdb == '':
+                    # an unlikely case where a Loopback address is present in APPLDB, but
+                    # there is no corresponding interface for this address in CONFIGDB:
+                    # Default to legacy implementation: hardcode interface name as Loopback0
+                    lo_new_row = lo_row.replace(lo_name_appdb, "Loopback0")
+                else:
+                    lo_new_row = lo_row.replace(lo_name_appdb, lo_name_configdb)
+                self.appDB.set(self.appDB.APPL_DB, lo_new_row, 'NULL', 'NULL')
 
-            if '/' not in key:
-                if_db.append(key.split(":")[1])
+            if '/' not in lo_row:
+                if_db.append(lo_row.split(":")[1])
                 continue
 
         data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
@@ -447,6 +507,78 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
 
+    def migrate_vxlan_config(self):
+        log.log_notice('Migrate VXLAN table config')
+        # Collect VXLAN data from config DB
+        vxlan_data = self.configDB.keys(self.configDB.CONFIG_DB, "VXLAN_TUNNEL*")
+        if not vxlan_data:
+            # do nothing if vxlan entries are not present in configdb
+            return
+        for vxlan_table in vxlan_data:
+            vxlan_map_mapping = self.configDB.get_all(self.configDB.CONFIG_DB, vxlan_table)
+            tunnel_keys = vxlan_table.split(self.configDB.KEY_SEPARATOR)
+            tunnel_keys[0] = tunnel_keys[0] + "_TABLE"
+            vxlan_table = self.appDB.get_db_separator(self.appDB.APPL_DB).join(tunnel_keys)
+            for field, value in vxlan_map_mapping.items():
+                # add entries from configdb to appdb only when they are missing
+                if not self.appDB.hexists(self.appDB.APPL_DB, vxlan_table, field):
+                    log.log_notice('Copying vxlan entries from configdb to appdb: updated {} with {}:{}'.format(
+                        vxlan_table, field, value))
+                    self.appDB.set(self.appDB.APPL_DB, vxlan_table, field, value)
+
+    def migrate_restapi(self):
+        # RESTAPI - add missing key
+        log.log_notice('Migrate RESTAPI configuration')
+        config = self.configDB.get_entry('RESTAPI', 'config')
+        if not config:
+            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+        certs = self.configDB.get_entry('RESTAPI', 'certs')
+        if not certs:
+            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+
+    def migrate_telemetry(self):
+        # TELEMETRY - add missing key
+        log.log_notice('Migrate TELEMETRY configuration')
+        gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
+        if not gnmi:
+            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+        certs = self.configDB.get_entry('TELEMETRY', 'certs')
+        if not certs:
+            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+
+    def migrate_console_switch(self):
+        # CONSOLE_SWITCH - add missing key
+        log.log_notice('Migrate CONSOLE_SWITCH configuration')
+        console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
+        if not console_mgmt:
+            self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
+                CONSOLE_SWITCH.get("console_mgmt"))
+
+    def migrate_device_metadata(self):
+        # DEVICE_METADATA - synchronous_mode entry
+        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        if 'synchronous_mode' not in metadata:
+            metadata['synchronous_mode'] = 'enable'
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
+
+    def migrate_port_qos_map_global(self):
+        """
+        Generate dscp_to_tc_map for switch.
+        """
+        asics_require_global_dscp_to_tc_map = ["broadcom"]
+        if self.asic_type not in asics_require_global_dscp_to_tc_map:
+            return
+        dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
+        if len(dscp_to_tc_map_table_names) == 0:
+            return
+        
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        if 'global' not in qos_maps.keys():
+            # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
+            self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
+            log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -583,18 +715,51 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
-        Version 2_0_0.
+        Version 2_0_0
         """
         log.log_info('Handling version_2_0_0')
-        self.migrate_config_db_port_table_for_auto_neg()
+        self.migrate_port_qos_map_global()
         self.set_version('version_2_0_1')
         return 'version_2_0_1'
 
     def version_2_0_1(self):
         """
-        Version 2_0_1.
+        Handle and migrate missing config that results from cross branch upgrade to
+        202012 as target.
         """
         log.log_info('Handling version_2_0_1')
+        self.migrate_vxlan_config()
+        self.migrate_restapi()
+        self.migrate_telemetry()
+        self.migrate_console_switch()
+        self.migrate_device_metadata()
+
+        self.set_version('version_2_0_2')
+        return 'version_2_0_2'
+
+    def version_2_0_2(self):
+        """
+        Version 2_0_2
+        This is the latest version for 202012 branch 
+        """
+        log.log_info('Handling version_2_0_2')
+        self.set_version('version_3_0_0')
+        return 'version_3_0_0'
+
+    def version_3_0_0(self):
+        """
+        Version 3_0_0.
+        """
+        log.log_info('Handling version_3_0_0')
+        self.migrate_config_db_port_table_for_auto_neg()
+        self.set_version('version_3_0_1')
+        return 'version_3_0_1'
+
+    def version_3_0_1(self):
+        """
+        Version 3_0_1.
+        """
+        log.log_info('Handling version_3_0_1')
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
 
         if warmreboot_state != 'true':
@@ -602,34 +767,92 @@ class DBMigrator():
             for name, data in portchannel_table.items():
                 data['lacp_key'] = 'auto'
                 self.configDB.set_entry('PORTCHANNEL', name, data)
-        self.set_version('version_2_0_2')
-        return 'version_2_0_2'
+        self.set_version('version_3_0_2')
+        return 'version_3_0_2'
 
-    def version_2_0_2(self):
+    def version_3_0_2(self):
         """
-        Version 2_0_2.
+        Version 3_0_2.
         """
-        log.log_info('Handling version_2_0_2')
+        log.log_info('Handling version_3_0_2')
         self.migrate_qos_fieldval_reference_format()
-        self.set_version('version_2_0_3')
-        return 'version_2_0_3'
+        self.set_version('version_3_0_3')
+        return 'version_3_0_3'
 
 
-    def version_2_0_3(self):
+    def version_3_0_3(self):
         """
-        Version 2_0_3
+        Version 3_0_3
         """
-        log.log_info('Handling version_2_0_3')
+        log.log_info('Handling version_3_0_3')
         if self.asic_type == "mellanox":
             self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
-        self.set_version('version_2_0_4')
-        return 'version_2_0_4'
+        self.set_version('version_3_0_4')
+        return 'version_3_0_4'
 
-    def version_2_0_4(self):
+    def version_3_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 3_0_4
         """
-        log.log_info('Handling version_2_0_4')
+        log.log_info('Handling version_3_0_4')
+        # Migrate "pfc_enable" to "pfc_enable" and "pfcwd_sw_enable"
+        # 1. pfc_enable means enable pfc on certain queues
+        # 2. pfcwd_sw_enable means enable PFC software watchdog on certain queues
+        # By default, PFC software watchdog is enabled on all pfc enabled queues.
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        for k, v in qos_maps.items():
+            if 'pfc_enable' in v:
+                v['pfcwd_sw_enable'] = v['pfc_enable']
+                self.configDB.set_entry('PORT_QOS_MAP', k, v)
+        self.set_version('version_3_0_5')
+        return 'version_3_0_5'
+
+    def version_3_0_5(self):
+        """
+        Version 3_0_5
+        """
+        log.log_info('Handling version_3_0_5')
+        # Removing LOGLEVEL DB and moving it's content to CONFIG DB
+        # Removing Jinja2_cache
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        if warmreboot_state == 'true':
+            table_name = "LOGGER"
+            loglevel_field = "LOGLEVEL"
+            logoutput_field = "LOGOUTPUT"
+            keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
+            if keys is not None:
+                for key in keys:
+                    try:
+                        if key != "JINJA2_CACHE":
+                            fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                            component = key.split(":")[1]
+                            loglevel = fvs[loglevel_field]
+                            logoutput = fvs[logoutput_field]
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    except Exception as err:
+                        log.log_warning('Error occured during LOGLEVEL_DB migration for {}. Ignoring key {}'.format(err, key))
+                    finally:
+                        self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
+        self.set_version('version_3_0_6')
+        return 'version_3_0_6'
+
+    def version_3_0_6(self):
+        """
+        Version 3_0_6
+        This is the latest version for 202211 branch
+        """
+
+        log.log_info('Handling version_3_0_6')
+        self.set_version('version_4_0_0')
+        return 'version_4_0_0'
+
+    def version_4_0_0(self):
+        """
+        Version 4_0_0.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_0')
         return None
 
     def get_version(self):
@@ -665,7 +888,16 @@ class DBMigrator():
                 new_cfg = {**init_cfg, **curr_cfg}
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
-        self.migrate_copp_table()
+        # Avoiding copp table migration is platform specific at the moment as I understood this might cause issues for some
+        # vendors, probably Broadcom. This change can be checked with any specific vendor and if this works fine the platform
+        # condition can be modified and extend. If no vendor has an issue with not clearing copp tables the condition can be
+        # removed together with calling to migrate_copp_table function.
+        if self.asic_type != "mellanox":
+            self.migrate_copp_table()
+        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+            self.migrate_mgmt_ports_on_s6100()
+        else:
+            log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
     def migrate(self):
         version = self.get_version()

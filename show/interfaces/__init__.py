@@ -203,6 +203,9 @@ def breakout(ctx):
             raise click.Abort()
 
         for port_name in platform_dict:
+            # Check whether port is available in `BREAKOUT_CFG` table or not
+            if  port_name not in cur_brkout_tbl:
+                continue
             cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
             # Update deafult breakout mode and current breakout mode to platform_dict
@@ -252,7 +255,11 @@ def currrent_mode(ctx, interface):
 
     # Show current Breakout Mode of user prompted interface
     if interface is not None:
-        body.append([interface, str(cur_brkout_tbl[interface]['brkout_mode'])])
+        # Check whether interface is available in `BREAKOUT_CFG` table or not
+        if interface in cur_brkout_tbl:
+            body.append([interface, str(cur_brkout_tbl[interface]['brkout_mode'])])
+        else:
+            body.append([interface, "Not Available"])
         click.echo(tabulate(body, header, tablefmt="grid"))
         return
 
@@ -300,9 +307,9 @@ def expected(db, interfacename):
             body.append([interfacename,
                          device,
                          neighbor_dict[interfacename]['port'],
-                         neighbor_metadata_dict[device]['lo_addr'],
-                         neighbor_metadata_dict[device]['mgmt_addr'],
-                         neighbor_metadata_dict[device]['type']])
+                         neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' in neighbor_metadata_dict[device] else 'None',
+                         neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' in neighbor_metadata_dict[device] else 'None',
+                         neighbor_metadata_dict[device]['type'] if 'type' in neighbor_metadata_dict[device] else 'None'])
         except KeyError:
             click.echo("No neighbor information available for interface {}".format(interfacename))
             return
@@ -313,9 +320,9 @@ def expected(db, interfacename):
                 body.append([port,
                              device,
                              neighbor_dict[port]['port'],
-                             neighbor_metadata_dict[device]['lo_addr'],
-                             neighbor_metadata_dict[device]['mgmt_addr'],
-                             neighbor_metadata_dict[device]['type']])
+                             neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' in neighbor_metadata_dict[device] else 'None',
+                             neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' in neighbor_metadata_dict[device] else 'None',
+                             neighbor_metadata_dict[device]['type'] if 'type' in neighbor_metadata_dict[device] else 'None'])
             except KeyError:
                 pass
 
@@ -331,7 +338,7 @@ def expected(db, interfacename):
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-    
+
     #Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
        if (display == 'frontend' or display == 'all' or display is None):
@@ -339,7 +346,7 @@ def mpls(ctx, interfacename, namespace, display):
        else:
            print("Error: Invalid display option command for single asic")
            return
-    
+
     display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
     ns_list = masic.get_ns_list_based_on_options()
@@ -365,13 +372,13 @@ def mpls(ctx, interfacename, namespace, display):
             if (interfacename is not None):
                 if (interfacename != ifname):
                     continue
-                
+
                 intf_found = True
-            
+
             if (display != "all"):
                 if ("Loopback" in ifname):
                     continue
-                
+
                 if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
                     continue
 
@@ -384,11 +391,11 @@ def mpls(ctx, interfacename, namespace, display):
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
                 intfs_data.update({ifname: 'disable'})
             else:
-                intfs_data.update({ifname: mpls_intf['mpls']}) 
-    
+                intfs_data.update({ifname: mpls_intf['mpls']})
+
     # Check if interface is valid
     if (interfacename is not None and not intf_found):
-        ctx.fail('interface {} doesn`t exist'.format(interfacename))    
+        ctx.fail('interface {} doesn`t exist'.format(interfacename))
 
     header = ['Interface', 'MPLS State']
     body = []
@@ -428,6 +435,51 @@ def eeprom(interfacename, dump_dom, namespace, verbose):
 
     if dump_dom:
         cmd += " --dom"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def pm(interfacename, namespace, verbose):
+    """Show interface transceiver performance monitoring information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "sfpshow pm"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(
+            ctx, interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def info(interfacename, namespace, verbose):
+    """Show interface transceiver information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "sfpshow info"
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
@@ -551,6 +603,23 @@ def errors(verbose, period, namespace, display):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+# 'fec-stats' subcommand ("show interfaces counters errors")
+@counters.command('fec-stats')
+@click.option('-p', '--period')
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fec_stats(verbose, period, namespace, display):
+    """Show interface counters fec-stats"""
+    cmd = "portstat -f"
+    if period is not None:
+        cmd += " -p {}".format(period)
+
+    cmd += " -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
 # 'rates' subcommand ("show interfaces counters rates")
 @counters.command()
 @click.option('-p', '--period')
@@ -619,6 +688,39 @@ def autoneg_status(interfacename, namespace, display, verbose):
     ctx = click.get_current_context()
 
     cmd = "intfutil -c autoneg"
+
+    #ignore the display option when interface name is passed
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+#
+# link-training group (show interfaces link-training ...)
+#
+@interfaces.group(name='link-training', cls=clicommon.AliasedGroup)
+def link_training():
+    """Show interface link-training information"""
+    pass
+
+# 'link-training status' subcommand ("show interfaces link-training status")
+@link_training.command(name='status')
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def link_training_status(interfacename, namespace, display, verbose):
+    """Show interface link-training status"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c link_training"
 
     #ignore the display option when interface name is passed
     if interfacename is not None:

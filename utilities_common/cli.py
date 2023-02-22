@@ -4,13 +4,15 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 
 import click
 import json
+import lazy_object_proxy
 import netaddr
 
 from natsort import natsorted
-from sonic_py_common import multi_asic, device_info
+from sonic_py_common import multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_db_config
 
@@ -131,8 +133,6 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            if not device_info.is_supervisor():
-                click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:
@@ -185,8 +185,8 @@ class InterfaceAliasConverter(object):
         # interface_alias not in port_dict. Just return interface_alias
         return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
-# Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = InterfaceAliasConverter()
+# Lazy global class instance for SONiC interface name to alias conversion
+iface_alias_converter = lazy_object_proxy.Proxy(lambda: InterfaceAliasConverter())
 
 def get_interface_naming_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
@@ -251,10 +251,10 @@ def is_vlanid_in_range(vid):
 
     return False
 
-def check_if_vlanid_exist(config_db, vlan):
+def check_if_vlanid_exist(config_db, vlan, table_name='VLAN'):
     """Check if vlan id exits in the config db or ot"""
 
-    if len(config_db.get_entry('VLAN', vlan)) != 0:
+    if len(config_db.get_entry(table_name, vlan)) != 0:
         return True
 
     return False
@@ -270,7 +270,7 @@ def is_port_vlan_member(config_db, port, vlan):
     return False
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
-    """ Check if an interface  is in a vlan """
+    """ Check if an interface is in a vlan """
     for _,intf in vlan_member_table:
         if intf == interface_name:
             return True
@@ -294,7 +294,7 @@ def is_port_router_interface(config_db, port):
 
     interface_table = config_db.get_table('INTERFACE')
     for intf in interface_table:
-        if port == intf[0]:
+        if port == intf:
             return True
 
     return False
@@ -304,7 +304,7 @@ def is_pc_router_interface(config_db, pc):
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
     for intf in pc_interface_table:
-        if pc == intf[0]:
+        if pc == intf:
             return True
 
     return False
@@ -437,12 +437,12 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif (command.startswith("sudo sfputil show eeprom")):
-                """show interface transceiver eeprom"""
+                """Show interface transceiver eeprom"""
                 index = 0
                 print_output_in_alias_mode(raw_output, index)
 
             elif (command.startswith("sudo sfputil show")):
-                """show interface transceiver lpmode,
+                """Show interface transceiver lpmode,
                    presence
                 """
                 index = 0
@@ -452,7 +452,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command == "sudo lldpshow":
-                """show lldp table"""
+                """Show lldp table"""
                 index = 0
                 if output.startswith("LocalPort"):
                     output = output.replace("LocalPort", "LocalPort".rjust(
@@ -460,7 +460,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("queuestat"):
-                """show queue counters"""
+                """Show queue counters"""
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
@@ -468,7 +468,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command == "fdbshow":
-                """show mac"""
+                """Show mac"""
                 index = 3
                 if output.startswith("No."):
                     output = "  " + output
@@ -479,13 +479,13 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("nbrshow"):
-                """show arp"""
+                """Show arp"""
                 index = 2
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
             elif command.startswith("sudo ipintutil"):
-                """show ip(v6) int"""
+                """Show ip(v6) int"""
                 index = 0
                 if output.startswith("Interface"):
                    output = output.replace("Interface", "Interface".rjust(
@@ -529,7 +529,9 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    if get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
+    # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format 
+    # with a list for next hops 
+    if get_interface_naming_mode() == "alias" and not command.startswith("intfutil") and not re.search("show ip|ipv6 route", command):
         run_command_in_alias_mode(command)
         sys.exit(0)
 
@@ -537,7 +539,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
 
     if return_cmd:
         output = proc.communicate()[0]
-        return output
+        return output, proc.returncode
 
     if not interactive_mode:
         (out, err) = proc.communicate()
@@ -579,11 +581,11 @@ def json_dump(data):
         data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
 
-    
+
 def interface_is_untagged_member(db, interface_name):
-    """ Check if interface is already untagged member"""    
+    """ Check if interface is already untagged member"""
     vlan_member_table = db.get_table('VLAN_MEMBER')
-    
+
     for key,val in vlan_member_table.items():
         if(key[1] == interface_name):
             if (val['tagging_mode'] == 'untagged'):
@@ -595,6 +597,7 @@ def is_interface_in_config_db(config_db, interface_name):
     if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
         not interface_name in config_db.get_keys('INTERFACE') and
         not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name in config_db.get_keys('VLAN_SUB_INTERFACE') and
         not interface_name == 'null'):
             return False
 
@@ -630,3 +633,74 @@ class MutuallyExclusiveOption(click.Option):
                         "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
                         )
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
+
+
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower().strip()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")
+
+
+class UserCache:
+    """ General purpose cache directory created per user """
+
+    CACHE_DIR = "/tmp/cache/"
+
+    def __init__(self, app_name=None, tag=None):
+        """ Initialize UserCache and create a cache directory if it does not exist.
+
+        Args:
+            tag (str): Tag the user cache. Different tags correspond to different cache directories even for the same user.
+        """
+        self.uid = os.getuid()
+        self.app_name = os.path.basename(sys.argv[0]) if app_name is None else app_name
+        self.cache_directory_suffix = str(self.uid) if tag is None else f"{self.uid}-{tag}"
+        self.cache_directory_app = os.path.join(self.CACHE_DIR, self.app_name)
+
+        prev_umask = os.umask(0)
+        try:
+            os.makedirs(self.cache_directory_app, exist_ok=True)
+        finally:
+            os.umask(prev_umask)
+
+        self.cache_directory = os.path.join(self.cache_directory_app, self.cache_directory_suffix)
+        os.makedirs(self.cache_directory, exist_ok=True)
+
+    def get_directory(self):
+        """ Return the cache directory path """
+        return self.cache_directory
+
+    def remove(self):
+        """ Remove the content of the cache directory """
+        shutil.rmtree(self.cache_directory)
+
+    def remove_all(self):
+        """ Remove the content of the cache for all users """
+        shutil.rmtree(self.cache_directory_app)

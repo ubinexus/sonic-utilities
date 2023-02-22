@@ -55,12 +55,31 @@ def prune_empty_table(data):
     return data
 
 
+class DryRunChangeApplier:
+
+    def __init__(self, config_wrapper):
+        self.config_wrapper = config_wrapper
+
+
+    def apply(self, change):
+        self.config_wrapper.apply_change_to_config_db(change)
+
+
+    def remove_backend_tables_from_config(self, data):
+        return data
+
+
 class ChangeApplier:
 
     updater_conf = None
 
     def __init__(self):
         self.config_db = get_config_db()
+        self.backend_tables = [
+            "BUFFER_PG",
+            "BUFFER_PROFILE",
+            "FLEX_COUNTER_TABLE"
+        ]
         if (not ChangeApplier.updater_conf) and os.path.exists(UPDATER_CONF_FILE):
             with open(UPDATER_CONF_FILE, "r") as s:
                 ChangeApplier.updater_conf = json.load(s)
@@ -97,7 +116,7 @@ class ChangeApplier:
 
         for cmd in lst_cmds:
             ret = self._invoke_cmd(cmd, old_cfg, upd_cfg, keys)
-            if ret:
+            if not ret:
                 log_error("service invoked: {} failed with ret={}".format(cmd, ret))
                 return ret
             log_debug("service invoked: {}".format(cmd))
@@ -132,12 +151,19 @@ class ChangeApplier:
         ret = self._services_validate(run_data, upd_data, upd_keys)
         if not ret:
             run_data = self._get_running_config()
+            self.remove_backend_tables_from_config(upd_data)
+            self.remove_backend_tables_from_config(run_data)
             if upd_data != run_data:
                 self._report_mismatch(run_data, upd_data)
                 ret = -1
         if ret:
             log_error("Failed to apply Json change")
         return ret
+
+
+    def remove_backend_tables_from_config(self, data):
+        for key in self.backend_tables:
+            data.pop(key, None)
 
 
     def _get_running_config(self):

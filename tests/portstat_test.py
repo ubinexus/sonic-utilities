@@ -6,17 +6,18 @@ from click.testing import CliRunner
 import clear.main as clear
 import show.main as show
 from .utils import get_result_and_return_code
+from utilities_common.cli import UserCache
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 intf_counters_before_clear = """\
-    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
-Ethernet0        D        8      0.00 B/s      0.00%        10       100       N/A       10     0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        4   204.80 KB/s        N/A         0     1,000       N/A       40  204.85 KB/s        N/A       N/A       N/A       N/A
-Ethernet8      N/A        6  1350.00 KB/s        N/A       100        10       N/A       60   13.37 MB/s        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  ------------  ---------  --------  --------  --------
+Ethernet0        D        8  2000.00 MB/s     64.00%        10       100       N/A       10  1500.00 MB/s     48.00%       N/A       N/A       N/A
+Ethernet4      N/A        4   204.80 KB/s        N/A         0     1,000       N/A       40   204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6  1350.00 KB/s        N/A       100        10       N/A       60    13.37 MB/s        N/A       N/A       N/A       N/A
 """
 
 intf_counters_ethernet4 = """\
@@ -26,28 +27,45 @@ Ethernet4      N/A        4  204.80 KB/s        N/A         0     1,000       N/
 """
 
 intf_counters_all = """\
-    IFACE    STATE    RX_OK        RX_BPS     RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS     TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  ------------  ---------  ---------  --------  --------  --------  -------  -----------  ---------  ---------  --------  --------  --------
-Ethernet0        D        8      0.00 B/s     0.00/s      0.00%        10       100       N/A       10     0.00 B/s     0.00/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        4   204.80 KB/s   200.00/s        N/A         0     1,000       N/A       40  204.85 KB/s   201.00/s        N/A       N/A       N/A       N/A
-Ethernet8      N/A        6  1350.00 KB/s  9000.00/s        N/A       100        10       N/A       60   13.37 MB/s  9000.00/s        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS       RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS       TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  -----------  ---------  --------  --------  --------  -------  ------------  -----------  ---------  --------  --------  --------
+Ethernet0        D        8  2000.00 MB/s  247000.00/s     64.00%        10       100       N/A       10  1500.00 MB/s  183000.00/s     48.00%       N/A       N/A       N/A
+Ethernet4      N/A        4   204.80 KB/s     200.00/s        N/A         0     1,000       N/A       40   204.85 KB/s     201.00/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6  1350.00 KB/s    9000.00/s        N/A       100        10       N/A       60    13.37 MB/s    9000.00/s        N/A       N/A       N/A       N/A
+"""
+
+intf_fec_counters = """\
+    IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
+---------  -------  ----------  ------------  ----------------
+Ethernet0        D     130,402             3                 4
+Ethernet4      N/A     110,412             1                 0
+Ethernet8      N/A     100,317             0                 0
+"""
+
+intf_fec_counters_period = """\
+The rates are calculated within 3 seconds period
+    IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
+---------  -------  ----------  ------------  ----------------
+Ethernet0        D           0             0                 0
+Ethernet4      N/A           0             0                 0
+Ethernet8      N/A           0             0                 0
 """
 
 intf_counters_period = """\
 The rates are calculated within 3 seconds period
-    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
-Ethernet0        D        0      0.00 B/s      0.00%         0         0       N/A        0     0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0  204.85 KB/s        N/A       N/A       N/A       N/A
-Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0   13.37 MB/s        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  ------------  ---------  --------  --------  --------
+Ethernet0        D        0  2000.00 MB/s     64.00%         0         0       N/A        0  1500.00 MB/s     48.00%       N/A       N/A       N/A
+Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0   204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0    13.37 MB/s        N/A       N/A       N/A       N/A
 """
 
 intf_counter_after_clear = """\
-    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
-Ethernet0        D        0      0.00 B/s      0.00%         0         0       N/A        0     0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0  204.85 KB/s        N/A       N/A       N/A       N/A
-Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0   13.37 MB/s        N/A       N/A       N/A       N/A"""
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  ------------  ---------  --------  --------  --------
+Ethernet0        D        0  2000.00 MB/s     64.00%         0         0       N/A        0  1500.00 MB/s     48.00%       N/A       N/A       N/A
+Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0   204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0    13.37 MB/s        N/A       N/A       N/A       N/A"""
 
 clear_counter = """\
 Cleared counters"""
@@ -57,6 +75,9 @@ multi_asic_external_intf_counters = """\
 ---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
 Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_all_intf_counters = """\
@@ -68,6 +89,9 @@ multi_asic_all_intf_counters = """\
   Ethernet-BP4        U        8  0.00 B/s      0.00%         0     1,000       N/A       80  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP260        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 multi_asic_intf_counters_asic0 = """\
        IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
@@ -76,6 +100,9 @@ multi_asic_intf_counters_asic0 = """\
    Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP0        U        6  0.00 B/s      0.00%         0     1,000       N/A       60  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP4        U        8  0.00 B/s      0.00%         0     1,000       N/A       80  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_external_intf_counters_printall = """\
@@ -83,6 +110,9 @@ multi_asic_external_intf_counters_printall = """\
 ---------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
 Ethernet0        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 Ethernet4        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counters_printall = """\
@@ -94,6 +124,9 @@ multi_asic_intf_counters_printall = """\
   Ethernet-BP4        U        8  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       80  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 Ethernet-BP260        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counters_asic0_printall = """\
@@ -103,6 +136,9 @@ multi_asic_intf_counters_asic0_printall = """\
    Ethernet4        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 Ethernet-BP0        U        6  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       60  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 Ethernet-BP4        U        8  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       80  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 multi_asic_intf_counters_period = """\
 The rates are calculated within 3 seconds period
@@ -110,6 +146,9 @@ The rates are calculated within 3 seconds period
 ---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
 Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counters_period_all = """\
@@ -122,6 +161,9 @@ The rates are calculated within 3 seconds period
   Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 multi_asic_intf_counter_period_asic_all = """\
@@ -132,6 +174,9 @@ The rates are calculated within 3 seconds period
    Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+
 """
 
 mutli_asic_intf_counters_after_clear = """\
@@ -142,7 +187,11 @@ mutli_asic_intf_counters_after_clear = """\
   Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
   Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
 Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
+Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+
+Reminder: Please execute 'show interface counters -d all' to include internal links
+"""
+
 
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
 
@@ -191,9 +240,8 @@ TEST_PERIOD = 3
 
 def remove_tmp_cnstat_file():
     # remove the tmp portstat
-    uid = str(os.getuid())
-    cnstat_dir = os.path.join(os.sep, "tmp", "portstat-{}".format(uid))
-    shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
+    cache = UserCache("portstat")
+    cache.remove_all()
 
 
 def verify_after_clear(output, expected_out):
@@ -257,6 +305,39 @@ class TestPortStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_counters_all
+
+    def test_show_intf_fec_counters(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters
+
+        return_code, result = get_result_and_return_code('portstat -f')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_fec_counters
+
+    def test_show_intf_fec_counters_period(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"],
+                                ["-p {}".format(TEST_PERIOD)])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters_period
+
+        return_code, result = get_result_and_return_code(
+            'portstat -f -p {}'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_fec_counters_period
+
+
 
     def test_show_intf_counters_period(self):
         runner = CliRunner()

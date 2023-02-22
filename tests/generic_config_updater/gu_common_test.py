@@ -1,16 +1,121 @@
+import copy
 import json
 import jsonpatch
 import sonic_yang
 import unittest
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 from .gutest_helpers import create_side_effect_dict, Files
 import generic_config_updater.gu_common as gu_common
+
+class TestDryRunConfigWrapper(unittest.TestCase):
+    @patch('generic_config_updater.gu_common.subprocess.Popen')
+    def test_get_config_db_as_json(self, mock_popen):
+        config_wrapper = gu_common.DryRunConfigWrapper()
+        mock_proc = MagicMock()
+        mock_proc.communicate = MagicMock(
+            return_value=('{"PORT": {}, "bgpraw": ""}', None))
+        mock_proc.returncode = 0
+        mock_popen.return_value = mock_proc
+        actual = config_wrapper.get_config_db_as_json()
+        expected = {"PORT": {}}
+        self.assertDictEqual(actual, expected)
+
+    def test_get_config_db_as_json__returns_imitated_config_db(self):
+        # Arrange
+        config_wrapper = gu_common.DryRunConfigWrapper(Files.CONFIG_DB_AS_JSON)
+        expected = Files.CONFIG_DB_AS_JSON
+
+        # Act
+        actual = config_wrapper.get_config_db_as_json()
+
+        # Assert
+        self.assertDictEqual(expected, actual)
+
+    def test_get_sonic_yang_as_json__returns_imitated_config_db_as_yang(self):
+        # Arrange
+        config_wrapper = gu_common.DryRunConfigWrapper(Files.CONFIG_DB_AS_JSON)
+        expected = Files.SONIC_YANG_AS_JSON
+
+        # Act
+        actual = config_wrapper.get_sonic_yang_as_json()
+
+        # Assert
+        self.assertDictEqual(expected, actual)
+
+    def test_apply_change_to_config_db__multiple_calls__changes_imitated_config_db(self):
+        # Arrange
+        imitated_config_db = Files.CONFIG_DB_AS_JSON
+        config_wrapper = gu_common.DryRunConfigWrapper(imitated_config_db)
+
+        changes = [gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/VLAN'}])),
+                   gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/ACL_TABLE'}])),
+                   gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/PORT'}]))
+                  ]
+
+        expected = imitated_config_db
+        for change in changes:
+            # Act
+            config_wrapper.apply_change_to_config_db(change)
+
+            actual = config_wrapper.get_config_db_as_json()
+            expected = change.apply(expected)
+
+            # Assert
+            self.assertDictEqual(expected, actual)
 
 class TestConfigWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
         self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
+
+    def test_validate_field_operation_legal__pfcwd(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "40"}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        config_wrapper.validate_field_operation(old_config, target_config)
+
+    def test_validate_field_operation_legal__rm_loopback1(self):
+        old_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {},
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        target_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {}
+            }
+        }
+        config_wrapper = gu_common.ConfigWrapper()
+        config_wrapper.validate_field_operation(old_config, target_config)
+
+    def test_validate_field_operation_illegal__pfcwd(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": 60}}}
+        target_config = {"PFC_WD": {"GLOBAL": {}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+
+    def test_validate_field_operation_illegal__rm_loopback0(self):
+        old_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {},
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        target_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
 
     def test_ctor__default_values_set(self):
         config_wrapper = gu_common.ConfigWrapper()
@@ -99,10 +204,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_sonic_yang_config__invvalid_config__returns_false(self):
         # Arrange
@@ -110,10 +216,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
 
     def test_validate_config_db_config__valid_config__returns_true(self):
         # Arrange
@@ -121,10 +228,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_config_db_config__invalid_config__returns_false(self):
         # Arrange
@@ -132,10 +240,163 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
+
+    def test_validate_bgp_peer_group__valid_non_intersecting_ip_ranges__returns_true(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ["1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"]
+                },
+                "BgpVac": {
+                    "ip_range": ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24"]
+                }
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertTrue(actual)
+        self.assertIsNone(error)
+
+    def test_validate_bgp_peer_group__same_ip_prefix__return_false(self):
+        # duplicate v4 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16"],
+            ["1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"],
+            ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v6 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16"],
+            ["fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/31", "10:1::1/16", "100:1::1/24"],
+            ["2:1::1/31", "20:1::1/16", "200:1::1/24", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+
+    def check_validate_bgp_peer_group(self, ip_range, other_ip_range=[], duplicated_ip=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ip_range
+                },
+                "BgpVac": {
+                    "ip_range": other_ip_range
+                },
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertFalse(actual)
+        self.assertTrue(duplicated_ip in error)
+
+    def test_validate_lanes__no_port_table__success(self):
+        config = {"ACL_TABLE": {}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__empty_port_table__success(self):
+        config = {"PORT": {}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__empty_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__whitespace_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": " ", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__non_digits_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "10g", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '10g'")
+
+    def test_validate_lanes__space_between_digits_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": " 1 0  ", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '1 0'")
+
+    def test_validate_lanes__single_valid_lane__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66", "speed":"10000"}}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__different_valid_lanes_single_port__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 68", "speed":"10000"}}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__different_valid_and_invalid_empty_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, , 68", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__different_valid_and_invalid_non_digit_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 10g", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '10g'")
+
+    def test_validate_lanes__different_valid_lanes_multi_ports__success(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": " 64 , 65 \t", "speed":"10000"},
+            "Ethernet1": {"lanes": " 66 , 67 \r\t\n, 68 ", "speed":"10000"},
+            }}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__same_valid_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "65 \r\t\n, 65", "speed":"10000"}}}
+        self.validate_lanes(config, '65')
+
+    def test_validate_lanes__same_valid_lanes_multi_ports__failure(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64, 65, 67", "speed":"10000"},
+            "Ethernet1": {"lanes": "66, 67, 68", "speed":"10000"},
+            }}
+        self.validate_lanes(config, '67')
+
+    def test_validate_lanes__same_valid_lanes_multi_ports_no_spaces__failure(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64,65,67", "speed":"10000"},
+            "Ethernet1": {"lanes": "66,67,68", "speed":"10000"},
+            }}
+        self.validate_lanes(config, '67')
+
+    def validate_lanes(self, config_db, expected_error=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        expected = expected_error is None # if expected_error is None, then the input is valid
+
+        # Act
+        actual, error = config_wrapper.validate_lanes(config_db)
+
+        # Assert
+        self.assertEqual(expected, actual)
+        if expected_error:
+            self.assertTrue(expected_error in error)
 
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
@@ -180,6 +441,82 @@ class TestConfigWrapper(unittest.TestCase):
 
         # Assert
         self.assertCountEqual(["another_table", "yet_another_table"], empty_tables)
+
+    def test_remove_empty_tables__no_empty_tables__returns_whole_config(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
+    def test_remove_empty_tables__single_empty_tables__returns_config_without_empty_table(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
+    def test_remove_empty_tables__multiple_empty_tables__returns_config_without_empty_tables(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}, "yet_another_table":{}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
+    def test_create_sonic_yang_with_loaded_models__creates_new_sonic_yang_every_call(self):
+        # check yang models fields are the same or None, non-yang model fields are different
+        def check(sy1, sy2):
+            # instances are different
+            self.assertNotEqual(sy1, sy2)
+
+            # yang models fields are same or None
+            self.assertTrue(sy1.confDbYangMap is sy2.confDbYangMap)
+            self.assertTrue(sy1.ctx is sy2.ctx)
+            self.assertTrue(sy1.DEBUG is sy2.DEBUG)
+            self.assertTrue(sy1.preProcessedYang is sy2.preProcessedYang)
+            self.assertTrue(sy1.SYSLOG_IDENTIFIER is sy2.SYSLOG_IDENTIFIER)
+            self.assertTrue(sy1.yang_dir is sy2.yang_dir)
+            self.assertTrue(sy1.yangFiles is sy2.yangFiles)
+            self.assertTrue(sy1.yJson is sy2.yJson)
+            self.assertTrue(not(hasattr(sy1, 'module')) or sy1.module is None) # module is unused, might get deleted
+            self.assertTrue(not(hasattr(sy2, 'module')) or sy2.module is None)
+
+            # non yang models fields are different
+            self.assertFalse(sy1.root is sy2.root)
+            self.assertFalse(sy1.jIn is sy2.jIn)
+            self.assertFalse(sy1.tablesWithOutYang is sy2.tablesWithOutYang)
+            self.assertFalse(sy1.xlateJson is sy2.xlateJson)
+            self.assertFalse(sy1.revXlateJson is sy2.revXlateJson)
+
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertTrue(config_wrapper.sonic_yang_with_loaded_models is None)
+
+        sy1 = config_wrapper.create_sonic_yang_with_loaded_models()
+        sy2 = config_wrapper.create_sonic_yang_with_loaded_models()
+
+        # Simulating loading non-yang model fields
+        sy1.loadData(Files.ANY_CONFIG_DB)
+        sy1.getData()
+
+        # Simulating loading non-yang model fields
+        sy2.loadData(Files.ANY_CONFIG_DB)
+        sy2.getData()
+
+        check(sy1, sy2)
+        check(sy1, config_wrapper.sonic_yang_with_loaded_models)
+        check(sy2, config_wrapper.sonic_yang_with_loaded_models)
 
 class TestPatchWrapper(unittest.TestCase):
     def setUp(self):
@@ -366,7 +703,7 @@ class TestPatchWrapper(unittest.TestCase):
 
 class TestPathAddressing(unittest.TestCase):
     def setUp(self):
-        self.path_addressing = gu_common.PathAddressing()
+        self.path_addressing = gu_common.PathAddressing(gu_common.ConfigWrapper())
         self.sy_only_models = sonic_yang.SonicYang(gu_common.YANG_DIR)
         self.sy_only_models.loadYangModel()
 
@@ -470,7 +807,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_a_part_of_key__returns_ref_paths(self):
         # Arrange
@@ -485,7 +822,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_in_multilist__returns_ref_paths(self):
         # Arrange
@@ -499,7 +836,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_INTERFACE)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_in_leafref_union__returns_ref_paths(self):
         # Arrange
@@ -512,7 +849,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_PORTCHANNEL_AND_ACL)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__path_is_table__returns_ref_paths(self):
         # Arrange
@@ -525,14 +862,14 @@ class TestPathAddressing(unittest.TestCase):
             "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet0",
             "/VLAN_MEMBER/Vlan1000|Ethernet4",
-            "/VLAN_MEMBER/Vlan1000|Ethernet8",
+            "/VLAN_MEMBER/Vlan1000|Ethernet8"
         ]
 
         # Act
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__whole_config_path__returns_all_refs(self):
         # Arrange
@@ -552,7 +889,46 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
+
+    def test_find_ref_paths__path_and_ref_paths_are_under_same_yang_container__returns_ref_paths(self):
+        # Arrange
+        path = "/LOOPBACK_INTERFACE/Loopback0"
+        expected = [
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|10.1.0.32/32"]),
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|1100:1::32/128"]),
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def test_find_ref_paths__does_not_remove_tables_without_yang(self):
+        # Arrange
+        config = Files.CONFIG_DB_AS_JSON # This has a table without yang named 'TABLE_WITHOUT_YANG'
+        any_path = ""
+        expected_config = copy.deepcopy(config)
+
+        # Act
+        self.path_addressing.find_ref_paths(any_path, config)
+
+        # Assert
+        self.assertEqual(expected_config, config)
+
+    def test_find_ref_paths__ref_path_is_leaflist_in_yang_but_string_in_config_db__path_to_string_returned(self):
+        # Arrange
+        path = "/BUFFER_PROFILE/egress_lossless_profile"
+        expected = [
+            "/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_PROFILE_LIST)
+
+        # Assert
+        self.assertEqual(expected, actual)
 
     def test_convert_path_to_xpath(self):
         def check(path, xpath, config=None):
@@ -602,6 +978,30 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_MONITORS/5.6.7.8/name",
+              xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/LLDP/GLOBAL/mode",
+              xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
+        check(path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(path="/EXP_TO_FC_MAP/Exp_to_fc_map2/4",
+              xpath="/sonic-exp-fc-map:sonic-exp-fc-map/EXP_TO_FC_MAP/EXP_TO_FC_MAP_LIST[name='Exp_to_fc_map2']/EXP_TO_FC_MAP[exp='4']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -665,4 +1065,78 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              path="/BGP_MONITORS/5.6.7.8/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              path="/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/dot1p",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/tc",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-exp-fc-map:sonic-exp-fc-map/EXP_TO_FC_MAP/EXP_TO_FC_MAP_LIST[name='Exp_to_fc_map2']/EXP_TO_FC_MAP[exp='4']",
+              path="/EXP_TO_FC_MAP/Exp_to_fc_map2/4",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
 
+    def test_has_path(self):
+        def check(config, path, expected):
+            actual=self.path_addressing.has_path(config, path)
+            self.assertEqual(expected, actual)
+
+        check(config={},
+              path="",
+              expected=True)
+        check(config={"TABLE":{}},
+              path="",
+              expected=True)
+        check(config={},
+              path="/TABLE",
+              expected=False)
+        check(config={"TABLE":{}},
+              path="/ANOTHER_TABLE",
+              expected=False)
+        check(config={"TABLE":{}},
+              path="/ANOTHER_TABLE",
+              expected=False)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key11/key111",
+              expected=True)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1",
+              expected=True)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key1",
+              expected=False)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key11",
+              expected=True)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":[1,2,3,4,5]}}}},
+              path="/TABLE/key1/key11/key111/4",
+              expected=True)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":[1,2,3,4,5]}}}},
+              path="/TABLE/key1/key11/key111/5",
+              expected=False)
