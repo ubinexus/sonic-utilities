@@ -4,8 +4,7 @@ from unittest.mock import MagicMock, Mock
 
 import generic_config_updater.patch_sorter as ps
 from .gutest_helpers import Files
-from generic_config_updater.gu_common import ConfigWrapper, PatchWrapper, OperationWrapper, \
-                                             GenericConfigUpdaterError, OperationType, JsonChange, PathAddressing
+from generic_config_updater.gu_common import ConfigWrapper, PatchWrapper
 
 
 class TestFeaturePatchApplication(unittest.TestCase):
@@ -54,9 +53,6 @@ class TestFeaturePatchApplication(unittest.TestCase):
         config_wrapper = self.config_wrapper
         config_wrapper.get_config_db_as_json = MagicMock(return_value=config)
         patch_wrapper = PatchWrapper(config_wrapper)
-        operation_wrapper = OperationWrapper()
-        path_addressing = ps.PathAddressing(config_wrapper)
-        sort_algorithm_factory = ps.SortAlgorithmFactory(operation_wrapper, config_wrapper, path_addressing)
         return ps.StrictPatchSorter(config_wrapper, patch_wrapper)
    
     def run_single_success_case(self, data):
