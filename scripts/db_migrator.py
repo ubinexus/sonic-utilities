@@ -899,6 +899,17 @@ class DBMigrator():
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
+        route_table = self.appDB.get_table("ROUTE_TABLE")
+        for route_prefix, route_attr in route_table.items():
+            if 'weight' not in route_attr:
+                if type(route_prefix) == tuple:
+                    # IPv6 route_prefix is returned from db as tuple
+                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+                else:
+                    # IPv4 route_prefix is returned from db as str
+                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
     def migrate(self):
         version = self.get_version()
         log.log_info('Upgrading from version ' + version)
