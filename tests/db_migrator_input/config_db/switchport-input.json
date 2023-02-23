@@ -93,7 +93,52 @@
         },
         "Vlan5|Ethernet8": {
             "tagging_mode": "untagged"
+        },
+        "Vlan3|PortChannel0003": {
+            "tagging_mode": "untagged"
+        },
+        "Vlan8|PortChannel0002": {
+            "tagging_mode": "tagged"
+        },
+        "Vlan9|PortChannel0002": {
+            "tagging_mode": "tagged"
         }
+    },
+    "PORTCHANNEL": {
+        "PortChannel0001": {
+            "admin_status": "up",
+            "fast_rate": "false",
+            "lacp_key": "auto",
+            "min_links": "1",
+            "mode": "access",
+            "mtu": "9100"
+        },
+        "PortChannel0002": {
+            "admin_status": "up",
+            "fast_rate": "false",
+            "lacp_key": "auto",
+            "min_links": "1",
+            "mode": "trunk",
+            "mtu": "9100"
+        },
+        "PortChannel0003": {
+            "admin_status": "up",
+            "fast_rate": "false",
+            "lacp_key": "auto",
+            "min_links": "1",
+            "mtu": "9100"
+        },
+        "PortChannel0004": {
+            "admin_status": "up",
+            "fast_rate": "false",
+            "lacp_key": "auto",
+            "min_links": "1",
+            "mtu": "9100"
+        }
+    },
+    "PORTCHANNEL_MEMBER": {
+        "PortChannel0001|Ethernet24": {},
+        "PortChannel0002|Ethernet28": {}
     },
     "VERSIONS|DATABASE": {
         "VERSION": "version_4_0_1"

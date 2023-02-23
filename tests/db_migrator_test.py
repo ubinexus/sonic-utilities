@@ -267,8 +267,7 @@ class TestSwitchPortMigrator(object):
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_1')
 
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
-        assert dbmgtr.configDB.get_table('VLAN') == expected_db.cfgdb.get_table('VLAN')
-        assert dbmgtr.configDB.get_table('VLAN_MEMBER') == expected_db.cfgdb.get_table('VLAN_MEMBER')
+        assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('VLAN')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
 class TestInitConfigMigrator(object):
