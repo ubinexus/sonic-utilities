@@ -78,13 +78,13 @@ def add_vlan(db, vid, multiple):
 				
                 # set dhcpv6_relay table
                 set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
-                
+
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
-        # We need to restart dhcp_relay service after dhcpv6_relay config changes
-        # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
-        dhcp_relay_util.handle_restart_dhcp_relay_service()
+    # We need to restart dhcp_relay service after dhcpv6_relay config changes
+    # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
 
 
 @vlan.command('del')
@@ -143,12 +143,14 @@ def del_vlan(db, vid, multiple):
 				
                 # set dhcpv6_relay table
                 set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
-                # We need to restart dhcp_relay service after dhcpv6_relay config change
-                dhcp_relay_util.handle_restart_dhcp_relay_service()
+                
 				
             except JsonPatchConflict:
                 ctx.fail("{} does not exist".format(vlan))
 
+    # We need to restart dhcp_relay service after dhcpv6_relay config changes
+    # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
