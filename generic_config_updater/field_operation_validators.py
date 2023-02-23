@@ -20,6 +20,6 @@ def rdma_config_update_validator():
         return False
 
     if asic_type == 'cisco-8000':
-        return branch_int >= 202012
+        return branch_int >= 20201200
     else:
-        return branch_int >= 201811
+        return branch_int >= 20181100
