@@ -246,6 +246,31 @@ class TestAutoNegMigrator(object):
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
+class TestSwitchPortMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_switchport_mode_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'switchport-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'switchport-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_1')
+
+        assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
+        assert dbmgtr.configDB.get_table('VLAN') == expected_db.cfgdb.get_table('VLAN')
+        assert dbmgtr.configDB.get_table('VLAN_MEMBER') == expected_db.cfgdb.get_table('VLAN_MEMBER')
+        assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
+
 class TestInitConfigMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -290,7 +315,7 @@ class TestLacpKeyMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'portchannel-expected')
         expected_db = Db()
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_3_0_2')
-        
+
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 

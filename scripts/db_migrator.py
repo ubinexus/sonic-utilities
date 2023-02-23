@@ -445,11 +445,11 @@ class DBMigrator():
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
 
-    def migrate_config_db_port_table_for_switchport_mode(self):
+    def migrate_config_db_port_portchannel_table_for_switchport_mode(self):
         port_table = self.configDB.get_table('PORT')
         portchannel_table = self.configDB.get_table('PORTCHANNEL')
         vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
-        
+
         for p_key, p_value in port_table.items():
             if 'mode' in p_value:
                 self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
@@ -874,7 +874,7 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_0')
-        self.migrate_config_db_port_table_for_switchport_mode()
+        self.migrate_config_db_port_portchannel_table_for_switchport_mode()
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
     
