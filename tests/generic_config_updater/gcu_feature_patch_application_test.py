@@ -26,6 +26,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         #     .
         # }
         data = Files.FEATURE_PATCH_APPLICATION_TEST_SUCCESS
+        
         for test_case_name in data:
             with self.subTest(name=test_case_name):
                 self.run_single_success_case(data[test_case_name])
@@ -45,6 +46,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         #     .
         # }
         data = Files.FEATURE_PATCH_APPLICATION_TEST_FAILURE
+        
         for test_case_name in data:
             with self.subTest(name=test_case_name):
                 self.run_single_failure_case(data[test_case_name])
@@ -63,10 +65,12 @@ class TestFeaturePatchApplication(unittest.TestCase):
         actual_changes = sorter.sort(patch)
         target_config = patch.apply(current_config)
         simulated_config = current_config
+        
         for change in actual_changes:
             simulated_config = change.apply(simulated_config)
             is_valid, error = self.config_wrapper.validate_config_db_config(simulated_config)
             self.assertTrue(is_valid, f"Change will produce invalid config. Error: {error}")
+        
         self.assertEqual(target_config, simulated_config)
         self.assertEqual(simulated_config, expected_config)
 
@@ -82,6 +86,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         except Exception as ex:
             notfound_substrings = []
             error = str(ex)
+            
             for substring in expected_error_substrings:
                 if substring not in error:
                     notfound_substrings.append(substring)
