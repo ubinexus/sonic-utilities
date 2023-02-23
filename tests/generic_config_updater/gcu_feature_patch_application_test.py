@@ -39,7 +39,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         #         "desc":"<brief explanation of the test case>",
         #         "current_config":<the running config to be modified>,
         #         "patch":<the JsonPatch to apply>,
-        #         "expected_config":<the config after jsonpatch modification>
+        #         "expected_error_substrings":<error substrings expected in failure output>
         #     },
         #     .
         #     .
@@ -92,5 +92,3 @@ class TestFeaturePatchApplication(unittest.TestCase):
 
             if notfound_substrings:
                 self.fail(f"Did not find the expected substrings {notfound_substrings} in the error: '{error}'")
-
-
