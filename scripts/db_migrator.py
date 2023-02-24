@@ -469,6 +469,9 @@ class DBMigrator():
                 if pc_key in vlan_member_keys:
                     pc_value["mode"] = "trunk"
                     self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+                else:
+                    pc_value["mode"] = "routed"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
 
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):

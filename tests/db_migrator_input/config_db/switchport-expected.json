@@ -53,7 +53,7 @@
         "mtu": "9100",
         "speed": "40000"
     },
-    
+
     "VLAN|Vlan2": {
         "vlanid": "2"
     },
@@ -132,6 +132,6 @@
     "PORTCHANNEL_MEMBER|PortChannel0002|Ethernet28": {},
 
     "VERSIONS|DATABASE": {
-        "VERSION": "version_4_0_0"
+        "VERSION": "version_4_0_1"
     }
 }
