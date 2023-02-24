@@ -127,10 +127,7 @@
         "min_links": "1",
         "mtu": "9100"
     },
-
-    "PORTCHANNEL_MEMBER|PortChannel0001|Ethernet24": {},
-    "PORTCHANNEL_MEMBER|PortChannel0002|Ethernet28": {},
-
+    
     "VERSIONS|DATABASE": {
         "VERSION": "version_4_0_1"
     }
