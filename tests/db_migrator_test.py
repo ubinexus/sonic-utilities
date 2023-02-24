@@ -269,7 +269,9 @@ class TestSwitchPortMigrator(object):
         test += expected_db.cfgdb.get_table('PORT')
         test += expected_db.cfgdb.get_table('PORTCHANNEL')
         test += expected_db.cfgdb.get_table('PORTCHANNEL')
-        
+
+        assert test == "1"
+
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
