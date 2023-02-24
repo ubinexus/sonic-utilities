@@ -636,7 +636,7 @@ Ethernet0  uart_stat2        1
 
 show_muxcable_resetcause_expected_port_output="""\
 PORT       ATTR         RESETCAUSE
----------  -----------  -------------
+---------  -----------  ------------
 Ethernet0  reset_cause  warm reset
 """
 
