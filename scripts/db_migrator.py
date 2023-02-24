@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_0'
+        self.CURRENT_VERSION = 'version_4_0_1'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -445,7 +445,7 @@ class DBMigrator():
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
 
-    def migrate_config_db_port_portchannel_table_for_switchport_mode(self):
+    def migrate_config_db_switchport_mode(self):
         port_table = self.configDB.get_table('PORT')
         portchannel_table = self.configDB.get_table('PORTCHANNEL')
         vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
@@ -459,14 +459,16 @@ class DBMigrator():
                 self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
             else:
                 if p_key in vlan_member_keys:
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', 'trunk')
+                    p_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORT", p_key, p_value)
 
         for pc_key, pc_value in portchannel_table.items():
             if 'mode' in pc_value:
                 self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', pc_value['mode'])
             else:
                 if pc_key in vlan_member_keys:
-                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', 'trunk')
+                    pc_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
 
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
@@ -878,7 +880,7 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_0')
-        self.migrate_config_db_port_portchannel_table_for_switchport_mode()
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
     
