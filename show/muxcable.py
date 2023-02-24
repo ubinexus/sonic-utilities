@@ -2390,7 +2390,7 @@ def resetcause(db, port, json_output):
     """
     the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
     return 0 if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
-    return 1 if the last reset is warn reset (ex. sudo config mux firmware activate....)
+    return 1 if the last reset is warm reset (ex. sudo config mux firmware activate....)
     the value is persistent, no clear on read
     """
     if port is not None:
@@ -2411,6 +2411,15 @@ def resetcause(db, port, json_output):
 
 
         port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        reset_cause = result.get("reset_cause", None)
+
+        if cable_health == "0":
+            result["reset_cause"] = "cold reset"
+        elif cable_health == "1":
+            result["reset_cause"] = "warm reset"
+        else:
+            result["reset_cause"] = "Unknown"
 
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))

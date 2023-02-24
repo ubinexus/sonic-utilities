@@ -637,7 +637,7 @@ Ethernet0  uart_stat2        1
 show_muxcable_resetcause_expected_port_output="""\
 PORT       ATTR         RESETCAUSE
 ---------  -----------  -------------
-Ethernet0  reset_cause  reboot by xyz
+Ethernet0  reset_cause  warm reset
 """
 
 
@@ -651,7 +651,7 @@ show_muxcable_health_expected_port_output_json="""\
 
 show_muxcable_resetcause_expected_port_output_json="""\
 {
-    "reset_cause": "reboot by xyz"
+    "reset_cause": "warm reset"
 }
 """
 
@@ -2654,7 +2654,7 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
-    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "reboot by xyz"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "1"}))
     def test_show_mux_resetcause(self):
         runner = CliRunner()
         db = Db()
@@ -2668,7 +2668,7 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
-    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "reboot by xyz"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "1"}))
     def test_show_mux_resetcause_json(self):
         runner = CliRunner()
         db = Db()

@@ -6024,7 +6024,7 @@ the result will be displayed like this, each item in the dictionary shows the he
       Ethernet0  uart_stat2        1
     ```
     ```
-      admin@sonic:~$ show muxcable health Ethernet4 --json
+      admin@sonic:~$ show muxcable queueinfo Ethernet4 --json
     ```
     ```json
            {
@@ -6054,14 +6054,14 @@ While displaying the muxcable operationtime, users need to provide the following
       admin@sonic:~$ show muxcable operationtime Ethernet4
       PORT       ATTR            OPERATION_TIME
       ---------  --------------  ----------------
-      Ethernet4  operation_time  22.22
+      Ethernet4  operation_time  00:22:22
     ```
     ```
       admin@sonic:~$ show muxcable operationtime Ethernet4 --json
     ```
     ```json
            {
-               "operation_time": "22.22"
+               "operation_time": "00:22:22"
            }
     ```
 
@@ -6080,8 +6080,8 @@ While displaying the muxcable resetcause, users need to provide the following fi
 - --json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
 the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
-return 0 if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
-return 1 if the last reset is warn reset (ex. sudo config mux firmware activate....)
+display cold reset if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
+display warm reset if the last reset is warm reset (ex. sudo config mux firmware activate....)
 the value is persistent, no clear on read
 
 - Example:
@@ -6089,14 +6089,14 @@ the value is persistent, no clear on read
       admin@sonic:~$ show muxcable resetcause Ethernet4
       PORT       ATTR           RESETCAUSE
       ---------  -----------  ------------
-      Ethernet4  reset_cause             0
+      Ethernet4  reset_cause    warm reset
     ```
     ```
       admin@sonic:~$ show muxcable resetcause Ethernet4 --json
     ```
     ```json
            {
-               "reset_cause": "0"
+               "reset_cause": "warm reset"
            }
     ```
 
