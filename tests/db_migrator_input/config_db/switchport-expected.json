@@ -128,7 +128,6 @@
             "fast_rate": "false",
             "lacp_key": "auto",
             "min_links": "1",
-            "mode": "routed",
             "mtu": "9100"
         }
     },
@@ -137,6 +136,6 @@
         "PortChannel0002|Ethernet28": {}
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_4_0_1"
+        "VERSION": "version_4_0_0"
     }
 }
