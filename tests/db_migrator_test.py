@@ -265,10 +265,10 @@ class TestSwitchPortMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'switchport-expected')
         expected_db = Db()
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_1')
-        test = dbmgtr.configDB.get_table('PORT')
-        test += expected_db.cfgdb.get_table('PORT')
-        test += expected_db.cfgdb.get_table('PORTCHANNEL')
-        test += expected_db.cfgdb.get_table('PORTCHANNEL')
+        test = str(dbmgtr.configDB.get_table('PORT'))
+        test += str(expected_db.cfgdb.get_table('PORT'))
+        test += str(expected_db.cfgdb.get_table('PORTCHANNEL'))
+        test += str(expected_db.cfgdb.get_table('PORTCHANNEL'))
 
         assert test == "1"
 
