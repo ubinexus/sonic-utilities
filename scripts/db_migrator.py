@@ -450,18 +450,22 @@ class DBMigrator():
         portchannel_table = self.configDB.get_table('PORTCHANNEL')
         vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
 
+        vlan_member_keys= []
+        for _,key in vlan_member_table:
+            vlan_member_keys.append(key) 
+
         for p_key, p_value in port_table.items():
             if 'mode' in p_value:
                 self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
             else:
-                if p_key in vlan_member_table.keys():
+                if p_key in vlan_member_keys:
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', 'trunk')
 
         for pc_key, pc_value in portchannel_table.items():
             if 'mode' in pc_value:
                 self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', pc_value['mode'])
             else:
-                if pc_key in vlan_member_table.keys():
+                if pc_key in vlan_member_keys:
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", pc_key), 'mode', 'trunk')
 
 
