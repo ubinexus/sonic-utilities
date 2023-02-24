@@ -45,7 +45,7 @@ if 'FRRouting' in p:
         """BGP AS4 actions"""
         command = ['sudo', 'vtysh', '-c', "debug bgp as4"]
         if additional is not None:
-            command = ['sudo', 'vtysh', '-c', "debug bgp as4 segment"]
+            command[-1] += " segment"
         run_command(command)
 
     @bgp.command()
@@ -61,7 +61,7 @@ if 'FRRouting' in p:
         """BGP Neighbor Keepalives"""
         command = ['sudo', 'vtysh', '-c', "debug bgp keepalives"]
         if prefix_or_iface is not None:
-            command = ['sudo', 'vtysh', '-c', "debug bgp " + prefix_or_iface]
+            command[-1] += ' ' + prefix_or_iface
         run_command(command)
 
     @bgp.command('neighbor-events')
@@ -70,7 +70,7 @@ if 'FRRouting' in p:
         """BGP Neighbor Events"""
         command = ['sudo', 'vtysh', '-c', "debug bgp neighbor-events"]
         if prefix_or_iface is not None:
-            command = ['sudo', 'vtysh', '-c', "debug bgp " + prefix_or_iface]
+            command[-1] += ' ' + prefix_or_iface
         run_command(command)
 
     @bgp.command()
@@ -85,7 +85,7 @@ if 'FRRouting' in p:
         """BGP policy based routing"""
         command = ['sudo', 'vtysh', '-c', "debug bgp pbr"]
         if additional is not None:
-            command = ['sudo', 'vtysh', '-c', "debug bgp pbr error"]
+            command[-1] += " error"
         run_command(command)
 
     @bgp.command('update-groups')
@@ -113,7 +113,7 @@ if 'FRRouting' in p:
         """BGP Zebra messages"""
         command = ['sudo', 'vtysh', '-c', "debug bgp zebra"]
         if prefix is not None:
-            command = ['sudo', 'vtysh', '-c', "debug bgp zebra prefix " + prefix]
+            command[-1] += " prefix " + prefix
         run_command(command)
 
     #
@@ -130,7 +130,7 @@ if 'FRRouting' in p:
         """Debug zebra dataplane events"""
         command = ['sudo', 'vtysh', '-c', "debug zebra dplane"]
         if detailed is not None:
-            command = ['sudo', 'vtysh', '-c', "debug zebra dplane detailed"]
+            command[-1] += " detailed"
         run_command(command)
 
     @zebra.command()
@@ -169,7 +169,7 @@ if 'FRRouting' in p:
         """Debug RIB events"""
         command = ['sudo', 'vtysh', '-c', "debug zebra rib"]
         if detailed is not None:
-            command = ['sudo', 'vtysh', '-c', "debug zebra rib detailed"]
+            command[-1] += " detailed"
         run_command(command)
 
     @zebra.command()

@@ -46,7 +46,7 @@ if 'FRRouting' in p:
         """BGP AS4 actions"""
         command = ["sudo", "vtysh", "-c", "no debug bgp as4"]
         if additional is not None:
-            command = ["sudo", "vtysh", "-c", "no debug bgp as4 segment"]
+            command[-1] += " segment"
         run_command(command)
 
     @bgp.command()
@@ -62,7 +62,7 @@ if 'FRRouting' in p:
         """BGP Neighbor Keepalives"""
         command = ["sudo", "vtysh", "-c", "no debug bgp keepalives"]
         if prefix_or_iface is not None:
-            command = ["sudo", "vtysh", "-c", "no debug bgp keepalives " + prefix_or_iface]
+            command[-1] += ' ' + prefix_or_iface
         run_command(command)
 
     @bgp.command('neighbor-events')
@@ -71,7 +71,7 @@ if 'FRRouting' in p:
         """BGP Neighbor Events"""
         command = ["sudo", "vtysh", "-c", "no debug bgp neighbor-events"]
         if prefix_or_iface is not None:
-            command = ["sudo", "vtysh", "-c", "no debug bgp neighbor-events " + prefix_or_iface]
+            command[-1] += ' ' + prefix_or_iface
         run_command(command)
 
     @bgp.command()
@@ -86,7 +86,7 @@ if 'FRRouting' in p:
         """BGP policy based routing"""
         command = ["sudo", "vtysh", "-c", "no debug bgp pbr"]
         if additional is not None:
-            command = ["sudo", "vtysh", "-c", "no debug bgp pbr error"]
+            command[-1] += " error"
         run_command(command)
 
     @bgp.command('update-groups')
@@ -172,7 +172,7 @@ if 'FRRouting' in p:
         """Debug RIB events"""
         command = ["sudo", "vtysh", "-c", "no debug zebra rib"]
         if detailed is not None:
-            command = ["sudo", "vtysh", "-c", "no debug zebra rib detailed"]
+            command[-1] += " detailed"
         run_command(command)
 
     @zebra.command()
