@@ -2414,9 +2414,9 @@ def resetcause(db, port, json_output):
 
         reset_cause = result.get("reset_cause", None)
 
-        if cable_health == "0":
+        if reset_cause == "0":
             result["reset_cause"] = "cold reset"
-        elif cable_health == "1":
+        elif reset_cause == "1":
             result["reset_cause"] = "warm reset"
         else:
             result["reset_cause"] = "Unknown"
