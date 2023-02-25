@@ -5,19 +5,19 @@
             "BUFFER_POOL": {
                 "ingress_lossless_pool": {
                     "xoff": "4194112",
-		    "type": "ingress",
-		    "mode": "dynamic",
-		    "size": "10875072"
+                    "type": "ingress",
+                    "mode": "dynamic",
+                    "size": "10875072"
                 },
                 "egress_lossless_pool": {
                     "type": "egress",
-		    "mode": "static",
-		    "size": "15982720"
+                    "mode": "static",
+                    "size": "15982720"
                 },
-		"egress_lossy_pool": {
+                "egress_lossy_pool": {
                     "type": "egress",
-		    "mode": "dynamic",
-		    "size": "9243812"
+                    "mode": "dynamic",
+                    "size": "9243812"
                 }
             }
         },
@@ -42,19 +42,19 @@
             "BUFFER_POOL": {
                 "ingress_lossless_pool": {
                     "xoff": "2155712",
-		    "type": "ingress",
-		    "mode": "dynamic",
-		    "size": "12913472"
+                    "type": "ingress",
+                    "mode": "dynamic",
+                    "size": "12913472"
                 },
                 "egress_lossless_pool": {
                     "type": "egress",
-		    "mode": "static",
-		    "size": "15982720"
+                    "mode": "static",
+                    "size": "15982720"
                 },
-		"egress_lossy_pool": {
+                "egress_lossy_pool": {
                     "type": "egress",
-		    "mode": "dynamic",
-		    "size": "5200000"
+                    "mode": "dynamic",
+                    "size": "5200000"
                 }
             }
         }
