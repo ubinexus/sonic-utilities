@@ -99,6 +99,8 @@
     "VLAN_MEMBER|Vlan9|PortChannel0002": {
         "tagging_mode": "tagged"
     },
+
+    
     "PORTCHANNEL|PortChannel0001": {
         "admin_status": "up",
         "fast_rate": "false",
