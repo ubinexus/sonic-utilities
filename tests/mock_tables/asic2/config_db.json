@@ -123,6 +123,7 @@
     "FEATURE|bgp": {
         "state": "disabled",
         "auto_restart": "disabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "mem_threshold": "2044"
     }
 }

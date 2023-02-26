@@ -44,6 +44,8 @@ def feature_status(db, feature_name):
     fields_info = [
             ('State', 'state', ""),
             ('AutoRestart', 'auto_restart', ""),
+            ('HighMemAlert', 'high_mem_alert', ""),
+            ('MemThreshold', 'mem_threshold', ""),
             ('SystemState', 'system_state', ""),
             ('UpdateTime', 'update_time', ""),
             ('ContainerId', 'container_id', ""),
@@ -113,6 +115,8 @@ def feature_config(db, feature_name):
     fields_info = [
             ('State', 'state', ""),
             ('AutoRestart', 'auto_restart', ""),
+            ('HighMemAlert', 'high_mem_alert', ""),
+            ('MemThreshold', 'mem_threshold', ""),
             ('Owner', 'set_owner', "local"),
             ('fallback', 'no_fallback_to_local', "")
             ]
@@ -163,4 +167,68 @@ def feature_autorestart(db, feature_name):
     else:
         for name in natsorted(list(feature_table.keys())):
             body.append([name, feature_table[ name ].get('auto_restart', 'unknown')])
+    click.echo(tabulate(body, header))
+
+
+# 'high_memory_alert' subcommand (show feature high_memory_alert)
+#
+@feature.command('high_memory_alert', short_help="Show high memory alerting state of feature(s)")
+@click.argument('feature_name', required=False)
+@pass_db
+def feature_high_memory_alert(db, feature_name):
+    header = ['Feature', 'HighMemAlert']
+    body = []
+
+    feature_table = db.cfgdb.get_table('FEATURE')
+    if not feature_table:
+        click.echo("Failed to retrieve the 'FEATURE' table from 'CONIFG_DB'!")
+        sys.exit(2)
+
+    if feature_name:
+        if feature_name in feature_table and "high_mem_alert" in feature_table[feature_name]:
+            body.append([feature_name, feature_table[feature_name]['high_mem_alert']])
+        else:
+            click.echo("Failed to retrieve the 'high_mem_alert' field of feature '{}' from 'Feature' table!"
+                       .format(feature_name))
+            sys.exit(3)
+    else:
+        for feature_name in natsorted(list(feature_table.keys())):
+            if "high_mem_alert" not in feature_table[feature_name]:
+                click.echo("Failed to retrieve the 'high_mem_alert' field of feature '{}' from 'Feature' table!"
+                           .format(feature_name))
+                sys.exit(4)
+            body.append([feature_name, feature_table[feature_name]['high_mem_alert']])
+
+    click.echo(tabulate(body, header))
+
+
+# 'memory_threshold' subcommand (show feature memory_threshold)
+#
+@feature.command('memory_threshold', short_help="Show memory threshold of feature(s)")
+@click.argument('feature_name', required=False)
+@pass_db
+def feature_memory_threshold(db, feature_name):
+    header = ['Feature', 'MemThreshold']
+    body = []
+
+    feature_table = db.cfgdb.get_table('FEATURE')
+    if not feature_table:
+        click.echo("Failed to retrieve the 'FEATURE' table from 'CONIFG_DB'!")
+        sys.exit(5)
+
+    if feature_name:
+        if feature_name in feature_table and "mem_threshold" in feature_table[feature_name]:
+            body.append([feature_name, feature_table[feature_name]['mem_threshold']])
+        else:
+            click.echo("Failed to retrieve the 'mem_threshold' field of feature '{}' from 'FEATURE' table!"
+                       .format(feature_name))
+            sys.exit(6)
+    else:
+        for feature_name in natsorted(list(feature_table.keys())):
+            if "mem_threshold" not in feature_table[feature_name]:
+                click.echo("Failed to retrieve the 'mem_threshold' field of feature '{}' from 'FEATURE' table!"
+                           .format(feature_name))
+                sys.exit(7)
+            body.append([feature_name, feature_table[feature_name]['mem_threshold']])
+
     click.echo(tabulate(body, header))

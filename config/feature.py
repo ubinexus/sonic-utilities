@@ -155,3 +155,85 @@ def feature_autorestart(db, name, autorestart):
             ctx = click.get_current_context()
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
+
+#
+# 'hign_memory_alert' command ('config feature high_memory_alert ...')
+#
+@feature.command(name='high_memory_alert', short_help="Enable/disable high memory alerting of a feature")
+@click.argument('feature_name', metavar='<feature_name>', required=True)
+@click.argument('high_memory_alert_status', metavar='<high_memory_alert_status>', required=True, type=click.Choice(["enabled", "disabled"]))
+@pass_db
+def feature_high_memory_alert(db, feature_name, high_memory_alert_status):
+    """Enable/disable the high memory alert of a feature"""
+    feature_high_memory_alert_status = set()
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        feature_table = config_db.get_table('FEATURE')
+        if not feature_table:
+            click.echo("Failed to retrieve 'FEATURE' table from 'Config_DB'!")
+            sys.exit(2)
+
+        feature_config = config_db.get_entry('FEATURE', feature_name)
+        if not feature_config:
+            click.echo("Failed to retrieve configuration of feature '{}' from 'FEATURE' table!"
+                       .format(feature_name))
+            sys.exit(3)
+
+        if "high_mem_alert" in feature_config:
+            feature_high_memory_alert_status.add(feature_config['high_mem_alert'])
+        else:
+            click.echo("Failed to retrieve 'high_mem_alert' field of feature '{}' from 'FEATURE' table!"
+                       .format(feature_name))
+            sys.exit(4)
+
+    if len(feature_high_memory_alert_status) > 1:
+        click.echo("High memory alert status of feature '{}' is not consistent across different namespaces!"
+                   .format(feature_name))
+        sys.exit(5)
+
+    if feature_config['high_mem_alert'] == "always_enabled":
+        click.echo("High memory alert of feature '{}' is always enabled and can not be modified!"
+                   .format(feature_name))
+        return
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        config_db.mod_entry('FEATURE', feature_name, {'high_mem_alert': high_memory_alert_status})
+
+
+#
+# 'memory_threshold' command ('config feature mem_threshold ...')
+#
+@feature.command(name='memory_threshold', short_help="Configure the memory threshold (in Bytes) of a feature")
+@click.argument('feature_name', metavar='<feature_name>', required=True)
+@click.argument('mem_threshold', metavar='<mem_threshold_in_bytes>', required=True)
+@pass_db
+def feature_memory_threshold(db, feature_name, mem_threshold):
+    """Configure the memory threshold of a feature"""
+    feature_memory_threshold = set()
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        feature_table = config_db.get_table('FEATURE')
+        if not feature_table:
+            click.echo("Failed to retrieve 'FEATURE' table from 'Config_ DB'!")
+            sys.exit(6)
+
+        feature_config = config_db.get_entry('FEATURE', feature_name)
+        if not feature_config:
+            click.echo("Failed to retrieve configuration of feature '{}' from 'FEATURE' table!"
+                       .format(feature_name))
+            sys.exit(7)
+
+        if "mem_threshold" in feature_config:
+            feature_memory_threshold.add(feature_config['mem_threshold'])
+        else:
+            click.echo("Failed to retrieve 'mem_threshold' field of feature '[]' from 'FEATURE' table!"
+                       .format(feature_name))
+            sys.exit(8)
+
+    if len(feature_memory_threshold) > 1:
+        click.echo("Memory threshold of feature '{}' is not consistent across different namespaces!"
+                   .format(feature_name))
+        sys.exit(9)
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        config_db.mod_entry('FEATURE', feature_name, {'mem_threshold': mem_threshold})

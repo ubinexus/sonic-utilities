@@ -3270,34 +3270,50 @@ likelihood of entering a healthy state.
 
 ### Feature show commands
 
+This sub-section of commands is used to show the configurations of each feature.
+
 **show feature config**
 
-Shows the config of given feature or all if no feature is given. The "fallback" is shown only if configured. The fallback defaults to "true" when not configured.
+Shows the configuration of a given feature or all if no feature is given. The "fallback" 
+is shown only if configured. The fallback defaults to "true" when not configured.
 
 - Usage:
   ```
-  show feature config [<feature name>]
+  show feature config
   ```
 
 - Example:
   ```
   admin@sonic:~$ show feature config
-  Feature         State     AutoRestart    Owner    fallback
-  --------------  --------  -------------  -------  ----------
-  bgp             enabled   enabled        local
-  database        enabled   disabled       local
-  dhcp_relay      enabled   enabled        kube
-  lldp            enabled   enabled        kube     true
-  mgmt-framework  enabled   enabled        local
-  nat             disabled  enabled        local
-  pmon            enabled   enabled        kube
-  radv            enabled   enabled        kube
-  sflow           disabled  enabled        local
-  snmp            enabled   enabled        kube
-  swss            enabled   enabled        local
-  syncd           enabled   enabled        local
-  teamd           enabled   enabled        local
-  telemetry       enabled   enabled        kube
+  Feature         State     AutoRestart    HighMemAlert    MemThreshold    Owner    fallback
+  --------------  --------  -------------  --------------  --------------  -------  ----------
+  bgp             enabled   enabled        enabled         1073741824      local
+  database        enabled   disabled       enabled         1073741824      local
+  dhcp_relay      enabled   enabled        enabled         1073741824      kube
+  lldp            enabled   enabled        enabled         1073741824      kube     true
+  mgmt-framework  enabled   enabled        enabled         1073741824      local
+  nat             disabled  enabled        enabled         1073741824      local
+  pmon            enabled   enabled        enabled         1073741824      kube
+  radv            enabled   enabled        enabled         1073741824      kube
+  sflow           disabled  enabled        enabled         1073741824      local
+  snmp            enabled   enabled        enabled         1073741824      kube
+  swss            enabled   enabled        enabled         1073741824      local
+  syncd           enabled   enabled        enabled         1073741824      local
+  teamd           enabled   enabled        enabled         1073741824      local
+  telemetry       enabled   enabled        enabled         1073741824      kube
+  ```
+
+- Usage:
+  ```
+  show feature config [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature config bgp
+  Feature         State     AutoRestart    HighMemAlert    MemThreshold    Owner    fallback
+  --------------  --------  -------------  --------------  --------------  -------  ----------
+  bgp             enabled   enabled        enabled         1073741824      local
   ```
 
 **show feature status**
@@ -3307,29 +3323,171 @@ The subset of features are configurable for remote management and only those rep
 
 - Usage:
   ```
-  show feature status [<feature name>]
+  show feature status
   ```
 
 - Example:
   ```
   admin@sonic:~$ show feature status
-  Feature         State     AutoRestart    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
-  --------------  --------  -------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
-  bgp             enabled   enabled        up                                                                     local       local           none
-  database        enabled   disabled                                                                              local
-  dhcp_relay      enabled   enabled        up             2020-11-15 18:21:09  249e70102f55   20201230.100        kube        local
-  lldp            enabled   enabled        up             2020-11-15 18:21:09  779c2d55ee12   20201230.100        kube        local
-  mgmt-framework  enabled   enabled        up                                                                     local       local           none
-  nat             disabled  enabled                                                                               local
-  pmon            enabled   enabled        up             2020-11-15 18:20:27  a2b9ffa8aba3   20201230.100        kube        local
-  radv            enabled   enabled        up             2020-11-15 18:21:05  d8ff27dcfe46   20201230.100        kube        local
-  sflow           disabled  enabled                                                                               local
-  snmp            enabled   enabled        up             2020-11-15 18:25:51  8b7d5529e306   20201230.111        kube        kube            running
-  swss            enabled   enabled        up                                                                     local       local           none
-  syncd           enabled   enabled        up                                                                     local       local           none
-  teamd           enabled   enabled        up                                                                     local       local           none
-  telemetry       enabled   enabled        down           2020-11-15 18:24:59                 20201230.100        kube        none
+  Feature         State     AutoRestart    HighMemAlert    MemThreshold    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
+  --------------  --------  -------------  --------------  --------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
+  bgp             enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  database        enabled   disabled       enabled         1073741824                                                                             local
+  dhcp_relay      enabled   enabled        enabled         1073741824      up             2020-11-15 18:21:09  249e70102f55   20201230.100        kube        local
+  lldp            enabled   enabled        enabled         1073741824      up             2020-11-15 18:21:09  779c2d55ee12   20201230.100        kube        local
+  mgmt-framework  enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  nat             disabled  enabled        enabled         1073741824                                                                             local
+  pmon            enabled   enabled        enabled         1073741824      up             2020-11-15 18:20:27  a2b9ffa8aba3   20201230.100        kube        local
+  radv            enabled   enabled        enabled         1073741824      up             2020-11-15 18:21:05  d8ff27dcfe46   20201230.100        kube        local
+  sflow           disabled  enabled        enabled         1073741824                                                                             local
+  snmp            enabled   enabled        enabled         1073741824      up             2020-11-15 18:25:51  8b7d5529e306   20201230.111        kube        kube            running
+  swss            enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  syncd           enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  teamd           enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  telemetry       enabled   enabled        enabled         1073741824      down           2020-11-15 18:24:59                 20201230.100        kube        none
   ```
+
+- Usage:
+  ```
+  show feature status [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature status bgp
+  Feature         State     AutoRestart    HighMemAlert    MemThreshold    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
+  --------------  --------  -------------  --------------  --------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
+  bgp             enabled   enabled        enabled         1073741824      up                                                                     local       local           none
+  ```
+
+
+**show feature autorestart**
+
+By default, this command will show the auto-restart status of all features.
+If a feature name is provided as an argument, then only auto-restart status of
+this feature will be shown.
+
+- Usage:
+  show feature autorestart
+
+- Example:
+  ```
+  admin@sonic:~$ show feature autorestart
+  Feature     AutoRestart
+  ----------  --------------
+  bgp         enabled
+  database    always_enabled
+  dhcp_relay  enabled
+  lldp        enabled
+  pmon        enabled
+  radv        enabled
+  snmp        enabled
+  swss        enabled
+  syncd       enabled
+  teamd       enabled
+  telemetry   enabled
+  ```
+
+- Usage:
+  ```
+  show feature autorestart [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature autorestart bgp
+  Feature     AutoRestart
+  ----------  --------------
+  bgp         enabled
+  ```
+
+**show feature high_memory_alert**
+
+By default, this command will show the high memory alerting status of all features.
+If a feature name is provided as an argument, then only high memory alerting status of
+this feature will be shown.
+
+- Usage:
+  ```
+  show feature high_memory_alert
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature high_memory_alert
+  feature     HighMemAlert 
+  ----------  --------------
+  bgp         enabled
+  database    enabled
+  dhcp_relay  enabled
+  lldp        enabled
+  pmon        enabled
+  radv        enabled
+  snmp        enabled
+  swss        enabled
+  syncd       enabled
+  teamd       enabled
+  telemetry   enabled
+  ```
+
+- Usage:
+  ```
+  show feature high_memory_alert [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature high_memory_alert bgp
+  feature     HighMemAlert 
+  ----------  --------------
+  bgp         enabled
+  ```
+
+**show feature memory_threshold**
+
+By default, this command will show memory thresholds of all features.
+If a feature name is provided as an argument, then only memory threshold of
+this feature will be shown.
+
+- Usage:
+  ```
+  show feature memory_threshold
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature memory_threshold
+  feature      MemThreshold  
+  ----------   --------------
+  bgp          1073741824    
+  database     1073741824    
+  dhcp_relay   1073741824    
+  lldp         1073741824    
+  pmon         1073741824    
+  radv         1073741824    
+  snmp         1073741824    
+  swss         1073741824    
+  syncd        1073741824    
+  teamd        1073741824    
+  telemetry    1073741824    
+  ```
+
+- Usage:
+  ```
+  show feature memory_threshold [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature memory_threshold bgp
+  feature     MemThreshold
+  ----------  --------------
+  bgp         1073741824
+  ```
+
+### Feature config commands
+
+This sub-section of commands is used to change the configurations of each feature.
 
 **config feature owner**
 
@@ -3359,33 +3517,6 @@ Features configured for "kube" deployment could be allowed to fallback to using 
   admin@sonic:~$ sudo config feature fallback snmp on
   ```
 
-**show feature autorestart**
-
-This command will display the status of auto-restart for feature container.
-
-- Usage:
-  ```
-  show feature autorestart [<feature_name>]
-  admin@sonic:~$ show feature autorestart
-  Feature     AutoRestart
-  ----------  --------------
-  bgp         enabled
-  database    always_enabled
-  dhcp_relay  enabled
-  lldp        enabled
-  pmon        enabled
-  radv        enabled
-  snmp        enabled
-  swss        enabled
-  syncd       enabled
-  teamd       enabled
-  telemetry   enabled
-  ```
-
-Optionally, you can specify a feature name in order to display
-status for that feature
-
-### Feature config commands
 
 **config feature state <feature_name> <state>**
 
@@ -3415,6 +3546,34 @@ This command will configure the status of auto-restart for a specific feature co
   ```
 NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
 commands are don't care and will not update state/auto-restart value.
+
+**config feature high_memory_alert <feature_name> <high_memory_alert_status>**
+
+This command will configure the high memory alert status of a specific feature.
+
+- Usage:
+  ```
+  config feature high_memory_alert <feature_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature high_memory_alert bgp disabled
+  ``` 
+
+**config feature memory_threshold <feature_name> <threshold_value>**
+
+This command will configure the memory threshold (maximum memory usage) of a specific feature.
+
+- Usage:
+  ```
+  config feature memory <feature_name> <threshold_value>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature memory_threshold bgp 1073741824
+  ``` 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
