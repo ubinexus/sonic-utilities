@@ -106,10 +106,6 @@ def readJsonFile(fileName):
     return result
 
 def run_command(*args, display_cmd=False, return_cmd=False):
-    # if len(args) == 1:
-    #     command_list = args[0]
-    #     command = ' '.join(args[0])
-    # elif len(args) > 1:
     command_lists = [' '.join(arg) for arg in args]
     command = ' | '.join(command_lists)
 
@@ -122,24 +118,7 @@ def run_command(*args, display_cmd=False, return_cmd=False):
         clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    # if len(args) == 1:
-    #     # proc = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
-    #     proc = subprocess.Popen(*args, text=True, stdout=subprocess.PIPE)
-    #     while True:
-    #         if return_cmd:
-    #             output = proc.communicate()[0]
-    #             return output
-    #         output = proc.stdout.readline()
-    #         if output == "" and proc.poll() is not None:
-    #             break
-    #         if output:
-    #             click.echo(output.rstrip('\n'))
-    #     rc = proc.poll()
-    #     if rc != 0:
-    #         sys.exit(rc)
-
-    # elif len(args) > 1:
-    exitcodes, output = getstatusoutput_noshell_pipe(*args, display_output=True)
+    exitcodes, output = getstatusoutput_noshell_pipe(*args, return_cmd=False)
     if any(exitcodes):
         for rc in exitcodes:
             if rc != 0:
