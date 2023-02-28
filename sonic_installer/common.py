@@ -20,14 +20,14 @@ WORKDIR_NAME = 'work'
 DOCKERDIR_NAME = 'docker'
 
 # Run bash command and print output to stdout
-def run_command(command, devnull=False):
+def run_command(command, devnull=False, env=None):
     command_str = join(command)
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     if devnull:
-        proc = subprocess.Popen(command, text=True, stdout=subprocess.DEVNULL)
+        proc = subprocess.Popen(command, text=True, stdout=subprocess.DEVNULL, env=env)
     else:
-        proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE, env=env)
     (out, _) = proc.communicate()
 
     click.echo(out)

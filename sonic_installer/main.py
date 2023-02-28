@@ -913,7 +913,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     # Restore to previous cold restart setting
     if warm_configured is False and warm:
         if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-            run_command(["config", "warm_restart", "disable", "%s" % container_name])
+            run_command(["config", "warm_restart", "disable", container_name])
 
     if state == exp_state:
         echo_and_log('Done')
@@ -955,7 +955,7 @@ def rollback_docker(container_name):
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         echo_and_log("Cold reboot is required to restore system state after '{}' rollback !!".format(container_name), LOG_ERR)
     else:
-        run_command(["systemctl", "restart", "%s" % container_name])
+        run_command(["systemctl", "restart", container_name])
 
     echo_and_log('Done')
 
