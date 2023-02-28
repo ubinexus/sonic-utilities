@@ -1,43 +1,37 @@
 import os
 import click
 import paramiko
+import sys
 
 from .linecard import Linecard
-from .utils import get_all_linecards, get_password, get_password_from_file
+from sonic_py_common import device_info
+from rcli import utils as rcli_utils
+
 
 @click.command()
-@click.argument('linecard_name', type=str, autocompletion=get_all_linecards)
-@click.option('-k','--use-ssh-keys/--no-keys', default=False)
-@click.option('-p','--password-filename', type=str)
-def cli(linecard_name, use_ssh_keys=False,password_filename=None):
+@click.argument('linecard_name', type=str, autocompletion=rcli_utils.get_all_linecards)
+def cli(linecard_name):
     """
     Open interactive shell for one linecard
     
     :param linecard_name: The name of the linecard to connect to
-    :param use_ssh_keys: If True, will attempt to use ssh keys to login to the 
-        linecard. If False, will prompt for password, defaults to False (optional)
-    :param password_filename: The password for the linecard, if not provided inline, 
-        user will be prompted for password
     """
-    username = os.getlogin()
+    if not device_info.is_chassis():
+        click.echo("This commmand is only supported Chassis")
+        sys.exit(1)
 
-    if use_ssh_keys:
-        # If we want to use ssh keys, check if the user provided a password
-        password = None if not password_filename else get_password_from_file(password_filename)
-    elif password_filename:
-        # Don't use ssh keys and read password from file
-        password = get_password_from_file(password_filename)
-    else:
-        # Password filename was not provided, read password from user input
-        password = get_password(username)
-            
+    username = os.getlogin()
+    password = rcli_utils.get_password(username)
+    
     try:
-        lc = Linecard(linecard_name, username, password, use_ssh_keys)
+        lc =Linecard(linecard_name, username, password)
         if lc.connection:
+            click.echo("Connecting to {}".format(lc.linecard_name))
             # If connection was created, connection exists. Otherwise, user will see an error message.
             lc.start_shell()
+            click.echo("Connection Closed")
     except paramiko.ssh_exception.AuthenticationException:
-        click.echo("Login failed on '{}' with username '{}'".format(linecard_name, username))    
+        click.echo("Login failed on '{}' with username '{}'".format(linecard_name, lc.username))
 
 
 if __name__=="__main__":

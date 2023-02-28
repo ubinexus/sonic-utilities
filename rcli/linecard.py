@@ -1,16 +1,22 @@
 import click
 import os
 import paramiko
+import sys
+import select
+import socket
+import sys
+import termios
+import tty
 
-from getpass import getpass
-from .utils import get_linecard_ip, get_password
-from . import interactive
+from .utils import get_linecard_ip
+from paramiko.py3compat import u
+from paramiko import Channel
 
 EMPTY_OUTPUTS = ['', '\x1b[?2004l\r']
 
 class Linecard:
 
-    def __init__(self, linecard_name, username, password=None, use_ssh_keys=False):
+    def __init__(self, linecard_name, username, password):
         """
         Initialize Linecard object and store credentials, connection, and channel
         
@@ -23,109 +29,107 @@ class Linecard:
         self.ip = get_linecard_ip(linecard_name)
 
         if not self.ip:
-            click.echo("Linecard '{}' not found.\n".format(linecard_name))
-            self.connection = None
-            return None
+            sys.exit(1)
 
         self.linecard_name = linecard_name
         self.username = username
+        self.password = password
 
-        if use_ssh_keys and os.environ.get("SSH_AUTH_SOCK"):
-            # The user wants to use SSH keys and the ssh agent is running
-            self.connection = paramiko.SSHClient()
-            # if ip address not in known_hosts, ignore known_hosts error
-            self.connection.load_system_host_keys()
-            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
-            ssh_agent = paramiko.Agent()
-            available_keys = ssh_agent.get_keys()
-            if available_keys:
-                # Try to connect using all keys
-                connected = False
-                for key in available_keys:
-                    try:
-                        self.connection.connect(self.ip, username=username, pkey=key)
-                        # If we connected successfully without error, break out of loop
-                        connected = True
-                        break
-                    except paramiko.ssh_exception.AuthenticationException:
-                        # key didn't work
-                        continue
-                if not connected:
-                    # None of the available keys worked, copy new keys over
-                    password = password if password is not None else get_password(username)
-                    self.ssh_copy_id(password)
-            else:
-                # host does not trust this client, perform ssh-copy-id
-                password = password if password is not None else get_password(username)
-                self.ssh_copy_id(password)
+        self.connection = self._connect()
 
-        else:
-            password = password if password is not None else getpass(
-                "Password for username '{}': ".format(username),
-                # Pass in click stdout stream - this is similar to using click.echo
-                stream=click.get_text_stream('stdout')
-            )
-            self.connection = paramiko.SSHClient()
-            # if ip address not in known_hosts, ignore known_hosts error
-            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            try:
-                self.connection.connect(self.ip, username=self.username, password=password)
-            except paramiko.ssh_exception.NoValidConnectionsError as e:
-                self.connection = None
-                click.echo(e)
 
-    def ssh_copy_id(self, password:str) -> None:
+    def _connect(self):
+        connection = paramiko.SSHClient()
+        # if ip address not in known_hosts, ignore known_hosts error
+        connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            connection.connect(self.ip, username=self.username, password=self.password)
+        except paramiko.ssh_exception.NoValidConnectionsError as e:
+            connection = None
+            click.echo(e)
+        return connection
+
+    def _get_password(self):
         """
-        This function generates a new ssh key, copies it to the remote server, 
-        and adds it to the ssh-agent for 15 minutes
+        Prompts the user for a password, and returns the password
         
-        :param password: The password for the user
-        :type password: str
+        :param username: The username that we want to get the password for
+        :type username: str
+        :return: The password for the username.
         """
-        default_key_path = os.path.expanduser(os.path.join("~/",".ssh","id_rsa"))
-        # If ssh keys don't exist, create them
-        if not os.path.exists(default_key_path):
-            os.system(
-                'ssh-keygen -f {} -N "" > /dev/null'.format(default_key_path)
-            )
 
-        # Get contents of public keys
-        pub_key = open(default_key_path + ".pub", "rt")
-        pub_key_contents = pub_key.read()
-        pub_key.close()
-
-        # Connect to linecard using password
-        self.connection.connect(self.ip, username=self.username, password=password)
-
-        # Create ssh directory (if it doesn't exist) and add supervisor public 
-        # key to authorized_keys
-        self.connection.exec_command('mkdir ~/.ssh -p \n')
-        self.connection.exec_command(
-            'echo \'{}\' >> ~/.ssh/authorized_keys \n'
-            .format(pub_key_contents)
+        return getpass(
+            "Password for username '{}': ".format(self.username),
+            # Pass in click stdout stream - this is similar to using click.echo
+            stream=click.get_text_stream('stdout')
         )
 
-        # Add key to supervisor SSH Agent with 15 minute timeout
-        os.system('ssh-add -t 15m  {}'.format(default_key_path))
+    def _set_tty_params(self):
+        tty.setraw(sys.stdin.fileno())
+        tty.setcbreak(sys.stdin.fileno())
 
-        # Now that keys are stored in SSH Agent, remove keys from disk
-        os.remove(default_key_path)
-        os.remove('{}.pub'.format(default_key_path))
+    def _is_data_to_read(self, read):
+        if self.channel in read:
+            return True
+        return False
+    
+    def _is_data_to_write(self, read):
+        if sys.stdin in read:
+            return True
+        return False
+    
+    def _write_to_terminal(self, data):
+        # Write channel output to terminal
+        sys.stdout.write(data.decode())
+        sys.stdout.flush() 
+         
+    def _start_interactive_shell(self):
+        # #import pdb; pdb.set_trace()
+        # oldtty = termios.tcgetattr(sys.stdin)
+        try:
+            self._set_tty_params()
+            self.channel.settimeout(0.0)
+
+            while True:
+                #Continuously wait for commands and execute them
+                read, write, ex = select.select([self.channel, sys.stdin], [], [])
+                if self._is_data_to_read(read):
+                    try:
+                        # Get output from channel
+                        x = u(self.channel.recv(1024))
+                        if len(x) == 0:
+                            # logout message will be displayed
+                            break
+                        self._write_to_terminal(x)
+                    except socket.timeout as e:
+                        click.echo("Connection timed out")
+                        break
+                if self._is_data_to_write(read):
+                    # If we are able to send input, get the input from stdin
+                    x = sys.stdin.read(1)
+                    if len(x) == 0:
+                        break
+                    # Send the input to the channel
+                    self.channel.send(x)
+        finally:
+            # Now that the channel has been exited, return to the previously-saved old tty
+            #termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+            pass
+        
 
     def start_shell(self) -> None:
-        """
-        Opens a session, gets a pseudo-terminal, invokes a shell, and then 
-        attaches the host shell to the remote shell.
-        """
-        # Create shell session
-        self.channel = self.connection.get_transport().open_session()
-        self.channel.get_pty()
-        self.channel.invoke_shell()
-        # Use Paramiko Interactive script to connect to the shell
-        interactive.interactive_shell(self.channel)
-        # After user exits interactive shell, close the connection
-        self.connection.close()
+            """
+            Opens a session, gets a pseudo-terminal, invokes a shell, and then 
+            attaches the host shell to the remote shell.
+            """
+            # Create shell session
+            self.channel = self.connection.get_transport().open_session()
+            self.channel.get_pty()
+            self.channel.invoke_shell()
+            # Use Paramiko Interactive script to connect to the shell
+            self._start_interactive_shell()
+            # After user exits interactive shell, close the connection
+            self.connection.close()
 
 
     def execute_cmd(self, command) -> str:

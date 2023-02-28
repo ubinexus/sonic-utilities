@@ -1,6 +1,7 @@
 import click
 from getpass import getpass
 import os
+import sys
 
 from swsscommon.swsscommon import SonicV2Connector
 
@@ -15,6 +16,35 @@ CHASSIS_MIDPLANE_INFO_TABLE = 'CHASSIS_MIDPLANE_TABLE'
 CHASSIS_MIDPLANE_INFO_IP_FIELD = 'ip_address'
 CHASSIS_MIDPLANE_INFO_ACCESS_FIELD = 'access'
 
+CHASSIS_MODULE_HOSTNAME_TABLE = 'CHASSIS_MODULE_HOSTNAME_TABLE'
+CHASSIS_MODULE_HOSTNAME = 'module_hostname'
+
+def connect_to_chassis_state_db():
+    chassis_state_db = SonicV2Connector(host="127.0.0.1")
+    chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
+    return chassis_state_db
+
+
+def connect_state_db():
+    state_db = SonicV2Connector(host="127.0.0.1")
+    state_db.connect(state_db.STATE_DB)
+    return state_db
+
+
+
+def get_linecard_module_name_from_hostname(linecard_name: str):
+    
+    chassis_state_db = connect_to_chassis_state_db()
+
+    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB , '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, '*'))
+    for key in keys:
+        module_name = key.split('|')[1]
+        hostname = chassis_state_db.get(chassis_state_db.CHASSIS_STATE_DB, key, CHASSIS_MODULE_HOSTNAME)
+        if hostname.replace('-', '').lower() == linecard_name.replace('-', '').lower():
+             return module_name
+ 
+    return None
+       
 def get_linecard_ip(linecard_name: str):
     """
     Given a linecard name, lookup its IP address in the midplane table
@@ -26,30 +56,36 @@ def get_linecard_ip(linecard_name: str):
     # Adapted from `show chassis modules midplane-status` command logic:
     # https://github.com/sonic-net/sonic-utilities/blob/master/show/chassis_modules.py
 
-    state_db = SonicV2Connector(host="127.0.0.1")
-    state_db.connect(state_db.STATE_DB)
-
-    key_pattern = '*'
-
-    keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
-    if not keys:
-        click.echo('{} table is empty'.format(CHASSIS_MIDPLANE_INFO_TABLE))
+    # if the user passes linecard hostname, then try to get the module name for that linecard
+    module_name = get_linecard_module_name_from_hostname(linecard_name)
+    # if the module name cannot be found from host, assume the user has passed module name
+    if module_name is None:
+        module_name = linecard_name
+    module_ip, module_access = get_module_ip_and_access_from_state_db(module_name)
+    
+    if not module_ip:
+        click.echo('Linecard {} not found'.format(linecard_name))
         return None
 
-    for key in keys:
-        key_list = key.split('|')
-        if len(key_list) != 2:  # error data in DB, log it and ignore
-            click.echo('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
-            continue
-
-        data_dict = state_db.get_all(state_db.STATE_DB, key)
-        ip = data_dict[CHASSIS_MIDPLANE_INFO_IP_FIELD]
-
-        if key_list[1].lower().replace("-","") == linecard_name.lower().replace("-",""):
-            return ip
+    if module_access != 'True':
+        click.echo('Linecard {} not accessible'.format(linecard_name))
+        return None
+  
     
-    # Not able to find linecard in table
-    return None
+    return module_ip
+
+def get_module_ip_and_access_from_state_db(module_name):
+    state_db = connect_state_db()
+    data_dict = state_db.get_all(
+        state_db.STATE_DB, '{}|{}'.format(CHASSIS_MIDPLANE_INFO_TABLE,module_name ))
+    if data_dict is None:
+        return None, None
+    
+    linecard_ip = data_dict.get(CHASSIS_MIDPLANE_INFO_IP_FIELD, None)
+    access = data_dict.get(CHASSIS_MIDPLANE_INFO_ACCESS_FIELD, None)
+    
+    return linecard_ip, access
+
 
 def get_all_linecards(ctx, args, incomplete) -> list:
     """
@@ -64,48 +100,37 @@ def get_all_linecards(ctx, args, incomplete) -> list:
     # Adapted from `show chassis modules midplane-status` command logic:
     # https://github.com/sonic-net/sonic-utilities/blob/master/show/chassis_modules.py
 
-    state_db = SonicV2Connector(host="127.0.0.1")
-    state_db.connect(state_db.STATE_DB)
-
-    key_pattern = '*'
-
-    keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
-    if not keys:
-        click.echo('{} table is empty'.format(CHASSIS_MIDPLANE_INFO_TABLE))
-        return []
-
+ 
+    chassis_state_db = connect_to_chassis_state_db()
+    state_db = connect_state_db()
+    
     linecards = []
-
+    keys = state_db.keys(state_db.STATE_DB,'{}|*'.format(CHASSIS_MIDPLANE_INFO_TABLE))
     for key in keys:
         key_list = key.split('|')
         if len(key_list) != 2:  # error data in DB, log it and ignore
-            click.echo('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
+            click.echo('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE ))
             continue
-
-        data_dict = state_db.get_all(state_db.STATE_DB, key)
-        linecard_name = key_list[1].lower().replace("-","")
-        linecard_ip = data_dict[CHASSIS_MIDPLANE_INFO_IP_FIELD]
-        access = data_dict[CHASSIS_MIDPLANE_INFO_ACCESS_FIELD]
-
-        if access == "True":
-            linecards.append(linecard_name)
+        module_name = key_list[1]
+        linecard_ip, access = get_module_ip_and_access_from_state_db(module_name)
+        if linecard_ip is None:
+            continue
+        
+        if access != "True" :
+            continue
+        
+        # get the hostname for this module
+        hostname = chassis_state_db.get(chassis_state_db.CHASSIS_STATE_DB, '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, module_name), CHASSIS_MODULE_HOSTNAME)
+        if hostname:
+            linecards.append(hostname)
+        else:
+            linecards.append(module_name)
     
     # Return a list of all matched linecards
     return [lc for lc in linecards if incomplete in lc]
 
-def get_password_from_file(password_filename: str) -> str:
-    """
-    Read the password from the file and return
-    
-    :param password_filename: The path to the file containing the password, if 
-        not provided the user will be prompted for password
-    :type password_filename: str
-    :return: The password for the username
-    """
-    with open(os.path.expanduser(password_filename), "r") as file:
-        return file.read().replace("\n","")
 
-def get_password(username: str) -> str:
+def get_password(username=None):
     """
     Prompts the user for a password, and returns the password
     
@@ -113,7 +138,10 @@ def get_password(username: str) -> str:
     :type username: str
     :return: The password for the username.
     """
-    return "123456"
+
+    if username is None:
+        username =os.getlogin()
+        
     return getpass(
         "Password for username '{}': ".format(username),
         # Pass in click stdout stream - this is similar to using click.echo
