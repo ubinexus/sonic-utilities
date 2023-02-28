@@ -451,6 +451,37 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+class TestFastRebootTableModification(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
+    def mock_dedicated_state_db(self):
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
+
+    def test_rename_fast_reboot_table_check_enable(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_input')
+        
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_expected')
+
+        expected_db = Db()
+
+        resulting_table = dbmgtr.stateDB.get_table('FAST_RESTART_ENABLE_TABLE')
+        expected_table = expected_db.stateDB.get_table('FAST_RESTART_ENABLE_TABLE')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
 class TestWarmUpgrade_to_2_0_2(object):
     @classmethod
     def setup_class(cls):

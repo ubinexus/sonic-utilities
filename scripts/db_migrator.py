@@ -6,6 +6,7 @@ import json
 import sys
 import traceback
 import re
+import subprocess
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
@@ -854,12 +855,19 @@ class DBMigrator():
         log.log_info('Handling version_4_0_0')
         # Update state-db fast-reboot entry to enable if set to enable fast-reboot finalizer when using upgrade with fast-reboot
         # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
-        fastreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'FAST_REBOOT|system', '1')
-        if fastreboot_state == 'true':
-            enable_state = 'enable'
+        # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
+        # not using hash and won't work.
+        fb_system_state = 0
+        cmd = ['sonic-db-cli', 'STATE_DB', 'get', "FAST_REBOOT|system"]
+        proc = subprocess.Popen(cmd, universal_newlines=True, stdout=subprocess.PIPE)
+        (stdout, stderr) = proc.communicate()
+        if proc.returncode == 0 and stdout:
+            fb_system_state = stdout.rstrip('\n')
+        if fb_system_state == 1:
+            enable_state = 'true'
         else:
-            enable_state = 'disable'
-        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE', 'system', enable_state)
+            enable_state = 'false'
+        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
     
