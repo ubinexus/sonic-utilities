@@ -85,16 +85,17 @@ def set_boot_partition(blkdev, index):
     finally:
         ## Cleanup
         cmd1 = ['sudo', 'fuser', '-km', mntpath]
-        rc, _ = getstatusoutput_noshell(cmd1)
-        if rc != 0:
+        rc1, out1 = getstatusoutput_noshell(cmd1)
+        if rc1 != 0:
+            logger.error('Failed to run: {0}\n{1}'.format(cmd1, out1))
             cmd2 = ['sudo', 'unmount', mntpath]
-            rc, out = getstatusoutput_noshell(cmd2)
-            if rc == 0:
-                logger.info('fuser out={0}'.format(out))
+            rc2, out2 = getstatusoutput_noshell(cmd2)
+            if rc2 == 0:
+                logger.info('Running command: {0}\n{1}'.format(' '.join(cmd2), out2))
             else:
-                logger.error('Failed to run: {0}\n{1}'.format(cmd2, out))
+                logger.error('Failed to run: {0}\n{1}'.format(cmd2, out2))
         else:
-            logger.error('Failed to run: {0}\n{1}'.format(cmd1, out))
+            logger.info('Running command: {0}\n{1}'.format(' '.join(cmd1), out1))
         os.rmdir(mntpath)
 
 def main():
