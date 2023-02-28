@@ -4,6 +4,7 @@ import click
 import json
 import subprocess
 from sonic_py_common import device_info
+from sonic_py_common.general import getstatusoutput_noshell_pipe, check_output_pipe
 
 @click.group()
 def barefoot():
@@ -25,8 +26,9 @@ def profile():
     
     # Print current profile
     click.echo('Current profile: ', nl=False)
-    subprocess.run('docker exec -it syncd readlink /opt/bfn/install | sed '
-        r's/install_\\\(.\*\\\)_profile/\\1/', check=True, shell=True)
+    cmd0 = ['docker', 'exec', '-it', 'syncd', 'readlink', '/opt/bfn/install']
+    cmd1 = ['sed', r's/install_\\\(.\*\\\)_profile/\\1/']
+    check_output_pipe(cmd0, cmd1)
     
     # Exclude current and unsupported profiles
     opts = ''
@@ -37,9 +39,10 @@ def profile():
     
     # Print profile list
     click.echo('Available profile(s):')
-    subprocess.run('docker exec -it syncd find /opt/bfn -mindepth 1 '
-        r'-maxdepth 1 -type d -name install_\*_profile ' + opts + '| sed '
-        r's%/opt/bfn/install_\\\(.\*\\\)_profile%\\1%', shell=True)
+    cmd0 = ['docker', 'exec', '-it', 'syncd', 'find', '/opt/bfn', '-mindepth', '1',\
+            r'-maxdepth', '1', r'-type', 'd', r'-name', r'install_\*_profile', opts]
+    cmd1 = ["sed", r's%/opt/bfn/install_\\\(.\*\\\)_profile%\\1%']
+    getstatusoutput_noshell_pipe(cmd0, cmd1)
 
 def register(cli):
     version_info = device_info.get_sonic_version_info()
