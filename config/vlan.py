@@ -40,7 +40,7 @@ def add_vlan(db, vid):
     set_dhcp_relay_table('VLAN', db.cfgdb, vlan, {'vlanid': str(vid)})
 
     # set dhcpv6_relay table
-    set_dhcp_relay_table('DHCP_RELAY', db.cfgdb, vlan, {'vlanid': str(vid)})
+    set_dhcp_relay_table('DHCP_RELAY', db.cfgdb, vlan, None)
     # We need to restart dhcp_relay service after dhcpv6_relay config change
     dhcp_relay_util.handle_restart_dhcp_relay_service()
 
@@ -248,13 +248,7 @@ def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
 
     db.cfgdb.set_entry('VLAN', vlan_name, vlan)
     click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
 
 @vlan_dhcp_relay.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -295,10 +289,4 @@ def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     
     db.cfgdb.set_entry('VLAN', vlan_name, vlan)
     click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
