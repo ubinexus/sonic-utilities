@@ -63,6 +63,10 @@ config_radius_invalidipaddress_output="""\
 Invalid ip address
 """
 
+config_radius_isnot_configured= """\
+RADIUS server 10.10.10.10 is not configured
+"""
+
 class TestRadius(object):
     @classmethod
     def setup_class(cls):
@@ -100,6 +104,14 @@ class TestRadius(object):
         assert result.exit_code == 0
         assert result.output == config_radius_empty_output
 
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["add", "0.0.0.0", "-r", "1", "-t", "3",\
+                               "-k", "testing123", "-s", "eth0"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == config_radius_invalidipaddress_output
+
         db.cfgdb.mod_entry("RADIUS_SERVER", "10.10.10.10", \
             {'auth_port' : '1812', \
             'passkey'   : 'testing123', \
@@ -121,7 +133,7 @@ class TestRadius(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == config_radius_empty_output
+        assert result.output == config_radius_isnot_configured
 
         db.cfgdb.delete_table("RADIUS_SERVER")
 
@@ -150,6 +162,24 @@ class TestRadius(object):
         assert result.exit_code == 0
         assert result.output == config_radius_invalidipaddress_output
 
+    def test_config_radius_nasip_invalid_reserved_ip(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["nasip", "253.0.0.1"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == config_radius_invalidipaddress_output
+
+    def test_config_radius_nasip_invalid_multicast_ip(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["nasip", "ff00::1"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == config_radius_invalidipaddress_output
+
     def test_config_radius_sourceip_invalid(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["radius"],\
@@ -158,6 +188,30 @@ class TestRadius(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == config_radius_invalidipaddress_output
+
+    def test_config_radius_sourceip_invalid_netmask(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["sourceip", "255.255.254.0'"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == config_radius_invalidipaddress_output
+
+    def test_config_radius_sourceip_invalid_case(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["sourceip", "0.0.0.0"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == config_radius_invalidipaddress_output
+
+    def test_config_radius_sourceip_invalid_hostmask(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["radius"],\
+                               ["sourceip", "0.0.1.255"])
+        print(result.exit_code)
 
     def test_config_radius_authtype(self, get_cmd_module):
         (config, show) = get_cmd_module
