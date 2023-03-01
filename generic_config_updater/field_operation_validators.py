@@ -1,4 +1,5 @@
 from sonic_py_common import device_info
+import re
 
 def rdma_config_update_validator():
     version_info = device_info.get_sonic_version_info()
@@ -9,17 +10,17 @@ def rdma_config_update_validator():
         return False
 
     version_substrings = build_version.split('.')
-    branch_int = None
+    branch_version = None
 
     for substring in version_substrings:
-        if substring.isdigit() and (substring.startswith("202") or substring.startswith("201")):
-            branch_int = int(substring)
+        if substring.isdigit() and re.match(r'^\d{8}$', substring):
+            branch_version = substring
             break
 
-    if branch_int is None:
+    if branch_version is None:
         return False
 
     if asic_type == 'cisco-8000':
-        return branch_int >= 20201200
+        return branch_version >= "20201200"
     else:
-        return branch_int >= 20181100
+        return branch_version >= "20181100"
