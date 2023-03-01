@@ -106,6 +106,10 @@ def vlanintf_validator(old_config, upd_config, keys):
     old_vlan_intf = old_config.get("VLAN_INTERFACE", {})
     upd_vlan_intf = upd_config.get("VLAN_INTERFACE", {})
 
+    # Get the tuple with format (iface, iface_ip) then check deleted tuple
+    # Example:
+    # old_keys = [("Vlan1000", "192.168.0.1")]
+    # upd_keys = [("Vlan1000", "192.168.0.2")]
     old_keys = [ tuple(key.split("|"))
             for key in old_vlan_intf if len(key.split("|")) == 2 ]
     upd_keys = [ tuple(key.split("|"))
