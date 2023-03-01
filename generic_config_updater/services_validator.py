@@ -1,7 +1,6 @@
 import os
 import time
 from .gu_common import genericUpdaterLogging
-from sonic_py_common import device_info
 
 logger = genericUpdaterLogging.get_logger(title="Service Validator")
 
