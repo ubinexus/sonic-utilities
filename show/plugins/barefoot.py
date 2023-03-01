@@ -40,7 +40,7 @@ def profile():
     # Print profile list
     click.echo('Available profile(s):')
     cmd0 = ['docker', 'exec', '-it', 'syncd', 'find', '/opt/bfn', '-mindepth', '1',\
-            r'-maxdepth', '1', r'-type', 'd', r'-name', r'install_\*_profile', opts]
+            '-maxdepth', '1', '-type', 'd', '-name', r'install_\*_profile', opts]
     cmd1 = ["sed", r's%/opt/bfn/install_\\\(.\*\\\)_profile%\\1%']
     getstatusoutput_noshell_pipe(cmd0, cmd1)
 
