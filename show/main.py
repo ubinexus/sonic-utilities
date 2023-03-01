@@ -118,7 +118,7 @@ def run_command(*args, display_cmd=False, return_cmd=False):
         clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    exitcodes, output = getstatusoutput_noshell_pipe(*args, return_cmd=False)
+    exitcodes, output = getstatusoutput_noshell_pipe(*args, return_cmd=return_cmd)
     if any(exitcodes):
         for rc in exitcodes:
             if rc != 0:
