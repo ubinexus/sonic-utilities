@@ -26,6 +26,7 @@ try:
     import sys
     import subprocess
     import click
+    from shlex import join
     from lxml import etree as ET
     from sonic_py_common import device_info
 except ImportError as e:
@@ -46,7 +47,7 @@ def run_command(command, display_cmd=False, ignore_error=False, print_to_console
     """Run bash command and print output to stdout
     """
     if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(' '.join(command), fg='green'))
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(join(command), fg='green'))
 
     proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
