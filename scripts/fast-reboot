@@ -3,6 +3,7 @@
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 CONFIG_DB_FILE=/etc/sonic/config_db.json
@@ -174,6 +175,10 @@ function initialize_pre_shutdown()
 
 function request_pre_shutdown()
 {
+    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ]; then
+        debug "Requesting platform reboot pre-check ..."
+    	${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ${REBOOT_TYPE} 
+    fi
     debug "Requesting pre-shutdown ..."
     STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
