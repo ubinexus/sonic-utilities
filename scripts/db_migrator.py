@@ -857,8 +857,9 @@ class DBMigrator():
         # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
-        output = subprocess.check_output(['/usr/bin/sonic-db-cli', 'STATE_DB', 'get', "FAST_REBOOT|system"], universal_newlines=True)
-        if "1" in output:
+        # FAST_REBOOT table exists only if fast-reboot was triggered.
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT")
+        if keys is not None:
             enable_state = 'true'
         else:
             enable_state = 'false'
