@@ -579,7 +579,12 @@ class DBMigrator():
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
-    def migrate_route_table_weights(self):
+    def migrate_route_table(self):
+        """
+        Handle route table migration. Migrations handled:
+        1. 'weight' attr in ROUTE object was introduced 202205 onwards.
+            Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        """
         route_table = self.appDB.get_table("ROUTE_TABLE")
         for route_prefix, route_attr in route_table.items():
             if 'weight' not in route_attr:
@@ -911,7 +916,7 @@ class DBMigrator():
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
-        self.migrate_route_table_weights()
+        self.migrate_route_table()
 
     def migrate(self):
         version = self.get_version()
