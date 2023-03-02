@@ -1,0 +1,32 @@
+{
+	"acl": {
+		"acl-sets": {
+			"acl-set": {
+				"DATAACL_L2": {
+					"acl-entries": {
+						"acl-entry": {
+							"1": {
+								"config": {
+									"sequence-id": 1
+								},
+								"actions": {
+									"config": {
+										"forwarding-action": "ACCEPT"
+									}
+								},
+								"l2": {
+									"config": {
+										"source-mac": "00:00:00:11:11:12",
+										"source-mac-mask": "00:00:00:ff:ff:ff",
+										"destination-mac": "00:00:00:11:11:13",
+										"destination-mac-mask": "00:00:00:ff:ff:ff"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

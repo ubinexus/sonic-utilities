@@ -148,6 +148,14 @@ class TestAclLoader(object):
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl_l2.json'))
+        print(acl_loader.rules_info)
+        assert acl_loader.rules_info[('DATAACL_L2', 'DEFAULT_RULE')] == {
+            'PRIORITY': '1',
+            'PACKET_ACTION': 'DROP',
+            'IP_TYPE': 'ANY'
+        }
 
     def test_egress_no_default_deny_rule(self, acl_loader):
         acl_loader.rules_info = {}
@@ -217,3 +225,16 @@ class TestAclLoader(object):
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_2.json'))
         acl_loader.incremental_update()
         assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "DROP"
+
+    def test_l2_mac_address(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl_l2.json'))
+        assert acl_loader.rules_info[("DATAACL_L2", "RULE_1")]
+        assert acl_loader.rules_info[("DATAACL_L2", "RULE_1")] == {
+            "SRC_MAC": "00:00:00:11:11:12/00:00:00:ff:ff:ff",
+            "DST_MAC": "00:00:00:11:11:13/00:00:00:ff:ff:ff",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
+
+
