@@ -983,7 +983,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     """ Check if SPAN mirror-session config is valid """
     ctx = click.get_current_context()
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
-        click.echo("Error: {} already exists".format(session_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+        click.echo("Error: {} already exists".format(session_name))
         return False
 
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
