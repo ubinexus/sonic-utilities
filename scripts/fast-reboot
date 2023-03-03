@@ -808,7 +808,7 @@ fi
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 
 LOGS_ON_TMPFS=0
-df --output=fstype /var/log* | grep 'tmpfs' || LOGS_ON_TMPFS=$?
+df --output=fstype /var/log* | grep -c 'tmpfs' || LOGS_ON_TMPFS=$?
 if [[ LOGS_ON_TMPFS -eq 0 ]]; then
     debug "Backup shutdown logs to /host/logs_before_reboot"
     mkdir -p /host/logs_before_reboot || /bin/true
