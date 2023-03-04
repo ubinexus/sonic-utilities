@@ -305,6 +305,20 @@ def test_mirror_session_span_add():
         mocked.assert_called_with("test_session", "Ethernet0", "Ethernet4", "rx", 0, None)
 
 
+@patch("config.main.ConfigDBConnector", spec=True, connect=mock.Mock())
+@patch("config.main.multi_asic.get_all_namespaces", mock.Mock(return_value={'front_ns': 'sample_ns'}))
+@patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+@patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+def test_mirror_session_span_add_multi_asic_invalid_yang_validation(mock_db_connector):
+    config.ADHOC_VALIDATION = False
+    runner = CliRunner()
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["span"].commands["add"],
+            ["test_session", "Ethernet0", "Ethernet4", "rx", "0"])
+    print(result.output)
+    assert "Invalid ConfigDB. Error" in result.output
+
+
 @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
 @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
 def test_mirror_session_span_add_invalid_yang_validation():
