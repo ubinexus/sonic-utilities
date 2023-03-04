@@ -1,7 +1,10 @@
 import pytest
 import config.main as config
+import jsonpatch
 from unittest import mock
 from click.testing import CliRunner
+from mock import patch
+from jsonpatch import JsonPatchConflict
 
 ERR_MSG_IP_FAILURE = "does not appear to be an IPv4 or IPv6 network"
 ERR_MSG_IP_VERSION_FAILURE = "not a valid IPv4 address"
@@ -172,7 +175,20 @@ def test_mirror_session_erspan_add():
         mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 0, 0, None, None, None)
 
 
+@patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+@patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+def test_mirror_session_erspan_add_invalid_yang_validation():
+    config.ADHOC_VALIDATION = False
+    runner = CliRunner()
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["erspan"].commands["add"],
+            ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "65", "65536"])
+    print(result.output)
+    assert "Invalid ConfigDB. Error" in result.output
+
+
 def test_mirror_session_span_add():
+    config.ADHOC_VALIDATION = True
     runner = CliRunner()
 
     # Verify invalid queue
