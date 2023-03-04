@@ -2382,7 +2382,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
         try:
             config_db.set_entry("MIRROR_SESSION", session_name, session_info)
         except ValueError as e:
-            ctx.fail("Invalid mirror session config. Error: {}".format(e))
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     else:
         per_npu_configdb = {}
@@ -2395,7 +2395,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
             try:
                 per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
             except ValueError as e:
-                ctx.fail("Invalid mirror session config. Error: {}".format(e))
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='span')
 @click.pass_context
@@ -2442,7 +2442,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         try:
             config_db.set_entry("MIRROR_SESSION", session_name, session_info)
         except ValueError as e:
-            ctx.fail("Invalid mirror session config. Error: {}".format(e))
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
@@ -2454,7 +2454,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             try:
                 per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
             except ValueError as e:
-                ctx.fail("Invalid mirror session config. Error: {}".format(e))
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 @mirror_session.command()
@@ -2472,8 +2472,8 @@ def remove(session_name):
         config_db.connect()
         try:
             config_db.set_entry("MIRROR_SESSION", session_name, None)
-        except JsonPatchConflict:
-            ctx.fail("Failed to remove MIRROR_SESSION {}".format(session_name))
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
@@ -2481,8 +2481,8 @@ def remove(session_name):
             per_npu_configdb[front_asic_namespaces].connect()
             try:
                 per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
-            except JsonPatchConflict:
-                ctx.fail("Failed to remove MIRROR_SESSION {}".format(session_name))
+            except JsonPatchConflict as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'pfcwd' group ('config pfcwd ...')
