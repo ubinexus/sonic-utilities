@@ -114,7 +114,7 @@ if 'FRRouting' in p:
         """BGP Zebra messages"""
         bgp_cmd = "no debug bgp zebra"
         if prefix is not None:
-            bgp_cmd += ' ' + prefix
+            bgp_cmd += ' prefix ' + prefix
         command = ["sudo", "vtysh", "-c", bgp_cmd]
         run_command(command)
 
