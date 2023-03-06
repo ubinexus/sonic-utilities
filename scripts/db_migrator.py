@@ -6,7 +6,6 @@ import json
 import sys
 import traceback
 import re
-import subprocess
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
