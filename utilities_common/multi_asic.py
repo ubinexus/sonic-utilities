@@ -63,7 +63,7 @@ class MultiAsic(object):
             namespaces = multi_asic.get_all_namespaces()
             if self.namespace_option is None:
                 if self.get_display_option() == constants.DISPLAY_ALL:
-                    ns_list = namespaces['front_ns'] + namespaces['back_ns']
+                    ns_list = namespaces['front_ns'] + namespaces['back_ns'] + namespaces['fabric_ns']
                 else:
                     ns_list = namespaces['front_ns']
             else:
