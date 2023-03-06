@@ -83,23 +83,23 @@ Please note loaded setting will be lost after system reboot. To preserve setting
 
 RELOAD_CONFIG_DB_OUTPUT = """\
 Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
 RELOAD_YANG_CFG_OUTPUT = """\
 Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -Y /tmp/config.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
 RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
 Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json -n asic0 --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json -n asic1 --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
 """
@@ -109,7 +109,7 @@ Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-
 
 reload_config_with_disabled_service_output="""\
 Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
 """
@@ -118,34 +118,63 @@ reload_config_with_untriggered_timer_output="""\
 Relevant services are not up. Retry later or use -f to avoid system checks
 """
 
-def mock_run_command_side_effect(*args, **kwargs):
-    command = args[0]
+def mock_run_command_side_effect_AND(*args, **kwargs):
+    command_lists = [' '.join(arg) for arg in args]
+    command = ' && '.join(command_lists)
+
+    if kwargs.get('display_cmd'):
+        if '[ -f /var/run/dhclient.eth0.pid ] && kill ' in command and ' && rm -f /var/run/dhclient.eth0.pid' in command:
+            command = '[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid'
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+def mock_run_command_side_effect_pipe_snmp(*args, **kwargs):
+    command_lists = [' '.join(arg) for arg in args]
+    command = ' | '.join(command_lists)
 
     if kwargs.get('display_cmd'):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed 1d":
             return 'snmp.timer' , 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+        elif command == "systemctl list-dependencies --plain sonic.target | sed 1d":
             return 'swss', 0
-        elif command == "systemctl is-enabled snmp.timer":
+
+def mock_run_command_side_effect_pipe_gnmi(*args, **kwargs):
+    command_lists = [' '.join(arg) for arg in args]
+    command = ' | '.join(command_lists)
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed 1d":
+            return 'gnmi.timer' , 0
+        elif command == "systemctl list-dependencies --plain sonic.target | sed 1d":
+            return 'swss', 0
+
+def mock_run_command_side_effect(*args, **kwargs):
+    command = args[0]
+    command = ' '.join(command)
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl is-enabled snmp.timer":
             return 'enabled', 0
         else:
             return '', 0
 
 def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
     command = args[0]
+    command = ' '.join(command)
 
     if kwargs.get('display_cmd'):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled snmp.timer":
+        if command == "systemctl is-enabled snmp.timer":
             return 'masked', 0
         elif command == "systemctl show swss.service --property ActiveState --value":
             return 'active', 0
@@ -156,16 +185,13 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
 
 def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
     command = args[0]
+    command = ' '.join(command)
 
     if kwargs.get('display_cmd'):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled snmp.timer":
+        if command == "systemctl is-enabled snmp.timer":
             return 'enabled', 0
         elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
             return '0', 0
@@ -174,16 +200,13 @@ def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
 
 def mock_run_command_side_effect_gnmi(*args, **kwargs):
     command = args[0]
+    command = ' '.join(command)
 
     if kwargs.get('display_cmd'):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'gnmi.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled gnmi.timer":
+        if command == "systemctl is-enabled gnmi.timer":
             return 'enabled', 0
         else:
             return '', 0
@@ -236,29 +259,30 @@ class TestConfigReload(object):
 
     def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
-            (config, show) = get_cmd_module
+            with mock.patch("utilities_common.cli.run_command_pipe", mock.MagicMock(side_effect=mock_run_command_side_effect_pipe_snmp)):
+                (config, show) = get_cmd_module
 
-            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
-            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
+                jsonfile_config = os.path.join(mock_db_path, "config_db.json")
+                jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
 
-            # create object
-            config.INIT_CFG_FILE = jsonfile_init_cfg
-            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+                # create object
+                config.INIT_CFG_FILE = jsonfile_init_cfg
+                config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
 
-            db = Db()
-            runner = CliRunner()
-            obj = {'config_db': db.cfgdb}
+                db = Db()
+                runner = CliRunner()
+                obj = {'config_db': db.cfgdb}
 
-            # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
+                # simulate 'config reload' to provoke load_sys_info option
+                result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
 
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
 
-            assert result.exit_code == 1
+                assert result.exit_code == 1
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
+                assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
 
     @classmethod
     def teardown_class(cls):
@@ -282,35 +306,37 @@ class TestLoadMinigraph(object):
 
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            # Verify "systemctl reset-failed" is called for services under sonic.target
-            mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed snmp')
-            assert mock_run_command.call_count == 11
+            with mock.patch("utilities_common.cli.run_command_pipe", mock.MagicMock(side_effect=mock_run_command_side_effect_pipe_snmp)) as mock_run_command_pipe:
+                (config, show) = get_cmd_module
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+                # Verify "systemctl reset-failed" is called for services under sonic.target
+                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
+                # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
+                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'snmp'])
+                assert mock_run_command.call_count + mock_run_command_pipe.call_count == 11
 
     def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            # Verify "systemctl reset-failed" is called for services under sonic.target
-            mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed gnmi')
-            assert mock_run_command.call_count == 11
+            with mock.patch("utilities_common.cli.run_command_pipe", mock.MagicMock(side_effect=mock_run_command_side_effect_pipe_gnmi)) as mock_run_command_pipe:
+                (config, show) = get_cmd_module
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+                # Verify "systemctl reset-failed" is called for services under sonic.target
+                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
+                # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
+                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'gnmi'])
+                assert mock_run_command.call_count + mock_run_command_pipe.call_count == 11
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -1565,18 +1591,19 @@ class TestConfigLoadMgmtConfig(object):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             with mock.patch('config.main.parse_device_desc_xml', mock.MagicMock(side_effect=parse_device_desc_xml_side_effect)):
                 with mock.patch('config.main._change_hostname', mock.MagicMock(side_effect=change_hostname_side_effect)):
-                    (config, show) = get_cmd_module
-                    runner = CliRunner()
-                    with runner.isolated_filesystem():
-                        with open('device_desc.xml', 'w') as f:
-                            f.write('dummy')
-                            result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
-                            print(result.exit_code)
-                            print(result.output)
-                            traceback.print_tb(result.exc_info[2])
-                            assert result.exit_code == 0
-                            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
-                            assert mock_run_command.call_count == expected_command_call_count
+                    with mock.patch('utilities_common.cli.run_command_AND', mock.MagicMock(side_effect=mock_run_command_side_effect_AND)) as mock_run_command_AND:
+                        (config, show) = get_cmd_module
+                        runner = CliRunner()
+                        with runner.isolated_filesystem():
+                            with open('device_desc.xml', 'w') as f:
+                                f.write('dummy')
+                                result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
+                                print(result.exit_code)
+                                print(result.output)
+                                traceback.print_tb(result.exc_info[2])
+                                assert result.exit_code == 0
+                                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
+                                assert mock_run_command.call_count + mock_run_command_AND.call_count == expected_command_call_count
 
     @classmethod
     def teardown_class(cls):

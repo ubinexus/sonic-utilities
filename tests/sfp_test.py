@@ -510,13 +510,13 @@ Ethernet36  Present
 
     def test_sfp_eeprom_with_dom(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -d"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0", "-d"])
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_with_dom_output
 
     def test_qsfp_dd_eeprom_with_dom(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8 -d"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8", "-d"])
         assert result.exit_code == 0
         assert result.output == test_qsfp_dd_eeprom_with_dom_output
 

@@ -15,7 +15,7 @@ from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_db_config
-
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 pass_db = click.make_pass_decorator(Db, ensure=True)
@@ -395,8 +395,10 @@ def run_command_in_alias_mode(command):
     """Run command and replace all instances of SONiC interface names
        in output with vendor-sepecific interface aliases.
     """
+    command_list = command
+    command = ' '.join(command)
 
-    process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -511,7 +513,7 @@ def run_command_in_alias_mode(command):
         sys.exit(rc)
 
 
-def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False):
     """
     Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
     return code, the function will exit with that return code.
@@ -520,9 +522,9 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
         ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
         return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
-        interactive_mode: Boolean; If true, it will treat the process as a long-running process which may generate
-                          multiple lines of output over time
     """
+    command_list = command
+    command = ' '.join(command)
 
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
@@ -532,37 +534,88 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format 
     # with a list for next hops 
     if get_interface_naming_mode() == "alias" and not command.startswith("intfutil") and not re.search("show ip|ipv6 route", command):
-        run_command_in_alias_mode(command)
+        run_command_in_alias_mode(command_list)
         sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
         output = proc.communicate()[0]
         return output, proc.returncode
 
-    if not interactive_mode:
-        (out, err) = proc.communicate()
+    (out, err) = proc.communicate()
 
-        if len(out) > 0:
-            click.echo(out.rstrip('\n'))
+    if len(out) > 0:
+        click.echo(out.rstrip('\n'))
 
-        if proc.returncode != 0 and not ignore_error:
-            sys.exit(proc.returncode)
+    if proc.returncode != 0 and not ignore_error:
+        sys.exit(proc.returncode)
+    return
 
-        return
 
-    # interactive mode
-    while True:
-        output = proc.stdout.readline()
-        if output == "" and proc.poll() is not None:
+def run_command_pipe(*args, display_cmd=False, ignore_error=False, return_cmd=False):
+    """
+    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
+    return code, the function will exit with that return code.
+
+    Args:
+        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
+        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
+        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+    """
+    command_lists = [' '.join(arg) for arg in args]
+    command = ' | '.join(command_lists)
+    if display_cmd == True:
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    exitcodes, output = getstatusoutput_noshell_pipe(*args)
+
+    if return_cmd:
+        return output, exitcodes
+
+    if len(out) > 0:
+        click.echo(out)
+
+    if any(exitcodes) and not ignore_error:
+        for rc in exitcodes:
+            if rc != 0:
+                sys.exit(rc)
+    return
+
+
+def run_command_AND(*args, display_cmd=False, ignore_error=False, return_cmd=False):
+    """
+    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
+    return code, the function will exit with that return code.
+
+    Args:
+        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
+        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
+        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+    """
+    command_lists = [' '.join(arg) for arg in args]
+    command = ' && '.join(command_lists)
+    if display_cmd == True:
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+    for i in range(len(args)):
+        proc = subprocess.Popen(args[i], text=True, stdout=subproccess.PIPE)
+        if proc.returncode != 0:
             break
-        if output:
-            click.echo(output.rstrip('\n'))
 
-    rc = proc.poll()
-    if rc != 0:
-        sys.exit(rc)
+    if return_cmd:
+        output = proc.communicate()[0]
+        return output, proc.returncode
+
+    (out, err) = proc.communicate()
+
+    if len(out) > 0:
+        click.echo(out.rstrip('\n'))
+
+    if proc.returncode != 0 and not ignore_error:
+        sys.exit(proc.returncode)
+    return
 
 
 def json_serial(obj):
