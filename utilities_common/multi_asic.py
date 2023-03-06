@@ -68,7 +68,8 @@ class MultiAsic(object):
                     ns_list = namespaces['front_ns']
             else:
                 if self.namespace_option not in namespaces['front_ns'] and \
-                        self.namespace_option not in namespaces['back_ns']:
+                        self.namespace_option not in namespaces['back_ns'] and \
+                        self.namespace_option not in namespaces['fabric_ns']:
                     raise ValueError(
                         'Unknown Namespace {}'.format(self.namespace_option))
                 ns_list = [self.namespace_option]
