@@ -1,3 +1,4 @@
+import os
 from unittest.mock import Mock, patch, call
 
 # Import test module
@@ -55,9 +56,16 @@ def test_get_next_image(re_search_patch):
 
 def test_install_image():
     image_path = 'sonic'
+    env = os.environ.copy()
+    env.update({
+        'swipath': image_path,
+        'target_path': '/host',
+        'sonic_upgrade': '1'
+    })
+
     expected_calls = [
         call(["/usr/bin/unzip", "-od", "/tmp", "%s" % image_path, "boot0"]),
-        call(["swipath=%s" % image_path, "target_path=/host sonic_upgrade=1", ".", "/tmp/boot0"])
+        call(["/bin/bash", "/tmp/boot0"], env=env)
     ]
     with patch('sonic_installer.bootloader.aboot.run_command') as mock_cmd:
         bootloader = aboot.AbootBootloader()

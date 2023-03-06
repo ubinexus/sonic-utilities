@@ -854,7 +854,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
             echo_and_log("Stopping teamd ...")
             # Send USR1 signal to all teamd instances to stop them
             # It will prepare teamd for warm-reboot
-            run_command(["docker", "exec", "-i", "teamd", "pkill", "-USR1", "teamd"], devnull=True)
+            run_command(["docker", "exec", "-i", "teamd", "pkill", "-USR1", "teamd"], stdout=subprocess.DEVNULL)
             warm_app_names = ["teamsyncd"]
             echo_and_log("Stopped  teamd ...")
 
@@ -862,7 +862,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         for warm_app_name in warm_app_names:
             hdel_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
 
-    run_command(["docker", "kill", "%s" % container_name], devnull=True)
+    run_command(["docker", "kill", "%s" % container_name], stdout=subprocess.DEVNULL)
     run_command(["docker", "rm", "%s" % container_name])
     if tag is None:
         # example image: docker-lldp-sv2:latest

@@ -32,10 +32,7 @@ def run_command(command, stdout=subprocess.PIPE, env=None):
     command_str = join(command)
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
-    if devnull:
-        proc = subprocess.Popen(command, text=True, stdout=subprocess.DEVNULL, env=env)
-    else:
-        proc = subprocess.Popen(command, text=True, stdout=stdout, env=env)
+    proc = subprocess.Popen(command, text=True, stdout=stdout, env=env)
     (out, _) = proc.communicate()
 
     click.echo(out)
