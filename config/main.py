@@ -799,7 +799,7 @@ def _clear_qos(delay = False):
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
     if delay:
-        _wait_until_clear(["BUFFER_POOL_TABLE:*", "BUFFER_*_SET"],interval=0.5, timeout=30)
+        _wait_until_clear(["BUFFER_POOL_TABLE:*", "BUFFER_*_SET"], interval=0.5, timeout=120)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
