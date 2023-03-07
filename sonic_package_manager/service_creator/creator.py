@@ -5,7 +5,7 @@ import os
 import stat
 import subprocess
 from collections import defaultdict
-from typing import Dict, Type
+from typing import Dict, Type, List
 
 import jinja2 as jinja2
 from config.config_mgmt import ConfigMgmt
@@ -97,7 +97,7 @@ def remove_if_exists(path):
     log.info(f'removed {path}')
 
 
-def run_command(command: str):
+def run_command(command: List[str]):
     """ Run arbitrary bash command.
     Args:
         command: String command to execute as bash script
@@ -109,7 +109,6 @@ def run_command(command: str):
     log.debug(f'running command: {command}')
 
     proc = subprocess.Popen(command,
-                            shell=True,
                             executable='/bin/bash',
                             stdout=subprocess.PIPE)
     (_, _) = proc.communicate()
@@ -647,4 +646,4 @@ class ServiceCreator:
         """ Common operations executed after service is created/removed. """
 
         if not in_chroot():
-            run_command('systemctl daemon-reload')
+            run_command(['systemctl', 'daemon-reload'])
