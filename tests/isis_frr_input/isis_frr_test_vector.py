@@ -452,6 +452,62 @@ def mock_show_isis_interface(request):
     else:
         return ""
 
+isis_topology_output = \
+"""Area 1:
+IS-IS paths to level-2 routers that speak IP
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+10.0.0.56/31         IP internal  0                                     vlab-01(4)
+10.1.0.32/32         IP internal  0                                     vlab-01(4)
+ARISTA01T1           TE-IS        10     ARISTA01T1           PortChannel101 vlab-01(4)
+10.0.0.56/31         IP TE        16777225 ARISTA01T1           PortChannel101 ARISTA01T1(4)
+
+IS-IS paths to level-2 routers that speak IPv6
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+fc00::70/126         IP6 internal 0                                     vlab-01(4)
+fc00:1::32/128       IP6 internal 0                                     vlab-01(4)
+"""
+
+isis_topology_invalid_help_output = \
+"""Usage: topology [OPTIONS]
+Try "topology --help" for help.
+
+Error: Got unexpected extra argument (?)
+"""
+
+isis_topology_level_1_output = \
+"""Area 1:
+"""
+
+isis_topology_level_2_output = \
+"""Area 1:
+IS-IS paths to level-2 routers that speak IP
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+10.0.0.56/31         IP internal  0                                     vlab-01(4)
+10.1.0.32/32         IP internal  0                                     vlab-01(4)
+ARISTA01T1           TE-IS        10     ARISTA01T1           PortChannel101 vlab-01(4)
+10.0.0.56/31         IP TE        16777225 ARISTA01T1           PortChannel101 ARISTA01T1(4)
+
+IS-IS paths to level-2 routers that speak IPv6
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+fc00::70/126         IP6 internal 0                                     vlab-01(4)
+fc00:1::32/128       IP6 internal 0                                     vlab-01(4)
+"""
+
+def mock_show_isis_topology(request):
+    if request.param == 'isis_topology_output':
+        return isis_topology_output
+    elif request.param == 'isis_topology_invalid_help_output':
+        return isis_topology_invalid_help_output
+    elif request.param == 'isis_topology_level_1_output':
+        return isis_topology_level_1_output
+    elif request.param == 'isis_topology_level_2_output':
+        return isis_topology_level_2_output
+    else:
+        return ""
 
 testData = {
     'isis_neighbors': {
@@ -553,5 +609,25 @@ testData = {
         'args': ['sonic1'],
         'rc': 2,
         'rc_output': isis_interface_unknown_ifname_output
+    },
+    'isis_topology': {
+        'args': [],
+        'rc': 0,
+        'rc_output': isis_topology_output
+    },
+    'isis_topology_invalid_help': {
+        'args': ['?'],
+        'rc': 2,
+        'rc_output': isis_topology_invalid_help_output
+    },
+    'isis_topology_level_1': {
+        'args': ['--level-1'],
+        'rc': 0,
+        'rc_output': isis_topology_level_1_output
+    },
+    'isis_topology_level_2': {
+        'args': ['--level-2'],
+        'rc': 0,
+        'rc_output': isis_topology_level_2_output
     },
 }

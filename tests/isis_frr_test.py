@@ -125,3 +125,26 @@ class TestIsisInterface(object):
         show = setup_isis_commands
         exec_cmd = show.cli.commands["isis"].commands["interface"]
         executor(test_vector, show, exec_cmd)
+
+
+class TestIsisTopology(object):
+
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @pytest.mark.parametrize('setup_single_isis_instance, test_vector',
+                             [
+                                 ('isis_topology_output', 'isis_topology'),
+                                 ('isis_topology_invalid_help_output', 'isis_topology_invalid_help'),
+                                 ('isis_topology_level_1_output', 'isis_topology_level_1'),
+                                 ('isis_topology_level_2_output', 'isis_topology_level_2')
+                             ],
+                             indirect=['setup_single_isis_instance'])
+    def test_isis_topology(self,
+                           setup_isis_commands,
+                           setup_single_isis_instance,
+                           test_vector):
+        show = setup_isis_commands
+        exec_cmd = show.cli.commands["isis"].commands["topology"]
+        executor(test_vector, show, exec_cmd)
