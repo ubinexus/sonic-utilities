@@ -20,19 +20,19 @@ WORKDIR_NAME = 'work'
 DOCKERDIR_NAME = 'docker'
 
 def is_list_of_strings(command):
-    if isinstance(command, list) and all(isinstance(item, str) for item in command):
-        return True
-    else:
-        return False
+    return isinstance(command, list) and all(isinstance(item, str) for item in command)
 
 # Run bash command and print output to stdout
-def run_command(command, stdout=subprocess.PIPE, env=None):
+def run_command(command, stdout=subprocess.PIPE, shell=False):
     if not is_list_of_strings(command):
         sys.exit("Input command should be a list of strings")
-    command_str = join(command)
+    if not shell:
+        command_str = join(command)
+    else:
+        command_str = command
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
-    proc = subprocess.Popen(command, text=True, stdout=stdout, env=env)
+    proc = subprocess.Popen(command, text=True, stdout=stdout, shell=shell)
     (out, _) = proc.communicate()
 
     click.echo(out)
