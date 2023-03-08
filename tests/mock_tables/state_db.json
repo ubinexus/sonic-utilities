@@ -1176,5 +1176,11 @@
     },
     "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
         "profile": ""
+    },
+    "ACL_TABLE_TABLE|DATAACL_5" : {
+        "status": "Active"
+    },
+    "ACL_RULE_TABLE|DATAACL_5|RULE_1" : {
+        "status": "Active"
     }
 }
