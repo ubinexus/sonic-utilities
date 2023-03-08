@@ -1,3 +1,5 @@
+import re
+import sys
 import click
 import subprocess
 from shlex import join
@@ -52,6 +54,8 @@ if 'FRRouting' in p:
     @click.argument('prefix', required=True)
     def bestpath(prefix):
         """BGP bestpath"""
+        if not re.match('^[A-Za-z0-9.:/]*$', prefix):
+            sys.exit('Prefix contains only number, alphabet, period, colon, and forward slash')
         command = ['sudo', 'vtysh', '-c', "debug bgp bestpath %s" % prefix]
         run_command(command)
 

@@ -38,9 +38,9 @@ class TestDebugFrr(object):
     def test_debug_bgp_bestpath(self, run_command):
         import debug.main as debug
         runner = CliRunner()
-        result = runner.invoke(debug.cli.commands['bgp'].commands['bestpath'], ['dummy_prefix'])
+        result = runner.invoke(debug.cli.commands['bgp'].commands['bestpath'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp bestpath dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp bestpath dummyprefix'])
 
     @patch('debug.main.run_command')
     def test_debug_bgp_keepalives(self, run_command):
@@ -50,9 +50,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp keepalives'])
 
-        result = runner.invoke(debug.cli.commands['bgp'].commands['keepalives'], ['dummy_prefix'])
+        result = runner.invoke(debug.cli.commands['bgp'].commands['keepalives'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp keepalives dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp keepalives dummyprefix'])
 
     @patch('debug.main.run_command')
     def test_debug_bgp_neighbor_events(self, run_command):
@@ -62,9 +62,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp neighbor-events'])
 
-        result = runner.invoke(debug.cli.commands['bgp'].commands['neighbor-events'], ['dummy_prefix'])
+        result = runner.invoke(debug.cli.commands['bgp'].commands['neighbor-events'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp neighbor-events dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp neighbor-events dummyprefix'])
 
     @patch('debug.main.run_command')
     def test_debug_bgp_nht(self, run_command):
@@ -106,9 +106,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp updates prefix'])
 
-        result = runner.invoke(debug.cli.commands['bgp'].commands['updates'], ['prefix', 'dummy_prefix'])
+        result = runner.invoke(debug.cli.commands['bgp'].commands['updates'], ['prefix', 'dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp updates prefix dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp updates prefix dummyprefix'])
 
 
     @patch('debug.main.run_command')
@@ -119,9 +119,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp zebra'])
 
-        result = runner.invoke(debug.cli.commands['bgp'].commands['zebra'], ['dummy_prefix'])
+        result = runner.invoke(debug.cli.commands['bgp'].commands['zebra'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp zebra prefix dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'debug bgp zebra prefix dummyprefix'])
 
     @patch('debug.main.run_command')
     def test_debug_zebra_dplane(self, run_command):
@@ -220,9 +220,9 @@ class TestDebugFrr(object):
     def test_undebug_bgp_bestpath(self, run_command):
         import undebug.main as undebug
         runner = CliRunner()
-        result = runner.invoke(undebug.cli.commands['bgp'].commands['bestpath'], ['dummy_prefix'])
+        result = runner.invoke(undebug.cli.commands['bgp'].commands['bestpath'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp bestpath dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp bestpath dummyprefix'])
 
     @patch('undebug.main.run_command')
     def test_undebug_bgp_keepalives(self, run_command):
@@ -232,9 +232,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp keepalives'])
 
-        result = runner.invoke(undebug.cli.commands['bgp'].commands['keepalives'], ['dummy_prefix'])
+        result = runner.invoke(undebug.cli.commands['bgp'].commands['keepalives'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp keepalives dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp keepalives dummyprefix'])
 
     @patch('undebug.main.run_command')
     def test_undebug_bgp_neighbor_events(self, run_command):
@@ -244,9 +244,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp neighbor-events'])
 
-        result = runner.invoke(undebug.cli.commands['bgp'].commands['neighbor-events'], ['dummy_prefix'])
+        result = runner.invoke(undebug.cli.commands['bgp'].commands['neighbor-events'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp neighbor-events dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp neighbor-events dummyprefix'])
 
     @patch('undebug.main.run_command')
     def test_undebug_bgp_nht(self, run_command):
@@ -288,9 +288,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp updates prefix'])
 
-        result = runner.invoke(undebug.cli.commands['bgp'].commands['updates'], ['prefix', 'dummy_prefix'])
+        result = runner.invoke(undebug.cli.commands['bgp'].commands['updates'], ['prefix', 'dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp updates prefix dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp updates prefix dummyprefix'])
 
 
     @patch('undebug.main.run_command')
@@ -301,9 +301,9 @@ class TestDebugFrr(object):
         assert result.exit_code == 0
         run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp zebra'])
 
-        result = runner.invoke(undebug.cli.commands['bgp'].commands['zebra'], ['dummy_prefix'])
+        result = runner.invoke(undebug.cli.commands['bgp'].commands['zebra'], ['dummyprefix'])
         assert result.exit_code == 0
-        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp zebra prefix dummy_prefix'])
+        run_command.assert_called_with(['sudo', 'vtysh', '-c', 'no debug bgp zebra prefix dummyprefix'])
 
     @patch('undebug.main.run_command')
     def test_undebug_zebra_dplane(self, run_command):
