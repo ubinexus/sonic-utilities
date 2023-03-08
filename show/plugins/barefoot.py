@@ -4,7 +4,7 @@ import click
 import json
 import subprocess
 from sonic_py_common import device_info
-from sonic_py_common.general import getstatusoutput_noshell_pipe, check_output_pipe
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 
 @click.group()
 def barefoot():
@@ -28,7 +28,7 @@ def profile():
     click.echo('Current profile: ', nl=False)
     cmd0 = ['docker', 'exec', '-it', 'syncd', 'readlink', '/opt/bfn/install']
     cmd1 = ['sed', r's/install_\\\(.\*\\\)_profile/\\1/']
-    check_output_pipe(cmd0, cmd1)
+    getstatusoutput_noshell_pipe(cmd0, cmd1)
     
     # Exclude current and unsupported profiles
     opts = ''
