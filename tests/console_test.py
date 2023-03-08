@@ -460,7 +460,7 @@ class TestConsutilLib(object):
         """    PID                  STARTED CMD
       8 Mon Nov  2 04:29:41 2020 picocom /dev/ttyUSB0 
         """
-    @mock.patch('consutil.lib.SysInfoProvider.run_command_pipe', mock.MagicMock(return_value=all_active_processes_output))
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=all_active_processes_output))
     def test_sys_info_provider_list_active_console_processes(self):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         procs = SysInfoProvider.list_active_console_processes()
@@ -469,7 +469,7 @@ class TestConsutilLib(object):
         assert procs["0"] == ("8", "Mon Nov  2 04:29:41 2020")
 
     active_process_output = "13751 Wed Mar  6 08:31:35 2019 /usr/bin/sudo picocom -b 9600 -f n /dev/ttyUSB1"
-    @mock.patch('consutil.lib.SysInfoProvider.run_command_pipe', mock.MagicMock(return_value=active_process_output))
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=active_process_output))
     def test_sys_info_provider_get_active_console_process_info_exists(self):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         proc = SysInfoProvider.get_active_console_process_info("13751")

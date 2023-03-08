@@ -277,7 +277,7 @@ class SysInfoProvider(object):
     @staticmethod
     def list_console_ttys():
         """Lists all console tty devices"""
-        cmd = ["ls", SysInfoProvider.DEVICE_PREFIX, "*"]
+        cmd = ["ls", SysInfoProvider.DEVICE_PREFIX + "*"]
         output, _ = SysInfoProvider.run_command(cmd, abort=False)
         ttys = output.split('\n')
         ttys = list([dev for dev in ttys if re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None])
@@ -288,7 +288,7 @@ class SysInfoProvider(object):
         """Lists all active console session processes"""
         cmd0 = ['ps', '-eo', 'pid,lstart,cmd']
         cmd1 = ['grep', '-E', "(mini|pico)com"]
-        output = SysInfoProvider.run_command_pipe(cmd0, cmd1)
+        output = SysInfoProvider.run_command(cmd0, cmd1)
         return SysInfoProvider._parse_processes_info(output)
 
     @staticmethod
@@ -296,7 +296,7 @@ class SysInfoProvider(object):
         """Gets active console process information by PID"""
         cmd0 = ['ps', '-p', str(pid), '-o', 'pid,lstart,cmd']
         cmd1 = ['grep', '-E', "(mini|pico)com"]
-        output = SysInfoProvider.run_command_pipe(cmd0, cmd1)
+        output = SysInfoProvider.run_command(cmd0, cmd1)
         processes = SysInfoProvider._parse_processes_info(output)
         if len(list(processes.keys())) == 1:
             return (list(processes.keys())[0],) + list(processes.values())[0]
@@ -328,18 +328,7 @@ class SysInfoProvider(object):
         return console_processes
 
     @staticmethod
-    def run_command(cmd, abort=True):
-        """runs command, exit if stderr is written to and abort argument is true, returns stdout, stderr otherwise"""
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        output = proc.stdout.read()
-        error = proc.stderr.read()
-        if abort and error != "":
-            click.echo("Command resulted in error: {}".format(error))
-            sys.exit(ERR_CMD)
-        return output if abort else (output, error)
-
-    @staticmethod
-    def run_command_pipe(*args, abort=True):
+    def run_command(*args, abort=True):
         exitcodes, output = getstatusoutput_noshell_pipe(*args)
         if abort and any(exitcodes) and output != '':
             click.echo("Command resulted in error: {}".format(output))
