@@ -56,16 +56,10 @@ def test_get_next_image(re_search_patch):
 
 def test_install_image():
     image_path = 'sonic'
-    env = os.environ.copy()
-    env.update({
-        'swipath': image_path,
-        'target_path': '/host',
-        'sonic_upgrade': '1'
-    })
 
     expected_calls = [
         call(["/usr/bin/unzip", "-od", "/tmp", "%s" % image_path, "boot0"]),
-        call(["/bin/bash", "/tmp/boot0"], env=env)
+        call("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path, shell=True)
     ]
     with patch('sonic_installer.bootloader.aboot.run_command') as mock_cmd:
         bootloader = aboot.AbootBootloader()
