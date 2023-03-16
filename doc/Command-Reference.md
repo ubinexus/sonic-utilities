@@ -994,9 +994,10 @@ This command displays information for all the interfaces for the transceiver req
   Port         Error Status
   -----------  --------------
   Ethernet100  OK
+  ``` 
   
   - Example (Display performance monitoring info of SFP transceiver connected to Ethernet100):
-  ```
+
   ```
   admin@sonic:~$ show interfaces transceiver pm Ethernet100
   Ethernet100:
