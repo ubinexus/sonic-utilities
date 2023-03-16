@@ -370,7 +370,7 @@ function check_docker_exec()
 {
     containers="radv bgp lldp swss database teamd syncd"
     for container in $containers; do
-        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        STATE=$(timeout 5s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
         if [[ x"${STATE}" == x"timed out" ]]; then
             error "Docker exec on $container timedout"
             exit "${EXIT_FAILURE}"
