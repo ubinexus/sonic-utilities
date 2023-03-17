@@ -585,3 +585,29 @@ class TestWarmUpgrade_without_route_weights(object):
             expected_keys = expected_appl_db.get_all(expected_appl_db.APPL_DB, key)
             diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
             assert not diff
+
+
+class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_warm_upgrade_t0_edgezone_aggregator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.hwsku = "vs"
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-output')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')
+        expected_table = expected_db.cfgdb.get_table('CABLE_LENGTH')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
