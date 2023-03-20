@@ -597,7 +597,7 @@ class DBMigrator():
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
 
 
-    def migrate_edgezone_aggregator_config(self):
+    def update_edgezone_aggregator_config(self):
         """
         Update cable length configuration in ConfigDB for T0 neighbor interfaces
         connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
@@ -620,28 +620,32 @@ class DBMigrator():
                 elif v["type"] == "EdgeZoneAggregator":
                     edgezone_aggregator_devs.append(k)
 
+        if len(edgezone_aggregator_devs) == 0:
+            return
+
         for intf, intf_info in device_neighbors.items():
             if intf_info["name"] == T1_device:
                 T1_intf = intf
             elif intf_info["name"] in edgezone_aggregator_devs:
                 edgezone_aggregator_intfs.append(intf)
 
+
         if cable_length["AZURE"][T1_intf] is not None:
             EDGEZONE_AGG_CABLE_LENGTH = cable_length["AZURE"][T1_intf]
-        
-        cable_length_table = self.get_entry("CABLE_LENGTH", "AZURE")
-        
+
+        cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+
         for intf, length in cable_length_table.items():
             if intf in edgezone_aggregator_intfs:
                 cable_length_table[intf] = EDGEZONE_AGG_CABLE_LENGTH
 
         """ Set new cable length values """
-        self.set_entry("CABLE_LENGTH", "AZURE", cable_length_table)
-        
+        self.configDB.set_entry("CABLE_LENGTH", "AZURE", cable_length_table)
+
         for intf, intf_items in port_table.items():
             if intf in edgezone_aggregator_intfs:
                 """ Reset interface values to current value so that buffer manager listener picks up new cable length change """
-                self.set_entry("PORT", intf, intf_items)
+                self.configDB.set_entry("PORT", intf, intf_items)
 
 
     def version_unknown(self):
@@ -938,7 +942,7 @@ class DBMigrator():
         """
         log.log_info('Handling version_4_0_1')
         # Update cable length data and re-assign interface speed for T0 neighbor interfaces connected to EdgeZone Aggregators
-        self.migrate_edgezone_aggregator_config()
+        self.update_edgezone_aggregator_config()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
 
