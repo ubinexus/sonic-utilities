@@ -7,7 +7,6 @@ import utilities_common.cli as clicommon
 import syslog
 import traceback
 import click
-from builtins import str #for unicode conversion in python2
 from swsscommon.swsscommon import ConfigDBConnector
 
 ROUTE_IDX = 1
@@ -22,7 +21,7 @@ def get_connected_routes():
             sys.exit(ret)
         if output is not None:
             route_info = json.loads(output)
-            for route, info in route_info.items():
+            for route in route_info.keys():
                 connected_routes.append(route)
     except Exception:
         ctx = click.get_current_context()
