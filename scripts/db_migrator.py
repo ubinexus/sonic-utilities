@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_2'
+        self.CURRENT_VERSION = 'version_5_0_1' # latest version for master branch
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -939,23 +939,23 @@ class DBMigrator():
         return 'version_4_0_1'
 
 
-    def version_4_0_1(self):
+    def version_5_0_0(self):
         """
-        Version 4_0_1.
+        Version 5_0_0.
         """
-        log.log_info('Handling version_4_0_1')
+        log.log_info('Handling version_5_0_0')
         # Update cable length data and re-assign interface speed for T0 neighbor interfaces connected to EdgeZone Aggregators
         self.update_edgezone_aggregator_config()
-        self.set_version('version_4_0_2')
-        return 'version_4_0_2'
+        self.set_version('version_5_0_1')
+        return 'version_5_0_1'
 
 
-    def version_4_0_2(self):
+    def version_5_0_1(self):
         """
-        Version 4_0_2.
+        Version 5_0_1.
         This is the latest version for master branch
         """
-        log.log_info('Handling version_4_0_2')
+        log.log_info('Handling version_5_0_1')
         return None
 
 
