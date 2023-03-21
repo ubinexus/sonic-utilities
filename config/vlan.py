@@ -32,7 +32,21 @@ def is_dhcp_relay_running():
     out, _ = clicommon.run_command("systemctl show dhcp_relay.service --property ActiveState --value", return_cmd=True)
     return out.strip() == "active"
 
+def is_dhcpv6_relay_config_exist(db, vlan_name):
+    keys = db.cfgdb.get_keys(DHCP_RELAY_TABLE)
+    if len(keys) == 0 or vlan_name not in keys:
+        return False
 
+    table = db.cfgdb.get_entry("DHCP_RELAY", vlan_name)
+    dhcpv6_servers = table.get(DHCPV6_SERVERS, [])
+    if len(dhcpv6_servers) > 0:
+        return True
+
+
+@vlan.command('add')
+@click.argument('vid', metavar='<vid>', required=True)
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
+@clicommon.pass_db
 def add_vlan(db, vid, multiple):
     """Add VLAN"""
 
@@ -77,23 +91,9 @@ def add_vlan(db, vid, multiple):
             try:
 				# set dhcpv4_relay / VLAN table
                 config_db.set_entry('VLAN', vlan, {'vlanid': str(vid)})
-				
-                # set dhcpv6_relay table
-                set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
-                click.echo("Vlan{} has been added".format(vid))
 
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
-
-def is_dhcpv6_relay_config_exist(db, vlan_name):
-    keys = db.cfgdb.get_keys(DHCP_RELAY_TABLE)
-    if len(keys) == 0 or vlan_name not in keys:
-        return False
-
-    table = db.cfgdb.get_entry("DHCP_RELAY", vlan_name)
-    dhcpv6_servers = table.get(DHCPV6_SERVERS, [])
-    if len(dhcpv6_servers) > 0:
-        return True
 
 
 @vlan.command('del')
@@ -164,7 +164,6 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                     if is_dhcp_relay_running():
                         dhcp_relay_util.handle_restart_dhcp_relay_service()
                 
-				
             except JsonPatchConflict:
                 ctx.fail("{} does not exist".format(vlan))
                 
@@ -315,7 +314,6 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             # in case of exception in list last added member will be shown to user
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
-                click.echo("{} is added to {} as vlan member".format(port, vlan))
             except ValueError:
                 ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
 
@@ -362,7 +360,6 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
-                click.echo("{} is removed from {} as vlan member".format(port, vlan))
 
             except JsonPatchConflict:
                 ctx.fail("{} invalid or does not exist, or {} is not a member of {}".format(vlan, port, vlan))

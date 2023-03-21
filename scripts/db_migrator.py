@@ -913,9 +913,19 @@ class DBMigrator():
     def version_4_0_1(self):
         """
         Version 4_0_1.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_1')
+        self.migrate_config_db_switchport_mode()
+        self.set_version('version_4_0_1')
+        return 'version_4_0_2'
+
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_2')
         return None
 
     def get_version(self):
