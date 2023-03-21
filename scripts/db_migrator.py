@@ -935,8 +935,8 @@ class DBMigrator():
         else:
             enable_state = 'false'
         self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
-        self.set_version('version_4_0_1')
-        return 'version_4_0_1'
+        self.set_version('version_5_0_0')
+        return 'version_5_0_0'
 
 
     def version_5_0_0(self):
