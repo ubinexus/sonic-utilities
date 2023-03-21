@@ -409,7 +409,7 @@ class TestGlobalDscpToTcMapMigrator(object):
         dbmgtr_mlnx.migrate()
         resulting_table = dbmgtr_mlnx.configDB.get_table('PORT_QOS_MAP')
         assert resulting_table == {}
-        
+
 class TestMoveLoggerTablesInWarmUpgrade(object):
     @classmethod
     def setup_class(cls):
@@ -468,11 +468,11 @@ class TestFastRebootTableModification(object):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_input')
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'empty-config-input')
-        
+
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
-        
+
         dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_expected')
         expected_db = SonicV2Connector(host='127.0.0.1')
         expected_db.connect(expected_db.STATE_DB)
@@ -597,13 +597,26 @@ class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
-    def test_warm_upgrade_t0_edgezone_aggregator(self):
+    def test_warm_upgrade_t0_edgezone_aggregator_diff_cable_length(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
-        dbmgtr.hwsku = "vs"
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-output')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')
+        expected_table = expected_db.cfgdb.get_table('CABLE_LENGTH')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+    def test_warm_upgrade_t0_edgezone_aggregator_same_cable_length(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-same-cable-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-same-cable-output')
         expected_db = Db()
 
         resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')

@@ -114,8 +114,8 @@
         "Ethernet4": "300m",
         "Ethernet8": "300m",
         "Ethernet12": "300m",
-        "Ethernet16": "5m",
-        "Ethernet20": "5m"
+        "Ethernet16": "300m",
+        "Ethernet20": "300m"
     },
     "VERSIONS|DATABASE": {
         "VERSION": "version_4_0_0"

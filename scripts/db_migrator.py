@@ -612,28 +612,31 @@ class DBMigrator():
         port_table = self.configDB.get_table("PORT")
         edgezone_aggregator_devs = []
         edgezone_aggregator_intfs = []
-        EDGEZONE_AGG_CABLE_LENGTH = "5m"
+        EDGEZONE_AGG_CABLE_LENGTH = "40m"
         for k, v in device_neighbor_metadata.items():
             if "type" in v:
-                if v["type"] == "LeafRouter":
-                    T1_device = k
-                elif v["type"] == "EdgeZoneAggregator":
+                if v["type"] == "EdgeZoneAggregator":
                     edgezone_aggregator_devs.append(k)
 
         if len(edgezone_aggregator_devs) == 0:
             return
 
         for intf, intf_info in device_neighbors.items():
-            if intf_info["name"] == T1_device:
-                T1_intf = intf
-            elif intf_info["name"] in edgezone_aggregator_devs:
+            if intf_info["name"] in edgezone_aggregator_devs:
                 edgezone_aggregator_intfs.append(intf)
 
-
-        if cable_length["AZURE"][T1_intf] is not None:
-            EDGEZONE_AGG_CABLE_LENGTH = cable_length["AZURE"][T1_intf]
-
         cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+        curr_cable_intf = next(iter(cable_length_table))
+        curr_cable_length = cable_length_table[curr_cable_intf]
+        index = 0
+
+        for intf, length in cable_length_table.items():
+            index += 1
+            if curr_cable_length != length:
+                break
+            elif index == len(cable_length_table):
+                """ All cable lengths are the same, nothing to modify """
+                return
 
         for intf, length in cable_length_table.items():
             if intf in edgezone_aggregator_intfs:
