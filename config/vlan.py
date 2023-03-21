@@ -8,6 +8,8 @@ from .utils import log
 from .validated_config_db_connector import ValidatedConfigDBConnector
 
 ADHOC_VALIDATION = True
+DHCP_RELAY_TABLE = "DHCP_RELAY"
+DHCPV6_SERVERS = "dhcpv6_servers"
 
 
 #
@@ -26,10 +28,11 @@ def set_dhcp_relay_table(table, config_db, vlan_name, value):
     config_db.set_entry(table, vlan_name, value)
 
 
-@vlan.command('add')
-@click.argument('vid', metavar='<vid>', required=True)
-@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
-@clicommon.pass_db
+def is_dhcp_relay_running():
+    out, _ = clicommon.run_command("systemctl show dhcp_relay.service --property ActiveState --value", return_cmd=True)
+    return out.strip() == "active"
+
+
 def add_vlan(db, vid, multiple):
     """Add VLAN"""
 
@@ -74,24 +77,33 @@ def add_vlan(db, vid, multiple):
             try:
 				# set dhcpv4_relay / VLAN table
                 config_db.set_entry('VLAN', vlan, {'vlanid': str(vid)})
-                click.echo("Vlan{} has been added".format(vid))
 				
                 # set dhcpv6_relay table
                 set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
+                click.echo("Vlan{} has been added".format(vid))
 
             except ValueError:
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
-    # We need to restart dhcp_relay service after dhcpv6_relay config changes
-    # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
-    dhcp_relay_util.handle_restart_dhcp_relay_service()
+def is_dhcpv6_relay_config_exist(db, vlan_name):
+    keys = db.cfgdb.get_keys(DHCP_RELAY_TABLE)
+    if len(keys) == 0 or vlan_name not in keys:
+        return False
+
+    table = db.cfgdb.get_entry("DHCP_RELAY", vlan_name)
+    dhcpv6_servers = table.get(DHCPV6_SERVERS, [])
+    if len(dhcpv6_servers) > 0:
+        return True
 
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True)
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
+@click.option('--no_restart_dhcp_relay', is_flag=True, type=click.BOOL, required=False, default=False,
+              help="If no_restart_dhcp_relay is True, do not restart dhcp_relay while del vlan and \
+                require dhcpv6 relay of this is empty")
 @clicommon.pass_db
-def del_vlan(db, vid, multiple):
+def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
     """Delete VLAN"""
 
     ctx = click.get_current_context()
@@ -116,6 +128,11 @@ def del_vlan(db, vid, multiple):
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
             vlan = 'Vlan{}'.format(vid)
+
+            if no_restart_dhcp_relay:
+                if is_dhcpv6_relay_config_exist(db, vlan):
+                    ctx.fail("Can't delete {} because related DHCPv6 Relay config is exist".format(vlan))
+            
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
                 log.log_info("{} does not exist".format(vlan))
                 ctx.fail("{} does not exist".format(vlan))
@@ -139,18 +156,18 @@ def del_vlan(db, vid, multiple):
 			
 				# set dhcpv4_relay / VLAN table
                 config_db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
-                click.echo("Vlan{} has been deleted".format(vid))
 				
-                # set dhcpv6_relay table
-                set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
+                if not no_restart_dhcp_relay and is_dhcpv6_relay_config_exist(db, vlan):
+                    # set dhcpv6_relay table
+                    set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
+                    # We need to restart dhcp_relay service after dhcpv6_relay config change
+                    if is_dhcp_relay_running():
+                        dhcp_relay_util.handle_restart_dhcp_relay_service()
                 
 				
             except JsonPatchConflict:
                 ctx.fail("{} does not exist".format(vlan))
-
-    # We need to restart dhcp_relay service after dhcpv6_relay config changes
-    # not handling all cases of vlan adding since DHCP relay table have conflicts with yang 
-    dhcp_relay_util.handle_restart_dhcp_relay_service()
+                
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
