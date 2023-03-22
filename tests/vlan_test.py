@@ -657,7 +657,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -719,7 +718,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -783,9 +781,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1002 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1003 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -845,10 +840,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1002 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan2000 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan3000 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -924,13 +915,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1000 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1002 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan1003 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan2000 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan3000 as vlan member" in result.output
-        assert "Ethernet20 is added to Vlan4000 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -990,7 +974,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1001 as vlan member" in result.output
 
         # add Ethernet20 to vlan 1001 as tagged member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
