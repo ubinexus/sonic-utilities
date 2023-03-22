@@ -1163,40 +1163,6 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
-def _is_storage_device(cfg_db):
-    """
-    Check if the device is a storage device or not
-    """
-    device_metadata = cfg_db.get_entry("DEVICE_METADATA", "localhost")
-    return device_metadata.get("storage_device", "Unknown") == "true"
-
-def _is_acl_table_present(cfg_db, acl_table_name):
-    """
-    Check if acl table exists
-    """
-    return acl_table_name in cfg_db.get_keys("ACL_TABLE")
-
-def load_backend_acl(cfg_db, device_type):
-    """
-    Load acl on backend storage device
-    """
-
-    BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
-    BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
-
-    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db) and _is_acl_table_present(cfg_db, "DATAACL"):
-        if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
-            clicommon.run_command(
-                "{} -d -t {},{}".format(
-                    SONIC_CFGGEN_PATH,
-                    BACKEND_ACL_TEMPLATE_FILE,
-                    BACKEND_ACL_FILE
-                ),
-                display_cmd=True
-            )
-        if os.path.isfile(BACKEND_ACL_FILE):
-            clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
-
 def validate_config_file(file):
     """
     A validator to check config files for syntax errors
