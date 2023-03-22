@@ -173,7 +173,7 @@ class MetadataResolver:
             log.debug("Found one YANG module")
         elif isinstance(labels_yang_modules, dict):
             yang_modules.extend(labels_yang_modules.values())
-            log.debug("Found YANG modules: {}", labels_yang_modules.keys())
+            log.debug(f"Found YANG modules: {labels_yang_modules.keys()}")
         else:
             log.debug("No YANG modules found")
 
