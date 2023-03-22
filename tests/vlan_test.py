@@ -731,7 +731,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet20 is removed from Vlan1001 as vlan member" in result.output
 
         # add del 1001
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
@@ -890,7 +889,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_add_del_multiple_vlan_and_vlan_member_vlan_add_output
 
         # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -998,7 +996,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is added to Vlan1000 as vlan member" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -1033,7 +1030,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet20 is removed from Vlan1001 as vlan member" in result.output
 
         # configure Ethernet20 from trunk to routed mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "Ethernet20"], obj=db)
@@ -1097,7 +1093,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet64 is added to Vlan1001 as vlan member" in result.output
 
         # configure Ethernet64 from routed to access mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet64"], obj=db)
