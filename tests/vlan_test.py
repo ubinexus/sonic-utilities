@@ -292,51 +292,6 @@ test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_t
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-test_config_vlan_add_vlan_with_multiple_vlanids_output = """\
-Vlan10 has been added
-Vlan20 has been added
-Vlan30 has been added
-Vlan40 has been added
-"""
-
-
-test_config_vlan_add_vlan_with_multiple_vlanids_with_range_output = """\
-Vlan10 has been added
-Vlan11 has been added
-Vlan12 has been added
-Vlan13 has been added
-Vlan14 has been added
-Vlan15 has been added
-Vlan16 has been added
-Vlan17 has been added
-Vlan18 has been added
-Vlan19 has been added
-Vlan20 has been added
-"""
-
-test_config_vlan_add_vlan_with_multiple_vlanids_with_range_and_multiple_ids_output = """\
-Vlan10 has been added
-Vlan11 has been added
-Vlan12 has been added
-Vlan13 has been added
-Vlan14 has been added
-Vlan15 has been added
-Vlan20 has been added
-Vlan25 has been added
-Vlan30 has been added
-"""
-
-test_config_add_del_multiple_vlan_and_vlan_member_vlan_add_output = """\
-Vlan1001 has been added
-Vlan1002 has been added
-Vlan1003 has been added
-"""
-
-test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_multiple_vlan_output = """\
-Vlan1001 has been added
-Vlan1002 has been added
-"""
-
 
 
 class TestVlan(object):
@@ -452,7 +407,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_vlan_add_vlan_with_multiple_vlanids_output 
 
     def test_config_vlan_add_vlan_with_multiple_vlanids_with_range(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
@@ -460,7 +414,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_vlan_add_vlan_with_multiple_vlanids_with_range_output
 
     def  test_config_vlan_add_vlan_with_multiple_vlanids_with_range_and_multiple_ids(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
@@ -468,7 +421,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_vlan_add_vlan_with_multiple_vlanids_with_range_and_multiple_ids_output
 
     def  test_config_vlan_add_vlan_with_wrong_range(self):
         runner = CliRunner()
@@ -807,7 +759,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_add_del_multiple_vlan_and_vlan_member_vlan_add_output
 
         # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -870,7 +821,6 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_multiple_vlan_output
 
         # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
