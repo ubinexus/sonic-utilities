@@ -1,5 +1,6 @@
 import json
 import jsonpatch
+import importlib
 from jsonpointer import JsonPointer
 import sonic_yang
 import sonic_yang_ext
@@ -7,13 +8,22 @@ import subprocess
 import yang as ly
 import copy
 import re
+import os
 from sonic_py_common import logger
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
 SYSLOG_IDENTIFIER = "GenericConfigUpdater"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 
 class GenericConfigUpdaterError(Exception):
+    pass
+
+class IllegalPatchOperationError(ValueError):
+    pass
+
+class EmptyTableError(ValueError):
     pass
 
 class JsonChange:
@@ -48,7 +58,9 @@ class ConfigWrapper:
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
-        return json.loads(text)
+        config_db_json = json.loads(text)
+        config_db_json.pop("bgpraw", None)
+        return config_db_json
 
     def _get_config_db_as_text(self):
         # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
@@ -133,6 +145,59 @@ class ConfigWrapper:
 
         return True, None
 
+    def validate_field_operation(self, old_config, target_config):
+        """
+        Some fields in ConfigDB are restricted and may not allow third-party addition, replacement, or removal. 
+        Because YANG only validates state and not transitions, this method helps to JsonPatch operations/transitions for the specified fields. 
+        """
+        patch = jsonpatch.JsonPatch.from_diff(old_config, target_config)
+        
+        # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation 
+        illegal_operations_to_fields_map = {
+            'add':[],
+            'replace': [],
+            'remove': [
+                '/PFC_WD/GLOBAL/POLL_INTERVAL',
+                '/PFC_WD/GLOBAL',
+                '/LOOPBACK_INTERFACE/Loopback0']
+        }
+        for operation, field_list in illegal_operations_to_fields_map.items():
+            for field in field_list:
+                if any(op['op'] == operation and field == op['path'] for op in patch):
+                    raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
+
+        def _invoke_validating_function(cmd):
+            # cmd is in the format as <package/module name>.<method name>
+            method_name = cmd.split(".")[-1]
+            module_name = ".".join(cmd.split(".")[0:-1])
+            if module_name != "generic_config_updater.field_operation_validators" or "validator" not in method_name:
+                raise GenericConfigUpdaterError("Attempting to call invalid method {} in module {}. Module must be generic_config_updater.field_operation_validators, and method must be a defined validator".format(method_name, module_name))
+            module = importlib.import_module(module_name, package=None)
+            method_to_call = getattr(module, method_name)
+            return method_to_call()
+
+        if os.path.exists(GCU_FIELD_OP_CONF_FILE):
+            with open(GCU_FIELD_OP_CONF_FILE, "r") as s:
+                gcu_field_operation_conf = json.load(s)
+        else:
+            raise GenericConfigUpdaterError("GCU field operation validators config file not found") 
+
+        for element in patch:
+            path = element["path"]
+            match = re.search(r'\/([^\/]+)(\/|$)', path) # This matches the table name in the path, eg if path if /PFC_WD/GLOBAL, the match would be PFC_WD
+            if match is not None:
+                table = match.group(1)
+            else:
+                raise GenericConfigUpdaterError("Invalid jsonpatch path: {}".format(path))
+            validating_functions= set()
+            tables = gcu_field_operation_conf["tables"]
+            validating_functions.update(tables.get(table, {}).get("field_operation_validators", []))
+
+            for function in validating_functions:
+                if not _invoke_validating_function(function):
+                    raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
+
+
     def validate_lanes(self, config_db):
         if "PORT" not in config_db:
             return True, None
@@ -155,13 +220,21 @@ class ConfigWrapper:
                 port_to_lanes_map[port] = lanes
 
         # Validate lanes are unique
-        existing = {}
-        for port in port_to_lanes_map:
-            lanes = port_to_lanes_map[port]
-            for lane in lanes:
-                if lane in existing:
-                    return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
-                existing[lane] = port
+        # TODO: Move this attribute (platform with duplicated lanes in ports) to YANG models
+        dup_lanes_platforms = [
+            'x86_64-arista_7050cx3_32s',
+            'x86_64-dellemc_s5232f_c3538-r0',
+        ]
+        metadata = config_db.get("DEVICE_METADATA", {})
+        platform = metadata.get("localhost", {}).get("platform", None)
+        if platform not in dup_lanes_platforms:
+            existing = {}
+            for port in port_to_lanes_map:
+                lanes = port_to_lanes_map[port]
+                for lane in lanes:
+                    if lane in existing:
+                        return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
+                    existing[lane] = port
         return True, None
 
     def validate_bgp_peer_group(self, config_db):

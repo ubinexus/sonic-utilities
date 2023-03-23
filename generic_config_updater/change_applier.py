@@ -9,7 +9,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
@@ -63,6 +63,10 @@ class DryRunChangeApplier:
 
     def apply(self, change):
         self.config_wrapper.apply_change_to_config_db(change)
+
+
+    def remove_backend_tables_from_config(self, data):
+        return data
 
 
 class ChangeApplier:

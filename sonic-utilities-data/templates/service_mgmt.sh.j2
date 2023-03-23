@@ -28,7 +28,7 @@ if [[ -f /etc/sonic/${SERVICE}_dependent ]]; then
 fi
 
 if [[ -f /etc/sonic/${SERVICE}_multi_inst_dependent ]]; then
-    MULTI_INST_DEPENDENT="${MULTI_INST_DEPENDENT} cat /etc/sonic/${SERVICE}_multi_inst_dependent"
+    MULTI_INST_DEPENDENT="${MULTI_INST_DEPENDENT} $(cat /etc/sonic/${SERVICE}_multi_inst_dependent)"
 fi
 
 function debug()
@@ -51,7 +51,8 @@ function check_warm_boot()
 
 function check_fast_boot()
 {
-    if [[ $($SONIC_DB_CLI STATE_DB GET "FAST_REBOOT|system") == "1" ]]; then
+    SYSTEM_FAST_REBOOT=`$SONIC_DB_CLI STATE_DB hget "FAST_RESTART_ENABLE_TABLE|system" enable`
+    if [[ x"${SYSTEM_FAST_REBOOT}" == x"true" ]]; then
         FAST_BOOT="true"
     else
         FAST_BOOT="false"
