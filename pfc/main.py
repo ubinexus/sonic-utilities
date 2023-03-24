@@ -15,8 +15,12 @@ def configPfcAsym(interface, pfc_asym):
     configdb = ConfigDBConnector()
     configdb.connect()
 
-    configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
+    port_dict = configdb.get_table('PORT')
 
+    if interface in port_dict:
+        configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
+    else:
+        click.echo('Port {} not found'.format(interface))
 
 def showPfcAsym(interface):
     """
