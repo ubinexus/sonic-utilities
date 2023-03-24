@@ -381,15 +381,16 @@ class AclLoader(object):
                 raise AclLoaderException("Invalid input file %s" % filename)
         return yang_acl
 
-    def load_rules_from_file(self, filename):
+    def load_rules_from_file(self, filename, no_default_deny_rule=False):
         """
         Load file with ACL rules configuration in openconfig ACL format. Convert rules
         to Config DB schema.
         :param filename: File in openconfig ACL format
+        :param no_default_deny_rule: Don't apply default deny rules (False in default)
         :return:
         """
         self.yang_acl = AclLoader.parse_acl_json(filename)
-        self.convert_rules()
+        self.convert_rules(no_default_deny_rule)
 
     def convert_action(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -683,9 +684,10 @@ class AclLoader(object):
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
 
-    def convert_rules(self):
+    def convert_rules(self, no_default_deny_rule):
         """
         Convert rules in openconfig ACL format to Config DB schema
+        :param no_default_deny_rule: Don't apply default deny rules
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
@@ -707,7 +709,7 @@ class AclLoader(object):
                 except AclLoaderException as ex:
                     error("Error processing rule %s: %s. Skipped." % (acl_entry_name, ex))
 
-            if not self.is_table_mirror(table_name) and not self.is_table_egress(table_name):
+            if not self.is_table_mirror(table_name) and not self.is_table_egress(table_name) and not no_default_deny_rule:
                 deep_update(self.rules_info, self.deny_rule(table_name))
 
     def full_update(self):
@@ -1071,11 +1073,13 @@ def update(ctx):
 @click.option('--session_name', type=click.STRING, required=False)
 @click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
+@click.option('--no_default_deny_rule', is_flag=True, required=False)
 @click.pass_context
-def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
+def full(ctx, filename, table_name, session_name, mirror_stage, max_priority, no_default_deny_rule):
     """
     Full update of ACL rules configuration.
     If a table_name is provided, the operation will be restricted in the specified table.
+    The default deny rules will be applied to ingress ACL table unless no_default_deny_rule is set.
     """
     acl_loader = ctx.obj["acl_loader"]
 
@@ -1090,7 +1094,7 @@ def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
     if max_priority:
         acl_loader.set_max_priority(max_priority)
 
-    acl_loader.load_rules_from_file(filename)
+    acl_loader.load_rules_from_file(filename, no_default_deny_rule)
     acl_loader.full_update()
 
 
@@ -1099,10 +1103,12 @@ def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
 @click.option('--session_name', type=click.STRING, required=False)
 @click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
+@click.option('--no_default_deny_rule', is_flag=True, required=False)
 @click.pass_context
-def incremental(ctx, filename, session_name, mirror_stage, max_priority):
+def incremental(ctx, filename, session_name, mirror_stage, max_priority, no_default_deny_rule):
     """
     Incremental update of ACL rule configuration.
+    The default deny rules will be applied to ingress ACL table unless no_default_deny_rule is set.
     """
     acl_loader = ctx.obj["acl_loader"]
 
@@ -1114,7 +1120,7 @@ def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     if max_priority:
         acl_loader.set_max_priority(max_priority)
 
-    acl_loader.load_rules_from_file(filename)
+    acl_loader.load_rules_from_file(filename, no_default_deny_rule)
     acl_loader.incremental_update()
 
 

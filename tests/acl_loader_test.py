@@ -149,6 +149,13 @@ class TestAclLoader(object):
             'IP_TYPE': 'IPV6ANY'
         }
 
+    def test_no_default_deny_rule_option(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'), no_default_deny_rule=True)
+        print(acl_loader.rules_info)
+        assert ('DATAACL', 'DEFAULT_RULE') not in acl_loader.rules_info
+        assert ('DATAACL_2', 'DEFAULT_RULE') not in acl_loader.rules_info
+
     def test_egress_no_default_deny_rule(self, acl_loader):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl_egress.json'))
