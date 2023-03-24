@@ -601,9 +601,9 @@ class DBMigrator():
         """
         Update cable length configuration in ConfigDB for T0 neighbor interfaces
         connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
-        1. Find T1 cable length - this will be the cable length to the EdgeZone Aggregator device.
-        2. Find a list of all interfaces connected to an EdgeZone Aggregator device.
-        3. Update CABLE_LENGTH values for these interfaces with the length found in (1).
+        1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
+        2. If all the cable lengths are the same, do nothing and return.
+        2. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
         4. Reset port values to trigger buffer manager event listener to bring across new buffer changes for specified ports
         """
         device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
@@ -944,7 +944,7 @@ class DBMigrator():
         Version 5_0_0.
         """
         log.log_info('Handling version_5_0_0')
-        # Update cable length data and re-assign interface speed for T0 neighbor interfaces connected to EdgeZone Aggregators
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
         self.update_edgezone_aggregator_config()
         self.set_version('version_5_0_1')
         return 'version_5_0_1'
