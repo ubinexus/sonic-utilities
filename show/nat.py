@@ -36,7 +36,8 @@ def translations(ctx, verbose):
 
 # 'count' subcommand ("show nat translations count")
 @translations.command()
-def count():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def count(verbose):
     """ Show NAT translations count """
 
     cmd = "sudo natshow -c"
