@@ -11,20 +11,23 @@ usage: ecnconfig [-h] [-v] [-l] [-p PROFILE] [-gmin GREEN_MIN]
                  [-ydrop YELLOW_DROP_PROB] [-rdrop RED_DROP_PROB] [-vv]
 
 optional arguments:
-  -h     --help                show this help message and exit
-  -v     --version             show program's version number and exit
-  -vv    --verbose             verbose output
-  -l     --list                show ECN WRED configuration
-  -p     --profile             specify WRED profile name
-  -gmin  --green-min           set min threshold for packets marked green
-  -gmax  --green-max           set max threshold for packets marked green
-  -ymin  --yellow-min          set min threshold for packets marked yellow
-  -ymax  --yellow-max          set max threshold for packets marked yellow
-  -rmin  --red-min             set min threshold for packets marked red
-  -rmax  --red-max             set max threshold for packets marked red
-  -gdrop --green-drop-prob     set max drop/mark probability for packets marked green
-  -ydrop --yellow-drop-prob    set max drop/mark probability for packets marked yellow
-  -rdrop --red-drop-prob       set max drop/mark probability for packets marked red
+  -h        --help                show this help message and exit
+  -v        --version             show program's version number and exit
+  -vv       --verbose             verbose output
+  -l        --list                show ECN WRED configuration
+  -p        --profile             specify WRED profile name
+  -gmin     --green-min           set min threshold for packets marked green
+  -gmax     --green-max           set max threshold for packets marked green
+  -ymin     --yellow-min          set min threshold for packets marked yellow
+  -ymax     --yellow-max          set max threshold for packets marked yellow
+  -rmin     --red-min             set min threshold for packets marked red
+  -rmax     --red-max             set max threshold for packets marked red
+  -gdrop    --green-drop-prob     set max drop/mark probability for packets marked green
+  -ydrop    --yellow-drop-prob    set max drop/mark probability for packets marked yellow
+  -rdrop    --red-drop-prob       set max drop/mark probability for packets marked red
+  -genable  --green-enable        set green WRED/ECN enable
+  -yenable  --yellow-enable       set yellow WRED/ECN enable
+  -renable  --red-enable          set red WRED/ECN enable
 
 2) show and change ECN on/off status on queues
 
@@ -79,7 +82,10 @@ WRED_CONFIG_FIELDS = {
     "rmin": "red_min_threshold",
     "gdrop": "green_drop_probability",
     "ydrop": "yellow_drop_probability",
-    "rdrop": "red_drop_probability"
+    "rdrop": "red_drop_probability",
+    "genable": "wred_green_enable",
+    "yenable": "wred_yellow_enable",
+    "renable": "wred_red_enable"
 }
 
 PORT_TABLE_NAME            = "PORT"
@@ -283,6 +289,9 @@ def main():
     parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max drop/mark probability for packets marked \'green\'', default=None)
     parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max drop/mark probability for packets marked \'yellow\'', default=None)
     parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max drop/mark probability for packets marked \'red\'', default=None)
+    parser.add_argument('-genable', '--green-enable', type=str, metavar='(true or false)', help='set WRED enable as (true|false) for packets marked \'green\'', default=None)
+    parser.add_argument('-yenable', '--yellow-enable', type=str, metavar='(true or false)', help='set WRED enable as (true|false) for packets marked \'yellow\'', default=None)
+    parser.add_argument('-renable', '--red-enable', type=str, metavar='(true or false)', help='set WRED enable as (true|false) for packets marked \'red\'', default=None)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 
@@ -339,6 +348,13 @@ def main():
                     wred_profile_data[WRED_CONFIG_FIELDS["ydrop"]] = args.yellow_drop_prob
                 if args.red_drop_prob:
                     wred_profile_data[WRED_CONFIG_FIELDS["rdrop"]] = args.red_drop_prob
+                if args.green_enable:
+                    wred_profile_data[WRED_CONFIG_FIELDS["genable"]] = args.green_enable
+                if args.yellow_enable:
+                    wred_profile_data[WRED_CONFIG_FIELDS["yenable"]] = args.yellow_enable
+                if args.red_enable:
+                    wred_profile_data[WRED_CONFIG_FIELDS["renable"]] = args.red_enable
+
 
                 # validate new configuration data
                 if prof_cfg.validate_profile_data(wred_profile_data) == False:
@@ -364,6 +380,13 @@ def main():
                     prof_cfg.set_wred_prob(args.profile, "ydrop", args.yellow_drop_prob)
                 if args.red_drop_prob:
                     prof_cfg.set_wred_prob(args.profile, "rdrop", args.red_drop_prob)
+                if args.green_enable:
+                    prof_cfg.set_wred_prob(args.profile, "genable", args.green_enable)
+                if args.yellow_enable:
+                    prof_cfg.set_wred_prob(args.profile, "yenable", args.yellow_enable)
+                if args.red_enable:
+                    prof_cfg.set_wred_prob(args.profile, "renable", args.red_enable)
+
 
         elif args.queue:
             arg_len_min = 3
