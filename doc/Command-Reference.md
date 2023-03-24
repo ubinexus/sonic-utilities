@@ -6923,7 +6923,8 @@ This command stops PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd stop
+  config pfcwd stop Ethernet0
+  config pfcwd stop all
   ```
 
 **config pfcwd interval \<interval_in_ms\>**

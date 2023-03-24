@@ -2479,12 +2479,17 @@ def start(action, restoration_time, ports, detection_time, verbose):
 
 @pfcwd.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def stop(verbose):
-    """ Stop PFC watchdog """
+@click.argument('ports', nargs=-1)
+def stop(verbose, ports):
+	""" Stop PFC watchdog """
+	
+	cmd = "pfcwd stop"
 
-    cmd = "pfcwd stop"
+	if ports:
+		ports = set(ports)
+		cmd += " {}".format(' '.join(ports))
 
-    clicommon.run_command(cmd, display_cmd=verbose)
+	clicommon.run_command(cmd, display_cmd=verbose)
 
 @pfcwd.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
