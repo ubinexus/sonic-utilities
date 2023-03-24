@@ -83,17 +83,18 @@ Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclien
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
 
-RELOAD_CONFIG_DB_OUTPUT = """Stopping SONiC target ...
+RELOAD_CONFIG_DB_OUTPUT = \
+"""Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?) --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG = """\
-Bad format: json file"""
+RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG = \
+"""Bad format: json file"""
 
-RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR = """\
-Expecting ',' delimiter: line 12 column 5 (char 321)"""
+RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR = \
+"""Expecting ',' delimiter: line 12 column 5 (char 321)"""
 
 RELOAD_YANG_CFG_OUTPUT = """\
 Stopping SONiC target ...
@@ -102,7 +103,8 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-RELOAD_MASIC_CONFIG_DB_OUTPUT = """Stopping SONiC target ...
+RELOAD_MASIC_CONFIG_DB_OUTPUT = \
+"""Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  --write-to-db
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  -n asic0  --write-to-db
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  -n asic1  --write-to-db
@@ -110,8 +112,8 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST = """\
-Stopping SONiC target ...
+RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST = \
+"""Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  --write-to-db
 The config file non_exist.json doesn't exist
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  -n asic1  --write-to-db
@@ -122,7 +124,8 @@ Reloading Monit configuration ...
 reload_config_with_sys_info_command_output="""\
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
-reload_config_with_disabled_service_output="""Stopping SONiC target ...
+reload_config_with_disabled_service_output= \
+"""Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j (.*?)  --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
@@ -370,49 +373,6 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
 
-    def test_load_backend_acl(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=True)
-
-    def test_load_backend_acl_not_storage(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
-
-    def test_load_backend_acl_storage_leaf(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndLeafRouter', condition=False)
-
-    def test_load_backend_acl_storage_no_dataacl(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        db.cfgdb.set_entry("ACL_TABLE", "DATAACL", None)
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
-
-    def check_backend_acl(self, get_cmd_module, db, device_type='BackEndToRRouter', condition=True):
-        def is_file_side_effect(filename):
-            return True if 'backend_acl' in filename else False
-        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
-            with mock.patch('config.main._get_device_type', mock.MagicMock(return_value=device_type)):
-                with mock.patch(
-                    "utilities_common.cli.run_command",
-                    mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-                    (config, show) = get_cmd_module
-                    runner = CliRunner()
-                    result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
-                    print(result.exit_code)
-                    expected_output = ['Running command: acl-loader update incremental /etc/sonic/backend_acl.json',
-                                       'Running command: /usr/local/bin/sonic-cfggen -d -t /usr/share/sonic/templates/backend_acl.j2,/etc/sonic/backend_acl.json'
-                                      ]
-                    print(result.output)
-                    assert result.exit_code == 0
-                    output = result.output.split('\n')
-                    if condition:
-                        assert set(expected_output).issubset(set(output))
-                    else:
-                        assert not(set(expected_output).issubset(set(output)))
-
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
             return port_config
@@ -525,6 +485,13 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             output = "\n".join([l.rstrip() for l in result.output.split('\n')])
             assert re.match(RELOAD_CONFIG_DB_OUTPUT, output)
+
+    def test_validate_config_file_invalid(self):
+        import pytest
+        with pytest.raises(SystemExit) as e:
+            config.validate_config_file("dummy.json")
+        assert e.type == SystemExit
+        assert e.value.code == 1
 
     def test_reload_config_invalid_config_file(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(

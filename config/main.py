@@ -1163,14 +1163,18 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
-def validate_config_file(file):
+def validate_config_file(file, remove_tmp_file=False):
     """
-    A validator to check config files for syntax errors
+    A validator to check config files for syntax errors. If an exception is raised,
+    use remove_tmp_file to determine if a temporary file was used to store
+    /dev/stdin contents and should be deleted.
     """
     try:
         # Load golden config json
         read_json_file(file)
     except Exception as e:
+        if remove_tmp_file:
+            os.remove(file)
         click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
                     fg='magenta')
         sys.exit(1)
@@ -1591,21 +1595,17 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         if not sys.stdin.isatty():
             # Pathway to store /dev/stdin contents in a temporary file
             TMP_FILE = os.path.join('/', "tmp", f"tmp_config_stdin_{str(uuid.uuid4())}.json")
+
             if os.path.exists(TMP_FILE):
                 click.secho("Unable to validate '{}' contents".format(file),
                             fg='magenta')
                 sys.exit(1)
+
             with open(file, 'r' ) as input_file, open( TMP_FILE, 'w') as tmp:
                 for line in input_file:
                     tmp.write(line)
-            try:
-                # Load golden config json
-                read_json_file(file)
-            except Exception as e:
-                os.remove(TMP_FILE)
-                click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
-                            fg='magenta')
-                sys.exit(1)
+
+            validate_config_file(TMP_FILE, remove_tmp_file=True)
             cfg_file_dict[inst] = [TMP_FILE, namespace, True]  
         else:
             validate_config_file(file)
@@ -1790,12 +1790,6 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
-    # get the device type
-    device_type = _get_device_type()
-
-    # Load backend acl
-    load_backend_acl(db.cfgdb, device_type)
-
     # Load port_config.json
     try:
         load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
@@ -1805,6 +1799,8 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer --no-delay", display_cmd=True)
 
+    # get the device type
+    device_type = _get_device_type()
     if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
