@@ -14,6 +14,10 @@ sys.path.insert(0, modules_path)
 sys.path.insert(0, test_path)
 mock_db_path = os.path.join(test_path, "int_ip_input")
 
+ERROR_MSG_WRONG_INTERFACE_NAME = '''Usage: add [OPTIONS] <interface_name> <ip_addr> <default gateway IP address>
+Try "add --help" for help.
+
+Error: \'interface_name\' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]'''
 
 class TestIntIp(object):
     @pytest.fixture(scope="class", autouse=True)
@@ -186,3 +190,39 @@ class TestIntIpMultiasic(object):
             assert result.exit_code != 0
             assert "Error: Cannot remove the last IP entry of interface Ethernet8. A static ipv6 route is still bound to the RIF." in result.output
             assert mock_run_command.call_count == 0
+
+
+class TestConfigIP_wrong_name(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+
+    def test_add_interface_invalid_vlan(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+        import config.main as config
+
+        #Try to set wrong VLAN:  config int ip add Vlan100500 100.50.20.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan100500", "100.50.20.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert ERROR_MSG_WRONG_INTERFACE_NAME in result.output
+
+    def test_add_interface_invalid_name(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+        import config.main as config
+
+        #Try to set IP on wrong interface: config int ip add Ethernet2abc 100.50.20.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet2abc", "100.50.20.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert ERROR_MSG_WRONG_INTERFACE_NAME in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        print("TEARDOWN")
