@@ -261,7 +261,8 @@ def test_service_creator_multi_yang_filter_auto_cli_modules(sonic_fs, manifest, 
 
     manifest['cli']['auto-generate-show'] = True
     manifest['cli']['auto-generate-config'] = True
-    manifest['cli']['source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+    manifest['cli']['auto-generate-show-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+    manifest['cli']['auto-generate-config-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
 
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest, yang_modules=[test_yang, test_yang_2, test_yang_3, test_yang_4]))
