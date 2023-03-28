@@ -641,14 +641,8 @@ class DBMigrator():
         for intf, length in cable_length_table.items():
             if intf in edgezone_aggregator_intfs:
                 cable_length_table[intf] = EDGEZONE_AGG_CABLE_LENGTH
-
-        """ Set new cable length values """
-        self.configDB.set_entry("CABLE_LENGTH", "AZURE", cable_length_table)
-
-        for intf, intf_items in port_table.items():
-            if intf in edgezone_aggregator_intfs:
-                """ Reset interface values to current value so that buffer manager listener picks up new cable length change """
-                self.configDB.set_entry("PORT", intf, intf_items)
+                """ Set new cable length values """
+                self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
 
 
     def version_unknown(self):
@@ -935,6 +929,16 @@ class DBMigrator():
         else:
             enable_state = 'false'
         self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        self.set_version('version_4_0_1')
+        return 'version_4_0_1'
+
+
+    def version_4_0_1(self):
+        """
+        Version 4_0_1.
+        This is the latest version for 202211 branch
+        """
+        log.log_info('Handling version_4_0_1')
         self.set_version('version_5_0_0')
         return 'version_5_0_0'
 
