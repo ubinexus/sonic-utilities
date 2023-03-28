@@ -277,12 +277,17 @@ class TestRouteCheck(object):
         with patch('sys.argv', ct_data[ARGS].split()), \
             patch('route_check.subprocess.check_output') as mock_check_output:
 
-            routes = ct_data.get(FRR_ROUTES, {})
+            check_frr_patch = patch('route_check.check_frr_pending_routes', lambda: [])
 
-            def side_effect(*args, **kwargs):
-                return json.dumps(routes)
+            if FRR_ROUTES in ct_data:
+                routes = ct_data[FRR_ROUTES]
 
-            mock_check_output.side_effect = side_effect
+                def side_effect(*args, **kwargs):
+                    return json.dumps(routes)
+
+                mock_check_output.side_effect = side_effect
+            else:
+                check_frr_patch.start()
 
             ret, res = route_check.main()
             expect_ret = ct_data[RET] if RET in ct_data else 0
@@ -293,6 +298,8 @@ class TestRouteCheck(object):
                 print("expect_res={}".format(json.dumps(expect_res, indent=4)))
             assert ret == expect_ret
             assert res == expect_res
+
+            check_frr_patch.stop()
 
     def test_timeout(self, mock_dbs, force_hang):
         # Test timeout
