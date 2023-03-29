@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_1'
+        self.CURRENT_VERSION = 'version_4_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -590,6 +590,22 @@ class DBMigrator():
                 config['delayed'] = state
                 config.pop('has_timer')
                 self.configDB.set_entry('FEATURE', feature, config)
+    def migrate_route_table(self):
+        """
+        Handle route table migration. Migrations handled:
+        1. 'weight' attr in ROUTE object was introduced 202205 onwards.
+            Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        """
+        route_table = self.appDB.get_table("ROUTE_TABLE")
+        for route_prefix, route_attr in route_table.items():
+            if 'weight' not in route_attr:
+                if type(route_prefix) == tuple:
+                    # IPv6 route_prefix is returned from db as tuple
+                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+                else:
+                    # IPv4 route_prefix is returned from db as str
+                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
 
     def version_unknown(self):
         """
@@ -834,14 +850,18 @@ class DBMigrator():
             keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
             if keys is not None:
                 for key in keys:
-                    if key != "JINJA2_CACHE":
-                        fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
-                        component = key.split(":")[1]
-                        loglevel = fvs[loglevel_field]
-                        logoutput = fvs[logoutput_field]
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
+                    try:
+                        if key != "JINJA2_CACHE":
+                            fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                            component = key.split(":")[1]
+                            loglevel = fvs[loglevel_field]
+                            logoutput = fvs[logoutput_field]
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    except Exception as err:
+                        log.log_warning('Error occured during LOGLEVEL_DB migration for {}. Ignoring key {}'.format(err, key))
+                    finally:
+                        self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
@@ -860,16 +880,34 @@ class DBMigrator():
         Version 4_0_0.
         """
         log.log_info('Handling version_4_0_0')
-        self.migrate_feature_timer()
+        # Update state-db fast-reboot entry to enable if set to enable fast-reboot finalizer when using upgrade with fast-reboot
+        # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
+        # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
+        # not using hash and won't work.
+        # FAST_REBOOT table exists only if fast-reboot was triggered.
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+        if keys:
+            enable_state = 'true'
+        else:
+            enable_state = 'false'
+        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
-
+    
     def version_4_0_1(self):
         """
         Version 4_0_1.
+        """
+        self.migrate_feature_timer()
+        self.set_version('version_4_0_2')
+        return 'version_4_0_2'
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2.
         This is the latest version for master branch
         """
-        log.log_info('Handling version_4_0_1')
+        log.log_info('Handling version_4_0_2')
         return None
 
     def get_version(self):
@@ -915,6 +953,8 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
+
+        self.migrate_route_table()
 
     def migrate(self):
         version = self.get_version()

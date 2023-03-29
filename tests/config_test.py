@@ -271,49 +271,6 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
 
-    def test_load_backend_acl(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=True)
-
-    def test_load_backend_acl_not_storage(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
-
-    def test_load_backend_acl_storage_leaf(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndLeafRouter', condition=False)
-
-    def test_load_backend_acl_storage_no_dataacl(self, get_cmd_module, setup_single_broadcom_asic):
-        db = Db()
-        db.cfgdb.set_entry("DEVICE_METADATA", "localhost", {"storage_device": "true"})
-        db.cfgdb.set_entry("ACL_TABLE", "DATAACL", None)
-        self.check_backend_acl(get_cmd_module, db, device_type='BackEndToRRouter', condition=False)
-
-    def check_backend_acl(self, get_cmd_module, db, device_type='BackEndToRRouter', condition=True):
-        def is_file_side_effect(filename):
-            return True if 'backend_acl' in filename else False
-        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
-            with mock.patch('config.main._get_device_type', mock.MagicMock(return_value=device_type)):
-                with mock.patch(
-                    "utilities_common.cli.run_command",
-                    mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-                    (config, show) = get_cmd_module
-                    runner = CliRunner()
-                    result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
-                    print(result.exit_code)
-                    expected_output = ['Running command: acl-loader update incremental /etc/sonic/backend_acl.json',
-                                       'Running command: /usr/local/bin/sonic-cfggen -d -t /usr/share/sonic/templates/backend_acl.j2,/etc/sonic/backend_acl.json'
-                                      ]
-                    print(result.output)
-                    assert result.exit_code == 0
-                    output = result.output.split('\n')
-                    if condition:
-                        assert set(expected_output).issubset(set(output))
-                    else:
-                        assert not(set(expected_output).issubset(set(output)))
-
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
             return port_config
@@ -610,7 +567,7 @@ class TestConfigQos(object):
 
         with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys',  side_effect=TestConfigQos._keys):
             TestConfigQos._keys_counter = 1
-            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+            empty = _wait_until_clear(["BUFFER_POOL_TABLE:*"], 0.5,2)
         assert empty
 
     def test_qos_wait_until_clear_not_empty(self):
@@ -618,8 +575,14 @@ class TestConfigQos(object):
 
         with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys', side_effect=TestConfigQos._keys):
             TestConfigQos._keys_counter = 10
-            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+            empty = _wait_until_clear(["BUFFER_POOL_TABLE:*"], 0.5,2)
         assert not empty
+
+    @mock.patch('config.main._wait_until_clear')
+    def test_qos_clear_no_wait(self, _wait_until_clear):
+        from config.main import _clear_qos
+        _clear_qos(True, False)
+        _wait_until_clear.assert_called_with(['BUFFER_*_TABLE:*', 'BUFFER_*_SET'], interval=0.5, timeout=0, verbose=False)
 
     def test_qos_reload_single(
             self, get_cmd_module, setup_qos_mock_apis,

@@ -23,6 +23,7 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
+PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 SSD_FW_UPDATE_BOOT_OPTION=no
 TAG_LATEST=yes
@@ -148,7 +149,7 @@ function clear_boot()
 
     #clear_fast_boot
     if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-        sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+        sonic-db-cli STATE_DB HSET "FAST_RESTART_ENABLE_TABLE|system" "enable" "false" &>/dev/null || /bin/true
     fi
 }
 
@@ -179,6 +180,10 @@ function initialize_pre_shutdown()
 
 function request_pre_shutdown()
 {
+    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ]; then
+        debug "Requesting platform reboot pre-check ..."
+    	${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ${REBOOT_TYPE} 
+    fi
     debug "Requesting pre-shutdown ..."
     STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
@@ -265,7 +270,7 @@ function backup_database()
                                           and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
                                           and not string.match(k, 'VXLAN_TUNNEL_TABLE|') \
                                           and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') \
-                                          and not string.match(k, 'FAST_REBOOT|') then
+                                          and not string.match(k, 'FAST_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
         end
@@ -442,9 +447,20 @@ function load_aboot_secureboot_kernel() {
         swipath=$next_image kexec=true loadonly=true ENV_EXTRA_CMDLINE="$BOOT_OPTIONS" bash -
 }
 
+function invoke_kexec() {
+    /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS" $@
+}
+
 function load_kernel() {
     # Load kernel into the memory
-    /sbin/kexec -a -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+    invoke_kexec -a 
+}
+
+function load_kernel_secure() {
+    # Load kernel into the memory secure
+    # -s flag is for enforcing the new load kernel(vmlinuz) to be signed and verify.
+    # not using -a flag, this flag can fallback to an old kexec load that do not support Secure Boot verification
+    invoke_kexec -s
 }
 
 function unload_kernel()
@@ -511,6 +527,7 @@ then
     exit "${EXIT_FAILURE}"
 fi
 
+debug "Starting $REBOOT_TYPE"
 
 # re-run the script in background mode with detaching from the terminal session
 if [[ x"${DETACH}" == x"yes" && x"${ALREADY_DETACHED}" == x"" ]]; then
@@ -532,7 +549,7 @@ case "$REBOOT_TYPE" in
         check_warm_restart_in_progress
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "210" &>/dev/null
+        sonic-db-cli STATE_DB HSET "FAST_RESTART_ENABLE_TABLE|system" "enable" "true" &>/dev/null
         config warm_restart enable system
         ;;
     "warm-reboot")
@@ -601,7 +618,16 @@ fi
 if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
     load_aboot_secureboot_kernel
 else
-    load_kernel
+    # check if secure boot is enable in UEFI 
+    CHECK_SECURE_UPGRADE_ENABLED=0
+    SECURE_UPGRADE_ENABLED=$(bootctl status 2>/dev/null | grep -c "Secure Boot: enabled") || CHECK_SECURE_UPGRADE_ENABLED=$?
+    if [[ CHECK_SECURE_UPGRADE_ENABLED -ne 0 ]]; then
+        debug "Loading kernel without secure boot"
+        load_kernel
+    else
+        debug "Loading kernel with secure boot"
+        load_kernel_secure
+    fi
 fi
 
 init_warm_reboot_states
@@ -788,6 +814,17 @@ fi
 
 # Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
+
+LOGS_ON_TMPFS=0
+df --output=fstype /var/log* | grep -c 'tmpfs' || LOGS_ON_TMPFS=$?
+if [[ LOGS_ON_TMPFS -eq 0 ]]; then
+    debug "Backup shutdown logs to /host/logs_before_reboot"
+    mkdir -p /host/logs_before_reboot || /bin/true
+    # maxdepth 2: find files within 2 nested directories (eg. /var/log/ and /var/log/swss/)
+    # mmin 30: find files written in past 30 minutes
+    find /var/log -maxdepth 2 -mmin -30 -type f | xargs -I {} cp {} /host/logs_before_reboot/ || /bin/true
+fi
+
 exec ${REBOOT_METHOD}
 
 # Should never reach here
