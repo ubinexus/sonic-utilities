@@ -1764,13 +1764,31 @@ def uptime(verbose):
     cmd = "uptime -p"
     run_command(cmd, display_cmd=verbose)
 
-@cli.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def clock(verbose):
-    """Show date and time"""
-    cmd ="date"
-    run_command(cmd, display_cmd=verbose)
 
+#
+# 'clock' command group ("show clock ...")
+#
+@cli.group('clock', invoke_without_command=True)
+@click.pass_context
+def clock(ctx):
+    """Show date and time"""
+    # If invoking subcomand, no need to do anything
+    if ctx.invoked_subcommand is not None:
+        return
+
+    run_command('date')
+
+
+@clock.command()
+def timezones():
+    """List of available timezones"""
+    run_command('timedatectl list-timezones')
+    click.echo('Etc/UTC')
+
+
+#
+# 'system-memory' command ("show system-memory")
+#
 @cli.command('system-memory')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_memory(verbose):
