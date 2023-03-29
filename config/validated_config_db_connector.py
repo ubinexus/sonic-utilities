@@ -103,7 +103,7 @@ class ValidatedConfigDBConnector(object):
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
         try:
-            GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+            GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None, sort=False)
         except ValueError as e:
             logger = genericUpdaterLogging.get_logger(title="Patch Applier", print_all_to_console=True)
             logger.log_notice("Unable to remove entry, as doing so will result in invalid config. Error: {}".format(e))
