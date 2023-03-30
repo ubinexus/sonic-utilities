@@ -46,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_2'
+        self.CURRENT_VERSION = 'version_2_0_3' # latest version for 202012 branch
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -162,7 +162,7 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
             log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-        
+
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -428,7 +428,7 @@ class DBMigrator():
         return True
 
     def migrate_pfcwd_sw_enable_table(self):
-        """ 
+        """
         Migrate "pfc_enable" to "pfc_enable" and "pfcwd_sw_enable"
         1. pfc_enable means enable pfc on certain queues
         2. pfcwd_sw_enable means enable PFC software watchdog on certain queues
@@ -511,6 +511,50 @@ class DBMigrator():
             # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": "[DSCP_TO_TC_MAP|{}]".format(dscp_to_tc_map_table_names[0])})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+
+    def update_edgezone_aggregator_config(self):
+        """
+        Update cable length configuration in ConfigDB for T0 neighbor interfaces
+        connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
+        1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
+        2. If all the cable lengths are the same, do nothing and return.
+        3. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
+        """
+        device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
+        device_neighbors = self.configDB.get_table("DEVICE_NEIGHBOR")
+        cable_length = self.configDB.get_table("CABLE_LENGTH")
+        port_table = self.configDB.get_table("PORT")
+        edgezone_aggregator_devs = []
+        edgezone_aggregator_intfs = []
+        EDGEZONE_AGG_CABLE_LENGTH = "40m"
+        for k, v in device_neighbor_metadata.items():
+            if v.get("type") == "EdgeZoneAggregator":
+                    edgezone_aggregator_devs.append(k)
+
+        if len(edgezone_aggregator_devs) == 0:
+            return
+
+        for intf, intf_info in device_neighbors.items():
+            if intf_info.get("name") in edgezone_aggregator_devs:
+                edgezone_aggregator_intfs.append(intf)
+
+        cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+        first_cable_intf = next(iter(cable_length_table))
+        first_cable_length = cable_length_table[first_cable_intf]
+        index = 0
+
+        for intf, length in cable_length_table.items():
+            index += 1
+            if first_cable_length != length:
+                break
+            elif index == len(cable_length_table):
+                # All cable lengths are the same, nothing to modify
+                return
+
+        for intf, length in cable_length_table.items():
+            if intf in edgezone_aggregator_intfs:
+                # Set new cable length values
+                self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
 
     def version_unknown(self):
         """
@@ -672,9 +716,19 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_2.
         """
         log.log_info('Handling version_2_0_2')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+    def version_2_0_3(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_3')
         return None
 
     def get_version(self):
@@ -690,6 +744,26 @@ class DBMigrator():
         log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
+
+    def is_curr_version_greater(curr_version=self.CURRENT_VERSION, compare_version=None):
+        """ Check if curr_version is strictly greater than compare version """
+        if curr_version == 'version_unknown' or compare_version == 'version_unknown' or compare_version is None:
+            return False
+        curr_version_num_str = curr_version[8:] # returns version number ex. "2_0_1"
+        compare_version_num_str = compare_version[8:]
+        curr_version_num = curr_version_num_str.split("_")
+        compare_version_num = compare_version_num_str.split("_")
+
+        # Begin comparing
+        if int(curr_version_num[0]) > int(compare_version_num[0]):
+            return True
+        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[1]) > int(compare_version_num[1])):
+            return True
+        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[2]) > int(compare_version_num[2])):
+            return True
+
+        # Version is less
+        return False
 
     def common_migration_ops(self):
         try:
@@ -711,7 +785,7 @@ class DBMigrator():
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
@@ -725,8 +799,8 @@ class DBMigrator():
         #    version 2_0_1 has been occupied by 202106
         if self.asic_type == "mellanox":
             self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
-        
-        # Migrate pfcwd_sw_enable table  
+
+        # Migrate pfcwd_sw_enable table
         self.migrate_pfcwd_sw_enable_table()
 
     def migrate(self):
