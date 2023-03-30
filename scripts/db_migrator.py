@@ -613,34 +613,32 @@ class DBMigrator():
         edgezone_aggregator_intfs = []
         EDGEZONE_AGG_CABLE_LENGTH = "40m"
         for k, v in device_neighbor_metadata.items():
-            if "type" in v:
-                if v["type"] == "EdgeZoneAggregator":
+            if v.get("type") == "EdgeZoneAggregator":
                     edgezone_aggregator_devs.append(k)
 
         if len(edgezone_aggregator_devs) == 0:
             return
 
         for intf, intf_info in device_neighbors.items():
-            if intf_info["name"] in edgezone_aggregator_devs:
+            if intf_info.get("name") in edgezone_aggregator_devs:
                 edgezone_aggregator_intfs.append(intf)
 
         cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
-        curr_cable_intf = next(iter(cable_length_table))
-        curr_cable_length = cable_length_table[curr_cable_intf]
+        first_cable_intf = next(iter(cable_length_table))
+        first_cable_length = cable_length_table[first_cable_intf]
         index = 0
 
         for intf, length in cable_length_table.items():
             index += 1
-            if curr_cable_length != length:
+            if first_cable_length != length:
                 break
             elif index == len(cable_length_table):
-                """ All cable lengths are the same, nothing to modify """
+                # All cable lengths are the same, nothing to modify
                 return
 
         for intf, length in cable_length_table.items():
             if intf in edgezone_aggregator_intfs:
-                cable_length_table[intf] = EDGEZONE_AGG_CABLE_LENGTH
-                """ Set new cable length values """
+                # Set new cable length values
                 self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
 
     def version_unknown(self):
