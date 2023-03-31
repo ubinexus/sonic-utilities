@@ -745,26 +745,6 @@ class DBMigrator():
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
-    def is_curr_version_greater(curr_version=self.CURRENT_VERSION, compare_version=None):
-        """ Check if curr_version is strictly greater than compare version """
-        if curr_version == 'version_unknown' or compare_version == 'version_unknown' or compare_version is None:
-            return False
-        curr_version_num_str = curr_version[8:] # returns version number ex. "2_0_1"
-        compare_version_num_str = compare_version[8:]
-        curr_version_num = curr_version_num_str.split("_")
-        compare_version_num = compare_version_num_str.split("_")
-
-        # Begin comparing
-        if int(curr_version_num[0]) > int(compare_version_num[0]):
-            return True
-        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[1]) > int(compare_version_num[1])):
-            return True
-        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[2]) > int(compare_version_num[2])):
-            return True
-
-        # Version is less
-        return False
-
     def common_migration_ops(self):
         try:
             with open(INIT_CFG_FILE) as f:
