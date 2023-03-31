@@ -26,6 +26,7 @@ def cli():
     pass
 
 
+prefix_pattern = '^[A-Za-z0-9.:/]*$'
 p = subprocess.check_output(["sudo", "vtysh", "-c", 'show version'], text=True)
 if 'FRRouting' in p:
     #
@@ -55,7 +56,7 @@ if 'FRRouting' in p:
     @click.argument('prefix', required=True)
     def bestpath(prefix):
         """BGP bestpath"""
-        if not re.match('^[A-Za-z0-9.:/]*$', prefix):
+        if not re.match(prefix_pattern, prefix):
             sys.exit('Prefix contains only number, alphabet, period, colon, and forward slash')
         command = ["sudo", "vtysh", "-c", "no debug bgp bestpath %s" % prefix]
         run_command(command)
@@ -108,6 +109,8 @@ if 'FRRouting' in p:
         if direction is not None:
             bgp_cmd += ' ' + direction
         if prefix is not None:
+            if not re.match(prefix_pattern, prefix):
+                sys.exit('Prefix contains only number, alphabet, period, colon, and forward slash')
             bgp_cmd += ' ' + prefix
         command = ["sudo", "vtysh", "-c", bgp_cmd]
         run_command(command)
@@ -118,6 +121,8 @@ if 'FRRouting' in p:
         """BGP Zebra messages"""
         bgp_cmd = "no debug bgp zebra"
         if prefix is not None:
+            if not re.match(prefix_pattern, prefix):
+                sys.exit('Prefix contains only number, alphabet, period, colon, and forward slash')
             bgp_cmd += ' prefix ' + prefix
         command = ["sudo", "vtysh", "-c", bgp_cmd]
         run_command(command)
