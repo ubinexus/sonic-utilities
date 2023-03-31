@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_1'
+        self.CURRENT_VERSION = 'version_4_0_2' # latest version for 202211 branch
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -167,7 +167,7 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
             log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-        
+
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -572,12 +572,56 @@ class DBMigrator():
         dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
         if len(dscp_to_tc_map_table_names) == 0:
             return
-        
+
         qos_maps = self.configDB.get_table('PORT_QOS_MAP')
         if 'global' not in qos_maps.keys():
             # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+
+    def update_edgezone_aggregator_config(self):
+        """
+        Update cable length configuration in ConfigDB for T0 neighbor interfaces
+        connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
+        1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
+        2. If all the cable lengths are the same, do nothing and return.
+        3. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
+        """
+        device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
+        device_neighbors = self.configDB.get_table("DEVICE_NEIGHBOR")
+        cable_length = self.configDB.get_table("CABLE_LENGTH")
+        port_table = self.configDB.get_table("PORT")
+        edgezone_aggregator_devs = []
+        edgezone_aggregator_intfs = []
+        EDGEZONE_AGG_CABLE_LENGTH = "40m"
+        for k, v in device_neighbor_metadata.items():
+            if v.get("type") == "EdgeZoneAggregator":
+                    edgezone_aggregator_devs.append(k)
+
+        if len(edgezone_aggregator_devs) == 0:
+            return
+
+        for intf, intf_info in device_neighbors.items():
+            if intf_info.get("name") in edgezone_aggregator_devs:
+                edgezone_aggregator_intfs.append(intf)
+
+        cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+        first_cable_intf = next(iter(cable_length_table))
+        first_cable_length = cable_length_table[first_cable_intf]
+        index = 0
+
+        for intf, length in cable_length_table.items():
+            index += 1
+            if first_cable_length != length:
+                break
+            elif index == len(cable_length_table):
+                # All cable lengths are the same, nothing to modify
+                return
+
+        for intf, length in cable_length_table.items():
+            if intf in edgezone_aggregator_intfs:
+                # Set new cable length values
+                self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
 
     def version_unknown(self):
         """
@@ -739,10 +783,19 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Version 2_0_2
-        This is the latest version for 202012 branch 
+        Version 2_0_2.
         """
         log.log_info('Handling version_2_0_2')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+    def version_2_0_3(self):
+        """
+        Version 2_0_3. Latest version for 202012.
+        """
+        log.log_info('Handling version_2_0_3')
         self.set_version('version_3_0_0')
         return 'version_3_0_0'
 
@@ -839,11 +892,19 @@ class DBMigrator():
 
     def version_3_0_6(self):
         """
-        Version 3_0_6
-        This is the latest version for 202211 branch
+        Version 3_0_6.
         """
-
         log.log_info('Handling version_3_0_6')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_3_0_7')
+        return 'version_3_0_7'
+
+    def version_3_0_7(self):
+        """
+        Version 3_0_7. Latest version for 202205.
+        """
+        log.log_info('Handling version_3_0_7')
         self.set_version('version_4_0_0')
         return 'version_4_0_0'
 
@@ -865,13 +926,22 @@ class DBMigrator():
         self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
-    
+
     def version_4_0_1(self):
         """
         Version 4_0_1.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_1')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_4_0_2')
+        return 'version_4_0_2'
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2. Latest version for branch 202211.
+        """
+        log.log_info('Handling version_4_0_2')
         return None
 
     def get_version(self):
@@ -913,7 +983,7 @@ class DBMigrator():
         # removed together with calling to migrate_copp_table function.
         if self.asic_type != "mellanox":
             self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
