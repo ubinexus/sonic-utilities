@@ -94,6 +94,7 @@ class ValidatedConfigDBConnector(object):
         config_format = ConfigFormat[format.upper()]
 
         try:
+            # Because all writes to ConfigDB through ValidatedConfigDBConnector are simple and don't require sorting, we set sort=False to skip sorting and improve performance
             GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None, sort=False)
         except EmptyTableError:
             self.validated_delete_table(table)
