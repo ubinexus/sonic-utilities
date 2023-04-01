@@ -223,7 +223,7 @@ def clear_wm_pg_headroom():
 @watermark.command('shared')
 def clear_wm_pg_shared():
     """Clear user shared WM for pg"""
-    command = ['watermarkstat', '-c', '-t', 'pg_headroom']
+    command = ['watermarkstat', '-c', '-t', 'pg_shared']
     run_command(command)
 
 @priority_group.group()

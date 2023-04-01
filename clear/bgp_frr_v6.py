@@ -76,7 +76,7 @@ def soft_in(ipaddress):
 
 
 # 'soft all' subcommand
-@neighbor.command('all')
+@soft.command('all')
 @click.argument('ipaddress', required=False)
 def soft_all(ipaddress):
     """Clear BGP neighbors soft configuration"""
