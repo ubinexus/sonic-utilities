@@ -1,8 +1,7 @@
 import pytest
 import clear.main as clear
-from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
-from utilities_common.db import Db
+from unittest.mock import patch, MagicMock
 
 class TestClear(object):
     def setup(self):
@@ -93,6 +92,13 @@ class TestClear(object):
         result = runner.invoke(clear.cli.commands['headroom-pool'].commands['persistent-watermark'])
         assert result.exit_code == 0
         run_command.assert_called_with(['watermarkstat', '-c', '-p', '-t', 'headroom_pool'])
+
+    @patch('clear.main.run_command')
+    def test_clear_fdb(self, run_command):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands['fdb'].commands['all'])
+        assert result.exit_code == 0
+        run_command.assert_called_with(['fdbclear'])
 
     def teardown(self):
         print('TEAR DOWN')
