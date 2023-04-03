@@ -1060,7 +1060,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Example (Display status info of SFP transceiver connected to Ethernet100):
   ```
-  admin@sonic:~$ show interfaces transceiver pm Ethernet100
+  admin@sonic:~$ show interfaces transceiver status Ethernet100
   Ethernet100:
           Current module state: ModuleReady
           Reason of entering the module fault state: No Fault detected
