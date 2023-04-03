@@ -127,7 +127,13 @@ class AbootBootloader(Bootloader):
 
     def install_image(self, image_path):
         run_command(["/usr/bin/unzip", "-od", "/tmp", image_path, "boot0"])
-        run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path, shell=True)
+        env = os.environ.copy()
+        env.update({
+            'swipath': image_path,
+            'target_path': '/host',
+            'sonic_upgrade': '1'
+        })
+        run_command(["/bin/sh", "/tmp/boot0"], env=env)
 
     def remove_image(self, image):
         nextimage = self.get_next_image()

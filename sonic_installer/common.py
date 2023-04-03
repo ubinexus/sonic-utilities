@@ -23,7 +23,7 @@ def is_list_of_strings(command):
     return isinstance(command, list) and all(isinstance(item, str) for item in command)
 
 # Run bash command and print output to stdout
-def run_command(command, stdout=subprocess.PIPE, shell=False):
+def run_command(command, stdout=subprocess.PIPE, env=None, shell=False):
     if not is_list_of_strings(command):
         sys.exit("Input command should be a list of strings")
     if not shell:
@@ -32,7 +32,7 @@ def run_command(command, stdout=subprocess.PIPE, shell=False):
         command_str = command
     click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
-    proc = subprocess.Popen(command, text=True, stdout=stdout, shell=shell)
+    proc = subprocess.Popen(command, text=True, stdout=stdout, env=env, shell=shell)
     (out, _) = proc.communicate()
 
     click.echo(out)
