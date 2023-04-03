@@ -602,8 +602,7 @@ class DBMigrator():
         connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
         1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
         2. If all the cable lengths are the same, do nothing and return.
-        2. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
-        4. Reset port values to trigger buffer manager event listener to bring across new buffer changes for specified ports
+        3. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
         """
         device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
         device_neighbors = self.configDB.get_table("DEVICE_NEIGHBOR")
@@ -801,10 +800,19 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Version 2_0_2
-        This is the latest version for 202012 branch
+        Version 2_0_2.
         """
         log.log_info('Handling version_2_0_2')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+    def version_2_0_3(self):
+        """
+        Version 2_0_3. Latest version for 202012 branch.
+        """
+        log.log_info('Handling version_2_0_3')
         self.set_version('version_3_0_0')
         return 'version_3_0_0'
 
@@ -901,11 +909,19 @@ class DBMigrator():
 
     def version_3_0_6(self):
         """
-        Version 3_0_6
-        This is the latest version for 202211 branch
+        Version 3_0_6.
         """
-
         log.log_info('Handling version_3_0_6')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_3_0_7')
+        return 'version_3_0_7'
+
+    def version_3_0_7(self):
+        """
+        Version 3_0_7. Latest version for 202205 branch.
+        """
+        log.log_info('Handling version_3_0_7')
         self.set_version('version_4_0_0')
         return 'version_4_0_0'
 
@@ -931,9 +947,18 @@ class DBMigrator():
     def version_4_0_1(self):
         """
         Version 4_0_1.
-        This is the latest version for 202211 branch
         """
         log.log_info('Handling version_4_0_1')
+        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
+        self.update_edgezone_aggregator_config()
+        self.set_version('version_4_0_2')
+        return 'version_4_0_2'
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2. Latest version for branch 202211.
+        """
+        log.log_info('Handling version_4_0_2')
         self.set_version('version_5_0_0')
         return 'version_5_0_0'
 
@@ -950,7 +975,7 @@ class DBMigrator():
     def version_5_0_1(self):
         """
         Version 5_0_1.
-        This is the latest version for master branch
+        This is the latest version for master branch.
         """
         log.log_info('Handling version_5_0_1')
         return None

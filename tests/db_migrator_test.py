@@ -586,7 +586,6 @@ class TestWarmUpgrade_without_route_weights(object):
             diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
             assert not diff
 
-
 class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
     @classmethod
     def setup_class(cls):
@@ -624,3 +623,21 @@ class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
+
+    def test_warm_upgrade_t0_edgezone_aggregator_multi_branch(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-multi-branch-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-multi-branch-output')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')
+        expected_table = expected_db.cfgdb.get_table('CABLE_LENGTH')
+
+        resulting_version = dbmgtr.configDB.get_table('VERSIONS')
+        expected_version = expected_db.cfgdb.get_table('VERSIONS')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        diff_version = DeepDiff(resulting_version, expected_version, ignore_order=True)
+        assert not diff and not diff_version
