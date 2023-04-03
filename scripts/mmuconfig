@@ -3,7 +3,7 @@
 """
 mmuconfig is the utility to show and change mmu configuration
 
-usage: mmuconfig [-h] [-v] [-l] [-p PROFILE] [-a ALPHA] [-vv]
+usage: mmuconfig [-h] [-v] [-l] [-p PROFILE] [-a ALPHA] [-vv] [-s staticth]
 
 optional arguments:
   -h     --help            show this help message and exit
@@ -12,6 +12,7 @@ optional arguments:
   -l     --list            show mmu configuration
   -p     --profile         specify buffer profile name
   -a     --alpha           set n for dyanmic threshold alpha 2^(n)
+  -s     --staticth        set static threshold
 
 """
 
@@ -26,8 +27,10 @@ BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
 DEFAULT_LOSSLESS_BUFFER_PARAMETER_NAME = "DEFAULT_LOSSLESS_BUFFER_PARAMETER"
 
 DYNAMIC_THRESHOLD = "dynamic_th"
+STATIC_THRESHOLD = "static_th"
 BUFFER_PROFILE_FIELDS = {
-    "alpha": DYNAMIC_THRESHOLD
+    "alpha": DYNAMIC_THRESHOLD,
+    "staticth" : STATIC_THRESHOLD
 }
 
 # mock the redis for unit test purposes #
@@ -43,14 +46,6 @@ except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
-
-BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
-BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
-
-DYNAMIC_THRESHOLD = "dynamic_th"
-BUFFER_PROFILE_FIELDS = {
-    "alpha": DYNAMIC_THRESHOLD
-}
 
 class MmuConfig(object):
     def __init__(self, verbose, config):
@@ -124,14 +119,21 @@ class MmuConfig(object):
             sys.exit("Root privileges required for this operation")
 
         field = BUFFER_PROFILE_FIELDS[field_alias]
+        buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
+        v = int(value)
         if field == DYNAMIC_THRESHOLD:
-            v = int(value)
             if v < -8 or v > 8:
                 sys.exit("Invalid alpha value: 2^(%s)" % (value))
 
-            buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
             if profile in buf_profs and DYNAMIC_THRESHOLD not in buf_profs[profile]:
                 sys.exit("%s not using dynamic thresholding" % (profile))
+        elif field == STATIC_THRESHOLD:
+            if v < 0:
+                sys.exit("Invalid static threshold value: (%s)" % (value))
+
+            buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
+            if profile in buf_profs and STATIC_THRESHOLD not in buf_profs[profile]:
+                sys.exit("%s not using static threshold" % (profile))
         else:
             sys.exit("Set field %s not supported" % (field))
 
@@ -148,6 +150,7 @@ def main(config):
         parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
         parser.add_argument('-p', '--profile', type=str, help='specify buffer profile name', default=None)
         parser.add_argument('-a', '--alpha', type=str, help='set n for dyanmic threshold alpha 2^(n)', default=None)
+        parser.add_argument('-s', '--staticth', type=str, help='set static threshold', default=None)
         parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     else:
         parser = argparse.ArgumentParser(description='Show buffer state',
@@ -167,6 +170,8 @@ def main(config):
         elif config and args.profile:
             if args.alpha:
                 mmu_cfg.set(args.profile, "alpha", args.alpha)
+            elif args.staticth:
+                mmu_cfg.set(args.profile, "staticth", args.staticth)
         else:
             parser.print_help()
             sys.exit(1)
