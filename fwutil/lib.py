@@ -236,7 +236,7 @@ class SquashFs(object):
     def get_current_image(self):
         cmd0 = ["sonic-installer", "list"]
         cmd1 = ["grep", 'Current: ']
-        cmd2 = ["cut", "-f2", "-d", ' ']
+        cmd2 = ["cut", "-f2", "-d "]
         output = check_output_pipe(cmd0, cmd1, cmd2)
 
         return output.rstrip(NEWLINE)
@@ -244,7 +244,7 @@ class SquashFs(object):
     def get_next_image(self):
         cmd0 = ["sonic-installer", "list"]
         cmd1 = ["grep", 'Next: ']
-        cmd2 = ["cut", "-f2", "-d", ' ']
+        cmd2 = ["cut", "-f2", "-d "]
         output = check_output_pipe(cmd0, cmd1, cmd2)
 
         return output.rstrip(NEWLINE)
