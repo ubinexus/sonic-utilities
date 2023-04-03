@@ -200,7 +200,9 @@ def is_ipaddress(val):
     if not val:
         return False
     try:
-        netaddr.IPAddress(str(val))
+        ip_addr = netaddr.IPAddress(str(val))
+        if ip_addr.is_loopback() or ip_addr.is_multicast() or ip_addr.is_reserved():
+            return False
     except netaddr.core.AddrFormatError:
         return False
     return True

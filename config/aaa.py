@@ -117,7 +117,7 @@ authentication.add_command(trace)
 @click.argument('auth_protocol', nargs=-1, type=click.Choice(["radius", "tacacs+", "local", "default"]))
 def login(auth_protocol):
     """Switch login authentication [ {radius, tacacs+, local} | default ]"""
-    if len(auth_protocol) is 0:
+    if len(auth_protocol) == 0:
         click.echo('Argument "auth_protocol" is required')
         return
     elif len(auth_protocol) > 2:
@@ -302,6 +302,9 @@ def delete(address):
 
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
+    current_data = config_db.get_table('TACPLUS_SERVER')
+    if address not in current_data :
+        click.echo('TACACS server %s is not configured' % address)
     try:
         config_db.set_entry('TACPLUS_SERVER', address, None)
     except JsonPatchConflict as e:
@@ -405,27 +408,6 @@ def sourceip(ctx, src_ip):
         click.echo('Invalid ip address')
         return
 
-    v6_invalid_list = [ipaddress.IPv6Address(unicode('0::0')), ipaddress.IPv6Address(unicode('0::1'))]
-    net = ipaddress.ip_network(unicode(src_ip), strict=False)
-    if (net.version == 4):
-        if src_ip == "0.0.0.0":
-            click.echo('enter non-zero ip address')
-            return
-        ip = ipaddress.IPv4Address(src_ip)
-        if ip.is_reserved:
-            click.echo('Reserved ip is not valid')
-            return
-        if ip.is_multicast:
-            click.echo('Multicast ip is not valid')
-            return
-    elif (net.version == 6):
-        ip = ipaddress.IPv6Address(src_ip)
-        if (ip.is_multicast):
-            click.echo('Multicast ip is not valid')
-            return
-        if (ip in v6_invalid_list):
-            click.echo('Invalid ip address')
-            return
     add_table_kv('RADIUS', 'global', 'src_ip', src_ip)
 radius.add_command(sourceip)
 default.add_command(sourceip)
@@ -446,27 +428,6 @@ def nasip(ctx, nas_ip):
         click.echo('Invalid ip address')
         return
 
-    v6_invalid_list = [ipaddress.IPv6Address(unicode('0::0')), ipaddress.IPv6Address(unicode('0::1'))]
-    net = ipaddress.ip_network(unicode(nas_ip), strict=False)
-    if (net.version == 4):
-        if nas_ip == "0.0.0.0":
-            click.echo('enter non-zero ip address')
-            return
-        ip = ipaddress.IPv4Address(nas_ip)
-        if ip.is_reserved:
-            click.echo('Reserved ip is not valid')
-            return
-        if ip.is_multicast:
-            click.echo('Multicast ip is not valid')
-            return
-    elif (net.version == 6):
-        ip = ipaddress.IPv6Address(nas_ip)
-        if (ip.is_multicast):
-            click.echo('Multicast ip is not valid')
-            return
-        if (ip in v6_invalid_list):
-            click.echo('Invalid ip address')
-            return
     add_table_kv('RADIUS', 'global', 'nas_ip', nas_ip)
 radius.add_command(nasip)
 default.add_command(nasip)
@@ -485,9 +446,9 @@ def statistics(option):
 radius.add_command(statistics)
 
 
-# cmd: radius add <ip_address_or_domain_name> --retransmit COUNT --timeout SECOND --key SECRET --type TYPE --auth-port PORT --pri PRIORITY
+# cmd: radius add <ip_address> --retransmit COUNT --timeout SECOND --key SECRET --type TYPE --auth-port PORT --pri PRIORITY
 @click.command()
-@click.argument('address', metavar='<ip_address_or_domain_name>')
+@click.argument('address', metavar='<ip_address>')
 @click.option('-r', '--retransmit', help='Retransmit attempts, default 3', type=click.IntRange(1, 10))
 @click.option('-t', '--timeout', help='Transmission timeout interval, default 5', type=click.IntRange(1, 60))
 @click.option('-k', '--key', help='Shared secret')
@@ -499,6 +460,9 @@ radius.add_command(statistics)
 def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_vrf, source_interface):
     """Specify a RADIUS server"""
 
+    if not clicommon.is_ipaddress(address):
+        click.echo('Invalid ip address')
+        return
     if ADHOC_VALIDATION:
         if key:
             if len(key) > RADIUS_PASSKEY_MAX_LEN:
@@ -552,15 +516,19 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
 radius.add_command(add)
 
 
-# cmd: radius delete <ip_address_or_domain_name>
+# cmd: radius delete <ip_address>
 # 'del' is keyword, replace with 'delete'
 @click.command()
-@click.argument('address', metavar='<ip_address_or_domain_name>')
+@click.argument('address', metavar='<ip_address>')
 def delete(address):
     """Delete a RADIUS server"""
 
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
+    current_data = config_db.get_table('RADIUS_SERVER')
+    if address not in current_data :
+        click.echo('RADIUS server %s is not configured' % address)
+        return
     try:
         config_db.set_entry('RADIUS_SERVER', address, None)
     except (JsonPointerException, JsonPatchConflict) as e:
