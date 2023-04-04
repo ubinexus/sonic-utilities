@@ -131,7 +131,6 @@ class MmuConfig(object):
             if v < 0:
                 sys.exit("Invalid static threshold value: (%s)" % (value))
 
-            buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
             if profile in buf_profs and STATIC_THRESHOLD not in buf_profs[profile]:
                 sys.exit("%s not using static threshold" % (profile))
         else:
