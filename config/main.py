@@ -382,7 +382,7 @@ def is_vrf_exists(config_db, vrf_name):
     elif vrf_name == "mgmt" or vrf_name == "management":
         entry = config_db.get_entry("MGMT_VRF_CONFIG", "vrf_global")
         if entry and entry.get("mgmtVrfEnabled") == "true":
-           return True
+            return True
 
     return False
 
@@ -402,7 +402,7 @@ def is_portchannel_name_valid(portchannel_name):
     """
 
     # Return True if Portchannel name is PortChannelXXXX (XXXX can be 0-9999)
-    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX:
         return False
     if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
           int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
@@ -430,7 +430,7 @@ def is_port_member_of_this_portchannel(db, port_name, portchannel_name):
     if portchannel_list is None:
         return False
 
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+    for k, v in db.get_table('PORTCHANNEL_MEMBER'):
         if (k == portchannel_name) and (v == port_name):
             return True
 
@@ -955,7 +955,7 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 def check_mirror_direction_config(v, direction):
     """ Check if port is already configured for mirror in same direction """
     if direction:
-        direction=direction.upper()
+        direction = direction.upper()
         if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'BOTH'):
             return True
         if 'direction' in v and v['direction'] == direction:
