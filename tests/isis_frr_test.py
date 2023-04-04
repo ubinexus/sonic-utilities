@@ -125,3 +125,24 @@ class TestIsisInterface(object):
         show = setup_isis_commands
         exec_cmd = show.cli.commands["isis"].commands["interface"]
         executor(test_vector, show, exec_cmd)
+
+
+class TestIsisSummary(object):
+    
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @pytest.mark.parametrize('setup_single_isis_instance, test_vector',
+                            [
+                                ('isis_summary_output', 'isis_summary'),
+                                ('isis_summary_invalid_help_output', 'isis_summary_invalid_help')
+                            ],
+                            indirect=['setup_single_isis_instance'])
+    def test_isis_summary(self,
+                        setup_isis_commands,
+                        setup_single_isis_instance,
+                        test_vector):
+        show = setup_isis_commands
+        exec_cmd = show.cli.commands["isis"].commands["summary"]
+        executor(test_vector, show, exec_cmd)
