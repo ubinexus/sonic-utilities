@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_2' # latest version for 202211 branch
+        self.CURRENT_VERSION = 'version_4_0_1'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -265,7 +265,6 @@ class DBMigrator():
         @append_item_method - a function which is called to append an item to the list of pending commit items
                               any update to buffer configuration will be pended and won't be applied until
                               all configuration is checked and aligns with the default one
-
         1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
            if their names have the convention of pg_lossless_<speed>_<cable_length>_profile
            where the speed and cable_length belongs speed_list and cable_len_list respectively
@@ -349,7 +348,6 @@ class DBMigrator():
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
         In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
-
         During warm reboot, buffer tables should be installed in the first place.
         However, it isn't able to achieve that when system is warm-rebooted from an old image
         without dynamic buffer supported, because the buffer info wasn't in the APPL_DB in the old image.
@@ -357,7 +355,6 @@ class DBMigrator():
         During warm-reboot, db_migrator adjusts buffer info in CONFIG_DB by removing some fields
         according to requirement from dynamic buffer calculation.
         The buffer info before that adjustment needs to be copied to APPL_DB.
-
         1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
         2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
            The separator in fields that reference objects in other table needs to be updated from '|' to ':'
@@ -367,7 +364,6 @@ class DBMigrator():
            - BUFFER_QUEUE, separator updated for field 'profile
            - BUFFER_PORT_INGRESS_PROFILE_LIST, separator updated for field 'profile_list'
            - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
-
         '''
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
@@ -783,19 +779,10 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Version 2_0_2.
+        Version 2_0_2
+        This is the latest version for 202012 branch
         """
         log.log_info('Handling version_2_0_2')
-        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
-        self.update_edgezone_aggregator_config()
-        self.set_version('version_2_0_3')
-        return 'version_2_0_3'
-
-    def version_2_0_3(self):
-        """
-        Version 2_0_3. Latest version for 202012.
-        """
-        log.log_info('Handling version_2_0_3')
         self.set_version('version_3_0_0')
         return 'version_3_0_0'
 
@@ -892,19 +879,11 @@ class DBMigrator():
 
     def version_3_0_6(self):
         """
-        Version 3_0_6.
+        Version 3_0_6
+        This is the latest version for 202211 branch
         """
-        log.log_info('Handling version_3_0_6')
-        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
-        self.update_edgezone_aggregator_config()
-        self.set_version('version_3_0_7')
-        return 'version_3_0_7'
 
-    def version_3_0_7(self):
-        """
-        Version 3_0_7. Latest version for 202205.
-        """
-        log.log_info('Handling version_3_0_7')
+        log.log_info('Handling version_3_0_6')
         self.set_version('version_4_0_0')
         return 'version_4_0_0'
 
@@ -930,18 +909,9 @@ class DBMigrator():
     def version_4_0_1(self):
         """
         Version 4_0_1.
+        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_1')
-        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
-        self.update_edgezone_aggregator_config()
-        self.set_version('version_4_0_2')
-        return 'version_4_0_2'
-
-    def version_4_0_2(self):
-        """
-        Version 4_0_2. Latest version for branch 202211.
-        """
-        log.log_info('Handling version_4_0_2')
         return None
 
     def get_version(self):
@@ -987,6 +957,9 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
+
+        # Updating edgezone aggregator cable length config for T0 devices
+        self.update_edgezone_aggregator_config()
 
     def migrate(self):
         version = self.get_version()
