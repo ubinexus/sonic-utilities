@@ -13,13 +13,13 @@ class TestSquashFs(object):
     def test_get_current_image(self, mock_check_output_pipe):
         sqfs = fwutil_lib.SquashFs()
         sqfs.get_current_image()
-        mock_check_output_pipe.assert_called_with(['sonic-installer', 'list'], ['grep', 'Current: '], ['cut', '-f2', '-d',  ' '])
+        mock_check_output_pipe.assert_called_with(['sonic-installer', 'list'], ['grep', 'Current: '], ['cut', '-f2', '-d '])
 
     @patch('fwutil.lib.check_output_pipe')
     def test_get_next_image(self, mock_check_output_pipe):
         sqfs = fwutil_lib.SquashFs()
         sqfs.get_next_image()
-        mock_check_output_pipe.assert_called_with(['sonic-installer', 'list'], ['grep', 'Next: '], ['cut', '-f2', '-d',  ' '])
+        mock_check_output_pipe.assert_called_with(['sonic-installer', 'list'], ['grep', 'Next: '], ['cut', '-f2', '-d '])
 
     @patch("os.mkdir")
     @patch("os.path.exists", return_value=True)
