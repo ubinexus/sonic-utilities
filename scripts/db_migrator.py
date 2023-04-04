@@ -46,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_3' # latest version for 202012 branch
+        self.CURRENT_VERSION = 'version_2_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -260,7 +260,6 @@ class DBMigrator():
         @append_item_method - a function which is called to append an item to the list of pending commit items
                               any update to buffer configuration will be pended and won't be applied until
                               all configuration is checked and aligns with the default one
-
         1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
            if their names have the convention of pg_lossless_<speed>_<cable_length>_profile
            where the speed and cable_length belongs speed_list and cable_len_list respectively
@@ -344,7 +343,6 @@ class DBMigrator():
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
         In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
-
         During warm reboot, buffer tables should be installed in the first place.
         However, it isn't able to achieve that when system is warm-rebooted from an old image
         without dynamic buffer supported, because the buffer info wasn't in the APPL_DB in the old image.
@@ -352,7 +350,6 @@ class DBMigrator():
         During warm-reboot, db_migrator adjusts buffer info in CONFIG_DB by removing some fields
         according to requirement from dynamic buffer calculation.
         The buffer info before that adjustment needs to be copied to APPL_DB.
-
         1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
         2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
            The separator in fields that reference objects in other table needs to be updated from '|' to ':'
@@ -362,7 +359,6 @@ class DBMigrator():
            - BUFFER_QUEUE, separator updated for field 'profile
            - BUFFER_PORT_INGRESS_PROFILE_LIST, separator updated for field 'profile_list'
            - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
-
         '''
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
@@ -716,19 +712,9 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Version 2_0_2.
-        """
-        log.log_info('Handling version_2_0_2')
-        # Update cable length data and re-assign interface speed for T0 devices with interfaces connected to EdgeZone Aggregators
-        self.update_edgezone_aggregator_config()
-        self.set_version('version_2_0_3')
-        return 'version_2_0_3'
-
-    def version_2_0_3(self):
-        """
         Current latest version. Nothing to do here.
         """
-        log.log_info('Handling version_2_0_3')
+        log.log_info('Handling version_2_0_2')
         return None
 
     def get_version(self):
@@ -744,26 +730,6 @@ class DBMigrator():
         log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
-
-    def is_curr_version_greater(curr_version=self.CURRENT_VERSION, compare_version=None):
-        """ Check if curr_version is strictly greater than compare version """
-        if curr_version == 'version_unknown' or compare_version == 'version_unknown' or compare_version is None:
-            return False
-        curr_version_num_str = curr_version[8:] # returns version number ex. "2_0_1"
-        compare_version_num_str = compare_version[8:]
-        curr_version_num = curr_version_num_str.split("_")
-        compare_version_num = compare_version_num_str.split("_")
-
-        # Begin comparing
-        if int(curr_version_num[0]) > int(compare_version_num[0]):
-            return True
-        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[1]) > int(compare_version_num[1])):
-            return True
-        elif (int(curr_version_num[0]) == int(compare_version_num[0])) and (int(curr_version_num[2]) > int(compare_version_num[2])):
-            return True
-
-        # Version is less
-        return False
 
     def common_migration_ops(self):
         try:
@@ -802,6 +768,9 @@ class DBMigrator():
 
         # Migrate pfcwd_sw_enable table
         self.migrate_pfcwd_sw_enable_table()
+
+        # Updating edgezone aggregator cable length config for T0 devices
+        self.update_edgezone_aggregator_config()
 
     def migrate(self):
         version = self.get_version()
