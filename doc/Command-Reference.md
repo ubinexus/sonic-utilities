@@ -1091,7 +1091,7 @@ This command displays information for all the interfaces for the transceiver req
           Rx output status on host lane 6: True
           Rx output status on host lane 7: True
           Rx output status on host lane 8: True
-          Disabled TX channels in hex: 0
+          Disabled TX channels: 0
           TX disable status on lane 1: False
           TX disable status on lane 2: False
           TX disable status on lane 3: False

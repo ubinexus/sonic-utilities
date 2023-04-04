@@ -74,7 +74,7 @@ QSFP_STATUS_MAP = {
     'rxoutput_status_hostlane6': 'Rx output status on host lane 6',
     'rxoutput_status_hostlane7': 'Rx output status on host lane 7',
     'rxoutput_status_hostlane8': 'Rx output status on host lane 8',
-    'tx_disabled_channel': 'Disabled TX channels in hex',
+    'tx_disabled_channel': 'Disabled TX channels',
     'tx1disable': 'TX disable status on lane 1',
     'tx2disable': 'TX disable status on lane 2',
     'tx3disable': 'TX disable status on lane 3',
