@@ -2913,7 +2913,7 @@ def warm_restart_enable(ctx, module):
 @warm_restart.command('disable')
 @click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
-def warm_restart_enable(ctx, module):
+def warm_restart_disable(ctx, module):
     state_db = ctx.obj['state_db']
     config_db = ctx.obj['db']
     feature_table = config_db.get_table('FEATURE')
