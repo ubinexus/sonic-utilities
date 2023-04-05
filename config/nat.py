@@ -775,7 +775,7 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
-# 'nat add binding' command ('config nat add binding <ninding_name> <pool_name> <acl_name>')
+# 'nat add binding' command ('config nat add binding <binding_name> <pool_name> <acl_name>')
 #
 @add.command('binding')
 @click.pass_context

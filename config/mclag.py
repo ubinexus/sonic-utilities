@@ -3,9 +3,9 @@ import click
 from swsscommon.swsscommon import ConfigDBConnector
 from .validated_config_db_connector import ValidatedConfigDBConnector
 import ipaddress
-import jsonpatch
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
+
 ADHOC_VALIDATION = False
 CFG_PORTCHANNEL_PREFIX = "PortChannel"
 CFG_PORTCHANNEL_PREFIX_LEN = 11

@@ -1,6 +1,7 @@
+import mock
+
 from click.testing import CliRunner
 from utilities_common.db import Db
-import mock
 from mock import patch
 
 show_no_server_output="""\
