@@ -459,14 +459,10 @@ class SFPShow(object):
 
     # Convert sfp status info in DB to cli output string
     def convert_interface_sfp_status_to_cli_output_string(self, state_db, interface_name):
-        output = ''
-
         sfp_status_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(interface_name))
 
         if sfp_status_dict and 'module_state' in sfp_status_dict:
-            output = '\n'
-            sfp_info_output = self.convert_sfp_status_to_output_string(sfp_status_dict)
-            output += sfp_info_output
+            output = '\n' + self.convert_sfp_status_to_output_string(sfp_status_dict)
         else:
             output = QSFP_STATUS_NOT_APPLICABLE_STR + '\n'
         return output
