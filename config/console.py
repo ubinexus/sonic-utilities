@@ -1,5 +1,4 @@
 import click
-import jsonpatch
 import utilities_common.cli as clicommon
 from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
