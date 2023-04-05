@@ -1,8 +1,6 @@
 import ipaddress
 
 import click
-import jsonpatch
-import jsonpointer
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
