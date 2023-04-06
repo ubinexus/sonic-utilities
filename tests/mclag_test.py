@@ -4,6 +4,7 @@ import traceback
 from click.testing import CliRunner
 
 import config.main as config
+import config.mclag as mclag
 import show.main as show
 from utilities_common.db import Db
 
@@ -87,6 +88,7 @@ class TestMclag(object):
         return False
 
     def test_add_mclag_with_invalid_src_ip(self):
+        mclag.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
