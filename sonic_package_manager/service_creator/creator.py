@@ -2,6 +2,7 @@
 
 import contextlib
 import os
+import sys
 import stat
 import subprocess
 from collections import defaultdict
@@ -96,16 +97,19 @@ def remove_if_exists(path):
     os.remove(path)
     log.info(f'removed {path}')
 
+def is_list_of_strings(command):
+    return isinstance(command, list) and all(isinstance(item, str) for item in command)
 
 def run_command(command: List[str]):
     """ Run arbitrary bash command.
     Args:
-        command: String command to execute as bash script
+        command: List of Strings command to execute as bash script
     Raises:
         ServiceCreatorError: Raised when the command return code
                              is not 0.
     """
-
+    if not is_list_of_strings(command):
+        sys.exit("Input command should be a list of strings")
     log.debug(f'running command: {command}')
 
     proc = subprocess.Popen(command,
