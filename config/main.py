@@ -634,11 +634,11 @@ def _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
     if current_hostname != hostname:
-        with open('etc/hostname', 'w') as f:
+        with open('/etc/hostname', 'w') as f:
             f.write(str(hostname) + '\n')
         clicommon.run_command(['hostname', '-F', '/etc/hostname'], display_cmd=True)
         clicommon.run_command(['sed', '-i', "/\s{}$/d".format(current_hostname), '/etc/hosts'], display_cmd=True)
-        with open('etc/hosts', 'a') as f:
+        with open('/etc/hosts', 'a') as f:
             f.write("127.0.0.1" + str(hostname) + '\n')
 
 def _clear_cbf():
