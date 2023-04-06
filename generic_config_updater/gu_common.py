@@ -192,7 +192,6 @@ class ConfigWrapper:
                 if not _invoke_validating_function(function):
                     raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
 
-
     def validate_lanes(self, config_db):
         if "PORT" not in config_db:
             return True, None
