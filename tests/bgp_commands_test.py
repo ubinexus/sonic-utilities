@@ -20,7 +20,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbor       V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 10.0.0.1       4  65200       5919       2717         0      0       0  1d21h11m   6402            ARISTA01T2
 10.0.0.5       4  65200       5916       2714         0      0       0  1d21h10m   6402            ARISTA03T2
@@ -60,7 +60,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbor       V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 fc00::1a       4  65200       6665       6672         0      0       0  2d09h39m   6402            ARISTA07T2
 fc00::2        4  65200       6666       7913         0      0       0  2d09h39m   6402            ARISTA01T2
@@ -115,7 +115,7 @@ Peers 23, using 501768 KiB of memory
 Peer groups 3, using 192 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+Neighbor       V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 10.0.0.1       4  65200       4632      11028         0      0       0  00:18:31             8514  ARISTA01T2
 10.0.0.9       4  65202       4632      11029         0      0       0  00:18:33             8514  ARISTA05T2
@@ -151,7 +151,7 @@ Peers 23, using 501768 KiB of memory
 Peer groups 3, using 192 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+Neighbor       V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 fc00::1a       4  65203       4438       6578         0      0       0  00:08:57             8514  ARISTA07T2
 fc00::2        4  65200       4439       6578         0      0       0  00:08:56             8513  ARISTA01T2
@@ -187,7 +187,7 @@ Peers 23, using 501768 KiB of memory
 Peer groups 3, using 192 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbor       V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  ------------------
 3.3.3.6        4  65100          0          0         0      0       0  never      Connect         str2-chassis-lc6-1
 3.3.3.7        4  65100        808     178891         0      0       0  00:17:47   1458            str2-chassis-lc7-1
