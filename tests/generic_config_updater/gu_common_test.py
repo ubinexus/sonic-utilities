@@ -124,6 +124,8 @@ class TestConfigWrapper(unittest.TestCase):
                 "Loopback1|10.1.0.33/32": {}
             }
         }
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
 
     def test_ctor__default_values_set(self):
         config_wrapper = gu_common.ConfigWrapper()
