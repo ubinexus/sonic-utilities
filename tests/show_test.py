@@ -5,6 +5,7 @@ import show.main as show
 from click.testing import CliRunner
 from unittest import mock
 from unittest.mock import call, MagicMock, patch
+from datetime import datetime
 
 EXPECTED_BASE_COMMAND = 'sudo '
 
@@ -115,4 +116,63 @@ def test_show_logging_tmpfs(run_command, cli_arguments, expected):
 def test_show_logging_tmpfs_syslog_1(run_command, cli_arguments, expected):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
+
+def side_effect_subprocess_popen(*args, **kwargs):
+    class TestResult:
+        stdout
+    if args[0] == "uptime":
+        return subprocess.Popen(["/bin/bash", "-c", "echo  05:58:07 up 25 days"], shell=True, text=True, stdout=subprocess.PIPE)
+    elif args[0].startswith("sudo docker images"):
+        return subprocess.Popen(["/bin/bash", "-c", "echo  REPOSITORY	TAG"], shell=True, text=True, stdout=subprocess.PIPE)
+
+@patch('device_info.get_sonic_version_info', MagicMock(return_value={
+        "build_version": "release-1.1-7d94c0c28",
+        "sonic_os_version": "11",
+        "debian_version": "11.6",
+        "kernel_version": "5.10",
+        "commit_id": "7d94c0c28",
+        "build_date": "Wed Feb 15 06:17:08 UTC 2023",
+        "built_by": "AzDevOps"}))
+@patch('device_info.get_platform_info', MagicMock(return_value={
+        "platform": "x86_64-kvm_x86_64-r0",
+        "hwsku": "Force10-S6000",
+        "asic_type": "vs",
+        "asic_count": 1})
+@patch('platform.get_chassis_info', MagicMock(return_value={
+        "serial": "N/A",
+        "model": "N/A",
+        "revision", "N/A",
+        ""
+})
+@patch('datetime.now', MagicMock(return_value=datetime(2023, 4, 11, 6, 9, 17, 0) )
+@pytest.mark.parametrize(
+        "cli_arguments,expected",
+        [
+            ([], '''SONiC Software Version: SONiC.release-1.1-7d94c0c28
+SONiC OS Version: 11
+Distribution: Debian 11.6
+Kernel: 5.10
+Build commit: 7d94c0c28
+Build date: Wed Feb 15 06:17:08 UTC 2023
+Built by: AzDevOps
+
+Platform: x86_64-kvm_x86_64-r0
+HwSKU: Force10-S6000
+ASIC: vs
+ASIC Count: 1
+Serial Number: N/A
+Model Number: N/A
+Hardware Revision: N/A
+Uptime: 05:58:07 up 25 days
+Date: Tue 11 Apr 2023 06:09:17
+
+Docker images:
+REPOSITORY	TAG'''),
+        ]
+)
+@patch('subprocess.Popen', MagicMock(side_effect=side_effect_subprocess_popen))
+def test_show_version(run_command, cli_arguments, expected):
+    runner = CliRunner()
+    result = runner.invoke(show.cli.commands["version"], cli_arguments)
     run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
