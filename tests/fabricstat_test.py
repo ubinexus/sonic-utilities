@@ -63,7 +63,7 @@ multi_asic_fabric_counters_asic0_clear = """\
      0       5     down          0           0           0            0      0                  0                    0             0
      0       6       up          0           0           0            0      0                  0                    0             0
      0       7       up          0           0           0            0      0                  0                    0             0
- 
+
 """
 
 fabric_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
