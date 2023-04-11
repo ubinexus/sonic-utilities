@@ -354,6 +354,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]["type"].upper() == "L3"
 
+    def is_table_ipv4(self, tname):
+        """
+        Check if ACL table type is IPv4 (L3 or MIRROR)
+        :param tname: ACL table name
+        :return: True if table type is IPv4 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() in ("L3", "MIRROR")
+
     def is_table_ipv6(self, tname):
         """
         Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
@@ -679,7 +687,7 @@ class AclLoader(object):
         rule_props["PACKET_ACTION"] = "DROP"
         if self.is_table_ipv6(table_name):
             rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
-        else:
+        elif self.is_table_ipv4(table_name):
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
 
