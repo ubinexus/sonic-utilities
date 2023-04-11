@@ -138,14 +138,15 @@ def side_effect_subprocess_popen(*args, **kwargs):
         "platform": "x86_64-kvm_x86_64-r0",
         "hwsku": "Force10-S6000",
         "asic_type": "vs",
-        "asic_count": 1})
+        "asic_count": 1}))
 @patch('platform.get_chassis_info', MagicMock(return_value={
         "serial": "N/A",
         "model": "N/A",
         "revision", "N/A",
         ""
-})
-@patch('datetime.now', MagicMock(return_value=datetime(2023, 4, 11, 6, 9, 17, 0) )
+}))
+@patch('datetime.now', MagicMock(return_value=datetime(2023, 4, 11, 6, 9, 17, 0)))
+@patch('subprocess.Popen', MagicMock(side_effect=side_effect_subprocess_popen))
 @pytest.mark.parametrize(
         "cli_arguments,expected",
         [
@@ -171,7 +172,6 @@ Docker images:
 REPOSITORY	TAG'''),
         ]
 )
-@patch('subprocess.Popen', MagicMock(side_effect=side_effect_subprocess_popen))
 def test_show_version(run_command, cli_arguments, expected):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["version"], cli_arguments)
