@@ -142,9 +142,7 @@ def side_effect_subprocess_popen(*args, **kwargs):
 @patch('platform.get_chassis_info', MagicMock(return_value={
         "serial": "N/A",
         "model": "N/A",
-        "revision", "N/A",
-        ""
-}))
+        "revision", "N/A"}))
 @patch('datetime.now', MagicMock(return_value=datetime(2023, 4, 11, 6, 9, 17, 0)))
 @patch('subprocess.Popen', MagicMock(side_effect=side_effect_subprocess_popen))
 @pytest.mark.parametrize(
