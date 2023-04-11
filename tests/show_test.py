@@ -149,7 +149,7 @@ def side_effect_subprocess_popen(*args, **kwargs):
         "cli_arguments,expected",
         [
             ([], '''SONiC Software Version: SONiC.release-1.1-7d94c0c28
-SONiC OS Version: 11
+SONiC OS Version: 12
 Distribution: Debian 11.6
 Kernel: 5.10
 Build commit: 7d94c0c28
