@@ -278,3 +278,31 @@ class TestMultiAsicFabricStat(object):
             os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+
+
+class TestMultiAsicFabricStatCmd(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+
+    def test_clear_command(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands["fabriccountersqueue"], [])
+        assert result.exit_code == 0
+
+        result = runner.invoke(clear.cli.commands["fabriccountersport"], [])
+        assert result.exit_code == 0
+
+        return_code, result = get_result_and_return_code('fabricstat -D')
+        assert return_code == 0
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(
+            os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
