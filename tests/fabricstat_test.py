@@ -107,6 +107,20 @@ multi_asic_fabric_counters_queue_asic0 = """\
 
 """
 
+multi_asic_fabric_counters_queue_asic0_clear = """\
+  ASIC    PORT    STATE    QUEUE_ID    CURRENT_BYTE    CURRENT_LEVEL    WATERMARK_LEVEL
+------  ------  -------  ----------  --------------  ---------------  -----------------
+     0       0       up           0               0                0                  0
+     0       1     down           0               0                0                  0
+     0       2       up           0               0                0                  0
+     0       3     down           0               0                0                  0
+     0       4       up           0               0                0                  0
+     0       5     down           0               0                0                  0
+     0       6       up           0               0                0                  0
+     0       7       up           0               0                0                  0
+
+"""
+
 multi_asic_fabric_reachability = """\
 
 asic0
@@ -216,6 +230,27 @@ class TestMultiAsicFabricStat(object):
         assert result == multi_asic_fabric_counters_queue
 
     def test_multi_show_fabric_counters_queue_asic(self):
+        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_counters_queue_asic0
+
+    def test_multi_show_fabric_counters_queue_clear(self):
+        return_code, result = get_result_and_return_code('fabricstat -C -q')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+
+        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_counters_queue_asic0_clear
+
+        return_code, result = get_result_and_return_code('fabricstat -D')
+        assert return_code == 0
+
         return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))

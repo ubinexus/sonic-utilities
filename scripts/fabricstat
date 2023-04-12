@@ -233,7 +233,7 @@ class FabricQueueStat(FabricStat):
             asic_name = multi_asic.get_asic_id_from_name(self.namespace)
         try:
             cnstat_fqn_file_queue_name = cnstat_fqn_file_queue + asic_name
-            json.dump(cnstat_dict, open(cnstat_fqn_file_queue, 'w'), default=json_serial)
+            json.dump(cnstat_dict, open(cnstat_fqn_file_queue_name, 'w'), default=json_serial)
         except IOError as e:
             print(e.errno, e)
             sys.exit(e.errno)
@@ -263,7 +263,7 @@ class FabricQueueStat(FabricStat):
         for key, data in cnstat_dict.items():
             port_name, queue_id = key.split(':')
             # The content of saved counters queue for each port:
-            # portName:queueId CURRENT_BYTE, CURRENT_LEVEL, WATERMARK_LEVEL
+            # portName:queueId CURRENT_LEVEL, WATERMARK_LEVEL, CURRENT_BYTE
             # e.g. PORT90:0 ['N/A', 'N/A', 'N/A']
             # Now, set default saved values to 0
             diff_cached = ['0', '0', '0']
@@ -271,9 +271,9 @@ class FabricQueueStat(FabricStat):
                 diff_cached = cnstat_cached_dict.get(key)
             port_id = port_name[len(PORT_NAME_PREFIX):]
             table.append((asic_name, port_id, self.get_port_state(port_name), queue_id,
-                          ns_diff(data.curbyte, diff_cached[0]),
-                          ns_diff(data.curlevel, diff_cached[1]),
-                          ns_diff(data.watermarklevel, diff_cached[2])))
+                          ns_diff(data.curbyte, diff_cached[2]),
+                          ns_diff(data.curlevel, diff_cached[0]),
+                          ns_diff(data.watermarklevel, diff_cached[1])))
 
         print(tabulate(table, queuestat_header, tablefmt='simple', stralign='right'))
         print()
