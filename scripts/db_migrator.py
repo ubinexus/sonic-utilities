@@ -1060,7 +1060,7 @@ class DBMigrator():
 
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
-
+        
         self.set_version('version_4_0_3')
         return 'version_4_0_3'
 
@@ -1139,6 +1139,7 @@ class DBMigrator():
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
+        self.migrate_sflow_table()
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()

@@ -719,7 +719,6 @@ class TestFastUpgrade_to_4_0_3(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        dbconnector.dedicated_dbs['CONFIG_DB'] = None
         dbconnector.dedicated_dbs['STATE_DB'] = None
 
     def mock_dedicated_config_db(self, filename):
@@ -743,8 +742,7 @@ class TestFastUpgrade_to_4_0_3(object):
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
-        if dbmgtr.CURRENT_VERSION == 'version_4_0_3':
-            assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
+        assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
 
 class TestSflowSampleDirectionMigrator(object):
     @classmethod
