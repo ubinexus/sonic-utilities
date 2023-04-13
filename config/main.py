@@ -15,6 +15,7 @@ import itertools
 import copy
 
 from jsonpatch import JsonPatchConflict
+from jsonpointer import JsonPointerException
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from minigraph import parse_device_desc_xml, minigraph_encoder
@@ -869,23 +870,8 @@ def _get_sonic_services():
     return (unit.strip() for unit in out.splitlines())
 
 
-def _get_delayed_sonic_units(get_timers=False):
-    rc1, _ = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
-    rc2, _ = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
-    timer = [line.strip() for line in rc1.splitlines()]
-    state = [line.strip() for line in rc2.splitlines()]
-    services = []
-    for unit in timer:
-        if state[timer.index(unit)] == "enabled":
-            if not get_timers:
-                services.append(re.sub('\.timer$', '', unit, 1))
-            else:
-                services.append(unit)
-    return services
-
-
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_units()):
+    for service in _get_sonic_services():
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -904,12 +890,6 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-def _delay_timers_elapsed():
-    for timer in _get_delayed_sonic_units(get_timers=True):
-        out, _ = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
-        if out.strip() == "0":
-            return False
-    return True
 
 def _per_namespace_swss_ready(service_name):
     out, _ = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
@@ -1362,20 +1342,6 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
-        # convert IPv6 addresses to lowercase
-        for patch_line in patch:
-            if 'remove' == patch_line['op']:
-                match = re.search(r"(?P<prefix>/INTERFACE/\w+\|)(?P<ipv6_address>([a-fA-F0-9]{0,4}[:~]|::){1,7}[a-fA-F0-9]{0,4})"
-                                    "(?P<suffix>.*)", str.format(patch_line['path']))
-                if match:
-                    prefix = match.group('prefix')
-                    ipv6_address_str = match.group('ipv6_address')
-                    suffix = match.group('suffix')
-                    ipv6_address_str = ipv6_address_str.lower()
-                    click.secho("converted ipv6 address to lowercase {} with prefix {} in value: {}"
-                                .format(ipv6_address_str, prefix, patch_line['path']))
-                    patch_line['path'] = prefix + ipv6_address_str + suffix
-
         config_format = ConfigFormat[format.upper()]
         GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
@@ -1503,10 +1469,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            sys.exit(CONFIG_RELOAD_NOT_READY)
-
-        if not _delay_timers_elapsed():
-            click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
             sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
@@ -4163,7 +4125,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         raise click.Abort()
 
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     target_brkout_mode = mode
 
@@ -4242,7 +4204,10 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         if interface_name not in  brkout_cfg_keys:
             click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
-        config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        try:
+            config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         click.secho("Breakout process got successfully completed."
                     .format(interface_name), fg="cyan", underline=True)
         click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
@@ -6389,15 +6354,19 @@ def ntp(ctx):
 @click.pass_context
 def add_ntp_server(ctx, ntp_ip_address):
     """ Add NTP server IP """
-    if not clicommon.is_ipaddress(ntp_ip_address):
-        ctx.fail('Invalid ip address')
-    db = ctx.obj['db']
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(ntp_ip_address): 
+            ctx.fail('Invalid IP address')
+    db = ValidatedConfigDBConnector(ctx.obj['db'])    
     ntp_servers = db.get_table("NTP_SERVER")
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
     else:
-        db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+        try:
+            db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
             click.echo("Restarting ntp-config service...")
@@ -6410,12 +6379,16 @@ def add_ntp_server(ctx, ntp_ip_address):
 @click.pass_context
 def del_ntp_server(ctx, ntp_ip_address):
     """ Delete NTP server IP """
-    if not clicommon.is_ipaddress(ntp_ip_address):
-        ctx.fail('Invalid IP address')
-    db = ctx.obj['db']
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(ntp_ip_address):
+            ctx.fail('Invalid IP address')
+    db = ValidatedConfigDBConnector(ctx.obj['db'])    
     ntp_servers = db.get_table("NTP_SERVER")
     if ntp_ip_address in ntp_servers:
-        db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        try:
+            db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
     else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
@@ -6668,16 +6641,19 @@ def add(ctx, name, ipaddr, port, vrf):
     if not is_valid_collector_info(name, ipaddr, port, vrf):
         return
 
-    config_db = ctx.obj['db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['db']) 
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
     if (collector_tbl and name not in collector_tbl and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
-
-    config_db.mod_entry('SFLOW_COLLECTOR', name,
-                        {"collector_ip": ipaddr,  "collector_port": port,
-                         "collector_vrf": vrf})
+    
+    try:
+        config_db.mod_entry('SFLOW_COLLECTOR', name,
+                            {"collector_ip": ipaddr,  "collector_port": port,
+                             "collector_vrf": vrf})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
     return
 
 #
@@ -6688,14 +6664,18 @@ def add(ctx, name, ipaddr, port, vrf):
 @click.pass_context
 def del_collector(ctx, name):
     """Delete a sFlow collector"""
-    config_db = ctx.obj['db']
-    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if name not in collector_tbl:
-        click.echo("Collector: {} not configured".format(name))
-        return
+        if name not in collector_tbl:
+            click.echo("Collector: {} not configured".format(name))
+            return
 
-    config_db.mod_entry('SFLOW_COLLECTOR', name, None)
+    try:
+        config_db.set_entry('SFLOW_COLLECTOR', name, None)
+    except (JsonPatchConflict, JsonPointerException) as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'sflow agent-id' group
