@@ -678,6 +678,7 @@ class AclLoader(object):
     def deny_rule(self, table_name):
         """
         Create default deny rule in Config DB format
+        Only create default deny rule when table is [L3, L3V6, MIRROR, MIRRORV6]
         :param table_name: ACL table name to which rule belong
         :return: dict with Config DB schema
         """
@@ -689,6 +690,8 @@ class AclLoader(object):
             rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
         elif self.is_table_ipv4(table_name):
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
+        else:
+            return {}  # Don't add default deny rule if table is not [L3, L3V6, MIRROR, MIRRORV6]
         return rule_data
 
     def convert_rules(self):
