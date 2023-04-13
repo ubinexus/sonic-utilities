@@ -15,6 +15,15 @@
     "tables": {
         "PFC_WD": {
             "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ]
+        },
+        "BUFFER_POOL": {
+            "table_modification_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ]
+        },
+        "BUFFER_PROFILE": {
+            "table_modification_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ]
+        },
+        "WRED_PROFILE": {
+            "table_modification_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ]
         }
     }
 }
