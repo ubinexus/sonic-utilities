@@ -67,7 +67,8 @@ def show_sflow_global(config_db):
     global_sample_dir = 'rx'
     if sflow_info:
         global_admin_state = sflow_info['global']['admin_state']
-        global_sample_dir = sflow_info['global']['sample_direction']
+        if ('sample_direction' in sflow_info['global']):
+            global_sample_dir = sflow_info['global']['sample_direction']
 
     click.echo("\nsFlow Global Information:")
     click.echo("  sFlow Admin State:".ljust(30) + "{}".format(global_admin_state))
