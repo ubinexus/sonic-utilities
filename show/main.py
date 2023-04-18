@@ -1297,6 +1297,7 @@ def version(verbose):
     sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    click.echo("SONiC OS Version: {}".format(version_info['sonic_os_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
@@ -2091,6 +2092,17 @@ def peer(db, peer_ip):
                                 values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 
     click.echo(tabulate(bfd_body, bfd_headers))
+
+
+# 'suppress-fib-pending' subcommand ("show suppress-fib-pending")
+@cli.command('suppress-fib-pending')
+@clicommon.pass_db
+def suppress_pending_fib(db):
+    """ Show the status of suppress pending FIB feature """
+
+    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
+    state = field_values.get('suppress-fib-pending', 'disabled').title()
+    click.echo(state)
 
 
 # Load plugins and register them
