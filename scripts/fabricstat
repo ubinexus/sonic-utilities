@@ -14,7 +14,7 @@ import utilities_common.multi_asic as multi_asic_util
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         tests_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
@@ -122,17 +122,21 @@ class FabricPortStat(FabricStat):
 
         table = []
         header = None
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        # Default ASIC name is 0 for single-ASIC systems. For multi-ASIC systems,
+        # derive name from namespace.
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_id = key[len(PORT_NAME_PREFIX):]
             if errors_only:
                 header = portstat_header_errors_only
-                table.append((asic, port_id, self.get_port_state(key),
+                table.append((asic_name, port_id, self.get_port_state(key),
                               data.crc, data.fec_correctable, data.fec_uncorrectable,
                               data.symbol_err))
             else:
                 header = portstat_header_all
-                table.append((asic, port_id, self.get_port_state(key),
+                table.append((asic_name, port_id, self.get_port_state(key),
                               data.in_cell, data.in_octet, data.out_cell, data.out_octet,
                               data.crc, data.fec_correctable, data.fec_uncorrectable,
                               data.symbol_err))
@@ -168,15 +172,46 @@ class FabricQueueStat(FabricStat):
             return
 
         table = []
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        # Default ASIC name is 0 for single-ASIC systems. For multi-ASIC systems,
+        # derive name from namespace.
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_name, queue_id = key.split(':')
             port_id = port_name[len(PORT_NAME_PREFIX):]
-            table.append((asic, port_id, self.get_port_state(port_name), queue_id,
+            table.append((asic_name, port_id, self.get_port_state(port_name), queue_id,
                           data.curbyte, data.curlevel, data.watermarklevel))
 
         print(tabulate(table, queuestat_header, tablefmt='simple', stralign='right'))
         print()
+
+class FabricReachability(FabricStat):
+    def reachability_print(self):
+        # Connect to database
+        self.db = multi_asic.connect_to_all_dbs_for_ns(self.namespace)
+        # Get the set of all fabric port keys
+        port_keys = self.db.keys(self.db.STATE_DB, FABRIC_PORT_STATUS_TABLE_PREFIX + '*')
+        # Create a new dictionary. The key values are the local port values
+        # in integer format. Only ports that have remote port data are added.
+        # Only ports that are "up" will be connected to a remote peer.
+        port_dict = {}
+        for port_key in port_keys:
+           port_data = self.db.get_all(self.db.STATE_DB, port_key)
+           if "REMOTE_PORT" in port_data:
+              port_number = int(port_key.replace("FABRIC_PORT_TABLE|PORT", ""))
+              port_dict.update({port_number: port_data})
+        # Create ordered table of port data
+        header = ["Local Link", "Remote Module", "Remote Link", "Status"]
+        body = []
+        for port_number in sorted(port_dict.keys()):
+              port_data = port_dict[port_number]
+              body.append((port_number, port_data["REMOTE_MOD"], \
+                           port_data["REMOTE_PORT"], port_data["STATUS"]))
+        if self.namespace:
+           print(f"\n{self.namespace}")
+        print(tabulate(body, header, tablefmt='simple', stralign='right'))
+        return
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the fabric port state and counters',
@@ -191,16 +226,25 @@ Examples:
 """)
 
     parser.add_argument('-q','--queue', action='store_true', help='Display fabric queue stat, otherwise port stat')
+    parser.add_argument('-r','--reachability', action='store_true', help='Display reachability, otherwise port stat')
     parser.add_argument('-n','--namespace', default=None, help='Display fabric ports counters for specific namespace')
     parser.add_argument('-e', '--errors', action='store_true', help='Display errors')
 
     args = parser.parse_args()
     queue = args.queue
+    reachability = args.reachability
     namespace = args.namespace
     errors_only = args.errors
 
     def nsStat(ns, errors_only):
-        stat = FabricQueueStat(ns) if queue else FabricPortStat(ns)
+        if queue:
+           stat = FabricQueueStat(ns)
+        elif reachability:
+           stat = FabricReachability(ns)
+           stat.reachability_print()
+           return
+        else:
+           stat = FabricPortStat(ns)
         cnstat_dict = stat.get_cnstat_dict()
         stat.cnstat_print(cnstat_dict, errors_only)
 

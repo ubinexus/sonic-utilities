@@ -276,8 +276,7 @@ save_to_tar() {
     local start_t=$(date +%s%3N)
     local end_t=0
 
-    cd $DUMPDIR
-    $TAR $V -rhf $TARFILE "$BASE"
+    $TAR $V -rhf $TARFILE -C $DUMPDIR "$BASE"
 
     end_t=$(date +%s%3N)
     echo "[ save_to_tar ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -522,12 +521,12 @@ save_bgp_neighbor() {
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
 
-    neighbor_list_v4=$(${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'")
+    neighbor_list_v4=$(${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}' | awk /\\\./")
     for word in $neighbor_list_v4; do
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
     done
-    neighbor_list_v6=$(${timeout_cmd} bash -c "vtysh $ns -c 'show bgp ipv6 neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}' | fgrep ':'")
+    neighbor_list_v6=$(${timeout_cmd} bash -c "vtysh $ns -c 'show bgp ipv6 neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}' | awk /:/")
     for word in $neighbor_list_v6; do
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
@@ -752,6 +751,7 @@ save_redis_info() {
     save_redis "CONFIG_DB" "CONFIG_DB" remove_secret_from_config_db_dump
     save_redis "FLEX_COUNTER_DB"
     save_redis "STATE_DB"
+    save_redis "APPL_STATE_DB"
 }
 
 ###############################################################################
@@ -920,6 +920,7 @@ save_platform_info() {
 #  filename: the full path of the file to save
 #  base_dir: the directory in $TARDIR/ to stage the file
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+#  do_tar_append: (OPTIONAL) true or false. Should the output be added to final tar archive
 # Returns:
 #  None
 ###############################################################################
@@ -930,13 +931,16 @@ save_file() {
     local orig_path=$1
     local supp_dir=$2
     local gz_path="$TARDIR/$supp_dir/$(basename $orig_path)"
+    local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
+    local do_tar_append=${4:-false}
     if [ ! -d "$TARDIR/$supp_dir" ]; then
         $MKDIR $V -p "$TARDIR/$supp_dir"
     fi
 
     if $do_gzip; then
         gz_path="${gz_path}.gz"
+        tar_path="${tar_path}.gz"
         if $NOOP; then
             echo "gzip -c $orig_path > $gz_path"
         else
@@ -948,6 +952,12 @@ save_file() {
         else
             cp $orig_path $gz_path
         fi
+    fi
+
+    if $do_tar_append; then
+        ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tar_path" \
+            || abort "${EXT_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+            && $RM $V -f "$gz_path"
     fi
 
     end_t=$(date +%s%3N)
@@ -1058,21 +1068,26 @@ collect_mellanox() {
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
-    ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
-    ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
+    if [[ "$( docker container inspect -f '{{.State.Running}}' syncd )" == "true" ]]; then
+        if [[ x"$(sonic-db-cli APPL_DB EXISTS PORT_TABLE:PortInitDone)" == x"1" ]]; then
+            # Run saisdkdump only after the create_switch is known to be successful
+            ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
+            ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
 
-    if [ $? != 0 ]; then
-        echo "Failed to collect saisdkdump."
+            if [ $? != 0 ]; then
+                echo "Failed to collect saisdkdump."
+            fi
+
+            copy_from_docker syncd $sai_dump_folder $sai_dump_folder
+            echo "$sai_dump_folder"
+            for file in `ls $sai_dump_folder`; do
+                save_file ${sai_dump_folder}/${file} sai_sdk_dump true
+            done
+
+            ${CMD_PREFIX}rm -rf $sai_dump_folder
+            ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
+        fi
     fi
-
-    copy_from_docker syncd $sai_dump_folder $sai_dump_folder
-    echo "$sai_dump_folder"
-    for file in `ls $sai_dump_folder`; do
-        save_file ${sai_dump_folder}/${file} sai_sdk_dump true
-    done
-
-    ${CMD_PREFIX}rm -rf $sai_dump_folder
-    ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
 
     # run 'hw-management-generate-dump.sh' script and save the result file
     HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
@@ -1134,9 +1149,9 @@ collect_mellanox_dfw_dumps() {
             ${CMD_PREFIX}save_symlink ${file} sai_sdk_dump log
         else
             if [ ! -z "${file##*.gz}" ]; then
-                ${CMD_PREFIX}save_file ${file} sai_sdk_dump true
+                ${CMD_PREFIX}save_file ${file} sai_sdk_dump true true
             else
-                ${CMD_PREFIX}save_file ${file} sai_sdk_dump false
+                ${CMD_PREFIX}save_file ${file} sai_sdk_dump false true
             fi
         fi
     done
@@ -1211,39 +1226,47 @@ collect_broadcom() {
     fi
 
     if [ "$bcm_family" == "broadcom-dnx" ]; then
-       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
-       save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
-       total_fp_groups=34
-       for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
-       do
-         save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
-       done
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
-       save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
-       save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
-       save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
-       save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+       supervisor=0
+       PLATFORM_ENV_CONF=/usr/share/sonic/device/${platform}/platform_env.conf
+       if [ -f "$PLATFORM_ENV_CONF" ]; then
+          source $PLATFORM_ENV_CONF
+       fi
+       if [[ x"$supervisor" != x"1" ]]; then
+
+          save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+          save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
+          total_fp_groups=34
+          for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
+          do
+            save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
+          done
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
+          save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
+          save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
+          save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
+          save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+          save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+          save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+          for group in {a..f}
+          do
+             save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+          done
+       fi
        save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
        save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
        save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
        save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
-       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
-       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
-       for group in {a..f}
-       do
-          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
-       done
        save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
        save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
     else
@@ -1427,6 +1450,38 @@ save_crash_files() {
 }
 
 ###############################################################################
+# Collect SAI failure dump files under /var/log/sai_failure_dump/. These files are
+#  created because of the orchagent abort triggered by SAI programming failure
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_sai_failure_dump(){
+    for file in $(find_files "/var/log/sai_failure_dump/"); do
+        if $TAR -tf $TARFILE | grep $BASE/log/$(basename $file); then
+            # if the files are already collected under the log/ dir
+            # just add a symbolic link
+            if [ ! -z "${file##*.gz}" ]; then
+                # files saved under log/ are zipped with gz
+                file=$file.gz
+            fi
+            ${CMD_PREFIX}save_symlink ${file} sai_failure_dump log
+        else
+            if [ ! -z "${file##*.gz}" ]; then
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump true true
+            else
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump false true
+            fi
+        fi
+        #Clean up the file once its part of tech support
+        rm -f $file
+    done
+}
+
+###############################################################################
 # Get number of ASICs in the platform
 # Globals:
 #  None
@@ -1558,6 +1613,7 @@ main() {
     wait
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    local device_type=`sonic-db-cli CONFIG_DB hget 'DEVICE_METADATA|localhost' type`
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
@@ -1656,9 +1712,11 @@ main() {
     wait
     save_cmd "hdparm -i /dev/sda" "hdparm" &
     save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended" &
-
-    save_saidump &
     wait
+
+    if [[ "$device_type" != "SpineRouter" ]]; then
+        save_saidump
+    fi
 
     if [ "$asic" = "barefoot" ]; then
         collect_barefoot
@@ -1679,10 +1737,6 @@ main() {
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
 
-    $RM $V -rf $TARDIR
-    $MKDIR $V -p $TARDIR
-    $MKDIR $V -p $LOGDIR
-
     # Copying the /etc files to a directory and then tar it
     $CP -r /etc $TARDIR/etc
     rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
@@ -1698,7 +1752,7 @@ main() {
     $RM $V -rf $TARDIR/etc/alternatives $TARDIR/etc/passwd* \
     $TARDIR/etc/shadow* $TARDIR/etc/group* $TARDIR/etc/gshadow* \
     $TARDIR/etc/ssh* $TARDIR/etc/mlnx $TARDIR/etc/mft \
-    $TARDIR/etc/ssl/certs/ $TARDIR/etc/ssl/private/*
+    $TARDIR/etc/ssl/certs/* $TARDIR/etc/ssl/private/*
     rm_list=$(find -L $TARDIR -type f \( -iname \*.cer -o -iname \*.crt -o \
         -iname \*.pem -o -iname \*.key -o -iname \*snmpd.conf\* -o -iname \*get_creds\* \))
     if [ ! -z "$rm_list" ]
@@ -1710,6 +1764,10 @@ main() {
     save_crash_files &
     save_warmboot_files &
     wait
+
+    save_to_tar
+
+    save_sai_failure_dump 
 
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox_dfw_dumps
@@ -1723,9 +1781,7 @@ main() {
 ###############################################################################
 finalize() {
     # Save techsupport timing profile info
-    save_file $TECHSUPPORT_TIME_INFO log false
-
-    save_to_tar
+    save_file $TECHSUPPORT_TIME_INFO log false true
 
     if $DO_COMPRESS; then
         RC=0
