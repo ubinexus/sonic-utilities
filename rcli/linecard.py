@@ -80,12 +80,11 @@ class Linecard:
     
     def _write_to_terminal(self, data):
         # Write channel output to terminal
-        sys.stdout.write(data.decode())
+        sys.stdout.write(data)
         sys.stdout.flush() 
          
     def _start_interactive_shell(self):
-        # #import pdb; pdb.set_trace()
-        # oldtty = termios.tcgetattr(sys.stdin)
+        oldtty = termios.tcgetattr(sys.stdin)
         try:
             self._set_tty_params()
             self.channel.settimeout(0.0)
@@ -113,7 +112,7 @@ class Linecard:
                     self.channel.send(x)
         finally:
             # Now that the channel has been exited, return to the previously-saved old tty
-            #termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
             pass
         
 

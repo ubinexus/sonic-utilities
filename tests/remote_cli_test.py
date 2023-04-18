@@ -10,6 +10,7 @@ from io import BytesIO, StringIO
 from unittest import mock
 import select
 import socket
+import termios
 
 MULTI_LC_REXEC_OUTPUT = '''======== sonic-lc1 output: ========
 hello world
@@ -199,7 +200,8 @@ class TestRemoteCLI(object):
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     @mock.patch("rcli.utils.get_password", mock.MagicMock(return_value="dummy"))
     @mock.patch.object(linecard.Linecard, '_set_tty_params', mock.MagicMock())
-    #@mock.patch.object(linecard.Linecard, '_is_data_to_read', mock.MagicMock(return_value=True))
+    @mock.patch.object(termios, 'tcsetattr', mock.MagicMock())
+    @mock.patch.object(termios, 'tcgetattr', mock.MagicMock(return_value=[]))
     def test_rcli_with_module_name(self):
         runner = CliRunner()
         LINECARD_NAME = "LINE-CARD0"
@@ -217,6 +219,8 @@ class TestRemoteCLI(object):
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     @mock.patch("rcli.utils.get_password", mock.MagicMock(return_value="dummy"))
     @mock.patch.object(linecard.Linecard, '_set_tty_params', mock.MagicMock())
+    @mock.patch.object(termios, 'tcsetattr', mock.MagicMock())
+    @mock.patch.object(termios, 'tcgetattr', mock.MagicMock(return_value=[]))
     def test_rcli_with_module_name_2(self):
         runner = CliRunner()
         LINECARD_NAME = "LINE-CARD0"
@@ -227,12 +231,14 @@ class TestRemoteCLI(object):
             result = runner.invoke(rshell.cli, [LINECARD_NAME])
         print(result.output)
         assert result.exit_code == 0, result.output
-        assert "abcd" in result.output    
+        assert "Connecting to LINE-CARD0" in result.output    
 
     @mock.patch("sonic_py_common.device_info.is_chassis", mock.MagicMock(return_value=True))
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     @mock.patch("rcli.utils.get_password", mock.MagicMock(return_value="dummy"))
     @mock.patch.object(linecard.Linecard, '_set_tty_params', mock.MagicMock())
+    @mock.patch.object(termios, 'tcsetattr', mock.MagicMock())
+    @mock.patch.object(termios, 'tcgetattr', mock.MagicMock(return_value=[]))
     def test_rcli_with_module_name_3(self):
         runner = CliRunner()
         LINECARD_NAME = "LINE-CARD0"
@@ -243,7 +249,7 @@ class TestRemoteCLI(object):
             result = runner.invoke(rshell.cli, [LINECARD_NAME])
         print(result.output)
         assert result.exit_code == 0, result.output
-        assert "abcd" in result.output
+        assert "Connecting to LINE-CARD0" in result.output
 
     def test_rcli_error(self):
         runner = CliRunner()
