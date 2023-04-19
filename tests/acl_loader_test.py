@@ -148,6 +148,8 @@ class TestAclLoader(object):
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        assert acl_loader.rules_info[('BMC_ACL_NORTHBOUND', 'DEFAULT_RULE')] == {}
+        assert acl_loader.rules_info[('BMC_ACL_NORTHBOUND_V6', 'DEFAULT_RULE')] == {}
 
     def test_egress_no_default_deny_rule(self, acl_loader):
         acl_loader.rules_info = {}
