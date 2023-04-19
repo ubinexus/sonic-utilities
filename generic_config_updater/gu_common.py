@@ -166,7 +166,7 @@ class ConfigWrapper:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
                     raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
 
-        def _invoke_validating_function(cmd):
+        def _invoke_validating_function(cmd, path, operation):
             # cmd is in the format as <package/module name>.<method name>
             method_name = cmd.split(".")[-1]
             module_name = ".".join(cmd.split(".")[0:-1])
@@ -184,6 +184,7 @@ class ConfigWrapper:
 
         for element in patch:
             path = element["path"]
+            operation = element["op"]
             match = re.search(r'\/([^\/]+)(\/|$)', path) # This matches the table name in the path, eg if path if /PFC_WD/GLOBAL, the match would be PFC_WD
             if match is not None:
                 table = match.group(1)
@@ -194,7 +195,7 @@ class ConfigWrapper:
             validating_functions.update(tables.get(table, {}).get("field_operation_validators", []))
 
             for function in validating_functions:
-                if not _invoke_validating_function(function):
+                if not _invoke_validating_function(function, path, operation):
                     raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
 
 
