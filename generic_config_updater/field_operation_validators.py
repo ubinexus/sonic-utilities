@@ -12,10 +12,9 @@ def get_asic_name():
     asic = "unknown"
     command = ["sudo", "lspci"]
     hwsku = device_info.get_hwsku()
- 
     proc = subprocess.Popen(command, universal_newlines=True, stdout=subprocess.PIPE)
-    output = proc.stdout.readlines()
     proc.communicate()
+    output = proc.stdout.readlines()
  
     if proc.returncode == 0:
         if "Broadcom Limited Device b960" in output or "Broadcom Limited Broadcom BCM56960" in output:
