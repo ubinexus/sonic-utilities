@@ -9,7 +9,7 @@
         "",
         "e.g. 'show.acl.test_acl'",
         "",
-        "table_operation_validators for a given table defines a list of validators that all must pass for modification to the table to be allowed",
+        "field_operation_validators for a given table defines a list of validators that all must pass for modification to the specified field and table to be allowed",
         "",
         "validator_data provides data relevant to each validator",
         ""
