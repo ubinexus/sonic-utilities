@@ -151,9 +151,9 @@ class TestAclLoader(object):
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
-        # Verify MIRROR doesn't add default deny rule correctly
+        # Verify acl-loader doesn't add default deny rule to MIRROR
         assert ('EVERFLOW', 'DEFAULT_RULE') not in acl_loader.rules_info
-        # Verify MIRRORV6 can add default deny rule correctly
+        # Verify acl-loader doesn't add default deny rule to MIRRORV6
         assert ('EVERFLOWV6', 'DEFAULT_RULE') not in acl_loader.rules_info
         # Verify acl-loader doesn't add default deny rule to custom ACL table types
         assert ('BMC_ACL_NORTHBOUND', 'DEFAULT_RULE') not in acl_loader.rules_info
