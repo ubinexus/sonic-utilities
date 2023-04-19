@@ -86,8 +86,8 @@ def rdma_config_update_validator(path, operation):
     if operation not in scenario["operations"]:
         return False
 
-    if platform in scenario["platforms"]:
-        if version < scenario["platforms"][platform]:
+    if asic in scenario["platforms"]:
+        if branch_version < scenario["platforms"][asic]:
             return False
     else:
         return False
