@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+import re
 
 import click
 import utilities_common.cli as clicommon
@@ -11,6 +12,7 @@ from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 from utilities_common.general import load_db_config
 from sonic_py_common import logger
+from swsscommon.swsscommon import FRONT_PANEL_PORT_PREFIX_REGEX
 
 SYSLOG_IDENTIFIER = "config"
 
@@ -83,7 +85,7 @@ def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     # Get list of physical ports
     port_names = {}
     for i in all_port_names:
-        if i.startswith('Ethernet'):
+        if re.search(FRONT_PANEL_PORT_PREFIX_REGEX, i):
             port_names[i] = all_port_names[i]
     display_ports = list(port_names.keys())
     if display == constants.DISPLAY_EXTERNAL:

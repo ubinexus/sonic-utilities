@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import re
 
 import netaddr
 import netifaces
@@ -55,7 +56,7 @@ def get_bgp_peer():
 
 def skip_ip_intf_display(interface, display_option):
     if display_option != constants.DISPLAY_ALL:
-        if interface.startswith('Ethernet') and multi_asic.is_port_internal(interface):
+        if re.search(swsscommon.FRONT_PANEL_PORT_PREFIX_REGEX, interface) and multi_asic.is_port_internal(interface):
             return True
         elif interface.startswith('PortChannel') and multi_asic.is_port_channel_internal(interface):
             return True

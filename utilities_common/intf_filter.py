@@ -1,6 +1,7 @@
 # Interface filtering functions
+import re
+from swsscommon.swsscommon import FRONT_PANEL_PORT_PREFIX_REGEX
 
-SONIC_PORT_NAME_PREFIX = "Ethernet"
 SONIC_LAG_NAME_PREFIX = "PortChannel"
 SONIC_BACK_PORT_NAME_PREFIX = "Ethernet-BP"
 
@@ -26,10 +27,12 @@ def parse_interface_in_filter(intf_filter):
                 intf_fs.append(intf+x)
         elif '-' in x:
             # handle range
-            if not x.startswith(SONIC_PORT_NAME_PREFIX) and not x.startswith(SONIC_LAG_NAME_PREFIX):
+            if not re.search(FRONT_PANEL_PORT_PREFIX_REGEX, x) and not x.startswith(SONIC_LAG_NAME_PREFIX):
                 continue
             if x.startswith(SONIC_PORT_NAME_PREFIX):
                 intf = SONIC_PORT_NAME_PREFIX
+            if x.startswith(SONIC_IB_PORT_NAME_PREFIX):
+                intf = SONIC_IB_PORT_NAME_PREFIX
             if x.startswith(SONIC_LAG_NAME_PREFIX):
                 intf = SONIC_LAG_NAME_PREFIX
             start = x.split('-')[0].split(intf,1)[1]

@@ -14,7 +14,7 @@ from typing import Dict
 
 import click
 from natsort import natsorted
-from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
+from sonic_py_common.interface import front_panel_prefix_regex, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
 from utilities_common.sfp_helper import QSFP_DATA_MAP, CMIS_DATA_MAP
@@ -508,7 +508,7 @@ class SFPShow(object):
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
-                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
+                if interface and re.search(front_panel_prefix_regex(), interface) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
                     self.intf_eeprom[interface] = self.convert_interface_sfp_info_to_cli_output_string(
                         self.db, interface, self.dump_dom)
 
@@ -519,6 +519,7 @@ class SFPShow(object):
         else:
             output = 'Not present'
         return output
+
 
 
     @multi_asic_util.run_on_multi_asic
@@ -532,7 +533,7 @@ class SFPShow(object):
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
                 key = re.split(':', i, maxsplit=1)[-1].strip()
-                if key and key.startswith(front_panel_prefix()) and not key.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
+                if key and re.search(front_panel_prefix_regex(), key) and not key.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
                     presence_string = self.convert_interface_sfp_presence_state_to_cli_output_string(self.db, key)
                     port_table.append((key, presence_string))
 
