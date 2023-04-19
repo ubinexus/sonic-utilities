@@ -354,14 +354,6 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]["type"].upper() == "L3"
 
-    def is_table_ipv4(self, tname):
-        """
-        Check if ACL table type is IPv4 (L3 or MIRROR)
-        :param tname: ACL table name
-        :return: True if table type is IPv4 else False
-        """
-        return self.tables_db_info[tname]["type"].upper() in ("L3", "MIRROR")
-
     def is_table_ipv6(self, tname):
         """
         Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
