@@ -137,17 +137,31 @@ class TestAclLoader(object):
     def test_ingress_default_deny_rule(self, acl_loader):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
-        print(acl_loader.rules_info)
+        # Verify L3 can add default deny rule correctly
         assert acl_loader.rules_info[('DATAACL', 'DEFAULT_RULE')] == {
             'PRIORITY': '1',
             'PACKET_ACTION': 'DROP',
             'ETHER_TYPE': '2048'
         }
+        # Verify L3V6 can add default deny rule correctly
         assert acl_loader.rules_info[('DATAACL_2', 'DEFAULT_RULE')] == {
             'PRIORITY': '1',
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        # Verify MIRROR can add default deny rule correctly
+        assert acl_loader.rules_info[('EVERFLOW', 'DEFAULT_RULE')] == {
+            'PRIORITY': '1',
+            'PACKET_ACTION': 'DROP',
+            'ETHER_TYPE': '2048'
+        }
+        # Verify MIRRORV6 can add default deny rule correctly
+        assert acl_loader.rules_info[('EVERFLOWV6', 'DEFAULT_RULE')] == {
+            'PRIORITY': '1',
+            'PACKET_ACTION': 'DROP',
+            'IP_TYPE': 'IPV6ANY'
+        }
+        # Verify acl-loader doesn't add default deny rule to custom ACL table types
         assert acl_loader.rules_info[('BMC_ACL_NORTHBOUND', 'DEFAULT_RULE')] == {}
         assert acl_loader.rules_info[('BMC_ACL_NORTHBOUND_V6', 'DEFAULT_RULE')] == {}
 
