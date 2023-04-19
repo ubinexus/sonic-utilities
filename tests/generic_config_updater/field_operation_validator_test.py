@@ -24,45 +24,37 @@ class TestValidateFieldOperation(unittest.TestCase):
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20171131"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
-    @patch("builtins.open", mock_open(read_data="sample"))
-    @patch('json.load')
-    def test_rdma_config_update_validator_spc_asic_invalid_version(self, mock_json_config):
+    @patch("builtins.open", mock_open(read_data='{"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_invalid_version(self):
         path = "/PFC_WD/Ethernet8/action"
         operation = "replace"
-        mock_json_config.return_value = {"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(path, operation) == False
     
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
-    @patch("builtins.open", mock_open(read_data="sample"))
-    @patch('json.load')
-    def test_rdma_config_update_validator_spc_asic_valid_version(self, mock_json_config):
+    @patch("builtins.open", mock_open(read_data='{"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_valid_version(self):
         path = "/PFC_WD/Ethernet8/action"
         operation = "replace"
-        mock_json_config.return_value = {"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(path, operation) == True
    
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
-    @patch("builtins.open", mock_open(read_data="sample"))
-    @patch('json.load')
-    def test_rdma_config_update_validator_spc_asic_invalid_op(self, mock_json_config):
+    @patch("builtins.open", mock_open(read_data='{"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_invalid_op(self):
         path = "/PFC_WD/Ethernet8/action"
         operation = "invalid-op"
-        mock_json_config.return_value = {"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(path, operation) == False
     
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
-    @patch("builtins.open", mock_open(read_data="sample"))
-    @patch('json.load')
-    def test_rdma_config_update_validator_spc_asic_other_field(self, mock_json_config):
+    @patch("builtins.open", mock_open(read_data='{"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_other_field(self):
         path = "/PFC_WD/Ethernet8/other_field"
         operation = "invalid-op"
-        mock_json_config.return_value = {"tables": {"pfc_wd": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(path, operation) == False
     
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
