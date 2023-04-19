@@ -78,7 +78,7 @@
 						"name": "Sonic-SNMP_ACL"
 					}
 				},
-				"everflow": {
+				"sonic-everflow": {
 					"acl-entries": {
 						"acl-entry": {
 							"1": {
@@ -269,7 +269,7 @@
 								},
 								"actions": {
 									"config": {
-										"forwarding-action": "DROP"
+										"forwarding-action": "ACCEPT"
 									}
 								},
 								"ip": {
@@ -301,7 +301,7 @@
 								},
 								"actions": {
 									"config": {
-										"forwarding-action": "DROP"
+										"forwarding-action": "ACCEPT"
 									}
 								},
 								"ip": {
