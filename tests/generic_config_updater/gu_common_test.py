@@ -4,7 +4,6 @@ import jsonpatch
 import sonic_yang
 import unittest
 import mock
-import generic_config_updater
 
 from unittest.mock import MagicMock, Mock
 from mock import patch

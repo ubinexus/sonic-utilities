@@ -49,7 +49,7 @@ def rdma_config_update_validator(path, operation):
 
     version_substrings = build_version.split('.')
     branch_version = None
- 
+
     for substring in version_substrings:
         if substring.isdigit() and re.match(r'^\d{8}$', substring):
             branch_version = substring
