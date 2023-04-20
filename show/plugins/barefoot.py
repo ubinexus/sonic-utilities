@@ -33,9 +33,9 @@ def profile():
     # Exclude current and unsupported profiles
     opts = ''
     if chip_family == 'tofino':
-        opts = r'\! -name install_y\*_profile '
+        opts = r'\! -name install_y\*_profile'
     elif chip_family == 'tofino2':
-        opts = r'\! -name install_x\*_profile '
+        opts = r'\! -name install_x\*_profile'
     
     # Print profile list
     click.echo('Available profile(s):')
