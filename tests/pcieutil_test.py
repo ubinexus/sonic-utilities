@@ -199,6 +199,11 @@ class TestPcieUtil(object):
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["correctable"], ["-d", "0:1.0"])
         assert result.output == pcieutil_pcie_aer_correctable_dev_output
 
+    def test_load_pcie_module_warning(self):
+        runner = CliRunner()
+        result = runner.invoke(pcieutil.cli.commands["show"])
+        assert "Failed to load platform Pcie module. Warning : No module named 'sonic_platform.pcie', fallback to load Pcie common utility." not in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
