@@ -1257,14 +1257,18 @@ def table(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def logging(process, lines, follow, verbose):
     """Show system log"""
+    if os.path.exists("/var/log.tmpfs"):
+        log_path = "/var/log.tmpfs"
+    else:
+        log_path = "/var/log"
     if follow:
-        cmd = "sudo tail -F /var/log/syslog"
+        cmd = "sudo tail -F {}/syslog".format(log_path)
         run_command(cmd, display_cmd=verbose)
     else:
-        if os.path.isfile("/var/log/syslog.1"):
-            cmd = "sudo cat /var/log/syslog.1 /var/log/syslog"
+        if os.path.isfile("{}/syslog.1".format(log_path)):
+            cmd = "sudo cat {}/syslog.1 {}/syslog".format(log_path, log_path)
         else:
-            cmd = "sudo cat /var/log/syslog"
+            cmd = "sudo cat {}/syslog".format(log_path)
 
         if process is not None:
             cmd += " | grep '{}'".format(process)
@@ -1293,6 +1297,7 @@ def version(verbose):
     sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    click.echo("SONiC OS Version: {}".format(version_info['sonic_os_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
@@ -1439,10 +1444,40 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def bgp(verbose):
-    """Show BGP running configuration"""
-    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+def bgp(namespace, verbose):
+    """
+    Show BGP running configuration
+    Note:
+        multi-asic can run 'show run bgp' and show from all asics, or 'show run bgp -n <ns>'
+        single-asic only run 'show run bgp', '-n' is not available
+    """
+
+    if multi_asic.is_multi_asic():
+        if namespace and namespace not in multi_asic.get_namespace_list():
+            ctx = click.get_current_context()
+            ctx.fail("invalid value for -n/--namespace option. provide namespace from list {}".format(multi_asic.get_namespace_list()))
+    if not multi_asic.is_multi_asic() and namespace:
+        ctx = click.get_current_context()
+        ctx.fail("-n/--namespace is not available for single asic")
+
+    output = ""
+    cmd = "show running-config bgp"
+    import utilities_common.bgp_util as bgp_util
+    if multi_asic.is_multi_asic():
+        if not namespace:
+            ns_list = multi_asic.get_namespace_list()
+            for ns in ns_list:
+                output += "\n------------Showing running config bgp on {}------------\n".format(ns)
+                output += bgp_util.run_bgp_show_command(cmd, ns)
+        else:
+            output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
+            output += bgp_util.run_bgp_show_command(cmd, namespace)
+    else:
+        output += bgp_util.run_bgp_show_command(cmd)
+    print(output)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
@@ -2057,6 +2092,17 @@ def peer(db, peer_ip):
                                 values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 
     click.echo(tabulate(bfd_body, bfd_headers))
+
+
+# 'suppress-fib-pending' subcommand ("show suppress-fib-pending")
+@cli.command('suppress-fib-pending')
+@clicommon.pass_db
+def suppress_pending_fib(db):
+    """ Show the status of suppress pending FIB feature """
+
+    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
+    state = field_values.get('suppress-fib-pending', 'disabled').title()
+    click.echo(state)
 
 
 # Load plugins and register them
