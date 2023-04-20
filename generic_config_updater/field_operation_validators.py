@@ -16,7 +16,9 @@ def get_asic_name():
     proc.communicate()
     output = proc.stdout.readlines()
  
-    if proc.returncode == 0:
+    if device_info.get_sonic_version_info()['asic_type'] == 'cisco-8000':
+        asic = "cisco-8000"
+    elif proc.returncode == 0:
         if "Broadcom Limited Device b960" in output or "Broadcom Limited Broadcom BCM56960" in output:
             asic = "th"
         elif "Broadcom Limited Device b971" in output:
@@ -25,10 +27,7 @@ def get_asic_name():
             asic = "td2"
         elif "Broadcom Limited Device b870" in output or "Broadcom Inc. and subsidiaries Device b870" in output:
             asic = "td3"
- 
-    if device_info.get_sonic_version_info()['asic_type'] == 'cisco-8000':
-        asic = "cisco-8000"
-    elif asic == "unknown":
+    else:
         spc1_hwskus = [ 'ACS-MSN2700', 'ACS-MSN2740', 'ACS-MSN2100', 'ACS-MSN2410', 'ACS-MSN2010', 'Mellanox-SN2700', 'Mellanox-SN2700-D48C8' ]
         if hwsku.lower() in [spc1_hwsku.lower() for spc1_hwsku in spc1_hwskus]:
             asic = "spc1"
