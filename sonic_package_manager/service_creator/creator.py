@@ -112,9 +112,7 @@ def run_command(command: List[str]):
         sys.exit("Input command should be a list of strings")
     log.debug(f'running command: {command}')
 
-    proc = subprocess.Popen(command,
-                            executable='/bin/bash',
-                            stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
     (_, _) = proc.communicate()
     if proc.returncode != 0:
         raise ServiceCreatorError(f'Failed to execute "{command}"')
