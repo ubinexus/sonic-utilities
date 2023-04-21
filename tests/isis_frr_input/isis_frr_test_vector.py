@@ -500,6 +500,71 @@ def mock_show_run_isis(request):
     else:
         return ""
 
+isis_summary_output = \
+"""
+r1# show isis summary 
+vrf             : default
+Process Id      : 4663
+System Id       : 0000.0000.0000
+Up time         : 00:04:31 ago
+Number of areas : 1
+Area 1:
+  Net: 10.0000.0000.0000.0000.0000.0000.0000.0000.0000.00
+  TX counters per PDU type:
+     L2 IIH: 144
+     L2 LSP: 4
+    L2 CSNP: 29
+   LSP RXMT: 0
+  RX counters per PDU type:
+     L2 IIH: 143
+     L2 LSP: 4
+  Drop counters per PDU type:
+     L2 IIH: 1
+  Advertise high metrics: Disabled
+  Level-1:
+    LSP0 regenerated: 3
+         LSPs purged: 0
+    SPF:
+      minimum interval  : 1
+    IPv4 route computation:
+      last run elapsed  : 00:04:25 ago
+      last run duration : 111 usec
+      run count         : 3
+    IPv6 route computation:
+      last run elapsed  : 00:04:25 ago
+      last run duration : 23 usec
+      run count         : 3
+  Level-2:
+    LSP0 regenerated: 4
+         LSPs purged: 0
+    SPF:
+      minimum interval  : 1
+    IPv4 route computation:
+      last run elapsed  : 00:04:21 ago
+      last run duration : 45 usec
+      run count         : 9
+    IPv6 route computation:
+      last run elapsed  : 00:04:21 ago
+      last run duration : 14 usec
+      run count         : 9
+"""
+
+isis_summary_invalid_help_output = \
+"""Usage: summary [OPTIONS]
+Try "summary --help" for help.
+
+Error: Got unexpected extra argument (?)
+"""
+
+def mock_show_isis_summary(request):
+    if request.param == 'isis_summary_output':
+        return isis_summary_output
+    elif request.param == 'isis_summary_invalid_help_output':
+        return isis_summary_invalid_help_output
+    else:
+        return ""
+
+
 testData = {
     'isis_neighbors': {
         'args': [],
@@ -601,6 +666,15 @@ testData = {
         'rc': 2,
         'rc_output': isis_interface_unknown_ifname_output
     },
+    'isis_summary': {
+        'args': [],
+        'rc': 0,
+        'rc_output': isis_summary_output
+    },
+    'isis_summary_invalid_help': {
+        'args': ['?'],
+        'rc': 2,
+        'rc_output': isis_summary_invalid_help_output
     'show_run_isis': {
         'args': [],
         'rc': 0,

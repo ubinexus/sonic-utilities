@@ -23,6 +23,7 @@ from .isis_frr_input.isis_frr_test_vector import(
     mock_show_isis_database,
     mock_show_isis_hostname,
     mock_show_isis_interface,
+    mock_show_isis_summary
     mock_show_run_isis
     )
 from . import config_int_ip_common
@@ -400,10 +401,14 @@ def setup_single_isis_instance(request):
     elif request.param.startswith('isis_interface') or \
             request.param.startswith('isis_interface'):
         bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=mock_show_isis_interface(request))
+            return_value=mock_show_isis_interface(request))  
+    elif request.param.startswith('isis_summary'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_isis_summary(request)) 
     elif request.param.startswith('show_run_isis'):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_run_isis(request))    
+
     yield
 
     bgp_util.run_bgp_command = _old_run_bgp_command
