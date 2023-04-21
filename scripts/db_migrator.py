@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_0'
+        self.CURRENT_VERSION = 'version_4_0_1'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -579,6 +579,23 @@ class DBMigrator():
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
+    def migrate_route_table(self):
+        """
+        Handle route table migration. Migrations handled:
+        1. 'weight' attr in ROUTE object was introduced 202205 onwards.
+            Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        """
+        route_table = self.appDB.get_table("ROUTE_TABLE")
+        for route_prefix, route_attr in route_table.items():
+            if 'weight' not in route_attr:
+                if type(route_prefix) == tuple:
+                    # IPv6 route_prefix is returned from db as tuple
+                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+                else:
+                    # IPv4 route_prefix is returned from db as str
+                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -850,9 +867,28 @@ class DBMigrator():
     def version_4_0_0(self):
         """
         Version 4_0_0.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_0')
+        # Update state-db fast-reboot entry to enable if set to enable fast-reboot finalizer when using upgrade with fast-reboot
+        # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
+        # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
+        # not using hash and won't work.
+        # FAST_REBOOT table exists only if fast-reboot was triggered.
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+        if keys:
+            enable_state = 'true'
+        else:
+            enable_state = 'false'
+        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        self.set_version('version_4_0_1')
+        return 'version_4_0_1'
+    
+    def version_4_0_1(self):
+        """
+        Version 4_0_1.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_1')
         return None
 
     def get_version(self):
@@ -898,6 +934,8 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
+
+        self.migrate_route_table()
 
     def migrate(self):
         version = self.get_version()

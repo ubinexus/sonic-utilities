@@ -136,3 +136,15 @@ def topology(level_1, level_2):
     output += bgp_util.run_bgp_show_command(command)
 
     click.echo(output.rstrip('\n'))
+
+# 'summary' subcommand ("show isis summary") 
+@isis.command()
+def summary():
+    """Show ISIS summary"""
+
+    command = 'show isis summary'
+
+    output = ""
+    output += bgp_util.run_bgp_show_command(command)
+
+    click.echo(output.rstrip('\n'))

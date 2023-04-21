@@ -476,6 +476,46 @@ Try "topology --help" for help.
 Error: Got unexpected extra argument (?)
 """
 
+show_run_isis_output = \
+"""Building configuration...
+
+Current configuration:
+!
+frr version 8.2.2
+frr defaults traditional
+hostname vlab-01
+log syslog informational
+log facility local4
+no service integrated-vtysh-config
+!
+password zebra
+enable password zebra
+!
+interface PortChannel101
+ ip router isis 1
+ ipv6 router isis 1
+ isis network point-to-point
+exit
+!
+router isis 1
+ is-type level-2-only
+ net 49.0001.1720.1700.0002.00
+ lsp-mtu 1383
+ lsp-timers level-1 gen-interval 30 refresh-interval 900 max-lifetime 1200
+ lsp-timers level-2 gen-interval 30 refresh-interval 305 max-lifetime 900
+ log-adjacency-changes
+exit
+!
+end
+"""
+
+show_run_isis_invalid_help_output = \
+"""Usage: isis [OPTIONS]
+Try "isis --help" for help.
+
+Error: Got unexpected extra argument (?)
+"""
+
 isis_topology_level_1_output = \
 """Area 1:
 """
@@ -508,6 +548,79 @@ def mock_show_isis_topology(request):
         return isis_topology_level_2_output
     else:
         return ""
+
+def mock_show_run_isis(request):
+    if request.param == 'show_run_isis_output':
+        return show_run_isis_output
+    elif request.param == 'show_run_isis_invalid_help_output':
+        return show_run_isis_invalid_help_output
+    else:
+        return ""
+
+isis_summary_output = \
+"""
+r1# show isis summary 
+vrf             : default
+Process Id      : 4663
+System Id       : 0000.0000.0000
+Up time         : 00:04:31 ago
+Number of areas : 1
+Area 1:
+  Net: 10.0000.0000.0000.0000.0000.0000.0000.0000.0000.00
+  TX counters per PDU type:
+     L2 IIH: 144
+     L2 LSP: 4
+    L2 CSNP: 29
+   LSP RXMT: 0
+  RX counters per PDU type:
+     L2 IIH: 143
+     L2 LSP: 4
+  Drop counters per PDU type:
+     L2 IIH: 1
+  Advertise high metrics: Disabled
+  Level-1:
+    LSP0 regenerated: 3
+         LSPs purged: 0
+    SPF:
+      minimum interval  : 1
+    IPv4 route computation:
+      last run elapsed  : 00:04:25 ago
+      last run duration : 111 usec
+      run count         : 3
+    IPv6 route computation:
+      last run elapsed  : 00:04:25 ago
+      last run duration : 23 usec
+      run count         : 3
+  Level-2:
+    LSP0 regenerated: 4
+         LSPs purged: 0
+    SPF:
+      minimum interval  : 1
+    IPv4 route computation:
+      last run elapsed  : 00:04:21 ago
+      last run duration : 45 usec
+      run count         : 9
+    IPv6 route computation:
+      last run elapsed  : 00:04:21 ago
+      last run duration : 14 usec
+      run count         : 9
+"""
+
+isis_summary_invalid_help_output = \
+"""Usage: summary [OPTIONS]
+Try "summary --help" for help.
+
+Error: Got unexpected extra argument (?)
+"""
+
+def mock_show_isis_summary(request):
+    if request.param == 'isis_summary_output':
+        return isis_summary_output
+    elif request.param == 'isis_summary_invalid_help_output':
+        return isis_summary_invalid_help_output
+    else:
+        return ""
+
 
 testData = {
     'isis_neighbors': {
@@ -629,5 +742,23 @@ testData = {
         'args': ['--level-2'],
         'rc': 0,
         'rc_output': isis_topology_level_2_output
+    'isis_summary': {
+        'args': [],
+        'rc': 0,
+        'rc_output': isis_summary_output
+    },
+    'isis_summary_invalid_help': {
+        'args': ['?'],
+        'rc': 2,
+        'rc_output': isis_summary_invalid_help_output
+    'show_run_isis': {
+        'args': [],
+        'rc': 0,
+        'rc_output': show_run_isis_output
+    },
+    'show_run_isis_invalid_help': {
+        'args': ['?'],
+        'rc': 2,
+        'rc_output': show_run_isis_invalid_help_output
     },
 }

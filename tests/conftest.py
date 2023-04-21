@@ -24,6 +24,8 @@ from .isis_frr_input.isis_frr_test_vector import(
     mock_show_isis_hostname,
     mock_show_isis_interface,
     mock_show_isis_topology
+    mock_show_isis_summary
+    mock_show_run_isis
     )
 from . import config_int_ip_common
 import utilities_common.constants as constants
@@ -368,12 +370,16 @@ def setup_fib_commands():
 @pytest.fixture(scope='function')
 def mock_restart_dhcp_relay_service():
     print("We are mocking restart dhcp_relay")
-    origin_func = config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    origin_funcs = []
+    origin_funcs.append(config.vlan.dhcp_relay_util.restart_dhcp_relay_service)
+    origin_funcs.append(config.vlan.is_dhcp_relay_running)
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    config.vlan.is_dhcp_relay_running = mock.MagicMock(return_value=True)
 
     yield
 
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = origin_func
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = origin_funcs[0]
+    config.vlan.is_dhcp_relay_running = origin_funcs[1]
 
 @pytest.fixture
 def setup_single_isis_instance(request):
@@ -401,6 +407,13 @@ def setup_single_isis_instance(request):
             request.param.startswith('isis_topology'):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_isis_topology(request))
+    elif request.param.startswith('isis_summary'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_isis_summary(request)) 
+    elif request.param.startswith('show_run_isis'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_run_isis(request))    
+
     yield
 
     bgp_util.run_bgp_command = _old_run_bgp_command

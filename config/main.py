@@ -743,24 +743,28 @@ def storm_control_delete_entry(port_name, storm_type):
     return True
 
 
-def _wait_until_clear(table, interval=0.5, timeout=30):
+def _wait_until_clear(tables, interval=0.5, timeout=30, verbose=False):
     start = time.time()
     empty = False
     app_db = SonicV2Connector(host='127.0.0.1')
     app_db.connect(app_db.APPL_DB)
 
     while not empty and time.time() - start < timeout:
-        current_profiles = app_db.keys(app_db.APPL_DB, table)
-        if not current_profiles:
-            empty = True
-        else:
-            time.sleep(interval)
+        non_empty_table_count = 0
+        for table in tables:
+            keys = app_db.keys(app_db.APPL_DB, table)
+            if keys:
+                non_empty_table_count += 1
+                if verbose:
+                    click.echo("Some entries matching {} still exist: {}".format(table, keys[0]))
+                time.sleep(interval)
+        empty = (non_empty_table_count == 0)
     if not empty:
         click.echo("Operation not completed successfully, please save and reload configuration.")
     return empty
 
 
-def _clear_qos(delay = False):
+def _clear_qos(delay=False, verbose=False):
     QOS_TABLE_NAMES = [
             'PORT_QOS_MAP',
             'QUEUE',
@@ -797,7 +801,10 @@ def _clear_qos(delay = False):
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
     if delay:
-        _wait_until_clear("BUFFER_POOL_TABLE:*",interval=0.5, timeout=30)
+        device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
+        # Traditional buffer manager do not remove buffer tables in any case, no need to wait.
+        timeout = 120 if device_metadata and device_metadata.get('buffer_model') == 'dynamic' else 0
+        _wait_until_clear(["BUFFER_*_TABLE:*", "BUFFER_*_SET"], interval=0.5, timeout=timeout, verbose=verbose)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -1549,7 +1556,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
     if not yes:
         click.confirm(message, abort=True)
 
-    log.log_info("'reload' executing...")
+    argv_str = ' '.join(['config', *sys.argv[1:]])
+    log.log_notice(f"'reload' executing with command: {argv_str}")
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1569,7 +1577,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
     #Stop services before config push
     if not no_service_restart:
-        log.log_info("'reload' stopping services...")
+        log.log_notice("'reload' stopping services...")
         _stop_services()
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
@@ -1678,7 +1686,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
     # status from all services before we attempt to restart them
     if not no_service_restart:
         _reset_failed_services()
-        log.log_info("'reload' restarting services...")
+        log.log_notice("'reload' restarting services...")
         _restart_services()
 
 @config.command("load_mgmt_config")
@@ -1725,11 +1733,12 @@ def load_mgmt_config(filename):
 @clicommon.pass_db
 def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, golden_config_path):
     """Reconfigure based on minigraph."""
-    log.log_info("'load_minigraph' executing...")
+    argv_str = ' '.join(['config', *sys.argv[1:]])
+    log.log_notice(f"'load_minigraph' executing with command: {argv_str}")
 
     #Stop services before config push
     if not no_service_restart:
-        log.log_info("'load_minigraph' stopping services...")
+        log.log_notice("'load_minigraph' stopping services...")
         _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
@@ -1815,7 +1824,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     if not no_service_restart:
         _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
-        log.log_info("'load_minigraph' restarting services...")
+        log.log_notice("'load_minigraph' restarting services...")
         _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
@@ -2352,25 +2361,35 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+    ctx = click.get_current_context()
 
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
-            return
-        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        if ADHOC_VALIDATION: 
+            if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
+                return
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
-                return
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            if ADHOC_VALIDATION:
+                if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
+                    return
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='span')
 @click.pass_context
@@ -2402,25 +2421,34 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             }
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+    ctx = click.get_current_context()
 
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
-            return
-        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        if ADHOC_VALIDATION:
+            if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
+                return
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
-                return
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            if ADHOC_VALIDATION:
+                if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
+                    return
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 @mirror_session.command()
@@ -2432,16 +2460,23 @@ def remove(session_name):
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
+    ctx = click.get_current_context()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        config_db.set_entry("MIRROR_SESSION", session_name, None)
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+            except JsonPatchConflict as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'pfcwd' group ('config pfcwd ...')
@@ -2616,10 +2651,11 @@ def qos(ctx):
     pass
 
 @qos.command('clear')
-def clear():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def clear(verbose):
     """Clear QoS configuration"""
     log.log_info("'qos clear' executing...")
-    _clear_qos()
+    _clear_qos(verbose=verbose)
 
 def _update_buffer_calculation_model(config_db, model):
     """Update the buffer calculation model into CONFIG_DB"""
@@ -2636,6 +2672,7 @@ def _update_buffer_calculation_model(config_db, model):
 @click.option('--ports', is_flag=False, required=False, help="List of ports that needs to be updated")
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
 @click.option('--no-delay', is_flag=True, hidden=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option(
     '--json-data', type=click.STRING,
     help="json string with additional data, valid with --dry-run option"
@@ -2644,7 +2681,7 @@ def _update_buffer_calculation_model(config_db, model):
     '--dry_run', type=click.STRING,
     help="Dry run, writes config to the given file"
 )
-def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports):
+def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose):
     """Reload QoS configuration"""
     if ports:
         log.log_info("'qos reload --ports {}' executing...".format(ports))
@@ -2653,7 +2690,7 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports):
 
     log.log_info("'qos reload' executing...")
     if not dry_run:
-        _clear_qos(delay = not no_delay)
+        _clear_qos(delay = not no_delay, verbose=verbose)
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
     sonic_version_file = device_info.get_sonic_version_file()

@@ -119,9 +119,9 @@ class TestIsisInterface(object):
                              ],
                              indirect=['setup_single_isis_instance'])
     def test_isis_interface(self,
-                           setup_isis_commands,
-                           setup_single_isis_instance,
-                           test_vector):
+                            setup_isis_commands,
+                            setup_single_isis_instance,
+                            test_vector):
         show = setup_isis_commands
         exec_cmd = show.cli.commands["isis"].commands["interface"]
         executor(test_vector, show, exec_cmd)
@@ -141,10 +141,52 @@ class TestIsisTopology(object):
                                  ('isis_topology_level_2_output', 'isis_topology_level_2')
                              ],
                              indirect=['setup_single_isis_instance'])
-    def test_isis_topology(self,
+  def test_isis_topology(self,
+                         setup_isis_commands,
+                         setup_single_isis_instance,
+                         test_vector):
+        show = setup_isis_commands
+        exec_cmd = show.cli.commands["isis"].commands["topology"]
+        executor(test_vector, show, exec_cmd)
+
+
+class TestIsisSummary(object):
+
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @pytest.mark.parametrize('setup_single_isis_instance, test_vector',
+                            [
+                                ('isis_summary_output', 'isis_summary'),
+                                ('isis_summary_invalid_help_output', 'isis_summary_invalid_help')
+                            ],
+                            indirect=['setup_single_isis_instance'])
+    def test_isis_summary(self,
+                          setup_isis_commands,
+                          setup_single_isis_instance,
+                          test_vector):
+        show = setup_isis_commands
+        exec_cmd = show.cli.commands["isis"].commands["summary"]
+        executor(test_vector, show, exec_cmd)
+    
+
+class TestShowRunIsis(object):
+
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @pytest.mark.parametrize('setup_single_isis_instance, test_vector',
+                             [
+                                 ('show_run_isis_output', 'show_run_isis'),
+                                 ('show_run_isis_invalid_help_output', 'show_run_isis_invalid_help')
+                             ],
+                             indirect=['setup_single_isis_instance'])
+    def test_show_run_isis(self,
                            setup_isis_commands,
                            setup_single_isis_instance,
                            test_vector):
         show = setup_isis_commands
-        exec_cmd = show.cli.commands["isis"].commands["topology"]
+        exec_cmd = show.cli.commands["runningconfiguration"].commands["isis"]
         executor(test_vector, show, exec_cmd)
