@@ -40,6 +40,8 @@
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
 * [DHCP Relay](#dhcp-relay)
+  * [DHCP Relay show commands](#dhcp-relay-show-commands)
+  * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
@@ -2406,6 +2408,97 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#consol
 
 
 ## DHCP Relay
+
+### DHCP Relay show commands
+
+This sub-section of commands is used to show the DHCP Relay IP address(es) in a VLAN interface and show dhcpv6_relay counter of a VLAN.
+
+**show dhcp_relay ipv4 helper**
+
+This command is used to show ipv4 dhcp_relay helper.
+
+- Usage:
+  ```
+  show dhcp_relay ipv4 helper
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv4 helper
+  --------  ---------
+  Vlan1000  192.0.0.1
+            192.0.0.2
+  --------  ---------
+  ```
+
+**show dhcp_relay ipv6 destination**
+
+This command is used to show ipv6 dhcp_relay destination.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 destination
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv6 destination
+  --------  ------------
+  Vlan1000  fc02:2000::1
+            fc02:2000::2
+            fc02:2000::3
+            fc02:2000::4
+  --------  ------------
+  ```
+
+**show dhcp_relay ipv6 counters**
+
+This command is used to show ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 counters
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay counters
+         Message Type    Vlan1000
+  -------------------  ----------
+              Unknown           0
+              Solicit           0
+            Advertise           0
+              Request           5
+              Confirm           0
+                Renew           0
+               Rebind           0
+                Reply           0
+              Release           0
+              Decline           0
+          Reconfigure           0
+  Information-Request           0
+        Relay-Forward           0
+          Relay-Reply           0
+            Malformed           0
+  ```
+
+### DHCP Relay clear commands
+
+This sub-section of commands is used to clear the DHCP Relay counters.
+
+**sonic-clear dhcp_relay ipv6 counter**
+
+This command is used to clear ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  sonic-clear dhcp_relay ipv6 counter [-i <interface>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay ipv6 counters
+  ```
 
 ### DHCP Relay config commands
 
@@ -6033,6 +6126,154 @@ This command displays the eye info in mv(milli volts) of the port user provides 
         632      622
     ```
 
+
+**show muxcable health <port>**
+
+This command displays the hardware health of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current hadrware health of the cable as Ok, Not Ok, Unknown.
+
+- Usage:
+  ```
+  show muxcable health [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable health, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+-Ok means the cable is healthy
+
+in order to detemine whether the health of the cable is Ok
+the following are checked
+- the vendor name is correct able to be read
+- the FW is correctly loaded for SerDes by reading the appropriate register val
+- the Counters for UART are displaying healthy status 
+       i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4
+      PORT       ATTR    HEALTH
+      ---------  ------  --------
+      Ethernet4  health  Ok
+    ```
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4 --json
+    ```
+    ```json
+           {
+               "health": "Ok"
+           }
+
+    ```
+
+
+**show muxcable queueinfo <port>**
+
+This command displays the queue info of  the Y-cable which are connected to muxcable. The resultant table or json output will show the queue info in terms transactions for the UART stats in particular currently relevant to the MCU of the cable.
+
+- Usage:
+  ```
+  show muxcable queueinfo [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable queueinfo, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+the result will be displayed like this, each item in the dictionary shows the health of the attribute in the queue
+```
+"{'VSC': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 0, 'node_size': 0}, 'UART1': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 209870, 'node_size': 1682183}, 'UART2': {'r_ptr': 13262, 'w_ptr': 3, 'total_count': 0, 'free_count': 0, 'buff_addr': 12, 'node_size': 0}
+```
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable queueinfo Ethernet0
+      PORT       ATTR          VALUE
+      ---------  ----------  -------
+      Ethernet0  uart_stat1        2
+      Ethernet0  uart_stat2        1
+    ```
+    ```
+      admin@sonic:~$ show muxcable queueinfo Ethernet4 --json
+    ```
+    ```json
+           {
+               "uart_stat1": "2",
+               "uart_stat2": "1",
+                 
+           }
+    ```
+
+**show muxcable operationtime <port>**
+
+This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format. Operation time means the time since the last time the reseated/reset of the cable is done, and the time would be in the format specified
+
+- Usage:
+  ```
+  show muxcable operationtime [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable operationtime, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4
+      PORT       ATTR            OPERATION_TIME
+      ---------  --------------  ----------------
+      Ethernet4  operation_time  00:22:22
+    ```
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4 --json
+    ```
+    ```json
+           {
+               "operation_time": "00:22:22"
+           }
+    ```
+
+**show muxcable resetcause <port>**
+
+This command displays the resetcause of  the Y-cable which are connected to muxcable. The resultant table or json output will show the most recent reset cause of the cable as string format.
+
+- Usage:
+  ```
+  show muxcable resetcause [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable resetcause, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
+display cold reset if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
+display warm reset if the last reset is warm reset (ex. sudo config mux firmware activate....)
+the value is persistent, no clear on read
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4
+      PORT       ATTR           RESETCAUSE
+      ---------  -----------  ------------
+      Ethernet4  reset_cause    warm reset
+    ```
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4 --json
+    ```
+    ```json
+           {
+               "reset_cause": "warm reset"
+           }
+    ```
+
+
 ### Muxcable Config commands
 
 
@@ -9552,7 +9793,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#System
 
 **show vlan brief**
 
-This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCP Helper Address, and the proxy ARP status
+This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCPv4 Helper Address, and the proxy ARP status
 
 - Usage:
   ```
