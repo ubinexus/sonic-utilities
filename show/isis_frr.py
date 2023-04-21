@@ -104,7 +104,7 @@ def interface(interface, verbose, display):
 
     if display:
         d = f"[INTERFACE] options: {INTERFACE_LIST}"
-        click.echo(d)
+        click.echo(d.rstrip('\n'))
 
     command = 'show isis interface'
 
@@ -118,6 +118,24 @@ def interface(interface, verbose, display):
 
     click.echo(output.rstrip('\n'))
 
+# 'topology' subcommand ("show isis topology")
+@isis.command()
+@click.option('--level-1', is_flag=True, help="Show IS-IS level-1 information")
+@click.option('--level-2', is_flag=True, help="Show IS-IS level-2 information")
+def topology(level_1, level_2):
+    """Show ISIS topology"""
+
+    command = 'show isis topology'
+
+    if level_1:
+        command += ' level-1'
+    elif level_2:
+        command += ' level-2'
+
+    output = ""
+    output += bgp_util.run_bgp_show_command(command)
+
+    click.echo(output.rstrip('\n'))
 
 # 'summary' subcommand ("show isis summary") 
 @isis.command()

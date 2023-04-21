@@ -438,6 +438,17 @@ isis_interface_unknown_ifname_output = \
 'Ethernet116, Ethernet120, Ethernet124, PortChannel0001, PortChannel0002, ' \
 'PortChannel0003, PortChannel0004, PortChannel1001)\n'
 
+isis_interface_display_output = \
+"[INTERFACE] options: " \
+"['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet12', 'Ethernet16', " \
+"'Ethernet20', 'Ethernet24', 'Ethernet28', 'Ethernet32', 'Ethernet36', 'Ethernet40', " \
+"'Ethernet44', 'Ethernet48', 'Ethernet52', 'Ethernet56', 'Ethernet60', 'Ethernet64', " \
+"'Ethernet68', 'Ethernet72', 'Ethernet76', 'Ethernet80', 'Ethernet84', 'Ethernet88', " \
+"'Ethernet92', 'Ethernet96', 'Ethernet100', 'Ethernet104', 'Ethernet108', 'Ethernet112', " \
+"'Ethernet116', 'Ethernet120', 'Ethernet124', 'PortChannel0001', 'PortChannel0002', " \
+"'PortChannel0003', 'PortChannel0004', 'PortChannel1001']\n\n"
+
+
 def mock_show_isis_interface(request):
     if request.param == 'isis_interface_output':
         return isis_interface_output
@@ -449,8 +460,34 @@ def mock_show_isis_interface(request):
         return isis_interface_ifname_output
     elif request.param == 'isis_interface_unknown_ifname_output':
         return isis_interface_unknown_ifname_output
+    elif request.param == 'isis_interface_display_output':
+        return ""
     else:
         return ""
+
+isis_topology_output = \
+"""Area 1:
+IS-IS paths to level-2 routers that speak IP
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+10.0.0.56/31         IP internal  0                                     vlab-01(4)
+10.1.0.32/32         IP internal  0                                     vlab-01(4)
+ARISTA01T1           TE-IS        10     ARISTA01T1           PortChannel101 vlab-01(4)
+10.0.0.56/31         IP TE        16777225 ARISTA01T1           PortChannel101 ARISTA01T1(4)
+
+IS-IS paths to level-2 routers that speak IPv6
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+fc00::70/126         IP6 internal 0                                     vlab-01(4)
+fc00:1::32/128       IP6 internal 0                                     vlab-01(4)
+"""
+
+isis_topology_invalid_help_output = \
+"""Usage: topology [OPTIONS]
+Try "topology --help" for help.
+
+Error: Got unexpected extra argument (?)
+"""
 
 show_run_isis_output = \
 """Building configuration...
@@ -491,6 +528,39 @@ Try "isis --help" for help.
 
 Error: Got unexpected extra argument (?)
 """
+
+isis_topology_level_1_output = \
+"""Area 1:
+"""
+
+isis_topology_level_2_output = \
+"""Area 1:
+IS-IS paths to level-2 routers that speak IP
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+10.0.0.56/31         IP internal  0                                     vlab-01(4)
+10.1.0.32/32         IP internal  0                                     vlab-01(4)
+ARISTA01T1           TE-IS        10     ARISTA01T1           PortChannel101 vlab-01(4)
+10.0.0.56/31         IP TE        16777225 ARISTA01T1           PortChannel101 ARISTA01T1(4)
+
+IS-IS paths to level-2 routers that speak IPv6
+Vertex               Type         Metric Next-Hop             Interface Parent
+vlab-01                                                               
+fc00::70/126         IP6 internal 0                                     vlab-01(4)
+fc00:1::32/128       IP6 internal 0                                     vlab-01(4)
+"""
+
+def mock_show_isis_topology(request):
+    if request.param == 'isis_topology_output':
+        return isis_topology_output
+    elif request.param == 'isis_topology_invalid_help_output':
+        return isis_topology_invalid_help_output
+    elif request.param == 'isis_topology_level_1_output':
+        return isis_topology_level_1_output
+    elif request.param == 'isis_topology_level_2_output':
+        return isis_topology_level_2_output
+    else:
+        return ""
 
 def mock_show_run_isis(request):
     if request.param == 'show_run_isis_output':
@@ -666,6 +736,31 @@ testData = {
         'rc': 2,
         'rc_output': isis_interface_unknown_ifname_output
     },
+    'isis_interface_display': {
+        'args': ['--display'],
+        'rc': 0,
+        'rc_output': isis_interface_display_output
+    },
+    'isis_topology': {
+        'args': [],
+        'rc': 0,
+        'rc_output': isis_topology_output
+    },
+    'isis_topology_invalid_help': {
+        'args': ['?'],
+        'rc': 2,
+        'rc_output': isis_topology_invalid_help_output
+    },
+    'isis_topology_level_1': {
+        'args': ['--level-1'],
+        'rc': 0,
+        'rc_output': isis_topology_level_1_output
+    },
+    'isis_topology_level_2': {
+        'args': ['--level-2'],
+        'rc': 0,
+        'rc_output': isis_topology_level_2_output
+    },
     'isis_summary': {
         'args': [],
         'rc': 0,
@@ -675,6 +770,7 @@ testData = {
         'args': ['?'],
         'rc': 2,
         'rc_output': isis_summary_invalid_help_output
+    },
     'show_run_isis': {
         'args': [],
         'rc': 0,
