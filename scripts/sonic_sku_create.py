@@ -264,7 +264,7 @@ class SkuCreate(object):
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
             if m is None:
-                print("Port Name ",port_name, " is not valid, Exiting...", file=sys.stderr) 
+                print("Port Name ", key, " is not valid, Exiting...", file=sys.stderr) 
                 sys.exit(1)
             port_idx = int(m.group(1))
 
