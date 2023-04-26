@@ -79,10 +79,10 @@ def main():
     while True:
         try:
             active_lag_members, lag_member_to_packet = get_lacpdu_per_lag_member()
-            if len(active_lag_members) != len(active_lag_members):
+            if len(active_lag_members) != len(lag_member_to_packet.keys()):
                 log_error("Failed to capture LACPDU packets for some lag members. " +\
                 "Active lag members: {}. LACPDUs captured for: {}".format(
-                    active_lag_members, active_lag_members.keys()))
+                    active_lag_members, lag_member_to_packet.keys()))
 
             log_info("ready to send LACPDU packets via {}".format(lag_member_to_packet.keys()))
         except Exception:
