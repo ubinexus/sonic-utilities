@@ -1280,7 +1280,7 @@ class TestQueue(object):
             []
         )
         print(result.output)
-        show.run_command('queuestat -d')
+        show.run_command(['queuestat', '-d'])
         assert result.exit_code == 0
         assert "Ethernet0 Last cached time was" in result.output and \
                 "Ethernet4 Last cached time was" in result.output and \
