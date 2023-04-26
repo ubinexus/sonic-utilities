@@ -6,7 +6,7 @@ from sonic_py_common import device_info
 from .gu_common import GenericConfigUpdaterError
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_table_modification_validators.conf.json"
+GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 
 def get_asic_name():
     asic = "unknown"
@@ -17,15 +17,14 @@ def get_asic_name():
         GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
         spc1_hwskus = [ 'ACS-MSN2700', 'ACS-MSN2740', 'ACS-MSN2100', 'ACS-MSN2410', 'ACS-MSN2010', 'Mellanox-SN2700', 'Mellanox-SN2700-D48C8' ]
         proc = subprocess.Popen(GET_HWSKU_CMD, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
-        proc.communicate()
-        hwsku = proc.stdout.readlines().rstrip('\n')
+        output, err = proc.communicate()
+        hwsku = output.rstrip('\n')
         if hwsku.lower() in [spc1_hwsku.lower() for spc1_hwsku in spc1_hwskus]:
             asic = "spc1"
     elif device_info.get_sonic_version_info()['asic_type'] == 'broadcom':
         command = ["sudo", "lspci"]
         proc = subprocess.Popen(command, universal_newlines=True, stdout=subprocess.PIPE)
-        proc.communicate()
-        output = proc.stdout.readlines()
+        output, err = proc.communicate()
         if "Broadcom Limited Device b960" in output or "Broadcom Limited Broadcom BCM56960" in output:
             asic = "th"
         elif "Broadcom Limited Device b971" in output:

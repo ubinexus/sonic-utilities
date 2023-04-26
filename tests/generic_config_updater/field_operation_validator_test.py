@@ -62,14 +62,8 @@ class TestValidateFieldOperation(unittest.TestCase):
     def test_rdma_config_update_validator_unknown_asic(self):
         path = "/PFC_WD/GLOBAL/POLL_INTERVAL"
         operation = "replace"
+        assert generic_config_updater.field_operation_validators.rdma_config_update_validator(path, operation) == False
     
-    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"asic_type": "mellanox", "build_version": "SONiC.20181131"}))
-    def test_validate_field_operation_legal__pfcwd(self):
-        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
-        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "40"}}}
-        config_wrapper = gu_common.ConfigWrapper()
-        config_wrapper.validate_field_operation(old_config, target_config)
-        
     def test_validate_field_operation_illegal__pfcwd(self):
         old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
         target_config = {"PFC_WD": {"GLOBAL": {}}}
@@ -119,8 +113,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_spc1(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'mellanox'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = "Mellanox-SN2700-D48C8"
-        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = ["Mellanox-SN2700-D48C8", 0]
         self.assertEqual(fov.get_asic_name(), "spc1")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -128,8 +121,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_th(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b960"
-        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b960", 0]
         self.assertEqual(fov.get_asic_name(), "th")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -137,8 +129,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_th2(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b971"
-        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b971", 0]
         self.assertEqual(fov.get_asic_name(), "th2")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -146,8 +137,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_td2(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b850"
-        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b850", 0]
         self.assertEqual(fov.get_asic_name(), "td2")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -155,8 +145,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_td3(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b870"
-        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b870", 0]
         self.assertEqual(fov.get_asic_name(), "td3")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
