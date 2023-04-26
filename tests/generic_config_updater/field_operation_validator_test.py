@@ -114,59 +114,53 @@ class TestValidateFieldOperation(unittest.TestCase):
 
 class TestGetAsicName(unittest.TestCase):
 
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_spc1(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
-        mock_get_hwsku.return_value = 'ACS-MSN2700'
-        mock_get_sonic_version_info.return_value = {'asic_type': ''}
+    def test_get_asic_spc1(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'mellanox'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = ""
+        mock_popen.return_value.stdout.readlines.return_value = "Mellanox-SN2700-D48C8"
         mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "spc1")
     
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_th(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
+    def test_get_asic_th(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
         mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b960"
         mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "th")
     
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_th2(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
+    def test_get_asic_th2(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
         mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b971"
         mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "th2")
     
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_td2(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
+    def test_get_asic_td2(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
         mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b850"
         mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "td2")
     
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_td3(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
+    def test_get_asic_td3(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
         mock_popen.return_value.stdout.readlines.return_value = "Broadcom Limited Device b870"
         mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "td3")
     
-    @patch('sonic_py_common.device_info.get_hwsku')
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
-    def test_get_asic_cisco(self, mock_popen, mock_get_sonic_version_info, mock_get_hwsku):
+    def test_get_asic_cisco(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'cisco-8000'}
-        mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.stdout.readlines.return_value = ""
-        mock_popen.return_value.returncode = 0
         self.assertEqual(fov.get_asic_name(), "cisco-8000")
