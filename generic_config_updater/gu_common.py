@@ -187,7 +187,7 @@ class ConfigWrapper:
             operation = element["op"]
             match = re.search(r'\/([^\/]+)(\/|$)', path) # This matches the table name in the path, eg if path if /PFC_WD/GLOBAL, the match would be PFC_WD
             if match is not None:
-                table = match.group(1)
+                table = match.group(1).lower()
             else:
                 raise GenericConfigUpdaterError("Invalid jsonpatch path: {}".format(path))
             validating_functions= set()
