@@ -1,3 +1,4 @@
+import pytest
 import filecmp
 import importlib
 import os
@@ -8,6 +9,7 @@ import sys
 import unittest
 import ipaddress
 from unittest import mock
+from jsonpatch import JsonPatchConflict
 
 import click
 from click.testing import CliRunner
@@ -15,7 +17,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
-from mock import patch
+from mock import patch, MagicMock
 
 from generic_config_updater.generic_updater import ConfigFormat
 
@@ -140,19 +142,6 @@ def mock_run_command_side_effect_pipe_snmp(*args, **kwargs):
         elif command == "systemctl list-dependencies --plain sonic.target | sed 1d":
             return 'swss', 0
 
-def mock_run_command_side_effect_pipe_gnmi(*args, **kwargs):
-    command_lists = [' '.join(arg) for arg in args]
-    command = ' | '.join(command_lists)
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed 1d":
-            return 'gnmi.timer' , 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed 1d":
-            return 'swss', 0
-
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
     command = ' '.join(command)
@@ -183,38 +172,45 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
         else:
             return '', 0
 
-def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
-    command = args[0]
-    command = ' '.join(command)
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl is-enabled snmp.timer":
-            return 'enabled', 0
-        elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
-            return '0', 0
-        else:
-            return '', 0
-
-def mock_run_command_side_effect_gnmi(*args, **kwargs):
-    command = args[0]
-    command = ' '.join(command)
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl is-enabled gnmi.timer":
-            return 'enabled', 0
-        else:
-            return '', 0
-
-
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
+class TestHelper(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.Popen')
+    def test_get_device_type(self, mock_subprocess):
+        mock_subprocess.return_value.communicate.return_value = ("BackendToRRouter ", None)
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "BackendToRRouter"
+
+        mock_subprocess.return_value.communicate.return_value = (None, "error")
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "Unknown"
+
+    def teardown(self):
+        print("TEARDOWN")
+
+class TestConfig(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.check_call')
+    def test_platform_fw_install(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['install'], ['chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "install", 'chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+
+    @patch('config.main.subprocess.check_call')
+    def test_plattform_fw_update(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['update'], ['update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "update", 'update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
@@ -257,33 +253,6 @@ class TestConfigReload(object):
 
             assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
 
-    def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
-            with mock.patch("utilities_common.cli.run_command_pipe", mock.MagicMock(side_effect=mock_run_command_side_effect_pipe_snmp)):
-                (config, show) = get_cmd_module
-
-                jsonfile_config = os.path.join(mock_db_path, "config_db.json")
-                jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
-
-                # create object
-                config.INIT_CFG_FILE = jsonfile_init_cfg
-                config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
-
-                db = Db()
-                runner = CliRunner()
-                obj = {'config_db': db.cfgdb}
-
-                # simulate 'config reload' to provoke load_sys_info option
-                result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
-
-                print(result.exit_code)
-                print(result.output)
-                traceback.print_tb(result.exc_info[2])
-
-                assert result.exit_code == 1
-
-                assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -317,26 +286,7 @@ class TestLoadMinigraph(object):
                 assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
                 # Verify "systemctl reset-failed" is called for services under sonic.target
                 mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
-                # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'snmp'])
-                assert mock_run_command.call_count + mock_run_command_pipe.call_count == 11
-
-    def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
-            with mock.patch("utilities_common.cli.run_command_pipe", mock.MagicMock(side_effect=mock_run_command_side_effect_pipe_gnmi)) as mock_run_command_pipe:
-                (config, show) = get_cmd_module
-                runner = CliRunner()
-                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-                print(result.exit_code)
-                print(result.output)
-                traceback.print_tb(result.exc_info[2])
-                assert result.exit_code == 0
-                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-                # Verify "systemctl reset-failed" is called for services under sonic.target
-                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
-                # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-                mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'gnmi'])
-                assert mock_run_command.call_count + mock_run_command_pipe.call_count == 11
+                assert mock_run_command.call_count + mock_run_command_pipe.call_count == 8
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -1897,6 +1847,67 @@ class TestConfigLoopback(object):
         print(result.output)
         assert result.exit_code == 0
     
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigNtp(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_add_ntp_server_failed_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
+    def test_add_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    def test_del_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value="10.10.10.10"))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_del_ntp_server_invalid_ip_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
