@@ -1747,7 +1747,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     platform_mg_plugin = platform_path + '/plugins/platform_mg_post_check'
     if os.path.isfile(platform_mg_plugin):
         click.echo("Running Platform plugin ............!")
-        proc = subprocess.Popen(platform_mg_plugin, shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen([platform_mg_plugin], text=True, stdout=subprocess.PIPE)
         proc.communicate()
         if proc.returncode != 0:
             click.echo("Platform plugin failed! retruncode {}".format(proc.returncode))
