@@ -6476,7 +6476,7 @@ def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
     if ADHOC_VALIDATION:
         if interval not in range(5, 301) and interval != 0:
-            click.echo("Polling interval must be between 5-300 (0 to disable)")
+            ctx.fail("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     sflow_tbl = config_db.get_table('SFLOW')
@@ -6513,8 +6513,7 @@ def enable(ctx, ifname):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            click.echo("Invalid interface name")
-            return
+            ctx.fail("Invalid interface name")
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
@@ -6540,8 +6539,7 @@ def disable(ctx, ifname):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            click.echo("Invalid interface name")
-            return
+            ctx.fail("Invalid interface name")
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
@@ -6569,11 +6567,9 @@ def sample_rate(ctx, ifname, rate):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            click.echo('Invalid interface name')
-            return
+            ctx.fail('Invalid interface name')
         if not is_valid_sample_rate(rate) and rate != 'default':
-            click.echo('Error: Sample rate must be between 256 and 8388608 or default')
-            return
+            ctx.fail('Sample rate must be between 256 and 8388608 or default')
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
