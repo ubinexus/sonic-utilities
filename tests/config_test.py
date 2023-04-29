@@ -17,7 +17,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
-from mock import patch, MagicMock
+from mock import call, patch, mock_open, MagicMock
 
 from generic_config_updater.generic_updater import ConfigFormat
 
@@ -1911,3 +1911,351 @@ class TestConfigNtp(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+
+
+class TestConfigPfcwd(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_start(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['start'], ['-a', 'forward', '-r', 150, 'Ethernet0', '200', '--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'start', '--action', 'forward', 'Ethernet0', '200', '--restoration-time', '150'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_stop(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['stop'], ['--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'stop'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_interval(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['interval'], ['300', '--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'interval', '300'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_counter_poll(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['counter_poll'], ['enable', '--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'counter_poll', 'enable'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_big_red_switch(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['big_red_switch'], ['enable', '--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'big_red_switch', 'enable'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_start_default(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['pfcwd'].commands['start_default'], ['--verbose'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['pfcwd', 'start_default'], display_cmd=True)
+
+    def teardown(self):
+        print("TEARDOWN")
+
+
+class TestConfigAclUpdate(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_full(self, mock_run_command):
+        file_name = '/etc/sonic/full_snmp.json'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['acl'].commands['update'].commands['full'], [file_name])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['acl-loader', 'update', 'full', file_name])
+
+    @patch('utilities_common.cli.run_command')
+    def test_incremental(self, mock_run_command):
+        file_name = '/etc/sonic/full_snmp.json'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['acl'].commands['update'].commands['incremental'], [file_name])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['acl-loader', 'update', 'incremental', file_name])
+
+    def teardown(self):
+        print("TEARDOWN")
+
+
+class TestConfigDropcounters(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_install(self, mock_run_command):
+        counter_name = 'DEBUG_2'
+        counter_type = 'PORT_INGRESS_DROPS'
+        reasons = '[EXCEEDS_L2_MTU,DECAP_ERROR]'
+        alias = 'BAD_DROPS'
+        group = 'BAD'
+        desc = 'more port ingress drops'
+
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['dropcounters'].commands['install'], [counter_name, counter_type, reasons, '-d', desc, '-g', group, '-a', alias])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['dropconfig', '-c', 'install', '-n', str(counter_name), '-t', str(counter_type), '-r', str(reasons), '-a', str(alias), '-g', str(group), '-d', str(desc)], display_cmd=False)
+
+    @patch('utilities_common.cli.run_command')
+    def test_delete(self, mock_run_command):
+        counter_name = 'DEBUG_2'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['dropcounters'].commands['delete'], [counter_name, '-v'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['dropconfig', '-c', 'uninstall', '-n', str(counter_name)], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_add_reasons(self, mock_run_command):
+        counter_name = 'DEBUG_2'
+        reasons = '[EXCEEDS_L2_MTU,DECAP_ERROR]'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['dropcounters'].commands['add-reasons'], [counter_name, reasons, '-v'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['dropconfig', '-c', 'add', '-n', str(counter_name), '-r', str(reasons)], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_remove_reasons(self, mock_run_command):
+        counter_name = 'DEBUG_2'
+        reasons = '[EXCEEDS_L2_MTU,DECAP_ERROR]'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['dropcounters'].commands['remove-reasons'], [counter_name, reasons, '-v'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['dropconfig', '-c', 'remove', '-n', str(counter_name), '-r', str(reasons)], display_cmd=True)
+
+    def teardown(self):
+        print("TEARDOWN")
+
+
+class TestConfigWatermarkTelemetry(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_interval(self, mock_run_command):
+        interval = '18'
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['watermark'].commands['telemetry'].commands['interval'], [interval])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['watermarkcfg', '--config-interval', str(interval)])
+
+    def teardown(self):
+        print("TEARDOWN")
+
+
+class TestConfigZtp(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_run(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['ztp'].commands['run'], ['-y'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['ztp', 'run', '-y'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_disable(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['ztp'].commands['disable'], ['-y'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['ztp', 'disable', '-y'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_enable(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['ztp'].commands['enable'])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(['ztp', 'enable'], display_cmd=True)
+
+    def teardown(self):
+        print("TEARDOWN")
+
+
+@patch('utilities_common.cli.run_command')
+@patch('os.uname', MagicMock(return_value=['Linux', 'current-hostname', '5.11.0-34-generic', '#36~20.04.1-Ubuntu SMP Thu Aug 5 14:22:16 UTC 2021', 'x86_64']))
+def test_change_hostname(mock_run_command):
+    new_hostname = 'new_hostname'
+    with patch('builtins.open', mock_open()) as mock_file:
+        config._change_hostname(new_hostname)
+
+    assert mock_file.call_args_list == [
+        call('/etc/hostname', 'w'),
+        call('/etc/hosts', 'a')
+    ]
+    assert mock_file().write.call_args_list == [
+        call('new_hostname\n'),
+        call('127.0.0.1 new_hostname\n')
+    ]
+    assert mock_run_command.call_args_list == [
+        call(['hostname', '-F', '/etc/hostname'], display_cmd=True),
+        call(['sed', '-i', '/\\scurrent-hostname$/d', '/etc/hosts'], display_cmd=True)
+    ]
+
+
+class TestConfigInterface(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('utilities_common.cli.run_command')
+    def test_speed(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        interface_speed = '100'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['speed'], [interface_name, interface_speed, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-s', str(interface_speed), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['speed'], [interface_name, interface_speed, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-s', str(interface_speed), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_link_training(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        mode = 'on'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['link-training'], [interface_name, mode, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-lt', str(mode), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['link-training'], [interface_name, mode, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-lt', str(mode), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_advertised_speeds(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        speed_list = '50,100'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['advertised-speeds'], [interface_name, speed_list, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-S', str(speed_list), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['advertised-speeds'], [interface_name, speed_list, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-S', str(speed_list), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_advertised_types(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        interface_type = 'CR,CR4'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['advertised-types'], [interface_name, interface_type, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-T', str(interface_type), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['advertised-types'], [interface_name, interface_type, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-T', str(interface_type), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_mtu(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        interface_mtu = '1000'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['mtu'], [interface_name, interface_mtu, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-m', str(interface_mtu), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['mtu'], [interface_name, interface_mtu, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-m', str(interface_mtu), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_tpid(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        interface_tpid = '0x9200'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['tpid'], [interface_name, interface_tpid, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-tp', str(interface_tpid), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['tpid'], [interface_name, interface_tpid, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-tp', str(interface_tpid), '-n', 'ns', '-vv'], display_cmd=True)
+
+    @patch('utilities_common.cli.run_command')
+    def test_fec(self, mock_run_command):
+        interface_name = 'Ethernet0'
+        interface_fec = 'rs'
+        db = Db()
+        runner = CliRunner()
+
+        obj = {'config_db': db.cfgdb, 'namespace': ''}
+        result = runner.invoke(config.config.commands['interface'].commands['fec'], [interface_name, interface_fec, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-f', str(interface_fec), '-vv'], display_cmd=True)
+
+        obj = {'config_db': db.cfgdb, 'namespace': 'ns'}
+        result = runner.invoke(config.config.commands['interface'].commands['fec'], [interface_name, interface_fec, '--verbose'], obj=obj)
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['portconfig', '-p', str(interface_name), '-f', str(interface_fec), '-n', 'ns', '-vv'], display_cmd=True)
+
+    def teardown(self):
+        print("TEARDOWN")
+

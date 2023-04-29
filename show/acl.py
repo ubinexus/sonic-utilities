@@ -22,10 +22,10 @@ def rule(table_name, rule_id, verbose):
     cmd = ['acl-loader', 'show', 'rule']
 
     if table_name is not None:
-        cmd += str(table_name)
+        cmd += [str(table_name)]
 
     if rule_id is not None:
-        cmd += str(rule_id)
+        cmd += [str(rule_id)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -39,6 +39,6 @@ def table(table_name, verbose):
     cmd = ['acl-loader', 'show', 'table']
 
     if table_name is not None:
-        cmd += str(table_name)
+        cmd += [str(table_name)]
 
     clicommon.run_command(cmd, display_cmd=verbose)

@@ -640,7 +640,7 @@ def _change_hostname(hostname):
         clicommon.run_command(['hostname', '-F', '/etc/hostname'], display_cmd=True)
         clicommon.run_command(['sed', '-i', "/\s{}$/d".format(current_hostname), '/etc/hosts'], display_cmd=True)
         with open('/etc/hosts', 'a') as f:
-            f.write("127.0.0.1" + str(hostname) + '\n')
+            f.write("127.0.0.1 " + str(hostname) + '\n')
 
 def _clear_cbf():
     CBF_TABLE_NAMES = [
