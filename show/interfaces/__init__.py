@@ -553,6 +553,8 @@ def error_status(db, interfacename, fetch_from_hardware, namespace, verbose):
 
     if fetch_from_hardware:
         cmd += ["-hw"]
+    if namespace is not None:
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
