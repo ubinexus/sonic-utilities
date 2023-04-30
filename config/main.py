@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 import itertools
 import copy
 
@@ -1142,6 +1143,23 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
+def validate_config_file(file, remove_tmp_file=False):
+    """
+    A validator to check config files for syntax errors. If an exception is raised,
+    use remove_tmp_file to determine if a temporary file was used to store
+    /dev/stdin contents and should be deleted.
+    """
+    try:
+        # Load golden config json
+        read_json_file(file)
+    except Exception as e:
+        if remove_tmp_file:
+            os.remove(file)
+        click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                    fg='magenta')
+        sys.exit(1)
+
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1502,10 +1520,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    #Stop services before config push
-    if not no_service_restart:
-        log.log_notice("'reload' stopping services...")
-        _stop_services()
+    # Create a dictionary to store each cfg_file, namespace, and a bool representing if a the file exists
+    cfg_file_dict = {}
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1532,7 +1548,42 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
 
         # Check the file exists before proceeding.
+        # Instead of exiting, skip the current namespace and check the next one
         if not os.path.exists(file):
+            cfg_file_dict[inst] = [file, namespace, False]
+            continue
+
+        # Check the file is properly formatted before proceeding.
+        if not sys.stdin.isatty():
+            # Pathway to store /dev/stdin contents in a temporary file
+            TMP_FILE = os.path.join('/', "tmp", f"tmp_config_stdin_{str(uuid.uuid4())}.json")
+
+            if os.path.exists(TMP_FILE):
+                click.secho("Unable to validate '{}' contents".format(file),
+                            fg='magenta')
+                sys.exit(1)
+
+            with open(file, 'r' ) as input_file, open( TMP_FILE, 'w') as tmp:
+                for line in input_file:
+                    tmp.write(line)
+
+            validate_config_file(TMP_FILE, remove_tmp_file=True)
+            cfg_file_dict[inst] = [TMP_FILE, namespace, True]  
+        else:
+            validate_config_file(file)
+            cfg_file_dict[inst] = [file, namespace, True]
+
+    #Validate INIT_CFG_FILE if it exits
+    if os.path.isfile(INIT_CFG_FILE):
+        validate_config_file(INIT_CFG_FILE)
+
+    #Stop services before config push
+    if not no_service_restart:
+        log.log_notice("'reload' stopping services...")
+        _stop_services()
+
+    for file, namespace, file_exists in cfg_file_dict.values():
+        if not file_exists:
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
