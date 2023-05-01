@@ -124,7 +124,7 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
         if rc == 0:
             clicommon.run_command(docker_exec_cmd.format("supervisorctl stop ndppd"), ignore_error=True, return_cmd=True)
             clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
-            clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
 
 
 def restart_ndppd():
@@ -146,11 +146,12 @@ def restart_ndppd():
 
     if rc != 0:
         clicommon.run_command(docker_exec_cmd.format(ndppd_conf_copy_cmd))
-        clicommon.run_command(docker_exec_cmd.format(supervisor_update_cmd))
+        clicommon.run_command(docker_exec_cmd.format(supervisor_update_cmd), return_cmd=True)
 
-    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd), display_cmd=True)
+    click.echo("Starting ndppd service")
+    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd))
     sleep(3)
-    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), display_cmd=True, return_cmd=True)
+    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), return_cmd=True)
 
 
 @vlan.command('proxy_arp')
