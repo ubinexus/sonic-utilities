@@ -742,6 +742,21 @@ Ethernet0  N/A
         status = sfputil.commit_firmware("Ethernet0")
         assert status == 1
 
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
+    @patch('sfputil.main.show_firmware_version', MagicMock())
+    @patch('sfputil.main.download_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.run_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.is_fw_switch_done', MagicMock(return_value=1))
+    @patch('sfputil.main.commit_firmware', MagicMock(return_value=1))
+    def test_firmware_upgrade(self, mock_chassis):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['upgrade'], ['Ethernet0', 'path'])
+        assert result.output == 'Firmware download complete success\nFirmware run in mode 0 successful\nFirmware commit successful\n'
+        assert result.exit_code == 0
+
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_firmware_run_RJ45(self):
