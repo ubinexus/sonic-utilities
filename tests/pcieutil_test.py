@@ -3,6 +3,7 @@ import os
 from unittest import mock
 
 from click.testing import CliRunner
+from io import StringIO
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -201,13 +202,12 @@ class TestPcieUtil(object):
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["correctable"], ["-d", "0:1.0"])
         assert result.output == pcieutil_pcie_aer_correctable_dev_output
 
-    def test_load_pcie_module_warning(self):
-        runner = CliRunner()
-        sys_path = sys.path
-        sys.path = ['']
-        result = runner.invoke(pcieutil.cli.commands["show"])
-        assert pcieutil_load_module_warning_msg not in result.output
-        sys.path = sys_path
+    def test_load_pcie_module_warning(self): 
+        stdout = sys.stdout
+        sys.stdout = result = StringIO()
+        pcieutil.load_platform_pcieutil()
+        sys.stdout = stdout
+        assert pcieutil_load_module_warning_msg not in result.get_value()
 
     @classmethod
     def teardown_class(cls):
