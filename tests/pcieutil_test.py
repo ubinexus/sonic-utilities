@@ -156,6 +156,8 @@ pcieutil_pcie_aer_correctable_dev_output = """\
 +---------------------+-----------+
 """
 
+pcieutil_load_module_warning_msg = "Failed to load platform Pcie module. Warning : No module named 'sonic_platform.pcie', fallback to load Pcie common utility."
+
 class TestPcieUtil(object):
     @classmethod
     def setup_class(cls):
@@ -201,8 +203,11 @@ class TestPcieUtil(object):
 
     def test_load_pcie_module_warning(self):
         runner = CliRunner()
+        sys_path = sys.path
+        sys.path = ['']
         result = runner.invoke(pcieutil.cli.commands["show"])
-        assert "Failed to load platform Pcie module. Warning : No module named 'sonic_platform.pcie', fallback to load Pcie common utility." not in result.output
+        assert pcieutil_load_module_warning_msg not in result.output
+        sys.path = sys_path
 
     @classmethod
     def teardown_class(cls):
