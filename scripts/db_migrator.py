@@ -83,7 +83,7 @@ class DBMigrator():
         if not self.hwsku:
             log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
-        if asic_type == "mellanox":
+        if self.asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
             self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
