@@ -2222,6 +2222,16 @@ def get_portchannel_retry_count(ctx, portchannel_name):
             ctx.fail("{} is not present.".format(portchannel_name))
 
     try:
+        proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.enable_retry_count_feature"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = proc.communicate()
+        if proc.returncode != 0:
+            ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(err.strip()))
+        if output.strip() != "true":
+            ctx.fail("Retry count feature is not enabled!")
+    except FileNotFoundError:
+        ctx.fail("Unable to get the retry count: teamdctl could not be run")
+
+    try:
         proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.retry_count"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = proc.communicate()
         if proc.returncode != 0:
@@ -2247,6 +2257,16 @@ def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
         # Dont proceed if the port channel does not exist
         if is_portchannel_present_in_db(db, portchannel_name) is False:
             ctx.fail("{} is not present.".format(portchannel_name))
+
+    try:
+        proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.enable_retry_count_feature"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = proc.communicate()
+        if proc.returncode != 0:
+            ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(err.strip()))
+        if output.strip() != "true":
+            ctx.fail("Retry count feature is not enabled!")
+    except FileNotFoundError:
+        ctx.fail("Unable to get the retry count: teamdctl could not be run")
 
     try:
         proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "set", "runner.retry_count", str(retry_count)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
