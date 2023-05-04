@@ -7,15 +7,14 @@ import scapy.contrib.lacp
 import os
 import re
 import sys
-from threading import Thread
+from threading import Thread, Event
 import time
 import argparse
+import signal
 
 from swsscommon.swsscommon import DBConnector, Table
 
-MIN_TAG_FOR_EACH_VERSION = {
-        "20220531": 500
-        }
+revertTeamdRetryCountChanges = False
 
 class LACPRetryCount(Packet):
     name = "LACPRetryCount"
@@ -68,7 +67,7 @@ def getLldpNeighbors():
     process = subprocess.run(["lldpctl", "-f", "json"], capture_output=True)
     return json.loads(process.stdout)
 
-def craftLacpPacket(portChannelConfig, portName, isProbePacket=False, newVersion=True):
+def craftLacpPacket(portChannelConfig, portName, isResetPacket=False, newVersion=True):
     portConfig = portChannelConfig["ports"][portName]
     actorConfig = portConfig["runner"]["actor_lacpdu_info"]
     partnerConfig = portConfig["runner"]["partner_lacpdu_info"]
@@ -92,7 +91,7 @@ def craftLacpPacket(portChannelConfig, portName, isProbePacket=False, newVersion
     l4.partner_port_number = partnerConfig["port"]
     l4.partner_state = partnerConfig["state"]
     if newVersion:
-        l4.actor_retry_count = 5 if not isProbePacket else 3
+        l4.actor_retry_count = 5 if not isResetPacket else 3
         l4.partner_retry_count = 3
     packet = l2 / l3 / l4
     return packet
@@ -103,9 +102,11 @@ def getPortChannels():
     return list(portchannelTable.getKeys())
 
 class LacpPacketListenThread(Thread):
-    def __init__(self, port):
+    def __init__(self, port, targetMacAddress, sendReadyEvent):
         Thread.__init__(self)
         self.port = port
+        self.targetMacAddress = targetMacAddress
+        self.sendReadyEvent = sendReadyEvent
         self.detectedNewVersion = False
 
     def lacpPacketCallback(self, pkt):
@@ -114,13 +115,21 @@ class LacpPacketListenThread(Thread):
         return self.detectedNewVersion
 
     def run(self):
-        sniff(stop_filter=self.lacpPacketCallback, iface=self.port, filter="ether proto 0x8809", store=0, timeout=30)
+        sniff(stop_filter=self.lacpPacketCallback, iface=self.port, filter="ether proto 0x8809 and ether src {}".format(self.targetMacAddress),
+                store=0, timeout=30, started_callback=self.sendReadyEvent.set)
 
-def sendLacpPackets(packets):
-    while True:
+def sendLacpPackets(packets, revertPackets):
+    while not revertTeamdRetryCountChanges:
         for port, packet in packets:
             sendp(packet, iface=port)
         time.sleep(15)
+    if revertTeamdRetryCountChanges:
+        for port, packet in revertPackets:
+            sendp(packet, iface=port)
+
+def abortTeamdChanges(signum, frame):
+    print("Got signal {}, reverting teamd retry count change".format(signum))
+    revertTeamdRetryCountChanges = True
 
 def main(probeOnly=False):
     if os.geteuid() != 0:
@@ -130,58 +139,88 @@ def main(probeOnly=False):
     portChannels = getPortChannels()
     if not portChannels:
         return True
-    for portChannel in portChannels:
-        config = getPortChannelConfig(portChannel)
-        lldpInfo = getLldpNeighbors()
-        for portName in config["ports"].keys():
-            interfaceLldpInfo = [k for k in lldpInfo["lldp"]["interface"] if portName in k]
-            if not interfaceLldpInfo:
-                print("WARNING: No LLDP info available for {}; skipping".format(portName)) 
-                continue
-            interfaceLldpInfo = interfaceLldpInfo[0][portName]
-            peerName = list(interfaceLldpInfo["chassis"].keys())[0]
-            peerInfo = interfaceLldpInfo["chassis"][peerName]
-            if "descr" not in peerInfo:
-                print("WARNING: No peer description available via LLDP for {}; skipping".format(portName)) 
-                continue
-            if "SONiC" not in peerInfo["descr"]:
-                print("WARNING: Peer device is not a SONiC device; skipping")
-                break
+    failedPortChannels = []
+    if probeOnly:
+        for portChannel in portChannels:
+            config = getPortChannelConfig(portChannel)
+            lldpInfo = getLldpNeighbors()
+            portChannelChecked = False
+            for portName in config["ports"].keys():
+                interfaceLldpInfo = [k for k in lldpInfo["lldp"]["interface"] if portName in k]
+                if not interfaceLldpInfo:
+                    print("WARNING: No LLDP info available for {}; skipping".format(portName))
+                    continue
+                interfaceLldpInfo = interfaceLldpInfo[0][portName]
+                peerName = list(interfaceLldpInfo["chassis"].keys())[0]
+                peerInfo = interfaceLldpInfo["chassis"][peerName]
+                if "descr" not in peerInfo:
+                    print("WARNING: No peer description available via LLDP for {}; skipping".format(portName))
+                    continue
+                portChannelChecked = True
+                if "SONiC" not in peerInfo["descr"]:
+                    print("WARNING: Peer device is not a SONiC device; skipping")
+                    failedPortChannels.append(portChannel)
+                    break
 
-            # Start sniffing thread
-            lacpThread = LacpPacketListenThread(portName)
-            lacpThread.start()
+                sendReadyEvent = Event()
 
-            # Generate and send probe packet
-            probePacket = craftLacpPacket(config, portName, isProbePacket=True)
-            sendp(probePacket, iface=portName)
+                # Start sniffing thread
+                lacpThread = LacpPacketListenThread(portName, config["ports"][portName]["runner"]["partner_lacpdu_info"]["system"], sendReadyEvent)
+                lacpThread.start()
 
-            lacpThread.join()
+                # Generate and send probe packet
+                probePacket = craftLacpPacket(config, portName)
+                sendReadyEvent.wait()
+                sendp(probePacket, iface=portName)
 
-            resetProbePacket = craftLacpPacket(config, portName, newVersion=False)
-            time.sleep(2)
-            sendp(resetProbePacket, iface=portName, count=2, inter=0.5)
+                lacpThread.join()
 
-            if lacpThread.detectedNewVersion:
-                print("SUCCESS: Peer device {} is running version of SONiC with teamd retry count feature".format(peerName))
-                break
-            else:
-                print("WARNING: Peer device {} is running version of SONiC without teamd retry count feature".format(peerName))
-                break
-    if not probeOnly:
+                resetProbePacket = craftLacpPacket(config, portName, newVersion=False)
+                time.sleep(2)
+                sendp(resetProbePacket, iface=portName, count=2, inter=0.5)
+
+                if lacpThread.detectedNewVersion:
+                    print("SUCCESS: Peer device {} is running version of SONiC with teamd retry count feature".format(peerName))
+                    break
+                else:
+                    print("WARNING: Peer device {} is running version of SONiC without teamd retry count feature".format(peerName))
+                    failedPortChannels.append(portChannel)
+                    break
+            if not portChannelChecked:
+                print("WARNING: No information available about peer device on port channel {}".format(portChannel))
+                failedPortChannels.append(portChannel)
+        if failedPortChannels:
+            print("ERROR: There are port channels/peer devices that failed the probe: {}".format(failedPortChannels))
+            sys.exit(2)
+            return False
+    else:
+        signal.signal(signal.SIGUSR1, abortTeamdChanges)
+        signal.signal(signal.SIGTERM, abortTeamdChanges)
         retryCountGetProcess = subprocess.run(["config", "portchannel", "retry-count", "get", portChannels[0]])
         if retryCountGetProcess.returncode == 0:
             # Currently running on SONiC version with teamd retry count feature
             for portChannel in portChannels:
                 subprocess.run(["config", "portchannel", "retry-count", "set", portChannel, "5"])
+            pid = os.fork()
+            if pid == 0:
+                while not revertTeamdRetryCountChanges:
+                    time.sleep(15)
+                if revertTeamdRetryCountChanges:
+                    for portChannel in portChannels:
+                        subprocess.run(["config", "portchannel", "retry-count", "set", portChannel, "3"])
         else:
             lacpPackets = []
+            revertLacpPackets = []
             for portChannel in portChannels:
                 config = getPortChannelConfig(portChannel)
                 for portName in config["ports"].keys():
                     packet = craftLacpPacket(config, portName)
                     lacpPackets.append((portName, packet))
-            sendLacpPackets(lacpPackets)
+                    packet = craftLacpPacket(config, portName, isResetPacket=True)
+                    revertLacpPackets.append((portName, packet))
+            pid = os.fork()
+            if pid == 0:
+                sendLacpPackets(lacpPackets, revertLacpPackets)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Teamd retry count changer.')
