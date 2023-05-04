@@ -105,7 +105,7 @@ class SkuCreate(object):
         # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d>|<Ethernet<#>/<#> to be used to analyze split configuration
         # Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
         try:
-            f = open(str(sku_def),"r")
+            f = open(str(sku_def), "r")
         except IOError:
             print("Couldn't open file: " + str(sku_def), file=sys.stderr)
             sys.exit(1)
@@ -769,8 +769,8 @@ def main(argv):
         if args.base:
             sku.base_sku_name = args.base
         else:
-            f=open(sku.default_sku_path + '/' + "default_sku","r")
-            sku.base_sku_name=f.read().split()[0]
+            f = open(sku.default_sku_path + '/' + "default_sku", "r")
+            sku.base_sku_name = f.read().split()[0]
 
         sku.base_sku_dir = sku.default_sku_path + '/' + sku.base_sku_name + '/'
         sku.base_file_path = sku.base_sku_dir + "port_config.ini"
