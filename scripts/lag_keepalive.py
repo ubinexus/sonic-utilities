@@ -3,7 +3,7 @@
 from scapy.config import conf
 conf.ipv6_enabled = False
 from scapy.all import sendp, sniff
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 import time, threading, traceback
 import syslog
 
