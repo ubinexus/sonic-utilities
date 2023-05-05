@@ -5658,6 +5658,20 @@ def table(ctx, table_name, table_type, description, ports, stage):
     config_db.set_entry("ACL_TABLE", table_name, table_info)
 
 #
+# 'add' subcommand
+#
+
+@add.command()
+@click.argument('file_name', required=True)
+def rule(file_name):
+    """
+    Add ACL rule
+    """
+    log.log_info("'config acl add rule {}' executing...".format(file_name))
+    command = "acl-loader add {}".format(file_name)
+    clicommon.run_command(command)
+
+#
 # 'remove' subgroup ('config acl remove ...')
 #
 
@@ -5678,10 +5692,28 @@ def table(table_name):
     """
     Remove ACL table
     """
+    log.log_info("'config acl remove table {}' executing...".format(table_name))
+    command = "acl-loader delete {}".format(table_name)
+    clicommon.run_command(command)
+
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.set_entry("ACL_TABLE", table_name, None)
 
+#
+# 'delete' subcommand
+#
+
+@remove.command()
+@click.argument("table_name", required=True, metavar="<table_name>")
+@click.argument("rule_name", required=True, metavar="<rule_name>")
+def rule(table_name, rule_name):
+    """
+    Remove ACL rule
+    """
+    log.log_info("'config acl remove rule {} {}' executing...".format(table_name, rule_name))
+    command = "acl-loader delete {} {}".format(table_name, rule_name)
+    clicommon.run_command(command)
 
 #
 # 'acl update' group

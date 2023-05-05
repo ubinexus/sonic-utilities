@@ -1,6 +1,8 @@
 import pytest
 
 import config.main as config
+from unittest import mock
+
 
 from click.testing import CliRunner
 from config.main import expand_vlan_ports, parse_acl_table_info
@@ -79,3 +81,35 @@ class TestConfigAcl(object):
 
         assert result.exit_code != 0
         assert "Cannot bind empty VLAN Vlan3000" in result.output
+
+    def test_acl_add_del_rule(self):
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config.config.commands["acl"].commands["add"].commands["table"],
+            ["DATAACL_ADD_DEL", "L3", "-p", "Ethernet0"])
+
+        assert result.exit_code == 0
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(
+                config.config.commands["acl"].commands["add"].commands["rule"],
+                ["tests/acl_input/acl_add_1.json"])
+
+            assert result.exit_code == 0
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(
+                config.config.commands["acl"].commands["remove"].commands["rule"],
+                ["DATAACL_ADD_DEL", "RULE_1"])
+
+            assert result.exit_code == 0
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(
+                config.config.commands["acl"].commands["remove"].commands["table"],
+                ["DATAACL_ADD_DEL"])
+
+            assert result.exit_code == 0
+
+

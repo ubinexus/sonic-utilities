@@ -2,6 +2,8 @@ import sys
 import os
 import pytest
 from unittest import mock
+from sonic_py_common import multi_asic
+from swsssdk import ConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -227,3 +229,63 @@ class TestAclLoader(object):
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_2.json'))
         acl_loader.incremental_update()
         assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "DROP"
+
+    def test_add_rule(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.tables_db_info['DATAACL_ADD_DEL'] = {
+            "policy_desc": "DATAACL_ADD_DEL",
+            "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023",
+            "stage": "INGRESS",
+            "type": "L3"
+        }
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl_add_1.json'))
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_1')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_1')] == {
+            'SRC_IP': '20.0.0.2/32',
+            'DST_IP': '30.0.0.3/32',
+            'ETHER_TYPE': '2048',
+            'PACKET_ACTION': 'FORWARD',
+            'PRIORITY': '9999'
+        }
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_2')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_2')] == {
+            'SRC_IP': '21.0.0.2/32',
+            'DST_IP': '31.0.0.3/32',
+            'ETHER_TYPE': '2048',
+            'PACKET_ACTION': 'FORWARD',
+            'PRIORITY': '9998'
+        }
+
+        acl_loader.per_npu_configdb = {}
+        namespaces = multi_asic.get_front_end_namespaces()
+        for namespace in namespaces:
+            asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+            # replace these with correct macros
+            acl_loader.per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            acl_loader.per_npu_configdb[asic_id].connect()
+
+        acl_loader.rules_db_info = acl_loader.rules_info
+
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl_add_2.json'))
+        acl_loader.add_rule()
+        print(acl_loader.rules_info)
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_1')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_2')]
+        assert acl_loader.rules_info[("DATAACL_ADD_DEL", "RULE_1")] == {
+            "SRC_IP": "30.0.0.2/32",
+            "DST_IP": "40.0.0.3/32",
+            "ETHER_TYPE": "2048",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_1')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_2')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_3')]
+        assert acl_loader.rules_info[('DATAACL_ADD_DEL', 'RULE_3')] == {
+            'SRC_IP': '31.0.0.2/32',
+            'DST_IP': '41.0.0.3/32',
+            'ETHER_TYPE': '2048',
+            'PACKET_ACTION': 'FORWARD',
+            'PRIORITY': '9997'
+        }
+

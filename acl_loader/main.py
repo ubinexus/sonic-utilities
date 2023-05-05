@@ -809,6 +809,49 @@ class AclLoader(object):
                 for namespace_configdb in self.per_npu_configdb.values():
                     namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
+    def add_rule(self):
+        """
+        Perform update/addition of new rules only. Get existing rules from
+        Config DB. Compare with rules specified in file and perform corresponding
+        modifications. Do not delete the existing rules. Handles only dataplane rules
+        :return:
+        """
+
+        # TODO: Alternate command for adding rules in dataplane ACLs instead of removing
+        # all the rules and populating like in full/incremental.
+        new_rules = set(self.rules_info.keys())
+        new_dataplane_rules = set()
+        current_rules = set(self.rules_db_info.keys())
+        current_dataplane_rules = set()
+
+        for key in new_rules:
+            table_name = key[0]
+            if self.tables_db_info[table_name]['type'].upper() != self.ACL_TABLE_TYPE_CTRLPLANE:
+                new_dataplane_rules.add(key)
+
+        for key in current_rules:
+            table_name = key[0]
+            if self.tables_db_info[table_name]['type'].upper() != self.ACL_TABLE_TYPE_CTRLPLANE:
+                current_dataplane_rules.add(key)
+
+        added_dataplane_rules = new_dataplane_rules.difference(current_dataplane_rules)
+        existing_dataplane_rules = new_rules.intersection(current_dataplane_rules)
+
+        for key in added_dataplane_rules:
+            self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            # Program for per-asic namespace corresponding to front asic also if present.
+            # For control plane ACL it's not needed but to keep all db in sync program everywhere
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+
+        for key in existing_dataplane_rules:
+            if not operator.eq(self.rules_info[key], self.rules_db_info[key]):
+                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+                # Program for per-asic namespace corresponding to front asic also if present.
+                # For control plane ACL it's not needed but to keep all db in sync program everywhere
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+
     def delete(self, table=None, rule=None):
         """
         :param table:
@@ -1120,6 +1163,17 @@ def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     acl_loader.load_rules_from_file(filename)
     acl_loader.incremental_update()
 
+@cli.command()
+@click.argument('filename', type=click.Path(exists=True))
+@click.pass_context
+def add(ctx, filename):
+    """
+    Add ACL rules.
+    """
+    acl_loader = ctx.obj["acl_loader"]
+
+    acl_loader.load_rules_from_file(filename)
+    acl_loader.add_rule()
 
 @cli.command()
 @click.argument('table', required=False)
