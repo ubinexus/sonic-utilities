@@ -6572,7 +6572,8 @@ def sample_rate(ctx, ifname, rate):
             click.echo('Invalid interface name')
             return
         if not is_valid_sample_rate(rate) and rate != 'default':
-            ctx.fail('Sample rate must be between 256 and 8388608 or default')
+            click.echo('Error: Sample rate must be between 256 and 8388608 or default')
+            return
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
