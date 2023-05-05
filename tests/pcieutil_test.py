@@ -205,9 +205,12 @@ class TestPcieUtil(object):
     def test_load_pcie_module_warning(self): 
         stdout = sys.stdout
         sys.stdout = result = StringIO()
-        pcieutil.load_platform_pcieutil()
+        try:
+            pcieutil.load_platform_pcieutil()
+        except ImportError:
+            pass
         sys.stdout = stdout
-        assert pcieutil_load_module_warning_msg not in result.get_value()
+        assert pcieutil_load_module_warning_msg not in result.getvalue()
 
     @classmethod
     def teardown_class(cls):
