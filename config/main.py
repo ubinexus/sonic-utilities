@@ -6569,7 +6569,8 @@ def sample_rate(ctx, ifname, rate):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            ctx.fail('Invalid interface name')
+            click.echo('Invalid interface name')
+            return
         if not is_valid_sample_rate(rate) and rate != 'default':
             ctx.fail('Sample rate must be between 256 and 8388608 or default')
 
