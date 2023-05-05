@@ -6513,7 +6513,8 @@ def enable(ctx, ifname):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            ctx.fail("Invalid interface name")
+            click.echo("Invalid interface name")
+            return
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
@@ -6539,7 +6540,8 @@ def disable(ctx, ifname):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-            ctx.fail("Invalid interface name")
+            click.echo("Invalid interface name")
+            return
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
