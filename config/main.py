@@ -6675,7 +6675,6 @@ def is_port_egress_sflow_supported():
     state_db.connect(state_db.STATE_DB, False)
     entry_name="SWITCH_CAPABILITY|switch"
     supported = state_db.get(state_db.STATE_DB, entry_name,"PORT_EGRESS_SAMPLE_CAPABLE")
-    click.echo("switch_capability-egress-sflow {}".format(supported))
     return supported
 
 #
@@ -6684,7 +6683,7 @@ def is_port_egress_sflow_supported():
 @sflow.command('sample-direction')
 @click.argument('direction',  metavar='<sample_direction>', required=True, type=str)
 @click.pass_context
-def sample_dir(ctx, direction):
+def global_sample_direction(ctx, direction):
     """Set sampling direction """
     if ADHOC_VALIDATION:
         if direction:
@@ -6822,7 +6821,7 @@ def sample_rate(ctx, ifname, rate):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.argument('direction', metavar='<sample_direction>', required=True, type=str)
 @click.pass_context
-def sample_direction(ctx, ifname, direction):
+def interface_sample_direction(ctx, ifname, direction):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
