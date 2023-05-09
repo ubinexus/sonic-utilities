@@ -1,3 +1,4 @@
+import pytest
 import filecmp
 import importlib
 import os
@@ -8,6 +9,7 @@ import sys
 import unittest
 import ipaddress
 from unittest import mock
+from jsonpatch import JsonPatchConflict
 
 import click
 from click.testing import CliRunner
@@ -15,7 +17,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
-from mock import patch
+from mock import patch, MagicMock
 
 from generic_config_updater.generic_updater import ConfigFormat
 
@@ -34,12 +36,27 @@ os.environ["PATH"] += os.pathsep + scripts_path
 # Config Reload input Path
 mock_db_path = os.path.join(test_path, "config_reload_input")
 
+# Load minigraph input Path
+load_minigraph_input_path = os.path.join(test_path, "load_minigraph_input")
+load_minigraph_platform_path = os.path.join(load_minigraph_input_path, "platform")
+load_minigraph_platform_false_path = os.path.join(load_minigraph_input_path, "platform_false")
 
 load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
 Running command: pfcwd start_default
+Restarting SONiC target ...
+Reloading Monit configuration ...
+Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
+"""
+
+load_minigraph_platform_plugin_command_output="""\
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
+Running command: config qos reload --no-dynamic-buffer --no-delay
+Running command: pfcwd start_default
+Running Platform plugin ............!
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
@@ -114,10 +131,6 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-reload_config_with_untriggered_timer_output="""\
-Relevant services are not up. Retry later or use -f to avoid system checks
-"""
-
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
 
@@ -154,44 +167,45 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
         else:
             return '', 0
 
-def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
-    command = args[0]
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled', 0
-        elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
-            return '0', 0
-        else:
-            return '', 0
-
-def mock_run_command_side_effect_gnmi(*args, **kwargs):
-    command = args[0]
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'gnmi.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled gnmi.timer":
-            return 'enabled', 0
-        else:
-            return '', 0
-
-
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
+class TestHelper(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.Popen')
+    def test_get_device_type(self, mock_subprocess):
+        mock_subprocess.return_value.communicate.return_value = ("BackendToRRouter ", None)
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "BackendToRRouter"
+
+        mock_subprocess.return_value.communicate.return_value = (None, "error")
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "Unknown"
+
+    def teardown(self):
+        print("TEARDOWN")
+
+class TestConfig(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.check_call')
+    def test_platform_fw_install(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['install'], ['chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "install", 'chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+
+    @patch('config.main.subprocess.check_call')
+    def test_plattform_fw_update(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['update'], ['update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "update", 'update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
@@ -234,32 +248,6 @@ class TestConfigReload(object):
 
             assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
 
-    def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
-            (config, show) = get_cmd_module
-
-            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
-            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
-
-            # create object
-            config.INIT_CFG_FILE = jsonfile_init_cfg
-            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
-
-            db = Db()
-            runner = CliRunner()
-            obj = {'config_db': db.cfgdb}
-
-            # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-
-            assert result.exit_code == 1
-
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -280,6 +268,7 @@ class TestLoadMinigraph(object):
         import config.main
         importlib.reload(config.main)
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
@@ -292,12 +281,11 @@ class TestLoadMinigraph(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed snmp')
-            assert mock_run_command.call_count == 11
+            assert mock_run_command.call_count == 8
 
-    def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_path, None)))
+    def test_load_minigraph_platform_plugin(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
             runner = CliRunner()
             result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
@@ -305,13 +293,25 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_platform_plugin_command_output
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed gnmi')
-            assert mock_run_command.call_count == 11
+            assert mock_run_command.call_count == 8
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_false_path, None)))
+    def test_load_minigraph_platform_plugin_fail(self, get_cmd_module, setup_single_broadcom_asic):
+        print(load_minigraph_platform_false_path)
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Platform plugin failed" in result.output
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -326,6 +326,7 @@ class TestLoadMinigraph(object):
             port_config = [{}]
             self.check_port_config(None, config, port_config, "Failed to load port_config.json, Error: Bad format: PORT table not exists")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config_inconsistent_port(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -337,6 +338,7 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Eth1": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "Failed to load port_config.json, Error: Port Eth1 is not defined in current device")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -354,6 +356,7 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
             return port_config
@@ -368,6 +371,7 @@ class TestLoadMinigraph(object):
                 assert result.exit_code == 0
                 assert expected_output in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_non_exist_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -379,6 +383,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code != 0
             assert "Cannot find 'non_exist.json'" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_specified_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -390,6 +395,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "config override-config-table golden_config.json" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_default_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -401,6 +407,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "config override-config-table /etc/sonic/golden_config_db.json" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
@@ -412,6 +419,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "TSA" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_traffic_shift_away_with_golden_config(self, get_cmd_module):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             def is_file_side_effect(filename):
@@ -443,9 +451,66 @@ class TestReloadConfig(object):
         print("SETUP")
         import config.main
         importlib.reload(config.main)
-        open(cls.dummy_cfg_file, 'w').close()
+
+    def add_sysinfo_to_cfg_file(self):
+        with open(self.dummy_cfg_file, 'w') as f:
+            device_metadata = {
+                "DEVICE_METADATA": {
+                    "localhost": {
+                        "platform": "some_platform",
+                        "mac": "02:42:f0:7f:01:05"
+                    }
+                }
+            }
+            f.write(json.dumps(device_metadata))
+
+    def test_reload_config_invalid_input(self, get_cmd_module, setup_single_broadcom_asic):
+        open(self.dummy_cfg_file, 'w').close()
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+
+    def test_reload_config_no_sysinfo(self, get_cmd_module, setup_single_broadcom_asic):
+        with open(self.dummy_cfg_file, 'w') as f:
+            device_metadata = {
+                "DEVICE_METADATA": {
+                    "localhost": {
+                        "hwsku": "some_hwsku"
+                    }
+                }
+            }
+            f.write(json.dumps(device_metadata))
+
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
 
     def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
@@ -465,6 +530,7 @@ class TestReloadConfig(object):
                 == RELOAD_CONFIG_DB_OUTPUT
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                "utilities_common.cli.run_command",
                mock.MagicMock(side_effect=mock_run_command_side_effect_disabled_timer)
@@ -484,6 +550,7 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == reload_config_with_disabled_service_output
 
     def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
@@ -1870,6 +1937,67 @@ class TestConfigLoopback(object):
         print(result.output)
         assert result.exit_code == 0
     
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigNtp(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_add_ntp_server_failed_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
+    def test_add_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    def test_del_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value="10.10.10.10"))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_del_ntp_server_invalid_ip_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
