@@ -164,8 +164,6 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                     if is_dhcp_relay_running():
                         dhcp_relay_util.handle_restart_dhcp_relay_service()
                 
-            except JsonPatchConflict:
-                ctx.fail("{} does not exist".format(vlan))
                 
 
 def restart_ndppd():
