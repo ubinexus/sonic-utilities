@@ -975,7 +975,7 @@ class DBMigrator():
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
 	
-	def version_4_0_2(self):
+    def version_4_0_2(self):
         """
         Version 4_0_2.
         """

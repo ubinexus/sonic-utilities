@@ -165,15 +165,15 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                 
 		
 		
-	vlans = db.cfgdb.get_keys('VLAN')
-	if not vlans:
-		docker_exec_cmd = "docker exec -i swss {}"
-		_, rc = clicommon.run_command(docker_exec_cmd.format("supervisorctl status ndppd"), ignore_error=True, return_cmd=True)
-		if rc == 0:
-			click.echo("No VLANs remaining, stopping ndppd service")
-			clicommon.run_command(docker_exec_cmd.format("supervisorctl stop ndppd"), ignore_error=True, return_cmd=True)
-			clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
-			clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
+    vlans = db.cfgdb.get_keys('VLAN')
+    if not vlans:
+        docker_exec_cmd = "docker exec -i swss {}"
+        _, rc = clicommon.run_command(docker_exec_cmd.format("supervisorctl status ndppd"), ignore_error=True, return_cmd=True)
+        if rc == 0:
+            click.echo("No VLANs remaining, stopping ndppd service")
+            clicommon.run_command(docker_exec_cmd.format("supervisorctl stop ndppd"), ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
                 
 
 def restart_ndppd():
