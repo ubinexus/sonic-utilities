@@ -461,6 +461,9 @@ class DBMigrator():
                 if p_key in vlan_member_keys:
                     p_value["mode"] = "trunk"
                     self.configDB.set_entry("PORT", p_key, p_value)
+                else:
+                    p_value["mode"] = "routed"
+                    self.configDB.set_entry("PORT", p_key, p_value)
 
         for pc_key, pc_value in portchannel_table.items():
             if 'mode' in pc_value:
@@ -468,6 +471,9 @@ class DBMigrator():
             else:
                 if pc_key in vlan_member_keys:
                     pc_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+                else:
+                    pc_value["mode"] = "routed"
                     self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
 
 

@@ -958,6 +958,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Ethernet20 is in routed mode!\nUse switchport mode command to change port mode" in result.output
 
+
         # configure Ethernet20 from routed to access mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
         print(result.exit_code)
@@ -1007,7 +1008,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Ethernet20 has tagged member|s. \nRemove them to change mode to routed" in result.output
+        assert "Ethernet20 has tagged member(s). \nRemove them to change mode to routed" in result.output
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1021,7 +1022,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Ethernet20 has untagged member. \nRemove them to change mode to routed" in result.output
+        assert "Ethernet20 has untagged member. \nRemove it to change mode to routed" in result.output
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1098,7 +1099,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Ethernet64 is in trunk mode and have tagged member|s.\nRemove tagged member|s from Ethernet64 to switch to access mode" in result.output
+        assert "Ethernet64 is in trunk mode and have tagged member(s).\nRemove tagged member(s) from Ethernet64 to switch to access mode" in result.output
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1199,8 +1200,8 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"],
                                ["Ethernet4", "10.10.10.1/24"], obj=obj)        
         print(result.exit_code, result.output)
-        assert result.exit_code == 0
-        assert 'Interface Ethernet4 is not in routed mode.\nRemove the vlans assigned to it and changed mode to routed' in result.output
+        assert result.exit_code != 0
+        assert 'Interface Ethernet4 is not in routed mode!' in result.output
         
     def test_config_vlan_add_member_of_portchannel(self):
         runner = CliRunner()

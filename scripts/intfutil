@@ -94,26 +94,16 @@ def get_interface_vlan_dict(config_db):
     return int_to_vlan_dict
 
 
-def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list,config_db, intf_name):
+def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list, intf_name):
     """
     Get interface vlan value and return it.
     """
     vlan = "routed"
-    ports_dict = config_db.get_table('PORT')
-    port_channel_dict = config_db.get_table('PORTCHANNEL')
-
     if intf_name in front_panel_ports_list:
         if intf_name in int_to_vlan_dict.keys():
             vlan = int_to_vlan_dict[intf_name]
-            if "PortChannel" in vlan:
-                return vlan
-    if "PortChannel" in intf_name and intf_name in port_channel_dict:
-        intf_data = port_channel_dict[intf_name]
-    if intf_name in ports_dict:
-        intf_data = ports_dict[intf_name]
-
-    if "mode" in intf_data:
-        vlan = intf_data["mode"]
+            if "Vlan" in vlan:
+                vlan = "trunk"
     return vlan
 
 
@@ -373,14 +363,10 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
             return "N/A"
         return status
     if status_type == "vlan":
-        port_channel_table = config_db.get_table('PORTCHANNEL')
-        if "PortChannel" in po_name and po_name in port_channel_table:
-            intf_data = port_channel_table[po_name]
-        if "mode" in intf_data:
-            status = intf_data["mode"]
+        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
+            status = "trunk"
         else:
             status = "routed"
-            
         return status
     if status_type == "mtu":
         status = config_db.get(config_db.CONFIG_DB, po_table_id, status_type)
@@ -426,7 +412,7 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
 
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'FEC', 'Alias', 'Mode', 'Oper', 'Admin', 'Type', 'Asym PFC']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'FEC', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
 header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', 'Type']
 
 
@@ -494,7 +480,7 @@ class IntfStatus(object):
                                 appl_db_port_status_get(self.db, key, PORT_MTU_STATUS),
                                 appl_db_port_status_get(self.db, key, PORT_FEC),
                                 appl_db_port_status_get(self.db, key, PORT_ALIAS),
-                                config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list,self.config_db, key),
+                                config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list, key),
                                 appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
                                 appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
                                 port_optics_get(self.db, key, PORT_OPTICS_TYPE),

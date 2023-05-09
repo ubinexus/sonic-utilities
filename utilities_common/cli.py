@@ -427,6 +427,54 @@ def is_pc_router_interface(config_db, pc):
 
     return False
 
+def get_vlan_id(vlan):
+    vlan_prefix, vid = vlan.split('Vlan')
+    return vid
+
+def get_interface_name_for_display(db ,interface):
+    interface_naming_mode = get_interface_naming_mode()
+    iface_alias_converter = InterfaceAliasConverter(db)
+    if interface_naming_mode == "alias" and interface:
+        return iface_alias_converter.name_to_alias(interface)
+    return interface
+
+def get_interface_untagged_vlan_members(db,interface):
+    untagged_vlans = []
+    vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
+
+    for member in natsorted(list(vlan_member.keys())):
+        interface_vlan, interface_name = member
+
+        if interface == interface_name and vlan_member[member]['tagging_mode'] == 'untagged':
+            untagged_vlans.append(get_vlan_id(interface_vlan))
+            
+    return "\n".join(untagged_vlans)
+
+def get_interface_tagged_vlan_members(db,interface):
+    tagged_vlans = []
+    formatted_tagged_vlans = []
+    vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
+
+    for member in natsorted(list(vlan_member.keys())):
+        interface_vlan, interface_name = member
+
+        if interface == interface_name and vlan_member[member]['tagging_mode'] == 'tagged':
+            tagged_vlans.append(get_vlan_id(interface_vlan))
+    
+    for i in range(len(tagged_vlans)//5+1):
+        formatted_tagged_vlans.append(" ,".join([str(x) for x in tagged_vlans[i*5:(i+1)*5]]))
+            
+    return "\n".join(formatted_tagged_vlans)
+
+def get_interface_switchport_mode(db, interface):
+    port = db.cfgdb.get_entry('PORT',interface)
+    portchannel = db.cfgdb.get_entry('PORTCHANNEL',interface)
+    switchport_mode = 'routed'
+    if "mode" in port:
+        switchport_mode = port['mode']
+    elif "mode" in portchannel:
+        switchport_mode = portchannel['mode']
+    return switchport_mode
 
 def is_port_mirror_dst_port(config_db, port):
     """Check if port is already configured as mirror destination port """

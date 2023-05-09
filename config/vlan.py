@@ -45,7 +45,7 @@ def is_dhcpv6_relay_config_exist(db, vlan_name):
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True)
-@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @clicommon.pass_db
 def add_vlan(db, vid, multiple):
     """Add VLAN"""
@@ -83,7 +83,7 @@ def add_vlan(db, vid, multiple):
             # TODO: MISSING CONSTRAINT IN YANG MODEL
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
                 log.log_info("{} already exists".format(vlan))
-                ctx.fail("{} already exists".format(vlan))
+                ctx.fail("{} already exists, Aborting!!!".format(vlan))
 				
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan, "DHCP_RELAY"):
                 ctx.fail("DHCPv6 relay config for {} already exists".format(vlan))
@@ -98,7 +98,7 @@ def add_vlan(db, vid, multiple):
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True)
-@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans.")
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @click.option('--no_restart_dhcp_relay', is_flag=True, type=click.BOOL, required=False, default=False,
               help="If no_restart_dhcp_relay is True, do not restart dhcp_relay while del vlan and \
                 require dhcpv6 relay of this is empty")
@@ -135,7 +135,7 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
             
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
                 log.log_info("{} does not exist".format(vlan))
-                ctx.fail("{} does not exist".format(vlan))
+                ctx.fail("{} does not exist, Aborting!!!".format(vlan))
 
             intf_table = db.cfgdb.get_table('VLAN_INTERFACE')
             for intf_key in intf_table:
@@ -220,8 +220,8 @@ def vlan_member():
 @click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='port', required=True)
 @click.option('-u', '--untagged', is_flag=True, help="Untagged status")
-@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlans")
-@click.option('-e', '--except_flag', is_flag=True, help="Except vlans")
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
+@click.option('-e', '--except_flag', is_flag=True, help="Skips the given vlans and adds all other existing vlans.")
 @clicommon.pass_db
 def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
     """Add VLAN member"""
@@ -267,8 +267,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 
             # TODO: MISSING CONSTRAINT IN YANG MODEL
             if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
-                log.log_info("{} is already a member of {}".format(port, vlan))
-                ctx.fail("{} is already a member of {}".format(port, vlan))
+                log.log_info("{} is already a member of {}, Aborting!!!".format(port, vlan))
+                ctx.fail("{} is already a member of {}, Aborting!!!".format(port, vlan))
                 
 
             if clicommon.is_valid_port(db.cfgdb, port):
@@ -321,8 +321,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='<port>', required=True)
-@click.option('-m', '--multiple', is_flag=True, help="Multiple vlans.")
-@click.option('-e', '--except_flag', is_flag=True, help="Except vlans")
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
+@click.option('-e', '--except_flag', is_flag=True, help="Skips the given vlans and adds all other existing vlans.")
 @clicommon.pass_db
 def del_vlan_member(db, vid, port, multiple, except_flag):
     """Delete VLAN member"""
@@ -344,8 +344,8 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
 
             vlan = 'Vlan{}'.format(vid)
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
-                log.log_info("{} does not exist".format(vlan))
-                ctx.fail("{} does not exist".format(vlan))
+                log.log_info("{} does not exist, Aborting!!!".format(vlan))
+                ctx.fail("{} does not exist, Aborting!!!".format(vlan))
 
             if clicommon.get_interface_naming_mode() == "alias":  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 alias = port

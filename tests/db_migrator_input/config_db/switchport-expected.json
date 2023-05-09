@@ -40,6 +40,7 @@
         "alias": "fortyGigE0/16",
         "index": "4",
         "lanes": "45,46,47,48",
+        "mode": "routed",
         "mtu": "9100",
         "speed": "40000"
     },
@@ -133,6 +134,7 @@
         "fast_rate": "false",
         "lacp_key": "auto",
         "min_links": "1",
+        "mode": "routed",
         "mtu": "9100"
     },
 

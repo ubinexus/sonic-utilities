@@ -152,6 +152,8 @@
 * [Subinterfaces](#subinterfaces)
   * [Subinterfaces Show Commands](#subinterfaces-show-commands)
   * [Subinterfaces Config Commands](#subinterfaces-config-commands)
+* [Switchport Modes](#switchport-modes)
+  * [Switchport Mode config commands](#switchport modes-config-commands)
 * [Syslog](#syslog)
   * [Syslog show commands](#syslog-show-commands)
   * [Syslog config commands](#syslog-config-commands)
@@ -163,7 +165,6 @@
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
     * [VLAN Config commands](#vlan-config-commands)
-    * [Switchport commands](#switchport-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
 * [VxLAN & Vnet](#vxlan--vnet)
@@ -1539,6 +1540,36 @@ This command is used to create new ACL tables.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**aclshow**
+
+This command is used to display: ACL rules, tables and their priority, ACL packets counters, and bytes counters
+
+- Usage:
+  ```
+  aclshow [-h] [-a] [-c] [-r RULES] [-t TABLES] [-v] [-vv]
+  ```
+
+- Parameters:
+  - -a, --all: Show all ACL counters
+  - -c, --clear: Clear ACL counters statistics
+  - -r RULES, --rules RULES: Show only specified ACL rules and their counters
+  - -t TABLES, --tables TABLES: Show only specified ACL tables and their counters
+  - -vv, --verbose: Verbose output
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo aclshow -a
+  RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
+  -----------  ------------  ------  ---------------  -------------
+  RULE_1       DATAACL       9999    0                0
+  RULE_2       DATAACL       9998    0                0
+  RULE_1       SNMP_ACL      9999    N/A              N/A
+  ```
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have the `N/A` value it means either that the ACL rule is invalid or it is a `control plane` ACL and those counters are created in Linux, not in SONiC `COUNTERS_DB` and the [iptables](https://linux.die.net/man/8/iptables) utility should be used to view those counters.
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have some numeric value it means that it is a SONiC ACL's and those counters are created in SONiC `COUNTERS_DB`.
+
 
 ## ARP & NDP
 
@@ -2464,23 +2495,23 @@ This command is used to show ipv6 dhcp_relay counters.
 - Example:
   ```
   admin@sonic:~$ sudo sonic-clear dhcp_relay counters
-         Message Type    Vlan1000
-  -------------------  ----------
-              Unknown           0
-              Solicit           0
-            Advertise           0
-              Request           5
-              Confirm           0
-                Renew           0
-               Rebind           0
-                Reply           0
-              Release           0
-              Decline           0
-          Reconfigure           0
-  Information-Request           0
-        Relay-Forward           0
-          Relay-Reply           0
-            Malformed           0
+         Message Type    Vlan1000
+  -------------------  ----------
+              Unknown           0
+              Solicit           0
+            Advertise           0
+              Request           5
+              Confirm           0
+                Renew           0
+               Rebind           0
+                Reply           0
+              Release           0
+              Decline           0
+          Reconfigure           0
+  Information-Request           0
+        Relay-Forward           0
+          Relay-Reply           0
+            Malformed           0
   ```
 
 ### DHCP Relay clear commands
@@ -3675,6 +3706,7 @@ Subsequent pages explain each of these commands in detail.
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
   status       Show Interface status information
+  switchport   Show Interface switchport information
   tpid         Show Interface tpid information
   transceiver  Show SFP Transceiver information
   ```
@@ -4117,6 +4149,50 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet180  105,106,107,108     100G    9100    hundredGigE46    down     down     N/A         N/A
   ```
 
+
+**show interface switchport status**
+
+This command displays switchport modes status of the interfaces
+
+- Usage:
+  ```
+  show interfaces switchport status
+  ```
+
+- Example (show interface switchport status of all interfaces):
+  ```
+  admin@sonic:~$ show interfaces switchport status
+  Interface     Mode                   
+  -----------  --------          
+  Ethernet0     access                  
+  Ethernet4     trunk                 
+  Ethernet8     routed          
+  <contiues to display all the interfaces>
+  ```
+
+**show interface switchport config**
+
+This command displays switchport modes configuration of the interfaces
+
+- Usage:
+  ```
+  show interfaces switchport config
+  ```
+
+- Example (show interface switchport config of all interfaces):
+  ```
+  admin@sonic:~$ show interfaces switchport config
+  Interface     Mode        Untagged   Tagged              
+  -----------  --------     --------   -------     
+  Ethernet0     access      2             
+  Ethernet4     trunk       3          4,5,6      
+  Ethernet8     routed          
+  <contiues to display all the interfaces>
+  ```
+
+
+For details please refer [Switchport Mode HLD](https://github.com/sonic-net/SONiC/pull/912/files#diff-03597c34684d527192f76a6e975792fcfc83f54e20dde63f159399232d148397) to know more about this command.
+  
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -9166,6 +9242,40 @@ This sub-section explains how to configure subinterfaces.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#subinterfaces)
 
+## Switchport Modes
+
+### Switchport Modes Config Commands
+
+This subsection explains how to configure switchport modes on Port/PortChannel.
+
+**config switchport**
+mode
+Usage:
+  ```
+  config switchport mode <access|trunk|routed> <member_portname/member_portchannel>
+  ```
+
+- Example (Config switchport mode access on "Ethernet0):
+  ```
+  admin@sonic:~$ sudo config switchport mode access Ethernet0
+  ```
+
+- Example (Config switchport mode trunk on "Ethernet4"):
+  ```
+  admin@sonic:~$ sudo config switchport mode trunk Ethernet4
+  ```
+
+- Example (Config switchport mode routed on "Ethernet12"):
+  ```
+  admin@sonic:~$ sudo config switchport mode routed Ethernet12
+  ```
+
+
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#switchport-modes)
+
+
+
 ## Syslog
 
 ### Syslog Show Commands
@@ -9832,6 +9942,7 @@ This command displays all the vlan configuration.
   Vlan100    100  Ethernet4  tagged
   ```
 
+
 #### VLAN Config commands
 
 This sub-section explains how to configure the vlan and its member ports.
@@ -9841,51 +9952,51 @@ This sub-section explains how to configure the vlan and its member ports.
 This command is used to add or delete the vlan.
 
 - Usage:
-
   ```
   config vlan (add | del) <vlan_id>
   ```
 
 - Example (Create the VLAN "Vlan100" if it does not already exist):
-
   ```
   admin@sonic:~$ sudo config vlan add 100
   ```
 
 **config vlan add/del -m**
 
-This command is used to add or delete Vlan in a comma separted format or in a range format. Multiple Vlans can be added or deleted at once.
+This command is used to add or delete multiple vlans via single command.
 
 - Usage:
-
   ```
-  config vlan (add | del) -m <vlan_id|s>
-  ```
-
-- Example (Create the VLAN "Vlan100, Vlan200, Vlan300" if these does not already exist):
-  ```
-  admin@sonic:~$ sudo config vlan add -m 100,200,300
-  This command will add Vlan100 , Vlan200, Vlan300 
+  config vlan (add | del) -m <vlan_id>
   ```
 
-- Example (Create Range of VLAN(s) from 10-15 if these does not already exist):
+- Example01 (Create the VLAN "Vlan100, Vlan101, Vlan102, Vlan103" if these does not already exist)
+
   ```
-  admin@sonic:~$ sudo config vlan add -m 10-15
-  This command will add Vlan10, Vlan11, Vlan12, Vlan13, Vlan14, Vlan15 
+  admin@sonic:~$ sudo config vlan add -m 100-103
   ```
+
+
+- Example02 (Create the VLAN "Vlan105, Vlan106, Vlan107, Vlan108" if these does not already exist):
+
+  ```
+  admin@sonic:~$ sudo config vlan add -m 105,106,107,108
+  ```
+
+
 **config vlan member add/del**
 
- _NOTE: This command can only be used after configuring switchport mode on the interface._
+This command is to add or delete a member port into the already created vlan.
 
 - Usage:
   ```
   config vlan member add/del [-u|--untagged] <vlan_id> <member_portname>
   ```
 
-_NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
+*NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode*
+
 
 - Example:
-
   ```
   admin@sonic:~$ sudo config vlan member add 100 Ethernet0
   This command will add Ethernet0 as member of the vlan 100
@@ -9894,152 +10005,44 @@ _NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode_
   This command will add Ethernet4 as member of the vlan 100.
   ```
 
-**config vlan member add/del -m  <vlan_ids> <member_portname>/<member_portchannelname>**
 
- _NOTE: This command can only be used after configuring switchport mode on the interface or on a PortChannel. This is only for adding tagged vlan members to trunk port_
+**config vlan member add/del -m**
 
-- Usage:
-  ```
-  config vlan member add/del  [-m|--multiple] <vlan_id> <member_portname>/<member_portchannelname>
-  ```
-
-
-- Example (Add the VLAN "Vlan100, Vlan200, Vlan300" in one command on port if they don't exist as members):
-
-  ```
-  admin@sonic:~$ sudo config vlan member add -m 100,200,300 Ethernet0
-  This command will add Ethernet0 as member of the Vlan100, Vlan200, Vlan300
-
-  admin@sonic:~$ sudo config vlan member add -m 100,200,300 Ethernet4
-  This command will add Ethernet4 as member of the Vlan100, Vlan200, Vlan300
-  ```
-- Example (Add the VLAN "Vlan100, Vlan200, Vlan300" in one command on a PortChannel if they don't exist as members):
-  ```
-  admin@sonic:~$ sudo config vlan member add -m 100,200,300 PortChannel101
-
-  This command will add PortChannel101 as member of the Vlan100, Vlan200, Vlan300
-  ```
-  
-- Example (Add the VLAN "Vlan10, Vlan11, Vlan12, Vlan13" in one command on port if they don't exist as members):
-  ```
-  admin@sonic:~$ sudo config vlan member add -m 10-13 Ethernet0
-  This command will add Ethernet0 as member of the Vlan10, Vlan11, Vlan12, Vlan13
-  ```
-- Example (Add the VLAN "Vlan10, Vlan11, Vlan12, Vlan13" in one command on an existing PortChannel if they don't already exist):
-  ```
-  admin@sonic:~$ sudo config vlan member add -m 10-13 PortChannel1001
-  This command will add PortChannel1001 as member of the Vlan10, Vlan11, Vlan12, Vlan13
-
-  ```
-
-- Example (Suppose if Vlan10, Vlan20, Vlan30, Vlan40, Vlan50, Vlan70 are existing Vlans, Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members. This works in the same way for PortChannel):
-
-  ```
-  admin@sonic:~$ sudo config vlan member add -e 10 Ethernet0
-  This command will add Ethernet0 as member of Vlan 20, Vlan30, Vlan 40, Vlan 50, Vlan 70
-  ```
-  
-- Example (Suppose if Vlan10, Vlan11, Vlan12, Vlan13, Vlan14, Vlan15, Vlan16, Vlan17, Vlan18, Vlan19, Vlan20 are existing Vlans. Add all VLANs except "Vlan10" from existing VLAN on port if they don't exist as members):
-
-
-  ```
-  admin@sonic:~$ sudo config vlan member add  -m -e 12-17 Ethernet0
-  This command will add Ethernet0 as member of Vlan10, Vlan11, Vlan18, Vlan19, Vlan20
-  ```
-- Example (Add all VLANs except "Vlan100, Vlan300" from existing VLAN on port if they don't exist as members):
-
-  _Suppose if Vlan 100, Vlan 200, Vlan 300, Vlan 400, Vlan 500, Vlan 700 are existing Vlans._
-
-  ```
-  admin@sonic:~$ sudo config vlan member add -m -e 100,300 Ethernet4
-  This command will add Ethernet4 as member of Vlan 200, Vlan 400, Vlan 500, Vlan 700
-  ```
-
-
-**config vlan member add/del all <member_portname>/<member_portchannelname>**
-
-This command is to add or delete all existing vlan members onto/from port or from a Portchannel.
-
-_This will not work for untagged vlans._
-
-- Example (Add all exisitng VLANs on port if they don't exist as members):
-
-  _Suppose if Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700 are existing Vlans._
-
-  ```
-  admin@sonic:~$ sudo config vlan member add all Ethernet4
-  This command will add Ethernet4 as member of Vlan100, Vlan200, Vlan300, Vlan400, Vlan500, Vlan700
-  ```
-
-- Example (Add all VLANs on portchannel if they don't exist):
-
-  _Suppose if Vlan100, Vlan200, Vlan300, Vlan400, Vlan500 are existing Vlans._
-
-  ```
-  admin@sonic:~$ sudo config vlan member add all PortChannel1001
-  This command will add PortChannel1001 as member of Vlan100, Vlan200, Vlan300, Vlan400, Vlan500
-  ```
-
-#### SWITCHPORT Config commands
-
-This sub-section explains how to configure the switchport mode of ports.
-
-**config switchport mode trunk|access|routed <member_portname>/<member_portchannelname>**
-
-This command is to use to add port modes on a specific port or on a por channel
+This command is to add or delete a member port into multiple already created vlans.
 
 - Usage:
+  ```
+  config vlan member add/del [-m] <vlan_id> <member_portname>
+  ```
 
-  ```
-  config switchport mode trunk <member_portname>/<member_portchannelname>
-  ```
+*NOTE: *-m flag multiple Vlans in range or comma separted list can be added as a member port.
 
-- Example:
-
-  ```
-  admin@sonic:~$ sudo config switchport mode trunk Ethernet0
-  This command will configure Ethernet0 as trunk port
-  ```
 
 - Example:
+  ```
+  admin@sonic:~$ sudo config vlan member add -m 100-103 Ethernet0
+  This command will add Ethernet0 as member of the vlan 100, vlan 101, vlan 102, vlan 103
+   ```
+
+   ```
+  admin@sonic:~$ sudo config vlan member add -m 100,101,102 Ethernet4
+  This command will add Ethernet4 as member of the vlan 100, vlan 101, vlan 102
+   ```
+
+   ```
+  admin@sonic:~$ sudo config vlan member add -e -m 104,105 Ethernet8
+  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet8 as member of  vlan 100, vlan 101, vlan 102, vlan 103
+  ```
 
   ```
-  admin@sonic:~$ sudo config switchport mode trunk PortChannel1001
-  This command will configure already existing PortChannel1001 as trunk 
-  ```
-- Usage:
-
-  ```
-  config switchport mode access <member_portname>/<member_portchannelname>
+  admin@sonic:~$ sudo config vlan member add -e 100 Ethernet12
+  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet12 as member of vlan 101, vlan 102, vlan 103, vlan 104, vlan 105
   ```
 
-- Example:
-
+   ```
+  admin@sonic:~$ sudo config vlan member add all Ethernet20
+  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet20 as member of vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105
   ```
-  admin@sonic:~$ sudo config switchport mode access Ethernet0
-  This command will configure Ethernet0 as access port
-  ```
-
-- Example:
-
-  ```
-  admin@sonic:~$ sudo config switchport mode access PortChannel102
-  This command will configure already existing PortChannel102 as access 
-  ```
-- Usage:
-
-  ```
-  config switchport mode routed <member_portname>/<member_portchannelname>
-  ```
-
-- Example:
-
-  ```
-  admin@sonic:~$ sudo config switchport mode routed Ethernet0
-  This command will change mode from either access or trunk to routed mode.
-  ```
-
-_NOTE: When the interface is in routed mode, VLAN|s cannot be added to the interface or to the PortChannel. If user wants to assign IP address on a port or on a PortChannel, switchport mode should be in "routed" else it will not assign IP_
 
 **config proxy_arp enabled/disabled**
 

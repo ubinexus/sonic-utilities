@@ -64,7 +64,7 @@ def switchport_mode(db, type, port):
             mode_exists_status = False
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
             (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
-            ctx.fail("{} is a router interface in routed mode!\nRemove IP assigned to it to switch mode!".format(port))
+            ctx.fail("Remove IP from {} to change mode!".format(port))
 
         if existing_mode == "routed":
             if mode_exists_status:
@@ -90,7 +90,7 @@ def switchport_mode(db, type, port):
                 pass
             if existing_mode == "trunk" and type == "access":
                 if clicommon.interface_is_tagged_member(db.cfgdb,port):
-                    ctx.fail("{} is in {} mode and have tagged member|s.\nRemove tagged member|s from {} to switch to {} mode".format(port,existing_mode,port,type))
+                    ctx.fail("{} is in {} mode and have tagged member(s).\nRemove tagged member(s) from {} to switch to {} mode".format(port,existing_mode,port,type))
             if is_port:
                 db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
             # if not port then is a port channel
@@ -103,10 +103,10 @@ def switchport_mode(db, type, port):
     else:
 
         if clicommon.interface_is_tagged_member(db.cfgdb,port):
-            ctx.fail("{} has tagged member|s. \nRemove them to change mode to {}".format(port,type))
+            ctx.fail("{} has tagged member(s). \nRemove them to change mode to {}".format(port,type))
 
         if clicommon.interface_is_untagged_member(db.cfgdb,port):
-            ctx.fail("{} has untagged member. \nRemove them to change mode to {}".format(port,type))
+            ctx.fail("{} has untagged member. \nRemove it to change mode to {}".format(port,type))
 
         if "mode" in port_data:
             existing_mode = port_data["mode"]

@@ -10,8 +10,8 @@ root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
-show_interface_status_output = """\
-      Interface            Lanes    Speed    MTU    FEC      Alias             Mode    Oper    Admin             Type    Asym PFC
+show_interface_status_output="""\
+      Interface            Lanes    Speed    MTU    FEC      Alias             Vlan    Oper    Admin             Type    Asym PFC
 ---------------  ---------------  -------  -----  -----  ---------  ---------------  ------  -------  ---------------  ----------
       Ethernet0                0      25G   9100     rs  Ethernet0           routed    down       up  QSFP28 or later         off
      Ethernet16               16     100M   9100    N/A       etp5            trunk      up       up             RJ45         off
@@ -30,13 +30,13 @@ PortChannel0004              N/A      40G   9100    N/A        N/A           rou
 PortChannel1001              N/A      40G   9100    N/A        N/A            trunk     N/A      N/A              N/A         N/A
 """
 
-show_interface_status_Ethernet32_output = """\
-  Interface        Lanes    Speed    MTU    FEC    Alias             Mode    Oper    Admin    Type    Asym PFC
+show_interface_status_Ethernet32_output="""\
+  Interface        Lanes    Speed    MTU    FEC    Alias             Vlan    Oper    Admin    Type    Asym PFC
 -----------  -----------  -------  -----  -----  -------  ---------------  ------  -------  ------  ----------
  Ethernet32  13,14,15,16      40G   9100     rs     etp9  PortChannel1001      up       up     N/A         off
 """
 
-show_interface_description_output = """\
+show_interface_description_output="""\
   Interface    Oper    Admin      Alias            Description
 -----------  ------  -------  ---------  ---------------------
   Ethernet0    down       up  Ethernet0   ARISTA01T2:Ethernet1
@@ -51,20 +51,20 @@ Ethernet120      up       up      etp31   ARISTA03T1:Ethernet1
 Ethernet124      up       up      etp32   ARISTA04T1:Ethernet1
 """
 
-show_interface_description_Ethernet0_output = """\
+show_interface_description_Ethernet0_output="""\
   Interface    Oper    Admin      Alias           Description
 -----------  ------  -------  ---------  --------------------
   Ethernet0    down       up  Ethernet0  ARISTA01T2:Ethernet1
 """
 
-show_interface_description_Ethernet0_verbose_output = """\
+show_interface_description_Ethernet0_verbose_output="""\
 Running command: intfutil -c description -i Ethernet0
   Interface    Oper    Admin      Alias           Description
 -----------  ------  -------  ---------  --------------------
   Ethernet0    down       up  Ethernet0  ARISTA01T2:Ethernet1
 """
 
-show_interface_description_eth9_output = """\
+show_interface_description_eth9_output="""\
   Interface    Oper    Admin    Alias    Description
 -----------  ------  -------  -------  -------------
  Ethernet32      up       up     etp9  Servers7:eth0
@@ -112,7 +112,6 @@ Ethernet120          N/A         N/A      up       up
 Ethernet124          N/A         N/A      up       up
 """
 
-
 class TestIntfutil(TestCase):
     @classmethod
     def setup_class(cls):
@@ -123,8 +122,8 @@ class TestIntfutil(TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    # Test 'show interfaces status' / 'intfutil status'
 
+    # Test 'show interfaces status' / 'intfutil status'
     def test_intf_status(self):
         # Test 'show interfaces status'
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], [])
@@ -140,8 +139,7 @@ class TestIntfutil(TestCase):
 
     # Test 'show interfaces status --verbose'
     def test_intf_status_verbose(self):
-        result = self.runner.invoke(
-            show.cli.commands["interfaces"].commands["status"], ["--verbose"])
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], ["--verbose"])
         assert result.exit_code == 0
         print(result.exit_code)
         print(result.output)
@@ -210,10 +208,10 @@ class TestIntfutil(TestCase):
         print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-            "--------------------  -------  -----  ------  -------  --------------------\n"
-            "            Eth36.10      10M   9100     100       up  802.1q-encapsulation\n"
-            "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation\n"
-            "           Po0001.10      40G   9100     100       up  802.1q-encapsulation"
+          "--------------------  -------  -----  ------  -------  --------------------\n"
+          "            Eth36.10      10M   9100     100       up  802.1q-encapsulation\n"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation\n"
+          "           Po0001.10      40G   9100     100       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -229,16 +227,16 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
-    # Test single sub interface status
 
+    # Test single sub interface status
     def test_single_subintf_status(self):
         # Test 'show subinterfaces status Ethernet0.10'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
         print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-            "--------------------  -------  -----  ------  -------  --------------------\n"
-            "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+          "--------------------  -------  -----  ------  -------  --------------------\n"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -249,8 +247,8 @@ class TestIntfutil(TestCase):
 
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-            "--------------------  -------  -----  ------  -------  --------------------\n"
-            "            Eth36.10      10M   9100     100       up  802.1q-encapsulation"
+          "--------------------  -------  -----  ------  -------  --------------------\n"
+          "            Eth36.10      10M   9100     100       up  802.1q-encapsulation"
         )
         # Test 'intfutil status Eth36.10'
         output = subprocess.check_output('intfutil -c status -i Eth36.10', stderr=subprocess.STDOUT, shell=True, text=True)
@@ -259,8 +257,8 @@ class TestIntfutil(TestCase):
 
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-            "--------------------  -------  -----  ------  -------  --------------------\n"
-            "           Po0001.10      40G   9100     100       up  802.1q-encapsulation"
+          "--------------------  -------  -----  ------  -------  --------------------\n"
+          "           Po0001.10      40G   9100     100       up  802.1q-encapsulation"
         )
         # Test 'intfutil status Po0001.10'
         output = subprocess.check_output('intfutil -c status -i Po0001.10', stderr=subprocess.STDOUT, shell=True, text=True)
@@ -292,8 +290,8 @@ class TestIntfutil(TestCase):
         print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-            "--------------------  -------  -----  ------  -------  --------------------\n"
-            "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+          "--------------------  -------  -----  ------  -------  --------------------\n"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -323,7 +321,7 @@ class TestIntfutil(TestCase):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interface_auto_neg_status_Ethernet0_output
-
+  
     def test_show_interfaces_autoneg_status_etp9_in_alias_mode(self):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg"].commands["status"], ["etp9"])

@@ -4381,24 +4381,34 @@ def add(ctx, interface_name, ip_addr, gw):
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
-
+        
+        
     # Add a validation to check this interface is in routed mode before
     # assigning an IP address to it
-    interface_mode = "routed"
-    interface_data = config_db.get_entry('PORT',interface_name)
-    if "mode" in interface_data:
-        interface_mode = interface_data["mode"]
 
-    if interface_mode != "routed":
-        click.echo("Interface {} is not in routed mode.\nRemove the vlans assigned to it and changed mode to routed\nAborting".format(interface_name))
-        return
+    sub_intf = False
 
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if clicommon.is_valid_port(config_db, interface_name):
+        is_port = True
+    elif clicommon.is_valid_portchannel(config_db, interface_name):
+        is_port = False
+    else:
+        sub_intf = True
 
-    if interface_is_in_portchannel(portchannel_member_table, interface_name):
-        ctx.fail("{} is configured as a member of portchannel."
-                .format(interface_name))
+    if not sub_intf:
+        interface_mode = "routed"
+        if is_port:
+            interface_data = config_db.get_entry('PORT',interface_name)
+        elif not is_port:
+            interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
 
+        if "mode" in interface_data:
+            interface_mode = interface_data["mode"]
+
+        if interface_mode != "routed":
+            ctx.fail("Interface {} is not in routed mode!".format(interface_name))
+            return
+    
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:

@@ -185,7 +185,7 @@
         "lanes": "49,50,51,52",
         "mtu": "9100",
         "tpid": "0x8100",
-        "mode": "routed",
+        "mode": "access",
         "pfc_asym": "off",
         "speed": "40000"
     },
@@ -197,7 +197,7 @@
         "lanes": "57,58,59,60",
         "mtu": "9100",
         "tpid": "0x8100",
-        "mode": "routed",
+        "mode": "access",
         "pfc_asym": "off",
         "speed": "40000"
     },
