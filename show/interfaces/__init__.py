@@ -778,8 +778,7 @@ def switchport_mode_config(db):
         return table
     
     header = ['Interface', 'Mode', 'Untagged', 'Tagged']
-    click.echo(tabulate(tablelize(keys), header, 
-                        tablefmt="simple", stralign='left'))
+    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
 
 @switchport.command(name="status")
 @clicommon.pass_db
@@ -807,5 +806,4 @@ def switchport_mode_status(db):
         return table
     
     header = ['Interface', 'Mode']
-    click.echo(tabulate(tablelize(keys), header,
-                        tablefmt="simple", stralign='left'))
+    click.echo(tabulate(tablelize(keys), header,tablefmt="simple", stralign='left'))
