@@ -100,12 +100,15 @@ def rdma_config_update_validator(patch_element):
     
         if scenario is None:
             return False
+        
+        if scenario["platforms"][asic] == "":
+            return False
 
         if patch_element['op'] not in scenario["operations"]:
             return False
     
         if branch_version is not None:
-            if asic in scenario["platforms"] and scenario["platforms"][asic] != "":
+            if asic in scenario["platforms"]:
                 if branch_version < scenario["platforms"][asic]:
                     return False
             else:
