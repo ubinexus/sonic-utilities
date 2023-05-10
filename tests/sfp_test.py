@@ -314,18 +314,18 @@ Ethernet44:
         Tuning in progress status: False
         Laser unlocked status: False
         Target output power out of range flag: False
-        Fine tuning  out of range flag: False
+        Fine tuning out of range flag: False
         Tuning not accepted flag: False
         Invalid channel number flag: False
         Tuning complete flag: False
         Temperature high alarm flag: False
         Temperature high warning flag: False
-        Temperature low alarm flag: False
         Temperature low warning flag: False
+        Temperature low alarm flag: False
         Vcc high alarm flag: False
         Vcc high warning flag: False
-        Vcc low alarm flag: False
         Vcc low warning flag: False
+        Vcc low alarm flag: False
         Tx power high alarm flag on lane 1: False
         Tx power high alarm flag on lane 2: False
         Tx power high alarm flag on lane 3: False
@@ -334,14 +334,6 @@ Ethernet44:
         Tx power high alarm flag on lane 6: False
         Tx power high alarm flag on lane 7: False
         Tx power high alarm flag on lane 8: False
-        Tx power low alarm flag on lane 1: False
-        Tx power low alarm flag on lane 2: False
-        Tx power low alarm flag on lane 3: False
-        Tx power low alarm flag on lane 4: False
-        Tx power low alarm flag on lane 5: False
-        Tx power low alarm flag on lane 6: False
-        Tx power low alarm flag on lane 7: False
-        Tx power low alarm flag on lane 8: False
         Tx power high warning flag on lane 1: False
         Tx power high warning flag on lane 2: False
         Tx power high warning flag on lane 3: False
@@ -358,6 +350,14 @@ Ethernet44:
         Tx power low alarm flag on lane 6: False
         Tx power low alarm flag on lane 7: False
         Tx power low alarm flag on lane 8: False
+        Tx power low alarm flag on lane 1: False
+        Tx power low alarm flag on lane 2: False
+        Tx power low alarm flag on lane 3: False
+        Tx power low alarm flag on lane 4: False
+        Tx power low alarm flag on lane 5: False
+        Tx power low alarm flag on lane 6: False
+        Tx power low alarm flag on lane 7: False
+        Tx power low alarm flag on lane 8: False
         Rx power high alarm flag on lane 1: False
         Rx power high alarm flag on lane 2: False
         Rx power high alarm flag on lane 3: False
@@ -366,14 +366,6 @@ Ethernet44:
         Rx power high alarm flag on lane 6: False
         Rx power high alarm flag on lane 7: False
         Rx power high alarm flag on lane 8: False
-        Rx power low alarm flag on lane 1: False
-        Rx power low alarm flag on lane 2: False
-        Rx power low alarm flag on lane 3: False
-        Rx power low alarm flag on lane 4: False
-        Rx power low alarm flag on lane 5: False
-        Rx power low alarm flag on lane 6: False
-        Rx power low alarm flag on lane 7: False
-        Rx power low alarm flag on lane 8: False
         Rx power high warning flag on lane 1: False
         Rx power high warning flag on lane 2: False
         Rx power high warning flag on lane 3: False
@@ -390,6 +382,14 @@ Ethernet44:
         Rx power low warning flag on lane 6: False
         Rx power low warning flag on lane 7: False
         Rx power low warning flag on lane 8: False
+        Rx power low alarm flag on lane 1: False
+        Rx power low alarm flag on lane 2: False
+        Rx power low alarm flag on lane 3: False
+        Rx power low alarm flag on lane 4: False
+        Rx power low alarm flag on lane 5: False
+        Rx power low alarm flag on lane 6: False
+        Rx power low alarm flag on lane 7: False
+        Rx power low alarm flag on lane 8: False
         Tx bias high alarm flag on lane 1: False
         Tx bias high alarm flag on lane 2: False
         Tx bias high alarm flag on lane 3: False
@@ -398,14 +398,6 @@ Ethernet44:
         Tx bias high alarm flag on lane 6: False
         Tx bias high alarm flag on lane 7: False
         Tx bias high alarm flag on lane 8: False
-        Tx bias low alarm flag on lane 1: False
-        Tx bias low alarm flag on lane 2: False
-        Tx bias low alarm flag on lane 3: False
-        Tx bias low alarm flag on lane 4: False
-        Tx bias low alarm flag on lane 5: False
-        Tx bias low alarm flag on lane 6: False
-        Tx bias low alarm flag on lane 7: False
-        Tx bias low alarm flag on lane 8: False
         Tx bias high warning flag on lane 1: False
         Tx bias high warning flag on lane 2: False
         Tx bias high warning flag on lane 3: False
@@ -422,78 +414,86 @@ Ethernet44:
         Tx bias low warning flag on lane 6: False
         Tx bias low warning flag on lane 7: False
         Tx bias low warning flag on lane 8: False
+        Tx bias low alarm flag on lane 1: False
+        Tx bias low alarm flag on lane 2: False
+        Tx bias low alarm flag on lane 3: False
+        Tx bias low alarm flag on lane 4: False
+        Tx bias low alarm flag on lane 5: False
+        Tx bias low alarm flag on lane 6: False
+        Tx bias low alarm flag on lane 7: False
+        Tx bias low alarm flag on lane 8: False
         Laser temperature high alarm flag: False
-        Laser temperature low alarm flag: False
         Laser temperature high warning flag: False
         Laser temperature low warning flag: False
+        Laser temperature low alarm flag: False
         Prefec ber high alarm flag: False
-        Prefec ber low alarm flag: False
         Prefec ber high warning flag: False
         Prefec ber low warning flag: False
+        Prefec ber low alarm flag: False
         Postfec ber high alarm flag: False
-        Postfec ber low alarm flag: False
         Postfec ber high warning flag: False
         Postfec ber low warning flag: False
+        Postfec ber low alarm flag: False
         Bias xi high alarm flag: False
-        Bias xi low alarm flag: False
         Bias xi high warning flag: False
         Bias xi low warning flag: False
+        Bias xi low alarm flag: False
         Bias xq high alarm flag: False
-        Bias xq low alarm flag: False
         Bias xq high warning flag: False
         Bias xq low warning flag: False
+        Bias xq low alarm flag: False
         Bias xp high alarm flag: False
-        Bias xp low alarm flag: False
         Bias xp high warning flag: False
         Bias xp low warning flag: False
+        Bias xp low alarm flag: False
         Bias yi high alarm flag: False
-        Bias yi low alarm flag: False
         Bias yi high warning flag: False
         Bias yi low warning flag: False
+        Bias yi low alarm flag: False
         Bias yq high alarm flag: False
-        Bias yq low alarm flag: False
         Bias yq high warning flag: False
         Bias yq low warning flag: False
+        Bias yq low alarm flag: False
         Bias yp high alarm flag: False
-        Bias yp low alarm flag: False
         Bias yp high warning flag: False
         Bias yp low warning flag: False
+        Bias yp low alarm flag: False
         CD short high alarm flag: False
-        CD short low alarm flag: False
         CD short high warning flag: False
         CD short low warning flag: False
+        CD short low alarm flag: False
         CD long high alarm flag: False
-        CD long low alarm flag: False
         CD long high warning flag: False
         CD long low warning flag: False
+        CD long low alarm flag: False
         DGD high alarm flag: False
-        DGD low alarm flag: False
         DGD high warning flag: False
         DGD low warning flag: False
+        DGD low alarm flag: False
         PDL high alarm flag: False
-        PDL low alarm flag: False
         PDL high warning flag: False
         PDL low warning flag: False
+        PDL low alarm flag: False
         OSNR high alarm flag: False
-        OSNR low alarm flag: False
         OSNR high warning flag: False
         OSNR low warning flag: False
+        OSNR low alarm flag: False
         ESNR high alarm flag: False
-        ESNR low alarm flag: False
         ESNR high warning flag: False
         ESNR low warning flag: False
+        ESNR low alarm flag: False
         CFO high alarm flag: False
-        CFO low alarm flag: False
         CFO high warning flag: False
         CFO low warning flag: False
+        CFO low alarm flag: False
         Txcurrpower high alarm flag: False
-        Txcurrpower low alarm flag: False
         Txcurrpower high warning flag: False
         Txcurrpower low warning flag: False
+        Txcurrpower low alarm flag: False
         Rxtotpower high alarm flag: False
-        Rxtotpower low alarm flag: False
         Rxtotpower high warning flag: False
         Rxtotpower low warning flag: False
+        Rxtotpower low alarm flag: False
 """
 
 test_cmis_eeprom_output = """\
