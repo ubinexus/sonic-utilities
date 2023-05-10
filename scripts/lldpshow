@@ -81,6 +81,8 @@ class Lldpshow(object):
             # In detail mode we will pass interface list (only front ports) and get O/P as plain text
             # and in table format we will get xml output
             lldp_args = ['-f', 'xml'] if not lldp_detail_info else [lldp_interface_list]
+            if lldp_args == ['']:
+                lldp_args = []
             lldp_cmd = ['sudo', 'docker', 'exec', '-i', 'lldp{}'.format(self.lldp_instance[lldp_instace_num]), 'lldpctl'] + lldp_args
             p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, text=True)
             (output, err) = p.communicate()
