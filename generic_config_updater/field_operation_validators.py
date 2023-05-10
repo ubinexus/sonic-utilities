@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import jsonpointer
 import subprocess
 from sonic_py_common import device_info
 from .gu_common import GenericConfigUpdaterError
@@ -11,11 +12,19 @@ GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.jso
 def get_asic_name():
     asic = "unknown"
     
+    if os.path.exists(GCU_TABLE_MOD_CONF_FILE):
+        with open(GCU_TABLE_MOD_CONF_FILE, "r") as s:
+            gcu_field_operation_conf = json.load(s)
+    else:
+        raise GenericConfigUpdaterError("GCU table modification validators config file not found")
+    
+    asic_mapping = gcu_field_operation_conf["helper_data"]["rdma_config_update_validator"]
+    
     if device_info.get_sonic_version_info()['asic_type'] == 'cisco-8000':
         asic = "cisco-8000"
     elif device_info.get_sonic_version_info()['asic_type'] == 'mellanox':
         GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
-        spc1_hwskus = [ 'ACS-MSN2700', 'ACS-MSN2740', 'ACS-MSN2100', 'ACS-MSN2410', 'ACS-MSN2010', 'Mellanox-SN2700', 'Mellanox-SN2700-D48C8' ]
+        spc1_hwskus = asic_mapping["mellanox_asics"]["spc1"]
         proc = subprocess.Popen(GET_HWSKU_CMD, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
         output, err = proc.communicate()
         hwsku = output.rstrip('\n')
@@ -25,71 +34,80 @@ def get_asic_name():
         command = ["sudo", "lspci"]
         proc = subprocess.Popen(command, universal_newlines=True, stdout=subprocess.PIPE)
         output, err = proc.communicate()
-        if "Broadcom Limited Device b960" in output or "Broadcom Limited Broadcom BCM56960" in output:
-            asic = "th"
-        elif "Broadcom Limited Device b971" in output:
-            asic = "th2"
-        elif "Broadcom Limited Device b850" in output or "Broadcom Limited Broadcom BCM56850" in output:
-            asic = "td2"
-        elif "Broadcom Limited Device b870" in output or "Broadcom Inc. and subsidiaries Device b870" in output:
-            asic = "td3"
+        broadcom_asics = asic_mapping["broadcom_asics"]
+        for asic_shorthand, asic_descriptions in broadcom_asics.items():
+            if asic != "unknown":
+                break
+            for asic_description in asic_descriptions:
+                if asic_description in output:
+                    asic = asic_shorthand
+                    break
     
     return asic
 
-def rdma_config_update_validator(path, operation):
-    version_info = device_info.get_sonic_version_info()
-    build_version = version_info.get('build_version')
-    asic = get_asic_name()
-    path = path.lower()
 
-    # For paths like /BUFFER_PROFILE/pg_lossless_50000_300m_profile/xoff, remove pg_lossless_50000_300m from the path so that we can clearly determine which fields are modifiable
-    cleaned_path = "/".join([part for part in path.split("/") if not any(char.isdigit() for char in part)])
+def rdma_config_update_validator(patch_element):
+    asic = get_asic_name()
     if asic == "unknown":
         return False
-
+    version_info = device_info.get_sonic_version_info()
+    build_version = version_info.get('build_version')
     version_substrings = build_version.split('.')
     branch_version = None
-
+    
     for substring in version_substrings:
         if substring.isdigit() and re.match(r'^\d{8}$', substring):
             branch_version = substring
-            break
+    
+    path = patch_element["path"]
+    table = jsonpointer.JsonPointer(path).parts[0]
+    
+    # Helper function to return relevant cleaned paths, consdiers case where the jsonpatch value is a dict
+    # For paths like /PFC_WD/Ethernet112/action, remove Ethernet112 from the path so that we can clearly determine the relevant field (i.e. action, not Ethernet112)
+    def _get_fields_in_patch():
+        cleaned_fields = []
 
-    if branch_version is None:
-        return False
+        field_elements = jsonpointer.JsonPointer(path).parts[1:]
+        cleaned_field_elements = [elem for elem in field_elements if not any(char.isdigit() for char in elem)]
+        cleaned_field = '/'.join(cleaned_field_elements).lower()
+        
 
+        if 'value' in patch_element.keys() and isinstance(patch_element['value'], dict):
+            for key in patch_element['value']:
+                cleaned_fields.append(cleaned_field+ '/' + key)
+        else:
+            cleaned_fields.append(cleaned_field)
+
+        return cleaned_fields
+    
     if os.path.exists(GCU_TABLE_MOD_CONF_FILE):
         with open(GCU_TABLE_MOD_CONF_FILE, "r") as s:
             gcu_field_operation_conf = json.load(s)
     else:
         raise GenericConfigUpdaterError("GCU table modification validators config file not found")
 
-    match = re.search(r'\/([^\/]+)(\/|$)', cleaned_path) # This matches the table name in the path, eg if path if /PFC_WD/GLOBAL, the match would be PFC_WD
-    if match is not None:
-        table = match.group(1)
-        index = cleaned_path.index(table) + len(table)
-        field = cleaned_path[index:].lstrip('/')
-    else:
-        raise GenericConfigUpdaterError("Invalid jsonpatch path: {}".format(path))
-    
     tables = gcu_field_operation_conf["tables"]
     scenarios = tables[table]["validator_data"]["rdma_config_update_validator"]
-    scenario = None
-    for key in scenarios.keys():
-        if field in scenarios[key]["fields"]:
-            scenario = scenarios[key]
-            break
     
-    if scenario is None:
-        return False
-
-    if operation not in scenario["operations"]:
-        return False
-
-    if asic in scenario["platforms"]:
-        if branch_version < scenario["platforms"][asic]:
+    cleaned_fields = _get_fields_in_patch()
+    for cleaned_field in cleaned_fields:
+        scenario = None
+        for key in scenarios.keys():
+            if cleaned_field in scenarios[key]["fields"]:
+                scenario = scenarios[key]
+                break
+    
+        if scenario is None:
             return False
-    else:
-        return False
+
+        if patch_element['op'] not in scenario["operations"]:
+            return False
+    
+        if branch_version is not None:
+            if asic in scenario["platforms"]:
+                if branch_version < scenario["platforms"][asic]:
+                    return False
+            else:
+                return False
 
     return True

@@ -14,8 +14,21 @@
         "validator_data provides data relevant to each validator",
         ""
     ],
+    "helper_data": {
+        "rdma_config_update_validator": {
+            "mellanox_asics": {
+                "spc1": [ "ACS-MSN2700", "ACS-MSN2740", "ACS-MSN2100", "ACS-MSN2410", "ACS-MSN2010", "Mellanox-SN2700", "Mellanox-SN2700-D48C8" ]
+            },
+            "broadcom_asics": {
+                "th": ["Broadcom Limited Device b960", "Broadcom Limited Broadcom BCM56960"],
+                "th2": ["Broadcom Limited Device b971"],
+                "td2": ["Broadcom Limited Device b850", "Broadcom Limited Broadcom BCM56850"],
+                "td3": ["Broadcom Limited Device b870", "Broadcom Inc. and subsidiaries Device b870"]
+            }
+	}
+    },
     "tables": {
-        "pfc_wd": {
+        "PFC_WD": {
             "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ],
             "validator_data": {
                 "rdma_config_update_validator": {
@@ -38,7 +51,7 @@
                 }
             }
         },
-        "buffer_pool": {
+        "BUFFER_POOL": {
             "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ],
             "validator_data": {
                 "rdma_config_update_validator": {
@@ -61,7 +74,7 @@
                 }
             }
         },
-        "buffer_profile": {
+        "BUFFER_PROFILE": {
             "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ],
             "validator_data": {
                 "rdma_config_update_validator": {
@@ -96,7 +109,7 @@
                 }
             }
         },
-        "wred_profile": {
+        "WRED_PROFILE": {
             "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ],
             "validator_data": {
                 "rdma_config_update_validator": {
