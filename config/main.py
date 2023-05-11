@@ -1533,6 +1533,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
+        if file_format == 'config_db':
+            file_input = read_json_file(file)
+
+            platform = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("platform")
+            mac = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("mac")
+
+            if not platform or not mac:
+                log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
+                    .format(None if platform is None else platform, None if mac is None else mac))
+                load_sysinfo = True
+
         if load_sysinfo:
             try:
                 command = [SONIC_CFGGEN_PATH, "-j", file, '-v', "DEVICE_METADATA.localhost.hwsku"]
@@ -1736,6 +1749,17 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
             raise click.Abort()
         override_config_by(golden_config_path)
 
+    # Invoke platform script if available before starting the services
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+    platform_mg_plugin = platform_path + '/plugins/platform_mg_post_check'
+    if os.path.isfile(platform_mg_plugin):
+        click.echo("Running Platform plugin ............!")
+        proc = subprocess.Popen([platform_mg_plugin], text=True, stdout=subprocess.PIPE)
+        proc.communicate()
+        if proc.returncode != 0:
+            click.echo("Platform plugin failed! retruncode {}".format(proc.returncode))
+            raise click.Abort()
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
@@ -1818,41 +1842,36 @@ def override_config_table(db, input_config_db, dry_run):
                     fg='magenta')
         sys.exit(1)
 
-    cfgdb_clients = db.cfgdb_clients
+    config_db = db.cfgdb
 
-    for ns, config_db in cfgdb_clients.items():
-        # Read config from configDB
-        current_config = config_db.get_config()
-        # Serialize to the same format as json input
-        sonic_cfggen.FormatConverter.to_serialized(current_config)
+    # Read config from configDB
+    current_config = config_db.get_config()
+    # Serialize to the same format as json input
+    sonic_cfggen.FormatConverter.to_serialized(current_config)
 
-        if multi_asic.is_multi_asic():
-            ns_config_input = config_input[ns]
-        else:
-            ns_config_input = config_input
-        updated_config = update_config(current_config, ns_config_input)
+    updated_config = update_config(current_config, config_input)
 
-        yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
-        if yang_enabled:
-            # The ConfigMgmt will load YANG and running
-            # config during initialization.
-            try:
-                cm = ConfigMgmt(configdb=config_db)
-                cm.validateConfigData()
-            except Exception as ex:
-                click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
-                sys.exit(1)
+    yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
+    if yang_enabled:
+        # The ConfigMgmt will load YANG and running
+        # config during initialization.
+        try:
+            cm = ConfigMgmt()
+            cm.validateConfigData()
+        except Exception as ex:
+            click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
+            sys.exit(1)
 
-            # Validate input config
-            validate_config_by_cm(cm, ns_config_input, "config_input")
-            # Validate updated whole config
-            validate_config_by_cm(cm, updated_config, "updated_config")
+        # Validate input config
+        validate_config_by_cm(cm, config_input, "config_input")
+        # Validate updated whole config
+        validate_config_by_cm(cm, updated_config, "updated_config")
 
-        if dry_run:
-            print(json.dumps(updated_config, sort_keys=True,
-                             indent=4, cls=minigraph_encoder))
-        else:
-            override_config_db(config_db, ns_config_input)
+    if dry_run:
+        print(json.dumps(updated_config, sort_keys=True,
+                         indent=4, cls=minigraph_encoder))
+    else:
+        override_config_db(config_db, config_input)
 
 
 def validate_config_by_cm(cm, config_json, jname):

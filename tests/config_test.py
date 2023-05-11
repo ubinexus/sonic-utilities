@@ -36,12 +36,27 @@ os.environ["PATH"] += os.pathsep + scripts_path
 # Config Reload input Path
 mock_db_path = os.path.join(test_path, "config_reload_input")
 
+# Load minigraph input Path
+load_minigraph_input_path = os.path.join(test_path, "load_minigraph_input")
+load_minigraph_platform_path = os.path.join(load_minigraph_input_path, "platform")
+load_minigraph_platform_false_path = os.path.join(load_minigraph_input_path, "platform_false")
 
 load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
 Running command: pfcwd start_default
+Restarting SONiC target ...
+Reloading Monit configuration ...
+Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
+"""
+
+load_minigraph_platform_plugin_command_output="""\
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
+Running command: config qos reload --no-dynamic-buffer --no-delay
+Running command: pfcwd start_default
+Running Platform plugin ............!
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
@@ -265,6 +280,7 @@ class TestLoadMinigraph(object):
         import config.main
         importlib.reload(config.main)
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
@@ -279,6 +295,35 @@ class TestLoadMinigraph(object):
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 8
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_path, None)))
+    def test_load_minigraph_platform_plugin(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_platform_plugin_command_output
+            # Verify "systemctl reset-failed" is called for services under sonic.target
+            mock_run_command.assert_any_call('systemctl reset-failed swss')
+            assert mock_run_command.call_count == 8
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_false_path, None)))
+    def test_load_minigraph_platform_plugin_fail(self, get_cmd_module, setup_single_broadcom_asic):
+        print(load_minigraph_platform_false_path)
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Platform plugin failed" in result.output
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -293,6 +338,7 @@ class TestLoadMinigraph(object):
             port_config = [{}]
             self.check_port_config(None, config, port_config, "Failed to load port_config.json, Error: Bad format: PORT table not exists")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config_inconsistent_port(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -304,6 +350,7 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Eth1": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "Failed to load port_config.json, Error: Port Eth1 is not defined in current device")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_port_config(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -321,6 +368,7 @@ class TestLoadMinigraph(object):
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
             return port_config
@@ -335,6 +383,7 @@ class TestLoadMinigraph(object):
                 assert result.exit_code == 0
                 assert expected_output in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_non_exist_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -346,6 +395,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code != 0
             assert "Cannot find 'non_exist.json'" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_specified_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -357,6 +407,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "config override-config-table golden_config.json" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_default_golden_config_path(self, get_cmd_module):
         def is_file_side_effect(filename):
             return True if 'golden_config' in filename else False
@@ -368,6 +419,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "config override-config-table /etc/sonic/golden_config_db.json" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
@@ -379,6 +431,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "TSA" in result.output
 
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_traffic_shift_away_with_golden_config(self, get_cmd_module):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             def is_file_side_effect(filename):
@@ -410,9 +463,66 @@ class TestReloadConfig(object):
         print("SETUP")
         import config.main
         importlib.reload(config.main)
-        open(cls.dummy_cfg_file, 'w').close()
+
+    def add_sysinfo_to_cfg_file(self):
+        with open(self.dummy_cfg_file, 'w') as f:
+            device_metadata = {
+                "DEVICE_METADATA": {
+                    "localhost": {
+                        "platform": "some_platform",
+                        "mac": "02:42:f0:7f:01:05"
+                    }
+                }
+            }
+            f.write(json.dumps(device_metadata))
+
+    def test_reload_config_invalid_input(self, get_cmd_module, setup_single_broadcom_asic):
+        open(self.dummy_cfg_file, 'w').close()
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+
+    def test_reload_config_no_sysinfo(self, get_cmd_module, setup_single_broadcom_asic):
+        with open(self.dummy_cfg_file, 'w') as f:
+            device_metadata = {
+                "DEVICE_METADATA": {
+                    "localhost": {
+                        "hwsku": "some_hwsku"
+                    }
+                }
+            }
+            f.write(json.dumps(device_metadata))
+
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
 
     def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
@@ -432,6 +542,7 @@ class TestReloadConfig(object):
                 == RELOAD_CONFIG_DB_OUTPUT
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                "utilities_common.cli.run_command",
                mock.MagicMock(side_effect=mock_run_command_side_effect_disabled_timer)
@@ -451,6 +562,7 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == reload_config_with_disabled_service_output
 
     def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
