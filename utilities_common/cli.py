@@ -391,14 +391,16 @@ def print_output_in_alias_mode(output, index):
 
     click.echo(output.rstrip('\n'))
 
-def run_command_in_alias_mode(command):
+def run_command_in_alias_mode(command, shell=False):
     """Run command and replace all instances of SONiC interface names
        in output with vendor-sepecific interface aliases.
     """
-    command_list = command
-    command = ' '.join(command)
+    if not shell:
+        command_str = ' '.join(command)
+    else:
+        command_str = command
 
-    process = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -410,7 +412,7 @@ def run_command_in_alias_mode(command):
             raw_output = output
             output = output.lstrip()
 
-            if command.startswith("portstat"):
+            if command_str.startswith("portstat"):
                 """Show interface counters"""
                 index = 0
                 if output.startswith("IFACE"):
@@ -418,7 +420,7 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command.startswith("intfstat"):
+            elif command_str.startswith("intfstat"):
                 """Show RIF counters"""
                 index = 0
                 if output.startswith("IFACE"):
@@ -426,7 +428,7 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command == "pfcstat":
+            elif command_str == "pfcstat":
                 """Show pfc counters"""
                 index = 0
                 if output.startswith("Port Tx"):
@@ -438,12 +440,12 @@ def run_command_in_alias_mode(command):
                                 iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif (command.startswith("sudo sfputil show eeprom")):
+            elif (command_str.startswith("sudo sfputil show eeprom")):
                 """Show interface transceiver eeprom"""
                 index = 0
                 print_output_in_alias_mode(raw_output, index)
 
-            elif (command.startswith("sudo sfputil show")):
+            elif (command_str.startswith("sudo sfputil show")):
                 """Show interface transceiver lpmode,
                    presence
                 """
@@ -453,7 +455,7 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command == "sudo lldpshow":
+            elif command_str == "sudo lldpshow":
                 """Show lldp table"""
                 index = 0
                 if output.startswith("LocalPort"):
@@ -461,7 +463,7 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command.startswith("queuestat"):
+            elif command_str.startswith("queuestat"):
                 """Show queue counters"""
                 index = 0
                 if output.startswith("Port"):
@@ -469,7 +471,7 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command == "fdbshow":
+            elif command_str == "fdbshow":
                 """Show mac"""
                 index = 3
                 if output.startswith("No."):
@@ -480,13 +482,13 @@ def run_command_in_alias_mode(command):
                     output = "    " + output
                 print_output_in_alias_mode(output, index)
 
-            elif command.startswith("nbrshow"):
+            elif command_str.startswith("nbrshow"):
                 """Show arp"""
                 index = 2
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
-            elif command.startswith("sudo ipintutil"):
+            elif command_str.startswith("sudo ipintutil"):
                 """Show ip(v6) int"""
                 index = 0
                 if output.startswith("Interface"):
@@ -513,7 +515,7 @@ def run_command_in_alias_mode(command):
         sys.exit(rc)
 
 
-def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False):
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, shell=False):
     """
     Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
     return code, the function will exit with that return code.
@@ -522,22 +524,25 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
         ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
         return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+        shell: Boolean; If true, the command will be run in a shell
     """
-    command_list = command
-    command = ' '.join(command)
+    if not shell:
+        command_str = ' '.join(command)
+    else:
+        command_str = command
 
     if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
     # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format 
     # with a list for next hops 
-    if get_interface_naming_mode() == "alias" and not command.startswith("intfutil") and not re.search("show ip|ipv6 route", command):
-        run_command_in_alias_mode(command_list)
+    if get_interface_naming_mode() == "alias" and not command_str.startswith("intfutil") and not re.search("show ip|ipv6 route", command_str):
+        run_command_in_alias_mode(command, shell=shell)
         sys.exit(0)
 
-    proc = subprocess.Popen(command_list, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
         output = proc.communicate()[0]
@@ -551,72 +556,6 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
     return
-
-
-def run_command_pipe(*args, display_cmd=False, ignore_error=False, return_cmd=False):
-    """
-    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
-    return code, the function will exit with that return code.
-
-    Args:
-        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
-        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
-        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
-    """
-    command_lists = [' '.join(arg) for arg in args]
-    command = ' | '.join(command_lists)
-    if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    exitcodes, output = getstatusoutput_noshell_pipe(*args)
-
-    if return_cmd:
-        return output, exitcodes
-
-    if len(out) > 0:
-        click.echo(out)
-
-    if any(exitcodes) and not ignore_error:
-        for rc in exitcodes:
-            if rc != 0:
-                sys.exit(rc)
-    return
-
-
-def run_command_AND(*args, display_cmd=False, ignore_error=False, return_cmd=False):
-    """
-    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
-    return code, the function will exit with that return code.
-
-    Args:
-        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
-        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
-        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
-    """
-    command_lists = [' '.join(arg) for arg in args]
-    command = ' && '.join(command_lists)
-    if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
-    for i in range(len(args)):
-        proc = subprocess.Popen(args[i], text=True, stdout=subproccess.PIPE)
-        if proc.returncode != 0:
-            break
-
-    if return_cmd:
-        output = proc.communicate()[0]
-        return output, proc.returncode
-
-    (out, err) = proc.communicate()
-
-    if len(out) > 0:
-        click.echo(out.rstrip('\n'))
-
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
-    return
-
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default"""
