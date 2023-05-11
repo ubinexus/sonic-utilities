@@ -1722,7 +1722,7 @@ def bgp(verbose):
     if result == "quagga":
         run_command('sudo docker exec bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
     elif result == "frr":
-        run_command('sudo docker exec bgp cat /etc/frr/bgpd.conf', display_cmd=verbose)
+        run_command('sudo docker exec bgp cat /etc/sonic/frr/frr.conf', display_cmd=verbose)
     elif result == "gobgp":
         run_command('sudo docker exec bgp cat /etc/gpbgp/bgpd.conf', display_cmd=verbose)
     else:
