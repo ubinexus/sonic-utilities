@@ -307,7 +307,7 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_platform_plugin_command_output
             # Verify "systemctl reset-failed" is called for services under sonic.target
-            mock_run_command.assert_any_call('systemctl reset-failed swss')
+            mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 8
 
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_false_path, None)))
