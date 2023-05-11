@@ -36,7 +36,8 @@
                         "fields": [
                             "restoration_time",
                             "detection_time",
-                            "action"
+                            "action",
+                            "global/poll_interval"
                         ],
                         "operations": ["remove", "add", "replace"],
                         "platforms": {
@@ -116,7 +117,8 @@
                     "ECN tuning": {
                         "fields": [
                             "azure_lossless/green_min_threshold",
-                            "azure_lossless/green_max_threshold"
+                            "azure_lossless/green_max_threshold",
+                            "azure_lossless/green_drop_probabilibty"
                         ],
                         "operations": ["replace"],
                         "platforms": {
