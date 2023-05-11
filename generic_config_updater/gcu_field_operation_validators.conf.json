@@ -118,7 +118,7 @@
                         "fields": [
                             "azure_lossless/green_min_threshold",
                             "azure_lossless/green_max_threshold",
-                            "azure_lossless/green_drop_probabilibty"
+                            "azure_lossless/green_drop_probability"
                         ],
                         "operations": ["replace"],
                         "platforms": {
