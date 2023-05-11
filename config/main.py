@@ -1302,9 +1302,9 @@ def load(filename, yes):
             return
 
         if namespace is None:
-            command = [str(SONIC_CFGGEN_PATH), '-j', '']
+            command = [str(SONIC_CFGGEN_PATH), '-j', file, '--write-to-db']
         else:
-            command = [str(SONIC_CFGGEN_PATH), '-n', str(namespace), '-j', '--write-to-db']
+            command = [str(SONIC_CFGGEN_PATH), '-n', str(namespace), '-j', file, '--write-to-db']
 
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
