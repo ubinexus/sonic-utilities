@@ -515,7 +515,7 @@ def run_command_in_alias_mode(command, shell=False):
         sys.exit(rc)
 
 
-def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, shell=False):
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, shell=False, interactive_mode=False):
     """
     Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
     return code, the function will exit with that return code.
@@ -524,6 +524,8 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
         ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
         return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+        interactive_mode: Boolean; If true, it will treat the process as a long-running process which may generate
+                          multiple lines of output over time
         shell: Boolean; If true, the command will be run in a shell
     """
     if not shell:
@@ -548,14 +550,29 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         output = proc.communicate()[0]
         return output, proc.returncode
 
-    (out, err) = proc.communicate()
+    if not interactive_mode:
+        (out, err) = proc.communicate()
 
-    if len(out) > 0:
-        click.echo(out.rstrip('\n'))
+        if len(out) > 0:
+            click.echo(out.rstrip('\n'))
 
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
-    return
+        if proc.returncode != 0 and not ignore_error:
+            sys.exit(proc.returncode)
+
+        return
+
+    # interactive mode
+    while True:
+        output = proc.stdout.readline()
+        if output == "" and proc.poll() is not None:
+            break
+        if output:
+            click.echo(output.rstrip('\n'))
+
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
+
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default"""
