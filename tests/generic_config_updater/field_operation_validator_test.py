@@ -18,16 +18,16 @@ class TestValidateFieldOperation(unittest.TestCase):
     def test_rdma_config_update_validator_unknown_asic(self):
         patch_element = {"path": "/PFC_WD/Ethernet4/restoration_time", "op": "replace", "value": "234234"}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == False
-
-    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20171131"}))
-    @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
+        
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
+    @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="td3"))
     @patch("os.path.exists", mock.Mock(return_value=True))
-    @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
-    def test_rdma_config_update_validator_spc_asic_invalid_version(self):
-        patch_element = {"path": "/PFC_WD/Ethernet8/restoration_time", "op": "replace", "value": "234234"}
+    @patch("builtins.open", mock_open(read_data='{"tables": {"BUFFER_POOL": {"validator_data": {"rdma_config_update_validator": {"Shared/headroom pool size changes": {"fields": ["ingress_lossless_pool/xoff", "ingress_lossless_pool/size", "egress_lossy_pool/size"], "operations": ["replace"], "platforms": {"td3": "20221100"}}}}}}}'))
+    def test_rdma_config_update_validator_td3_asic_invalid_version(self):
+        patch_element = {"path": "/BUFFER_POOL/ingress_lossless_pool/xoff", "op": "replace", "value": "234234"}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == False
     
-    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
     @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
@@ -35,7 +35,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PFC_WD/Ethernet8/detection_time", "op": "remove"}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == True
    
-    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
     @patch("builtins.open", mock_open(read_data='{"tables": {"BUFFER_POOL": {"validator_data": {"rdma_config_update_validator": {"Shared/headroom pool size changes": {"fields": ["ingress_lossless_pool/xoff", "egress_lossy_pool/size"], "operations": ["replace"], "platforms": {"spc1": "20181100"}}}}}}}'))
@@ -43,7 +43,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/BUFFER_POOL/ingress_lossless_pool/xoff", "op": "remove"}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == False
     
-    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20181131"}))
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
     @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
