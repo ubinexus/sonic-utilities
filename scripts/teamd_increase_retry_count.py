@@ -2,7 +2,13 @@
 
 import subprocess
 import json
-from scapy.all import *
+from scapy.config import conf
+conf.ipv6_enabled = False
+conf.verb = False
+from scapy.fields import ByteField, ShortField, MACField, XStrFixedLenField, ConditionalField
+from scapy.layers.l2 import Ether
+from scapy.sendrecv import sendp, sniff
+from scapy.packet import Packet, split_layers, bind_layers
 import scapy.contrib.lacp
 import os
 import re
