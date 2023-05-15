@@ -663,10 +663,14 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     fi
 fi
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+TEAMD_INCREASE_RETRY_COUNT=0
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     /usr/local/bin/teamd_increase_retry_count.py --probe-only || TEAMD_RETRY_COUNT_PROBE_RC=$?
     if [[ TEAMD_RETRY_COUNT_PROBE_RC -ne 0 ]]; then
-        error "Not all neighbors support teamd retry count feature"
+        debug "Warning: Not all neighbors support teamd retry count feature"
+        TEAMD_INCREASE_RETRY_COUNT=0
+    else
+        TEAMD_INCREASE_RETRY_COUNT=1
     fi
 fi
 
@@ -694,7 +698,7 @@ if [ -x ${LOG_SSD_HEALTH} ]; then
     ${LOG_SSD_HEALTH}
 fi
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+if [[ ( "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ) && "$TEAMD_INCREASE_RETRY_COUNT" -eq 1 ]]; then
     /usr/local/bin/teamd_increase_retry_count.py
 fi
 
