@@ -1903,7 +1903,7 @@ def override_config_table(db, input_config_db, dry_run):
                 generate_sysinfo(current_config, ns_config_input, ns)
             else:
                 ns_config_input = config_input[ns]
-                generate_sysinfo(current_config, ns_config_input)
+                generate_sysinfo(current_config, ns_config_input, ns)
         else:
             ns_config_input = config_input
         updated_config = update_config(current_config, ns_config_input)
