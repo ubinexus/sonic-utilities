@@ -327,12 +327,18 @@ class TestConfigOverrideMultiasic(object):
         db = Db()
         cfgdb_clients = db.cfgdb_clients
 
+        orig_sysinfo = {}
+        # The test Golden Config doesn't contain sysinfo.
+        # Save original sysinfo in dict, compare later to see if it is override
+        for ns, config_db in cfgdb_clients.items():
+            platform = config_db.get_config()['DEVICE_METADATA']['localhost'].get('platform')
+            mac = config_db.get_config()['DEVICE_METADATA']['localhost'].get('mac')
+            orig_sysinfo[ns] = {}
+            orig_sysinfo[ns]['platform'] = platform
+            orig_sysinfo[ns]['mac'] = mac
+
         with mock.patch('config.main.read_json_file',
-                        mock.MagicMock(side_effect=read_json_file_side_effect)),\
-                mock.patch('sonic_py_common.device_info.get_platform',
-                        return_value="multi_asic"),\
-                mock.patch('sonic_py_common.device_info.get_system_mac',
-                        return_value="11:22:33:44:55:66"):
+                mock.MagicMock(side_effect=read_json_file_side_effect)):
             runner = CliRunner()
             result = runner.invoke(config.config.commands["override-config-table"],
                                    ['golden_config_db.json'], obj=db)
@@ -341,9 +347,8 @@ class TestConfigOverrideMultiasic(object):
         for ns, config_db in cfgdb_clients.items():
             platform = config_db.get_config()['DEVICE_METADATA']['localhost'].get('platform')
             mac = config_db.get_config()['DEVICE_METADATA']['localhost'].get('mac')
-            assert platform == "multi_asic"
-            assert mac == "11:22:33:44:55:66"
-
+            assert platform == orig_sysinfo[ns]['platform']
+            assert mac == orig_sysinfo[ns]['mac']
 
     @classmethod
     def teardown_class(cls):
