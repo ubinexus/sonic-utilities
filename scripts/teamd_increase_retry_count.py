@@ -18,9 +18,15 @@ import time
 import argparse
 import signal
 
+from sonic_py_common import logger
 from swsscommon.swsscommon import DBConnector, Table
 
+log = logger.Logger()
 revertTeamdRetryCountChanges = False
+DEFAULT_RETRY_COUNT = 3
+EXTENDED_RETRY_COUNT = 5
+SLOW_PROTOCOL_MAC_ADDRESS = "01:80:c2:00:00:02"
+LACP_ETHERTYPE = 0x8809
 
 class LACPRetryCount(Packet):
     name = "LACPRetryCount"
@@ -65,19 +71,99 @@ class LACPRetryCount(Packet):
 split_layers(scapy.contrib.lacp.SlowProtocol, scapy.contrib.lacp.LACP, subtype=1)
 bind_layers(scapy.contrib.lacp.SlowProtocol, LACPRetryCount, subtype=1)
 
+class LacpPacketListenThread(Thread):
+    def __init__(self, port, targetMacAddress, sendReadyEvent):
+        Thread.__init__(self)
+        self.port = port
+        self.targetMacAddress = targetMacAddress
+        self.sendReadyEvent = sendReadyEvent
+        self.detectedNewVersion = False
+
+    def lacpPacketCallback(self, pkt):
+        if pkt["LACPRetryCount"].version == 0xf1:
+            self.detectedNewVersion = True
+        return self.detectedNewVersion
+
+    def run(self):
+        sniff(stop_filter=self.lacpPacketCallback, iface=self.port, filter="ether proto {} and ether src {}".format(LACP_ETHERTYPE, self.targetMacAddress),
+                store=0, timeout=30, started_callback=self.sendReadyEvent.set)
+
+def getPortChannels():
+    applDb = DBConnector("APPL_DB", 0)
+    configDb = DBConnector("CONFIG_DB", 0)
+    portChannelTable = Table(applDb, "LAG_TABLE")
+    portChannels = portChannelTable.getKeys()
+    activePortChannels = []
+    for portChannel in portChannels:
+        state = portChannelTable.get(portChannel)
+        if not state[0]:
+            continue
+        isAdminUp = False
+        isOperUp = False
+        for key, value in state[1]:
+            if key == "admin_status":
+                isAdminUp = value == "up"
+            elif key == "oper_status":
+                isOperUp = value == "up"
+        if isAdminUp and isOperUp:
+            activePortChannels.append(portChannel)
+
+    # Now find out which BGP sessions on these port channels are admin up. This needs to go
+    # through a circuitious sequence of steps.
+    #
+    # 1. Get the local IPv4/IPv6 address assigned to each port channel.
+    # 2. Find out which BGP session (in CONFIG_DB) has a local_addr attribute of the local
+    # IPv4/IPv6 address.
+    # 3. Check the admin_status field of that table in CONFIG_DB.
+    portChannelData = {}
+    portChannelInterfaceTable = Table(configDb, "PORTCHANNEL_INTERFACE")
+    portChannelInterfaces = portChannelInterfaceTable.getKeys()
+    for portChannelInterface in portChannelInterfaces:
+        if "|" not in portChannelInterface:
+            continue
+        portChannel = portChannelInterface.split("|")[0]
+        ipAddress = portChannelInterface.split("|")[1].split("/")[0].lower()
+        if portChannel not in activePortChannels:
+            continue
+        portChannelData[ipAddress] = {
+                "portChannel": portChannel,
+                "adminUp": False
+                }
+
+    bgpTable = Table(configDb, "BGP_NEIGHBOR")
+    bgpNeighbors = bgpTable.getKeys()
+    for bgpNeighbor in bgpNeighbors:
+        neighborData = bgpTable.get(bgpNeighbor)
+        if not neighborData[0]:
+            continue
+        localAddr = None
+        isAdminUp = False
+        for key, value in neighborData[1]:
+            if key == "local_addr":
+                if value not in portChannelData:
+                    break
+                localAddr = value.lower()
+            elif key == "admin_status":
+                isAdminUp = value == "up"
+        if not localAddr:
+            continue
+        portChannelData[localAddr]["adminUp"] = isAdminUp
+
+    return set([portChannelData[x]["portChannel"] for x in portChannelData.keys() if portChannelData[x]["adminUp"]])
+
 def getPortChannelConfig(portChannelName):
-    process = subprocess.run(["teamdctl", portChannelName, "state", "dump"], capture_output=True)
-    return json.loads(process.stdout)
+    (processStdout, _) = getCmdOutput(["teamdctl", portChannelName, "state", "dump"])
+    return json.loads(processStdout)
 
 def getLldpNeighbors():
-    process = subprocess.run(["lldpctl", "-f", "json"], capture_output=True)
-    return json.loads(process.stdout)
+    (processStdout, _) = getCmdOutput(["lldpctl", "-f", "json"])
+    return json.loads(processStdout)
 
 def craftLacpPacket(portChannelConfig, portName, isResetPacket=False, newVersion=True):
     portConfig = portChannelConfig["ports"][portName]
     actorConfig = portConfig["runner"]["actor_lacpdu_info"]
     partnerConfig = portConfig["runner"]["partner_lacpdu_info"]
-    l2 = Ether(dst="01:80:c2:00:00:02", src=portConfig["ifinfo"]["dev_addr"], type=0x8809)
+    l2 = Ether(dst=SLOW_PROTOCOL_MAC_ADDRESS, src=portConfig["ifinfo"]["dev_addr"], type=LACP_ETHERTYPE)
     l3 = scapy.contrib.lacp.SlowProtocol(subtype=0x01) 
     l4 = LACPRetryCount()
     if newVersion:
@@ -97,32 +183,10 @@ def craftLacpPacket(portChannelConfig, portName, isResetPacket=False, newVersion
     l4.partner_port_number = partnerConfig["port"]
     l4.partner_state = partnerConfig["state"]
     if newVersion:
-        l4.actor_retry_count = 5 if not isResetPacket else 3
-        l4.partner_retry_count = 3
+        l4.actor_retry_count = EXTENDED_RETRY_COUNT if not isResetPacket else DEFAULT_RETRY_COUNT
+        l4.partner_retry_count = DEFAULT_RETRY_COUNT
     packet = l2 / l3 / l4
     return packet
-
-def getPortChannels():
-    configDb = DBConnector("CONFIG_DB", 0)
-    portchannelTable = Table(configDb, "PORTCHANNEL")
-    return list(portchannelTable.getKeys())
-
-class LacpPacketListenThread(Thread):
-    def __init__(self, port, targetMacAddress, sendReadyEvent):
-        Thread.__init__(self)
-        self.port = port
-        self.targetMacAddress = targetMacAddress
-        self.sendReadyEvent = sendReadyEvent
-        self.detectedNewVersion = False
-
-    def lacpPacketCallback(self, pkt):
-        if pkt["LACPRetryCount"].version == 0xf1:
-            self.detectedNewVersion = True
-        return self.detectedNewVersion
-
-    def run(self):
-        sniff(stop_filter=self.lacpPacketCallback, iface=self.port, filter="ether proto 0x8809 and ether src {}".format(self.targetMacAddress),
-                store=0, timeout=30, started_callback=self.sendReadyEvent.set)
 
 def sendLacpPackets(packets, revertPackets):
     while not revertTeamdRetryCountChanges:
@@ -134,12 +198,16 @@ def sendLacpPackets(packets, revertPackets):
             sendp(packet, iface=port)
 
 def abortTeamdChanges(signum, frame):
-    print("Got signal {}, reverting teamd retry count change".format(signum))
+    log.log_info("Got signal {}, reverting teamd retry count change".format(signum))
     revertTeamdRetryCountChanges = True
+
+def getCmdOutput(cmd):
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    return proc.communicate()[0], proc.returncode
 
 def main(probeOnly=False):
     if os.geteuid() != 0:
-        print("Root privileges required for this operation")
+        log.log_error("Root privileges required for this operation", also_print_to_console=True)
         sys.exit(1)
         return False
     portChannels = getPortChannels()
@@ -154,17 +222,17 @@ def main(probeOnly=False):
             for portName in config["ports"].keys():
                 interfaceLldpInfo = [k for k in lldpInfo["lldp"]["interface"] if portName in k]
                 if not interfaceLldpInfo:
-                    print("WARNING: No LLDP info available for {}; skipping".format(portName))
+                    log.log_warning("WARNING: No LLDP info available for {}; skipping".format(portName))
                     continue
                 interfaceLldpInfo = interfaceLldpInfo[0][portName]
                 peerName = list(interfaceLldpInfo["chassis"].keys())[0]
                 peerInfo = interfaceLldpInfo["chassis"][peerName]
                 if "descr" not in peerInfo:
-                    print("WARNING: No peer description available via LLDP for {}; skipping".format(portName))
+                    log.log_warning("WARNING: No peer description available via LLDP for {}; skipping".format(portName))
                     continue
                 portChannelChecked = True
                 if "SONiC" not in peerInfo["descr"]:
-                    print("WARNING: Peer device is not a SONiC device; skipping")
+                    log.log_warning("WARNING: Peer device is not a SONiC device; skipping")
                     failedPortChannels.append(portChannel)
                     break
 
@@ -174,7 +242,7 @@ def main(probeOnly=False):
                 lacpThread = LacpPacketListenThread(portName, config["ports"][portName]["runner"]["partner_lacpdu_info"]["system"], sendReadyEvent)
                 lacpThread.start()
 
-                # Generate and send probe packet
+                # Generate and send probe packet after sniffing has started
                 probePacket = craftLacpPacket(config, portName)
                 sendReadyEvent.wait()
                 sendp(probePacket, iface=portName)
@@ -182,38 +250,40 @@ def main(probeOnly=False):
                 lacpThread.join()
 
                 resetProbePacket = craftLacpPacket(config, portName, newVersion=False)
+                # 2-second sleep for making sure all processing is done on the peer device
                 time.sleep(2)
                 sendp(resetProbePacket, iface=portName, count=2, inter=0.5)
 
                 if lacpThread.detectedNewVersion:
-                    print("SUCCESS: Peer device {} is running version of SONiC with teamd retry count feature".format(peerName))
+                    log.log_notice("SUCCESS: Peer device {} is running version of SONiC with teamd retry count feature".format(peerName), also_print_to_console=True)
                     break
                 else:
-                    print("WARNING: Peer device {} is running version of SONiC without teamd retry count feature".format(peerName))
+                    log.log_warning("WARNING: Peer device {} is running version of SONiC without teamd retry count feature".format(peerName), also_print_to_console=True)
                     failedPortChannels.append(portChannel)
                     break
             if not portChannelChecked:
-                print("WARNING: No information available about peer device on port channel {}".format(portChannel))
+                log.log_warning("WARNING: No information available about peer device on port channel {}".format(portChannel), also_print_to_console=True)
                 failedPortChannels.append(portChannel)
         if failedPortChannels:
-            print("ERROR: There are port channels/peer devices that failed the probe: {}".format(failedPortChannels))
+            log.log_error("ERROR: There are port channels/peer devices that failed the probe: {}".format(failedPortChannels), also_print_to_console=True)
             sys.exit(2)
             return False
     else:
         signal.signal(signal.SIGUSR1, abortTeamdChanges)
         signal.signal(signal.SIGTERM, abortTeamdChanges)
-        retryCountGetProcess = subprocess.run(["config", "portchannel", "retry-count", "get", portChannels[0]])
-        if retryCountGetProcess.returncode == 0:
+        (_, rc) = getCmdOutput(["config", "portchannel", "retry-count", "get", portChannels[0]])
+        if rc == 0:
             # Currently running on SONiC version with teamd retry count feature
             for portChannel in portChannels:
-                subprocess.run(["config", "portchannel", "retry-count", "set", portChannel, "5"])
+                getCmdOutput(["config", "portchannel", "retry-count", "set", portChannel, str(EXTENDED_RETRY_COUNT)])
             pid = os.fork()
             if pid == 0:
+                # Running in a new process, detached from parent process
                 while not revertTeamdRetryCountChanges:
                     time.sleep(15)
                 if revertTeamdRetryCountChanges:
                     for portChannel in portChannels:
-                        subprocess.run(["config", "portchannel", "retry-count", "set", portChannel, "3"])
+                        getCmdOutput(["config", "portchannel", "retry-count", "set", portChannel, str(DEFAULT_RETRY_COUNT)])
         else:
             lacpPackets = []
             revertLacpPackets = []
