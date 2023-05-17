@@ -316,6 +316,33 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
 
+    @patch("config.main.check_if_retry_count_is_enabled", mock.Mock(return_value=False))
+    def test_get_portchannel_retry_count_disabled(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # get the retry count of a portchannel, but when the retry count feature is disabled
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Retry count feature is not enabled!" in result.output
+
+    @patch("config.main.check_if_retry_count_is_enabled", mock.Mock(return_value=False))
+    def test_set_portchannel_retry_count_disabled(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # set the retry count of a portchannel, but when the retry count feature is disabled
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel1001", "5"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Retry count feature is not enabled!" in result.output
+
+    @patch("config.main.check_if_retry_count_is_enabled", mock.Mock(return_value=True))
     def test_get_portchannel_retry_count(self):
         runner = CliRunner()
         db = Db()
@@ -327,6 +354,7 @@ class TestPortChannel(object):
         print(result.exit_code)
         assert result.exit_code != 0
 
+    @patch("config.main.check_if_retry_count_is_enabled", mock.Mock(return_value=True))
     def test_set_portchannel_retry_count(self):
         runner = CliRunner()
         db = Db()
