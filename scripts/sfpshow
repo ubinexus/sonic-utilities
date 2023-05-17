@@ -466,9 +466,7 @@ class SFPShow(object):
     # Convert sfp status info in DB to cli output string
     def convert_interface_sfp_status_to_cli_output_string(self, state_db, interface_name):
         sfp_status_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(interface_name))
-
         if sfp_status_dict and len(sfp_status_dict) > 2:
-            status_map = CMIS_STATUS_MAP if 'module_state' in sfp_status_dict else QSFP_STATUS_MAP
             if 'module_state' not in sfp_status_dict:
                 status_map = QSFP_STATUS_MAP
             elif 'tuning_in_progress' not in sfp_status_dict:
