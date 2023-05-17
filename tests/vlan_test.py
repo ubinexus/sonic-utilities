@@ -270,6 +270,14 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Invalid VLAN ID 4096 (1-4094)" in result.output
 
+    def test_config_vlan_add_member_with_too_long_vlan_name(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["123456789012", "Ethernet4"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Invalid VLAN ID 123456789012 (1-4094)" in result.output
+
     def test_config_vlan_add_member_with_nonexist_vlanid(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["1001", "Ethernet4"])

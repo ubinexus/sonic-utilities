@@ -2016,8 +2016,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if is_portchannel_name_valid(portchannel_name) != True:
-            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                    .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}', such that 'portchannel_name' length not cross {} characters"
+                    .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO, CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX))
         if is_portchannel_present_in_db(db, portchannel_name):
             ctx.fail("{} already exists!".format(portchannel_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
     
@@ -5261,7 +5261,9 @@ def add_vrf(ctx, vrf_name):
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
     if len(vrf_name) >= IFNAMSIZ:
-        ctx.fail("'vrf_name' is too long! The 'vrf_name' length needs to be less than 16 characters")
+        ctx.fail("'vrf_name' is too long! The 'vrf_name' length needs to be less than {} characters"
+                    .format(IFNAMSIZ))
+
     if is_vrf_exists(config_db, vrf_name):
         ctx.fail("VRF {} already exists!".format(vrf_name))
     elif (vrf_name == 'mgmt' or vrf_name == 'management'):
@@ -6269,8 +6271,8 @@ def add_loopback(ctx, loopback_name):
     config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
         if is_loopback_name_valid(loopback_name) is False:
-            ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
-                    .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+            ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}', such that 'loopback_name' not cross {} characters"
+                    .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO, CFG_LOOPBACK_NAME_TOTAL_LEN_MAX))
 
         lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
         if loopback_name in lo_intfs:
