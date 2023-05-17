@@ -220,6 +220,13 @@ def main(probeOnly=False):
             lldpInfo = getLldpNeighbors()
             portChannelChecked = False
             for portName in config["ports"].keys():
+                if not "runner" in config["ports"][portName] or \
+                        not "partner_lacpdu_info" in config["ports"][portName]["runner"] or \
+                        not "actor_lacpdu_info" in config["ports"][portName]["runner"]:
+                    log.log_error("ERROR: Missing information from teamd about {}; skipping".format(portName))
+                    failedPortChannels.append(portChannel)
+                    break
+
                 interfaceLldpInfo = [k for k in lldpInfo["lldp"]["interface"] if portName in k]
                 if not interfaceLldpInfo:
                     log.log_warning("WARNING: No LLDP info available for {}; skipping".format(portName))
@@ -290,12 +297,19 @@ def main(probeOnly=False):
             for portChannel in portChannels:
                 config = getPortChannelConfig(portChannel)
                 for portName in config["ports"].keys():
+                    if not "runner" in config["ports"][portName] or \
+                            not "partner_lacpdu_info" in config["ports"][portName]["runner"] or \
+                            not "actor_lacpdu_info" in config["ports"][portName]["runner"]:
+                        log.log_error("ERROR: Missing information from teamd about {}; skipping".format(portName))
+                        break
+
                     packet = craftLacpPacket(config, portName)
                     lacpPackets.append((portName, packet))
                     packet = craftLacpPacket(config, portName, isResetPacket=True)
                     revertLacpPackets.append((portName, packet))
             pid = os.fork()
             if pid == 0:
+                # Running in a new process, detached from parent process
                 sendLacpPackets(lacpPackets, revertLacpPackets)
 
 if __name__ == "__main__":
