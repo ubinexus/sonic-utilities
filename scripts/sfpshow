@@ -17,7 +17,13 @@ from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
-from utilities_common.sfp_helper import QSFP_DATA_MAP, CMIS_DATA_MAP, CMIS_STATUS_MAP, NON_CMIS_STATUS_MAP
+from utilities_common.sfp_helper import (
+        QSFP_DATA_MAP,
+        CMIS_DATA_MAP,
+        QSFP_STATUS_MAP,
+        CMIS_STATUS_MAP,
+        CCMIS_STATUS_MAP,
+)
 from tabulate import tabulate
 
 # Mock the redis DB for unit test purposes
@@ -462,7 +468,13 @@ class SFPShow(object):
         sfp_status_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(interface_name))
 
         if sfp_status_dict and len(sfp_status_dict) > 2:
-            status_map = CMIS_STATUS_MAP if 'module_state' in sfp_status_dict else NON_CMIS_STATUS_MAP
+            status_map = CMIS_STATUS_MAP if 'module_state' in sfp_status_dict else QSFP_STATUS_MAP
+            if 'module_state' not in sfp_status_dict:
+                status_map = QSFP_STATUS_MAP
+            elif 'tuning_in_progress' not in sfp_status_dict:
+                status_map = CMIS_STATUS_MAP
+            else:
+                status_map = CCMIS_STATUS_MAP
             output = '\n' + self.convert_sfp_status_to_output_string(sfp_status_dict, status_map)
         else:
             output = QSFP_STATUS_NOT_APPLICABLE_STR + '\n'

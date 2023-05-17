@@ -43,7 +43,8 @@ QSFP_CMIS_DELTA_DATA_MAP = {
 
 CMIS_DATA_MAP = {**QSFP_DATA_MAP, **QSFP_CMIS_DELTA_DATA_MAP}
 
-NON_CMIS_STATUS_MAP = {
+# For non-CMIS/C_CMIS
+QSFP_STATUS_MAP = {
     'rx_los': 'Rx loss of signal flag',
     'tx_fault': 'Tx fault flag',
     'tx_disable': 'TX disable status',
@@ -145,13 +146,6 @@ CMIS_STATUS_MAP = {
     'dpinit_pending_hostlane6': 'Data path configuration updated on host lane 6',
     'dpinit_pending_hostlane7': 'Data path configuration updated on host lane 7',
     'dpinit_pending_hostlane8': 'Data path configuration updated on host lane 8',
-    'tuning_in_progress': 'Tuning in progress status',
-    'wavelength_unlock_status': 'Laser unlocked status',
-    'target_output_power_oor': 'Target output power out of range flag',
-    'fine_tuning_oor': 'Fine tuning out of range flag',
-    'tuning_not_accepted': 'Tuning not accepted flag',
-    'invalid_channel_num': 'Invalid channel number flag',
-    'tuning_complete': 'Tuning complete flag',
     'temphighalarm_flag': 'Temperature high alarm flag',
     'temphighwarning_flag': 'Temperature high warning flag',
     'templowwarning_flag': 'Temperature low warning flag',
@@ -267,7 +261,18 @@ CMIS_STATUS_MAP = {
     'postfecberhighalarm_flag': 'Postfec ber high alarm flag',
     'postfecberhighwarning_flag': 'Postfec ber high warning flag',
     'postfecberlowwarning_flag': 'Postfec ber low warning flag',
-    'postfecberlowalarm_flag': 'Postfec ber low alarm flag',
+    'postfecberlowalarm_flag': 'Postfec ber low alarm flag'
+}
+
+CCMIS_STATUS_MAP = {
+    **CMIS_STATUS_MAP,
+    'tuning_in_progress': 'Tuning in progress status',
+    'wavelength_unlock_status': 'Laser unlocked status',
+    'target_output_power_oor': 'Target output power out of range flag',
+    'fine_tuning_oor': 'Fine tuning out of range flag',
+    'tuning_not_accepted': 'Tuning not accepted flag',
+    'invalid_channel_num': 'Invalid channel number flag',
+    'tuning_complete': 'Tuning complete flag',
     'biasxihighalarm_flag': 'Bias xi high alarm flag',
     'biasxihighwarning_flag': 'Bias xi high warning flag',
     'biasxilowwarning_flag': 'Bias xi low warning flag',

@@ -215,6 +215,14 @@ Ethernet44:
     EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
 """
 
+test_qsfp_status_output = """\
+Ethernet4:
+        Rx loss of signal flag: False
+        Tx fault flag: False
+        TX disable status: False
+        Disabled TX channels: 0
+"""
+
 test_qsfp_dd_status_output = """\
 Ethernet44:
         Current module state: ModuleReady
@@ -311,13 +319,6 @@ Ethernet44:
         Data path configuration updated on host lane 6: False
         Data path configuration updated on host lane 7: False
         Data path configuration updated on host lane 8: False
-        Tuning in progress status: False
-        Laser unlocked status: False
-        Target output power out of range flag: False
-        Fine tuning out of range flag: False
-        Tuning not accepted flag: False
-        Invalid channel number flag: False
-        Tuning complete flag: False
         Temperature high alarm flag: False
         Temperature high warning flag: False
         Temperature low warning flag: False
@@ -434,6 +435,13 @@ Ethernet44:
         Postfec ber high warning flag: False
         Postfec ber low warning flag: False
         Postfec ber low alarm flag: False
+        Tuning in progress status: False
+        Laser unlocked status: False
+        Target output power out of range flag: False
+        Fine tuning out of range flag: False
+        Tuning not accepted flag: False
+        Invalid channel number flag: False
+        Tuning complete flag: False
         Bias xi high alarm flag: False
         Bias xi high warning flag: False
         Bias xi low warning flag: False
@@ -856,6 +864,12 @@ Ethernet36  Present
         result_lines = result.output.strip('\n')
         expected = "Ethernet200: Transceiver performance monitoring not applicable"
         assert result_lines == expected
+
+    def test_qsfp_status(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["status"], ["Ethernet4"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_qsfp_status_output
 
     def test_qsfp_dd_status(self):
         runner = CliRunner()

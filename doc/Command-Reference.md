@@ -1156,13 +1156,6 @@ This command displays information for all the interfaces for the transceiver req
           Data path configuration updated on host lane 6: False
           Data path configuration updated on host lane 7: False
           Data path configuration updated on host lane 8: False
-          Tuning in progress status: False
-          Laser unlocked status: False
-          Target output power out of range flag: False
-          Fine tuning out of range flag: False
-          Tuning not accepted flag: False
-          Invalid channel number flag: False
-          Tuning complete flag: False
           Temperature high alarm flag: False
           Temperature high warning flag: False
           Temperature low warning flag: False
@@ -1279,6 +1272,13 @@ This command displays information for all the interfaces for the transceiver req
           Postfec ber high warning flag: False
           Postfec ber low warning flag: False
           Postfec ber low alarm flag: False
+          Tuning in progress status: False
+          Laser unlocked status: False
+          Target output power out of range flag: False
+          Fine tuning out of range flag: False
+          Tuning not accepted flag: False
+          Invalid channel number flag: False
+          Tuning complete flag: False
           Bias xi high alarm flag: False
           Bias xi high warning flag: False
           Bias xi low warning flag: False

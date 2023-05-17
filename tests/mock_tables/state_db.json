@@ -697,7 +697,11 @@
     },
     "TRANSCEIVER_STATUS|Ethernet4": {
         "status": "1",
-        "error": "N/A"
+        "error": "N/A",
+        "rx_los": "False",
+        "tx_fault": "False",
+        "tx_disable": "False",
+        "tx_disabled_channel": "0"
     },
     "TRANSCEIVER_STATUS|Ethernet8": {
         "status": "0",
