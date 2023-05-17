@@ -267,3 +267,11 @@ Error: 'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of 
         result = runner.invoke(config.config.commands["vrf"].commands["del"], ["VrF10"], obj=obj)
         assert result.exit_code != 0
         assert expected_output in result.output
+
+        expected_output = """\
+Error: 'vrf_name' is too long! The 'vrf_name' length needs to be less than 16 characters
+"""
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["VrfNameTooLong!!"], obj=obj)
+        assert result.exit_code != 0
+        assert ('VrfNameTooLong!!') not in db.cfgdb.get_table('VRF')
+        assert expected_output in result.output

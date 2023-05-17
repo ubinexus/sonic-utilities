@@ -96,6 +96,8 @@ CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
+IFNAMSIZ=16
+
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
@@ -5258,8 +5260,8 @@ def add_vrf(ctx, vrf_name):
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
-    if len(vrf_name) > 15:
-        ctx.fail("'vrf_name' is too long!")
+    if len(vrf_name) >= IFNAMSIZ:
+        ctx.fail("'vrf_name' is too long! The 'vrf_name' length needs to be less than 16 characters")
     if is_vrf_exists(config_db, vrf_name):
         ctx.fail("VRF {} already exists!".format(vrf_name))
     elif (vrf_name == 'mgmt' or vrf_name == 'management'):
@@ -5278,8 +5280,8 @@ def del_vrf(ctx, vrf_name):
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
-    if len(vrf_name) > 15:
-        ctx.fail("'vrf_name' is too long!")
+    if len(vrf_name) >= IFNAMSIZ:
+        ctx.fail("'vrf_name' is too long! The 'vrf_name' length needs to be less than 16 characters")
     syslog_table = config_db.get_table("SYSLOG_SERVER")
     syslog_vrf_dev = "mgmt" if vrf_name == "management" else vrf_name
     for syslog_entry, syslog_data in syslog_table.items():
