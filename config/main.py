@@ -2223,14 +2223,14 @@ def get_portchannel_retry_count(ctx, portchannel_name):
     """Get the retry count for a port channel"""
     db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-	# Dont proceed if the port channel name is not valid
-	if is_portchannel_name_valid(portchannel_name) is False:
-		ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-				 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+    # Don't proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-	# Dont proceed if the port channel does not exist
-	if is_portchannel_present_in_db(db, portchannel_name) is False:
-		ctx.fail("{} is not present.".format(portchannel_name))
+    # Don't proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
 
     try:
         is_retry_count_enabled = check_if_retry_count_is_enabled(ctx, portchannel_name)
@@ -2259,14 +2259,14 @@ def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
     """Set the retry count for a port channel"""
     db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-	# Dont proceed if the port channel name is not valid
-	if is_portchannel_name_valid(portchannel_name) is False:
-		ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-				 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+    # Don't proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-	# Dont proceed if the port channel does not exist
-	if is_portchannel_present_in_db(db, portchannel_name) is False:
-		ctx.fail("{} is not present.".format(portchannel_name))
+    # Don't proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
 
     try:
         is_retry_count_enabled = check_if_retry_count_is_enabled(ctx, portchannel_name)
