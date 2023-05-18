@@ -2211,7 +2211,7 @@ def check_if_retry_count_is_enabled(ctx, portchannel_name):
         if proc.returncode != 0:
             ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(err.strip()))
         return output.strip() == "true"
-    except TimeoutExpired as e:
+    except subprocess.TimeoutExpired as e:
         proc.kill()
         proc.communicate()
         ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(e))
@@ -2244,7 +2244,7 @@ def get_portchannel_retry_count(ctx, portchannel_name):
         click.echo(output.strip())
     except FileNotFoundError:
         ctx.fail("Unable to get the retry count: teamdctl could not be run")
-    except TimeoutExpired as e:
+    except subprocess.TimeoutExpired as e:
         proc.kill()
         proc.communicate()
         ctx.fail("Unable to get the retry count: {}".format(e))
@@ -2279,7 +2279,7 @@ def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
             ctx.fail("Unable to set the retry count: {}".format(err.strip()))
     except FileNotFoundError:
         ctx.fail("Unable to set the retry count: teamdctl could not be run")
-    except TimeoutExpired as e:
+    except subprocess.TimeoutExpired as e:
         proc.kill()
         proc.communicate()
         ctx.fail("Unable to set the retry count: {}".format(e))
