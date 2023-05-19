@@ -1939,6 +1939,10 @@ def hostname(new_hostname):
         ctx = click.get_current_context()
         ctx.fail("Failed to write new hostname to ConfigDB. Error: {}".format(e))
 
+    # Restart each rsyslog service
+    click.echo("Restarting rsyslog service ...")
+    clicommon.run_command("sudo systemctl restart rsyslog.service")
+    clicommon.run_command("for i in `docker ps -q`; do docker exec -it $i supervisorctl restart rsyslogd; done")
 
     click.echo('Please note loaded setting will be lost after system reboot. To'
                ' preserve setting, run `config save`.')
