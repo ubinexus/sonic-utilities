@@ -18,11 +18,11 @@ def counters():
 @click.option('-e', '--errors', is_flag=True)
 def reachability(namespace, errors):
     """Show fabric reachability"""
-    cmd = "fabricstat -r"
+    cmd = ['fabricstat', '-r']
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     if errors:
-        cmd += " -e"
+        cmd += ["-e"]
     clicommon.run_command(cmd)
 
 @counters.command()
