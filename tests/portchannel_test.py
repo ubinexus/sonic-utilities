@@ -1,5 +1,6 @@
 import os
 import pytest
+import subprocess
 import traceback
 import mock
 
@@ -13,7 +14,6 @@ from utilities_common.db import Db
 from mock import patch
 
 class TestPortChannel(object):
-    retryCountEnabled = True
 
     @classmethod
     def setup_class(cls):
@@ -318,30 +318,12 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
 
-
-    class ProcessMock:
-        def __init__(self, commandArgs, stdoutResult, stderrResult, rc):
-            self.args = commandArgs
-            self.stdoutResult = stdoutResult
-            self.stderrResult = stderrResult
-            self.returncode = rc
-            self.pid = 2942
-
-        def communicate(self, input=None, timeout=None):
-            return self.stdoutResult, self.stderrResult
-
-        def kill(self):
-            pass
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
+    originalSubprocessPopen = subprocess.Popen
 
     class SubprocessMock:
         def __init__(self, *args, **kwargs):
-            pass
+            self.retryCountEnabled = True
+            self.timeout = False
 
         def __call__(self, *args, **kwargs):
             stdoutResult = ""
@@ -350,14 +332,20 @@ class TestPortChannel(object):
 
             commandArgs = args[0]
             if commandArgs[0] != "teamdctl":
-                return None
+                return TestPortChannel.originalSubprocessPopen(*args, **kwargs)
+            if self.timeout:
+                return TestPortChannel.originalSubprocessPopen(["sleep", "90"], **kwargs)
             if commandArgs[5] == "runner.enable_retry_count_feature":
-                stdoutResult = "true" if TestPortChannel.retryCountEnabled else "false"
+                return TestPortChannel.originalSubprocessPopen(["echo", "true" if self.retryCountEnabled else "false"], **kwargs)
             elif commandArgs[5] == "runner.retry_count":
                 if commandArgs[4] == "get":
-                    stdoutResult = "3"
-
-            return TestPortChannel.ProcessMock(commandArgs, stdoutResult, stderrResult, rc)
+                    return TestPortChannel.originalSubprocessPopen(["echo", "3"], **kwargs)
+                elif commandArgs[4] == "set":
+                    return TestPortChannel.originalSubprocessPopen(["echo", ""], **kwargs)
+                else:
+                    return TestPortChannel.originalSubprocessPopen(["false"], **kwargs)
+            else:
+                return TestPortChannel.originalSubprocessPopen(["false"], **kwargs)
 
     @patch("subprocess.Popen", new_callable=SubprocessMock)
     def test_get_portchannel_retry_count_disabled(self, subprocessMock):
@@ -365,7 +353,7 @@ class TestPortChannel(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        TestPortChannel.retryCountEnabled = False
+        subprocessMock.retryCountEnabled = False
 
         # get the retry count of a portchannel, but when the retry count feature is disabled
         result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
@@ -380,7 +368,7 @@ class TestPortChannel(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        TestPortChannel.retryCountEnabled = False
+        subprocessMock.retryCountEnabled = False
 
         # set the retry count of a portchannel, but when the retry count feature is disabled
         result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel1001", "5"], obj=obj)
@@ -390,16 +378,50 @@ class TestPortChannel(object):
         assert "Retry count feature is not enabled!" in result.output
 
     @patch("subprocess.Popen", new_callable=SubprocessMock)
+    def test_get_portchannel_retry_count_timeout(self, subprocessMock):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        subprocessMock.retryCountEnabled = True
+        subprocessMock.timeout = True
+
+        # get the retry count of a portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
+        # expect a timeout failure
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Unable to get the retry count" in result.output
+
+    @patch("subprocess.Popen", new_callable=SubprocessMock)
+    def test_set_portchannel_retry_count_timeout(self, subprocessMock):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        subprocessMock.retryCountEnabled = True
+        subprocessMock.timeout = True
+
+        # set the retry count of a portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel1001", "5"], obj=obj)
+        # expect a timeout failure
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Unable to set the retry count" in result.output
+
+    @patch("subprocess.Popen", new_callable=SubprocessMock)
     def test_get_portchannel_retry_count(self, subprocessMock):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
 
-        TestPortChannel.retryCountEnabled = True
+        subprocessMock.retryCountEnabled = True
 
         # get the retry count of a portchannel
         result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["get"], ["PortChannel1001"], obj=obj)
-        # this will fail because the actual teamd process is not running during testing
+        # output has been mocked
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -411,11 +433,11 @@ class TestPortChannel(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        TestPortChannel.retryCountEnabled = True
+        subprocessMock.retryCountEnabled = True
 
         # set the retry count of a portchannel
         result = runner.invoke(config.config.commands["portchannel"].commands["retry-count"].commands["set"], ["PortChannel1001", "5"], obj=obj)
-        # this will fail because the actual teamd process is not running during testing
+        # output has been mocked
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
