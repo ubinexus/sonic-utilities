@@ -10006,16 +10006,19 @@ This command is to add or delete a member port into the already created vlan.
   ```
 
 
-**config vlan member add/del -m**
+**config vlan member add/del -m -e**
 
 This command is to add or delete a member port into multiple already created vlans.
 
 - Usage:
   ```
-  config vlan member add/del [-m] <vlan_id> <member_portname>
+  config vlan member add/del [-m] [-e] <vlan_id> <member_portname>
   ```
 
-*NOTE: *-m flag multiple Vlans in range or comma separted list can be added as a member port.
+*NOTE: -m flag multiple Vlans in range or comma separted list can be added as a member port.*
+
+
+*NOTE: -e is used as an except flag as explaied with examples below.*
 
 
 - Example:
