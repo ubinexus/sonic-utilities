@@ -105,7 +105,7 @@ def ssdhealth(device, verbose, vendor):
     """Show SSD Health information"""
     if not device:
         device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
-    cmd = ['sudo', 'ssdutil', '-d', device]
+    cmd = ['sudo', 'ssdutil', '-d', str(device)]
     options = ["-v"] if verbose else []
     options += ["-e"] if vendor else []
     clicommon.run_command(cmd + options, display_cmd=verbose)

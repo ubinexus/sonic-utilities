@@ -639,7 +639,7 @@ def _change_hostname(hostname):
         with open('/etc/hostname', 'w') as f:
             f.write(str(hostname) + '\n')
         clicommon.run_command(['hostname', '-F', '/etc/hostname'], display_cmd=True)
-        clicommon.run_command(['sed', '-i', "/\s{}$/d".format(current_hostname), '/etc/hosts'], display_cmd=True)
+        clicommon.run_command(['sed', '-i', r"/\s{}$/d".format(current_hostname), '/etc/hosts'], display_cmd=True)
         with open('/etc/hosts', 'a') as f:
             f.write("127.0.0.1 " + str(hostname) + '\n')
 
@@ -891,7 +891,7 @@ def _restart_services():
 
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
-    clicommon.run_command(['sudo',' monit', 'reload'])
+    clicommon.run_command(['sudo', 'monit', 'reload'])
 
 def _per_namespace_swss_ready(service_name):
     out, _ = clicommon.run_command(['systemctl', 'show', str(service_name), '--property', 'ActiveState', '--value'], return_cmd=True)
@@ -1238,13 +1238,12 @@ def save(filename):
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
         if namespace is None:
-            command = [str(SONIC_CFGGEN_PATH), '-d', '--print-data']
+            command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, file)
         else:
-            command = [str(SONIC_CFGGEN_PATH), '-n', str(namespace), '-d', '--print-data']
+            command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
 
         log.log_info("'save' executing...")
-        with open(file, 'w') as f:
-            subprocess.Popen(command, stdout=f, universal_newlines=True)
+        clicommon.run_command(command, display_cmd=True, shell=True)
 
         config_db = sort_dict(read_json_file(file))
         with open(file, 'w') as config_db_file:
@@ -1650,9 +1649,9 @@ def load_mgmt_config(filename):
             command = ['ifconfig', 'eth0', 'add', str(mgmt_conf)]
             # Ignore error for IPv6 configuration command due to it not allows config the same IP twice
             clicommon.run_command(command, display_cmd=True, ignore_error=True)
-        command = ['ip{}'.format(" -6" if mgmt_conf.version == 6 else ""), 'route', 'add', 'default', 'via', str(gw_addr), 'dev', 'eth0', 'table', 'default']
+        command = ['ip'] + (["-6"] if mgmt_conf.version == 6 else []) + ['route', 'add', 'default', 'via', str(gw_addr), 'dev', 'eth0', 'table', 'default']
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
-        command = ['ip{}'.format(" -6" if mgmt_conf.version == 6 else ""), 'rule', 'add', 'from', str(mgmt_conf.ip), 'table', 'default']
+        command = ['ip'] + (["-6"] if mgmt_conf.version == 6 else []) + ['rule', 'add', 'from', str(mgmt_conf.ip), 'table', 'default']
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
     if len(config_data['MGMT_INTERFACE'].keys()) > 0:
         command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
@@ -4447,7 +4446,7 @@ def remove(ctx, interface_name, ip_addr):
         for ip_ver in ip_versions:
             # Compete the command and ask Zebra to return the routes.
             # Scopes of all VRFs will be checked.
-            cmd = ["show {} route vrf all static".format(ip_ver)]
+            cmd = "show {} route vrf all static".format(ip_ver)
             if multi_asic.is_multi_asic():
                 output = bgp_util.run_bgp_command(cmd, ctx.obj['namespace'])
             else:

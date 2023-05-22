@@ -182,7 +182,7 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
         bgp_instance_id = ['-n', str(multi_asic.get_asic_id_from_name(bgp_namespace))]
 
-    cmd = ['sudo'] + vtysh_shell_cmd + bgp_instance_id + ['-c'] + vtysh_cmd
+    cmd = ['sudo', vtysh_shell_cmd] + bgp_instance_id + ['-c', vtysh_cmd]
     try:
         output, ret = clicommon.run_command(cmd, return_cmd=True)
         if ret != 0:
@@ -198,7 +198,7 @@ def run_bgp_show_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
     output = run_bgp_command(vtysh_cmd, bgp_namespace, constants.RVTYSH_COMMAND)
     # handle the the alias mode in the following code
     if output is not None:
-        if clicommon.get_interface_naming_mode() == "alias" and re.search("show ip|ipv6 route", ' '.join(vtysh_cmd)):
+        if clicommon.get_interface_naming_mode() == "alias" and re.search("show ip|ipv6 route", vtysh_cmd):
             iface_alias_converter = clicommon.InterfaceAliasConverter()
             route_info =json.loads(output)
             for route, info in route_info.items():

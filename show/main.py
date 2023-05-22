@@ -1410,7 +1410,7 @@ def all(verbose):
         raise click.Abort()
 
     if not multi_asic.is_multi_asic():
-        bgpraw_cmd = constants.RVTYSH_COMMAND + ['-c', 'show running-config']
+        bgpraw_cmd = [constants.RVTYSH_COMMAND, '-c', 'show running-config']
         bgpraw, rc = get_cmd_output(bgpraw_cmd)
         if rc:
             bgpraw = ""

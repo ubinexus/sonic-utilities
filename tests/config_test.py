@@ -2231,7 +2231,7 @@ def test_change_hostname(mock_run_command):
     ]
     assert mock_run_command.call_args_list == [
         call(['hostname', '-F', '/etc/hostname'], display_cmd=True),
-        call(['sed', '-i', '/\\scurrent-hostname$/d', '/etc/hosts'], display_cmd=True)
+        call(['sed', '-i', r"/\scurrent-hostname$/d", '/etc/hosts'], display_cmd=True)
     ]
 
 
