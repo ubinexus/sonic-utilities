@@ -219,10 +219,10 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
     device = multi_asic_util.MultiAsic(display, namespace)
     ctx = click.get_current_context()
     if af is constants.IPV4:
-        vtysh_cmd = 'show ip bgp summary json'
+        vtysh_cmd = "show ip bgp summary json"
         key = 'ipv4Unicast'
     else:
-        vtysh_cmd = 'show bgp ipv6 summary json'
+        vtysh_cmd = "show bgp ipv6 summary json"
         key = 'ipv6Unicast'
 
     bgp_summary = {}
