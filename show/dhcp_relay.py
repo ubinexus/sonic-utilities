@@ -13,7 +13,7 @@ DHCPV4_SERVERS = "dhcp_servers"
 DHCPv6_COUNTER_TABLE = 'DHCPv6_COUNTER_TABLE'
 
 # DHCPv6 Counter Messages
-messages = ["Unknown", "Solicit", "Advertise", "Request", "Confirm", "Renew", "Rebind", "Reply", "Release", "Decline", "Relay-Forward", "Relay-Reply"]
+messages = ["Unknown", "Solicit", "Advertise", "Request", "Confirm", "Renew", "Rebind", "Reply", "Release", "Decline", "Reconfigure, "Information-Request", "Relay-Forward", "Relay-Reply"]
 config_db = ConfigDBConnector()
 
 
