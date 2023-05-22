@@ -278,7 +278,7 @@ def main(probeOnly=False):
     else:
         signal.signal(signal.SIGUSR1, abortTeamdChanges)
         signal.signal(signal.SIGTERM, abortTeamdChanges)
-        (_, rc) = getCmdOutput(["config", "portchannel", "retry-count", "get", portChannels[0]])
+        (_, rc) = getCmdOutput(["config", "portchannel", "retry-count", "get", list(portChannels)[0]])
         if rc == 0:
             # Currently running on SONiC version with teamd retry count feature
             for portChannel in portChannels:
