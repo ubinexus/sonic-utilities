@@ -665,8 +665,9 @@ fi
 
 TEAMD_INCREASE_RETRY_COUNT=0
 if [[ "${REBOOT_TYPE}" = "warm-reboot" || "${REBOOT_TYPE}" = "fastfast-reboot" ]]; then
+	TEAMD_RETRY_COUNT_PROBE_RC=0
     /usr/local/bin/teamd_increase_retry_count.py --probe-only || TEAMD_RETRY_COUNT_PROBE_RC=$?
-    if [[ TEAMD_RETRY_COUNT_PROBE_RC -ne 0 ]]; then
+    if [[ $TEAMD_RETRY_COUNT_PROBE_RC -ne 0 ]]; then
         debug "Warning: Retry count feature support unknown for one or more neighbor devices; assuming that it's not available"
         TEAMD_INCREASE_RETRY_COUNT=0
     else
