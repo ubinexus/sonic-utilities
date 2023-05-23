@@ -30,6 +30,7 @@ TAG_LATEST=yes
 DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
 UIMAGE_HDR_SIZE=64
+REQUIRE_TEAMD_RETRY_COUNT=no
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -78,13 +79,15 @@ function showHelpAndExit()
     echo "    -t    : Don't tag the current kube images as latest"
     echo "    -D    : detached mode - closing terminal will not cause stopping reboot"
     echo "    -u    : include ssd-upgrader-part in boot options"
+    echo "    -n    : don't require peer devices to be running SONiC with retry count feature [default]"
+    echo "    -N    : require peer devices to be running SONiC with retry count feature"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfidh?rkxc:sDu" opt; do #TODO "t" is missing
+    while getopts "vfidh?rkxc:sDunN" opt; do #TODO "t" is missing
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -124,6 +127,12 @@ function parseOptions()
                 ;;
             u )
                 SSD_FW_UPDATE_BOOT_OPTION=yes
+                ;;
+            n )
+                REQUIRE_TEAMD_RETRY_COUNT=no
+                ;;
+            N )
+                REQUIRE_TEAMD_RETRY_COUNT=yes
                 ;;
         esac
     done
@@ -668,8 +677,12 @@ if [[ "${REBOOT_TYPE}" = "warm-reboot" || "${REBOOT_TYPE}" = "fastfast-reboot" ]
 	TEAMD_RETRY_COUNT_PROBE_RC=0
     /usr/local/bin/teamd_increase_retry_count.py --probe-only || TEAMD_RETRY_COUNT_PROBE_RC=$?
     if [[ $TEAMD_RETRY_COUNT_PROBE_RC -ne 0 ]]; then
-        debug "Warning: Retry count feature support unknown for one or more neighbor devices; assuming that it's not available"
-        TEAMD_INCREASE_RETRY_COUNT=0
+        if [[ "${REQUIRE_TEAMD_RETRY_COUNT}" = "yes" ]]; then
+            error "Could not confirm that all neighbor devices are running SONiC with the retry count feature"
+        else
+            debug "Warning: Retry count feature support unknown for one or more neighbor devices; assuming that it's not available"
+            TEAMD_INCREASE_RETRY_COUNT=0
+        fi
     else
         TEAMD_INCREASE_RETRY_COUNT=1
     fi
