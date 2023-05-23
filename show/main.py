@@ -1423,6 +1423,8 @@ def all(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def acl(verbose):
     """Show acl running configuration"""
+    cmd = "sonic-cfggen -d --var-json ACL_TABLE"
+    run_command(cmd, display_cmd=verbose)
     cmd = "sonic-cfggen -d --var-json ACL_RULE"
     run_command(cmd, display_cmd=verbose)
 
