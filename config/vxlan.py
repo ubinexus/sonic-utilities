@@ -25,7 +25,7 @@ def add_vxlan(db, vxlan_name, src_ip):
     if ADHOC_VALIDATION:
         if not clicommon.is_ipaddress(src_ip):
             ctx.fail("{} invalid src ip address".format(src_ip))
-        if len(vxlan_name) > IFNAMSIZ:
+        if len(vxlan_name) >= IFNAMSIZ:
             ctx.fail("'vxlan_name' is too long! The 'vxlan_name' length needs to be less than {} characters".format(IFNAMSIZ))
 
     vxlan_keys = db.cfgdb.get_keys('VXLAN_TUNNEL')

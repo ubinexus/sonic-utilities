@@ -6982,7 +6982,7 @@ def add_subinterface(ctx, subinterface_name, vid):
             ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
         if interface_alias is None:
             ctx.fail("{} invalid subinterface".format(interface_alias))
-        if len(subinterface_name) > IFNAMSIZ:
+        if len(subinterface_name) >= IFNAMSIZ:
             ctx.fail("'subinterface_name' is too long! The 'subinterface_name' length needs to be less than {} characters".format(IFNAMSIZ))
         if interface_alias.startswith("Po") is True:
             intf_table_name = CFG_PORTCHANNEL_PREFIX
