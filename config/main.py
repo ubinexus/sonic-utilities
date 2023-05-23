@@ -1824,6 +1824,9 @@ def override_config_by(golden_config_path):
     return
 
 
+# This funtion is to generate sysinfo if that is missing in config_input.
+# It will keep the same with sysinfo in cur_config if sysinfo exists.
+# Otherwise it will modify config_input with generated sysinfo.
 def generate_sysinfo(cur_config, config_input, ns=None):
     # Generate required sysinfo for Golden Config.
     device_metadata = config_input.get('DEVICE_METADATA')
@@ -1840,7 +1843,7 @@ def generate_sysinfo(cur_config, config_input, ns=None):
         mac = cur_device_metadata.get('localhost', {}).get('mac')
         platform = cur_device_metadata.get('localhost', {}).get('platform')
 
-    if not mac or not platform:
+    if not mac:
         if ns:
             asic_role = device_metadata.get('localhost', {}).get('sub_role')
             switch_type = device_metadata.get('localhost', {}).get('switch_type')
@@ -1853,6 +1856,7 @@ def generate_sysinfo(cur_config, config_input, ns=None):
         else:
             mac = device_info.get_system_mac()
 
+    if not platform:
         platform = device_info.get_platform()
 
     device_metadata['localhost']['mac'] = mac
@@ -1900,10 +1904,10 @@ def override_config_table(db, input_config_db, dry_run):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
                 ns_config_input = config_input["localhost"]
-                generate_sysinfo(current_config, ns_config_input, ns)
             else:
                 ns_config_input = config_input[ns]
-                generate_sysinfo(current_config, ns_config_input, ns)
+            # Generate sysinfo if missing in ns_config_input
+            generate_sysinfo(current_config, ns_config_input, ns)
         else:
             ns_config_input = config_input
         updated_config = update_config(current_config, ns_config_input)
