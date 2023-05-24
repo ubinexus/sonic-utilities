@@ -105,24 +105,36 @@ def readJsonFile(fileName):
         raise click.Abort()
     return result
 
-def run_command(*args, display_cmd=False, return_cmd=False):
-    command_lists = [' '.join(arg) for arg in args]
-    command = ' | '.join(command_lists)
+def run_command(command, display_cmd=False, return_cmd=False, shell=False):
+    if not shell:
+        command_str = ' '.join(command)
+    else:
+        command_str = command
 
     if display_cmd:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+        click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    if clicommon.get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
-        clicommon.run_command_in_alias_mode(command)
+    if clicommon.get_interface_naming_mode() == "alias" and not command_str.startswith("intfutil"):
+        clicommon.run_command_in_alias_mode(command, shell=shell)
         raise sys.exit(0)
 
-    exitcodes, output = getstatusoutput_noshell_pipe(*args, return_cmd=return_cmd)
-    if any(exitcodes):
-        for rc in exitcodes:
-            if rc != 0:
-                sys.exit(rc)
+    proc = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
+
+    while True:
+        if return_cmd:
+            output = proc.communicate()[0]
+            return output
+        output = proc.stdout.readline()
+        if output == "" and proc.poll() is not None:
+            break
+        if output:
+            click.echo(output.rstrip('\n'))
+
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
 
 def get_cmd_output(cmd):
     proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
@@ -1243,12 +1255,14 @@ def table(verbose):
 
 @cli.command()
 @click.argument('process', required=False)
-@click.option('-l', '--lines')
+@click.option('-l', '--lines', type=int)
 @click.option('-f', '--follow', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def logging(process, lines, follow, verbose):
     """Show system log"""
-    cmd, cmd0, cmd1, cmd2 = None, None, None, None
+    if process and not re.match(r'^[a-zA-Z0-9\s]+$', process):
+        sys.exit('Process contains only number, alphabet, and whitespace.')
+
     if os.path.exists("/var/log.tmpfs"):
         log_path = "/var/log.tmpfs"
     else:
@@ -1257,22 +1271,18 @@ def logging(process, lines, follow, verbose):
         cmd = ['sudo', 'tail', '-F', '{}/syslog'.format(log_path)]
         run_command(cmd, display_cmd=verbose)
     else:
-        args = []
         if os.path.isfile("{}/syslog.1".format(log_path)):
-            cmd0 = ['sudo', 'cat', '{}/syslog.1'.format(log_path), '{}/syslog'.format(log_path)]
+            cmd = "sudo cat {}/syslog.1 {}/syslog".format(log_path, log_path)
         else:
-            cmd0 = ['sudo', 'cat', '{}/syslog'.format(log_path)]
-        args.append(cmd0)
+            cmd = "sudo cat {}/syslog".format(log_path)
 
         if process is not None:
-            cmd1 = ['grep', str(process)]
-            args.append(cmd1)
+            cmd += " | grep '{}'".format(process)
 
         if lines is not None:
-            cmd2 = ['tail', "-" + str(lines)]
-            args.append(cmd2)
+            cmd += " | tail -{}".format(lines)
 
-        run_command(*args, display_cmd=verbose)
+        run_command(cmd, display_cmd=verbose, shell=True)
 
 #
 # 'version' command ("show version")

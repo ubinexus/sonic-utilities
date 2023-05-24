@@ -6,7 +6,8 @@ from click.testing import CliRunner
 from unittest import mock
 from unittest.mock import call, MagicMock, patch
 
-EXPECTED_BASE_COMMAND = ['sudo']
+EXPECTED_BASE_COMMAND = 'sudo '
+EXPECTED_BASE_COMMAND_LIST = ['sudo']
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -55,102 +56,101 @@ class TestShowRunAllCommands(object):
 
 @patch('show.main.run_command')
 @pytest.mark.parametrize(
-        "cli_arguments,expected",
+        "cli_arguments0,expected0",
         [
-            ([], ['cat', '/var/log/syslog']),
-            (['-f'], ['tail', '-F', '/var/log/syslog']),
+            ([], 'cat /var/log/syslog'),
+            (['xcvrd'], "cat /var/log/syslog | grep 'xcvrd'"),
+            (['-l', '10'], 'cat /var/log/syslog | tail -10'),
         ]
 )
 @pytest.mark.parametrize(
-        "cli_arguments1,expected0,expected1",
+        "cli_arguments1,expected1",
         [
-            (['xcvrd'], ['cat', '/var/log/syslog'], ['grep', 'xcvrd']),
-            (['-l', '10'], ['cat', '/var/log/syslog'], ['tail', '-10']),
+            (['-f'], ['tail', '-F', '/var/log/syslog']),
         ]
 )
-def test_show_logging_default(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_default(run_command, cli_arguments0, expected0, cli_arguments1, expected1):
     runner = CliRunner()
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    runner.invoke(show.cli.commands["logging"], cli_arguments0)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected0, display_cmd=False, shell=True)
+    runner.invoke(show.cli.commands["logging"], cli_arguments1)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND_LIST + expected1, display_cmd=False)
 
 @patch('show.main.run_command')
 @patch('os.path.isfile', MagicMock(return_value=True))
 @pytest.mark.parametrize(
-        "cli_arguments,expected",
+        "cli_arguments0,expected0",
         [
-            ([], ['cat', '/var/log/syslog.1', '/var/log/syslog']),
-            (['-f'], ['tail', '-F', '/var/log/syslog']),
+            ([], 'cat /var/log/syslog.1 /var/log/syslog'),
+            (['xcvrd'], "cat /var/log/syslog.1 /var/log/syslog | grep 'xcvrd'"),
+            (['-l', '10'], 'cat /var/log/syslog.1 /var/log/syslog | tail -10'),
         ]
 )
 @pytest.mark.parametrize(
-        "cli_arguments1,expected0,expected1",
+        "cli_arguments1,expected1",
         [
-            (['xcvrd'], ['cat', '/var/log/syslog.1', '/var/log/syslog'], ['grep', 'xcvrd']),
-            (['-l', '10'], ['cat', '/var/log/syslog.1', '/var/log/syslog'], ['tail', '-10']),
+            (['-f'], ['tail', '-F', '/var/log/syslog']),
         ]
 )
-
-def test_show_logging_syslog_1(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_syslog_1(run_command, cli_arguments0, expected0, cli_arguments1, expected1):
     runner = CliRunner()
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    runner.invoke(show.cli.commands["logging"], cli_arguments0)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected0, display_cmd=False, shell=True)
+    runner.invoke(show.cli.commands["logging"], cli_arguments1)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND_LIST + expected1, display_cmd=False)
 
 @patch('show.main.run_command')
 @patch('os.path.exists', MagicMock(return_value=True))
 @pytest.mark.parametrize(
-        "cli_arguments,expected",
+        "cli_arguments0,expected0",
         [
-            ([], ['cat', '/var/log.tmpfs/syslog']),
-            (['-f'], ['tail', '-F', '/var/log.tmpfs/syslog']),
+            ([], 'cat /var/log.tmpfs/syslog'),
+            (['xcvrd'], "cat /var/log.tmpfs/syslog | grep 'xcvrd'"),
+            (['-l', '10'], 'cat /var/log.tmpfs/syslog | tail -10'),
         ]
 )
 @pytest.mark.parametrize(
-        "cli_arguments1,expected0,expected1",
+        "cli_arguments1,expected1",
         [
-            (['xcvrd'], ['cat', '/var/log.tmpfs/syslog'], ['grep', 'xcvrd']),
-            (['-l', '10'], ['cat', '/var/log.tmpfs/syslog'], ['tail', '-10']),
+            (['-f'], ['tail', '-F', '/var/log.tmpfs/syslog']),
         ]
 )
-def test_show_logging_tmpfs(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_tmpfs(run_command, cli_arguments0, expected0, cli_arguments1, expected1):
     runner = CliRunner()
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    runner.invoke(show.cli.commands["logging"], cli_arguments0)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected0, display_cmd=False, shell=True)
+    runner.invoke(show.cli.commands["logging"], cli_arguments1)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND_LIST + expected1, display_cmd=False)
 
 @patch('show.main.run_command')
 @patch('os.path.isfile', MagicMock(return_value=True))
 @patch('os.path.exists', MagicMock(return_value=True))
 @pytest.mark.parametrize(
-        "cli_arguments,expected",
+        "cli_arguments0,expected0",
         [
-            ([], ['cat', '/var/log.tmpfs/syslog.1', '/var/log.tmpfs/syslog']),
-            (['-f'], ['tail', '-F', '/var/log.tmpfs/syslog']),
+            ([], 'cat /var/log.tmpfs/syslog.1 /var/log.tmpfs/syslog'),
+            (['xcvrd'], "cat /var/log.tmpfs/syslog.1 /var/log.tmpfs/syslog | grep 'xcvrd'"),
+            (['-l', '10'], 'cat /var/log.tmpfs/syslog.1 /var/log.tmpfs/syslog | tail -10'),
         ]
 )
 @pytest.mark.parametrize(
-        "cli_arguments1,expected0,expected1",
+        "cli_arguments1,expected1",
         [
-            (['xcvrd'], ['cat', '/var/log.tmpfs/syslog.1', '/var/log.tmpfs/syslog'], ['grep', 'xcvrd']),
-            (['-l', '10'], ['cat', '/var/log.tmpfs/syslog.1', '/var/log.tmpfs/syslog'], ['tail', '-10']),
+            (['-f'], ['tail', '-F', '/var/log.tmpfs/syslog']),
         ]
 )
-def test_show_logging_tmpfs_syslog_1(run_cmd, cli_arguments, expected, cli_arguments1, expected0, expected1):
+def test_show_logging_tmpfs_syslog_1(run_command, cli_arguments0, expected0, cli_arguments1, expected1):
     runner = CliRunner()
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
-    result = runner.invoke(show.cli.commands["logging"], cli_arguments1)
-    run_cmd.assert_called_with(EXPECTED_BASE_COMMAND + expected0, expected1, display_cmd=False)
+    runner.invoke(show.cli.commands["logging"], cli_arguments0)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected0, display_cmd=False, shell=True)
+    runner.invoke(show.cli.commands["logging"], cli_arguments1)
+    run_command.assert_called_with(EXPECTED_BASE_COMMAND_LIST + expected1, display_cmd=False)
 
 def side_effect_subprocess_popen(*args, **kwargs):
     mock = MagicMock()
-    if args[0] == "uptime":
+    if ' '.join(args[0]) == "uptime":
         mock.stdout.read.return_value = "05:58:07 up 25 days"
-    elif args[0].startswith("sudo docker images"):
+    elif ' '.join(args[0]).startswith("sudo docker images"):
         mock.stdout.read.return_value = "REPOSITORY   TAG"
     return mock
 
