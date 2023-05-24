@@ -467,13 +467,14 @@ class SFPShow(object):
     def convert_interface_sfp_status_to_cli_output_string(self, state_db, interface_name):
         sfp_status_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(interface_name))
         if sfp_status_dict and len(sfp_status_dict) > 2:
-            if 'module_state' not in sfp_status_dict:
-                status_map = QSFP_STATUS_MAP
-            elif 'tuning_in_progress' not in sfp_status_dict:
-                status_map = CMIS_STATUS_MAP
-            else:
-                status_map = CCMIS_STATUS_MAP
-            output = '\n' + self.convert_sfp_status_to_output_string(sfp_status_dict, status_map)
+            # common section
+            output = '\n' + self.convert_sfp_status_to_output_string(sfp_status_dict, QSFP_STATUS_MAP)
+            # CMIS specific section
+            if 'module_state' in sfp_status_dict:
+                output += self.convert_sfp_status_to_output_string(sfp_status_dict, CMIS_STATUS_MAP)
+            # C-CMIS specific section
+            if 'tuning_in_progress' in sfp_status_dict:
+                output += self.convert_sfp_status_to_output_string(sfp_status_dict, CCMIS_STATUS_MAP)
         else:
             output = QSFP_STATUS_NOT_APPLICABLE_STR + '\n'
         return output

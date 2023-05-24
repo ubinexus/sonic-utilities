@@ -217,14 +217,48 @@ Ethernet44:
 
 test_qsfp_status_output = """\
 Ethernet4:
-        Rx loss of signal flag: False
-        Tx fault flag: False
-        TX disable status: False
+        Tx fault flag on media lane 1: False
+        Tx fault flag on media lane 2: False
+        Tx fault flag on media lane 3: False
+        Tx fault flag on media lane 4: False
+        Rx loss of signal flag on media lane 1: False
+        Rx loss of signal flag on media lane 2: False
+        Rx loss of signal flag on media lane 3: False
+        Rx loss of signal flag on media lane 4: False
+        TX disable status on lane 1: False
+        TX disable status on lane 2: False
+        TX disable status on lane 3: False
+        TX disable status on lane 4: False
         Disabled TX channels: 0
 """
 
 test_qsfp_dd_status_output = """\
 Ethernet44:
+        Tx fault flag on media lane 1: False
+        Tx fault flag on media lane 2: False
+        Tx fault flag on media lane 3: False
+        Tx fault flag on media lane 4: False
+        Tx fault flag on media lane 5: False
+        Tx fault flag on media lane 6: False
+        Tx fault flag on media lane 7: False
+        Tx fault flag on media lane 8: False
+        Rx loss of signal flag on media lane 1: False
+        Rx loss of signal flag on media lane 2: False
+        Rx loss of signal flag on media lane 3: False
+        Rx loss of signal flag on media lane 4: False
+        Rx loss of signal flag on media lane 5: False
+        Rx loss of signal flag on media lane 6: False
+        Rx loss of signal flag on media lane 7: False
+        Rx loss of signal flag on media lane 8: False
+        TX disable status on lane 1: False
+        TX disable status on lane 2: False
+        TX disable status on lane 3: False
+        TX disable status on lane 4: False
+        TX disable status on lane 5: False
+        TX disable status on lane 6: False
+        TX disable status on lane 7: False
+        TX disable status on lane 8: False
+        Disabled TX channels: 0
         Current module state: ModuleReady
         Reason of entering the module fault state: No Fault detected
         Datapath firmware fault: False
@@ -254,23 +288,6 @@ Ethernet44:
         Rx output status on host lane 6: True
         Rx output status on host lane 7: True
         Rx output status on host lane 8: True
-        Disabled TX channels: 0
-        TX disable status on lane 1: False
-        TX disable status on lane 2: False
-        TX disable status on lane 3: False
-        TX disable status on lane 4: False
-        TX disable status on lane 5: False
-        TX disable status on lane 6: False
-        TX disable status on lane 7: False
-        TX disable status on lane 8: False
-        Tx fault flag on media lane 1: False
-        Tx fault flag on media lane 2: False
-        Tx fault flag on media lane 3: False
-        Tx fault flag on media lane 4: False
-        Tx fault flag on media lane 5: False
-        Tx fault flag on media lane 6: False
-        Tx fault flag on media lane 7: False
-        Tx fault flag on media lane 8: False
         Tx loss of signal flag on host lane 1: False
         Tx loss of signal flag on host lane 2: False
         Tx loss of signal flag on host lane 3: False
@@ -287,14 +304,6 @@ Ethernet44:
         Tx clock and data recovery loss of lock on host lane 6: False
         Tx clock and data recovery loss of lock on host lane 7: False
         Tx clock and data recovery loss of lock on host lane 8: False
-        Rx loss of signal flag on media lane 1: False
-        Rx loss of signal flag on media lane 2: False
-        Rx loss of signal flag on media lane 3: False
-        Rx loss of signal flag on media lane 4: False
-        Rx loss of signal flag on media lane 5: False
-        Rx loss of signal flag on media lane 6: False
-        Rx loss of signal flag on media lane 7: False
-        Rx loss of signal flag on media lane 8: False
         Rx clock and data recovery loss of lock on media lane 1: False
         Rx clock and data recovery loss of lock on media lane 2: False
         Rx clock and data recovery loss of lock on media lane 3: False

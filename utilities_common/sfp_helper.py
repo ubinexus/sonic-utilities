@@ -43,14 +43,38 @@ QSFP_CMIS_DELTA_DATA_MAP = {
 
 CMIS_DATA_MAP = {**QSFP_DATA_MAP, **QSFP_CMIS_DELTA_DATA_MAP}
 
-# For non-CMIS/C_CMIS
+# Common fileds for all types:
+# For non-CMIS, only first 1 or 4 lanes are applicable.
+# For CMIS, all 8 lanes are applicable.
 QSFP_STATUS_MAP = {
-    'rx_los': 'Rx loss of signal flag',
-    'tx_fault': 'Tx fault flag',
-    'tx_disable': 'TX disable status',
+    'txfault1': 'Tx fault flag on media lane 1',
+    'txfault2': 'Tx fault flag on media lane 2',
+    'txfault3': 'Tx fault flag on media lane 3',
+    'txfault4': 'Tx fault flag on media lane 4',
+    'txfault5': 'Tx fault flag on media lane 5',
+    'txfault6': 'Tx fault flag on media lane 6',
+    'txfault7': 'Tx fault flag on media lane 7',
+    'txfault8': 'Tx fault flag on media lane 8',
+    'rxlos1': 'Rx loss of signal flag on media lane 1',
+    'rxlos2': 'Rx loss of signal flag on media lane 2',
+    'rxlos3': 'Rx loss of signal flag on media lane 3',
+    'rxlos4': 'Rx loss of signal flag on media lane 4',
+    'rxlos5': 'Rx loss of signal flag on media lane 5',
+    'rxlos6': 'Rx loss of signal flag on media lane 6',
+    'rxlos7': 'Rx loss of signal flag on media lane 7',
+    'rxlos8': 'Rx loss of signal flag on media lane 8',
+    'tx1disable': 'TX disable status on lane 1',
+    'tx2disable': 'TX disable status on lane 2',
+    'tx3disable': 'TX disable status on lane 3',
+    'tx4disable': 'TX disable status on lane 4',
+    'tx5disable': 'TX disable status on lane 5',
+    'tx6disable': 'TX disable status on lane 6',
+    'tx7disable': 'TX disable status on lane 7',
+    'tx8disable': 'TX disable status on lane 8',
     'tx_disabled_channel': 'Disabled TX channels'
 }
 
+# CMIS specific fields (excluding C-CMIS specific):
 CMIS_STATUS_MAP = {
     'module_state': 'Current module state',
     'module_fault_cause': 'Reason of entering the module fault state',
@@ -81,23 +105,6 @@ CMIS_STATUS_MAP = {
     'rxoutput_status_hostlane6': 'Rx output status on host lane 6',
     'rxoutput_status_hostlane7': 'Rx output status on host lane 7',
     'rxoutput_status_hostlane8': 'Rx output status on host lane 8',
-    'tx_disabled_channel': 'Disabled TX channels',
-    'tx1disable': 'TX disable status on lane 1',
-    'tx2disable': 'TX disable status on lane 2',
-    'tx3disable': 'TX disable status on lane 3',
-    'tx4disable': 'TX disable status on lane 4',
-    'tx5disable': 'TX disable status on lane 5',
-    'tx6disable': 'TX disable status on lane 6',
-    'tx7disable': 'TX disable status on lane 7',
-    'tx8disable': 'TX disable status on lane 8',
-    'txfault1': 'Tx fault flag on media lane 1',
-    'txfault2': 'Tx fault flag on media lane 2',
-    'txfault3': 'Tx fault flag on media lane 3',
-    'txfault4': 'Tx fault flag on media lane 4',
-    'txfault5': 'Tx fault flag on media lane 5',
-    'txfault6': 'Tx fault flag on media lane 6',
-    'txfault7': 'Tx fault flag on media lane 7',
-    'txfault8': 'Tx fault flag on media lane 8',
     'txlos_hostlane1': 'Tx loss of signal flag on host lane 1',
     'txlos_hostlane2': 'Tx loss of signal flag on host lane 2',
     'txlos_hostlane3': 'Tx loss of signal flag on host lane 3',
@@ -114,14 +121,6 @@ CMIS_STATUS_MAP = {
     'txcdrlol_hostlane6': 'Tx clock and data recovery loss of lock on host lane 6',
     'txcdrlol_hostlane7': 'Tx clock and data recovery loss of lock on host lane 7',
     'txcdrlol_hostlane8': 'Tx clock and data recovery loss of lock on host lane 8',
-    'rxlos1': 'Rx loss of signal flag on media lane 1',
-    'rxlos2': 'Rx loss of signal flag on media lane 2',
-    'rxlos3': 'Rx loss of signal flag on media lane 3',
-    'rxlos4': 'Rx loss of signal flag on media lane 4',
-    'rxlos5': 'Rx loss of signal flag on media lane 5',
-    'rxlos6': 'Rx loss of signal flag on media lane 6',
-    'rxlos7': 'Rx loss of signal flag on media lane 7',
-    'rxlos8': 'Rx loss of signal flag on media lane 8',
     'rxcdrlol1': 'Rx clock and data recovery loss of lock on media lane 1',
     'rxcdrlol2': 'Rx clock and data recovery loss of lock on media lane 2',
     'rxcdrlol3': 'Rx clock and data recovery loss of lock on media lane 3',
@@ -264,8 +263,8 @@ CMIS_STATUS_MAP = {
     'postfecberlowalarm_flag': 'Postfec ber low alarm flag'
 }
 
+# C-CMIS specific fields:
 CCMIS_STATUS_MAP = {
-    **CMIS_STATUS_MAP,
     'tuning_in_progress': 'Tuning in progress status',
     'wavelength_unlock_status': 'Laser unlocked status',
     'target_output_power_oor': 'Target output power out of range flag',
