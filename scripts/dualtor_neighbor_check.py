@@ -14,6 +14,7 @@ Check steps:
 5.
 """
 import argparse
+import enum
 import functools
 import ipaddress
 import json
@@ -23,12 +24,12 @@ import syslog
 import subprocess
 import tabulate
 
-from enum import Enum
 from natsort import natsorted
 
 from swsscommon import swsscommon
+from sonic_py_common import daemon_base
 try:
-    from sonic_py_common import swsssdk
+    from swsssdk import port_util
 except ImportError:
     from sonic_py_common import port_util
 
@@ -44,10 +45,13 @@ DB_READ_SCRIPT = """
 --
 -- KEYS - None
 -- ARGV[1] - APPL_DB db index
--- ARGV[2] - APPL_DB mux cable table name
--- ARGV[3] - APPL_DB hardware mux cable table name
--- ARGV[4] - ASIC_DB db index
--- ARGV[5] - ASIC_DB asic state table name
+-- ARGV[2] - APPL_DB separator
+-- ARGV[3] - APPL_DB neighbor table name
+-- ARGV[4] - APPL_DB mux cable table name
+-- ARGV[5] - APPL_DB hardware mux cable table name
+-- ARGV[6] - ASIC_DB db index
+-- ARGV[7] - ASIC_DB separator
+-- ARGV[8] - ASIC_DB asic state table name
 
 local APPL_DB                   = 0
 local APPL_DB_SEPARATOR         = ':'
@@ -155,8 +159,11 @@ result['asic_neigh_table']  = asic_neighbor_table
 return redis.status_reply(cjson.encode(result))
 """
 
+DB_READ_SCRIPT_CONFIG_DB_KEY = "_DUALTOR_NEIGHBOR_CHECK_SCRIPT_SHA1"
+ZERO_MAC = "00:00:00:00:00:00"
 
-class LogOutput(Enum):
+
+class LogOutput(enum.Enum):
     """Enum to represent log output."""
     SYSLOG = "SYSLOG"
     STDOUT = "STDOUT"
@@ -165,8 +172,8 @@ class LogOutput(Enum):
         return self.value
 
 
-class SyslogLevel(Enum):
-    """Class to represent syslog level."""
+class SyslogLevel(enum.IntEnum):
+    """Enum to represent syslog level."""
     ERROR = 3
     NOTICE = 5
     INFO = 6
@@ -198,7 +205,7 @@ def parse_args():
     parser.add_argument(
         "-s",
         "--syslog-level",
-        choices=["ERROR", "WARNING", "INFO", "DEBUG"],
+        choices=["ERROR", "NOTICE", "INFO", "DEBUG"],
         default=None,
         help="syslog level"
     )
@@ -232,6 +239,8 @@ def parse_args():
 
 
 def write_syslog(level, message, *args):
+    if level > SYSLOG_LEVEL:
+        return
     if args:
         message %= args
     if level == SyslogLevel.ERROR:
@@ -284,22 +293,27 @@ def run_command(cmd):
     if p.returncode != 0:
         raise RuntimeError("Command failed with return code %s: %s" % (p.returncode, output))
     return output.decode()
-    
 
-def read_tables_from_db():
+
+def read_tables_from_db(appl_db):
     """Reads required tables from db."""
-    load_cmd = "sudo redis-cli SCRIPT LOAD \"%s\"" % DB_READ_SCRIPT
-    script_sha1 = run_command(load_cmd).strip()
-    WRITE_LOG_INFO("loaded script sha1: %s", script_sha1)
+    # NOTE: let's cache the db read script sha1 in APPL_DB under
+    # key "_DUALTOR_NEIGHBOR_CHECK_SCRIPT_SHA1"
+    db_read_script_sha1 = appl_db.get(DB_READ_SCRIPT_CONFIG_DB_KEY)
+    if not db_read_script_sha1:
+        load_cmd = "sudo redis-cli SCRIPT LOAD \"%s\"" % DB_READ_SCRIPT
+        db_read_script_sha1 = run_command(load_cmd).strip()
+        WRITE_LOG_INFO("loaded script sha1: %s", db_read_script_sha1)
+        appl_db.set(DB_READ_SCRIPT_CONFIG_DB_KEY, db_read_script_sha1)
 
-    run_cmd = "sudo redis-cli EVALSHA %s 0" % script_sha1
+    run_cmd = "sudo redis-cli EVALSHA %s 0" % db_read_script_sha1
     result = run_command(run_cmd).strip()
     tables = json.loads(result)
 
     neighbors = tables["neighbors"]
     mux_states = tables["mux_states"]
     hw_mux_states = tables["hw_mux_states"]
-    asic_fdb = {k:v.lstrip("oid:0x") for k,v in tables["asic_fdb"].items()}
+    asic_fdb = {k: v.lstrip("oid:0x") for k, v in tables["asic_fdb"].items()}
     asic_route_table = tables["asic_route_table"]
     asic_neigh_table = tables["asic_neigh_table"]
     WRITE_LOG_DEBUG("neighbors: %s", json.dumps(neighbors, indent=4))
@@ -323,13 +337,9 @@ def get_if_br_oid_to_port_name_map():
     return if_br_oid_to_port_name_map
 
 
-def get_mux_cable_config():
+def get_mux_cable_config(config_db):
     """Return mux cable config from CONFIG_DB."""
-    mux_cables = {}
-    db = swsscommon.ConfigDBConnector(use_unix_socket_path=False)
-    db.connect()
-    mux_cables = db.get_table("MUX_CABLE")
-    return mux_cables
+    return config_db.get_table("MUX_CABLE")
 
 
 def get_mux_server_to_port_map(mux_cables):
@@ -361,22 +371,25 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
     asic_neighs = set(json.loads(_)["ip"] for _ in asic_neigh_table)
 
     check_results = []
-    show_items = ["NEIGHBOR", "MAC", "PORT", "MUX_STATE", "IN_MUX_TOGGLE", "NEIGHBOR_IN_ASIC", "TUNNRL_IN_ASIC", "HWSTATUS"]
+    failed_neighbors = []
+    show_items = ["NEIGHBOR", "MAC", "PORT", "MUX_STATE", "IN_MUX_TOGGLE", "NEIGHBOR_IN_ASIC", "TUNNERL_IN_ASIC", "HWSTATUS"]
     for neighbor_ip in natsorted(list(neighbors.keys())):
         mac = neighbors[neighbor_ip]
-        check_result = [None] * len(show_items)
+        check_result = ["N/A"] * len(show_items)
         check_result[0] = neighbor_ip
         check_result[1] = mac
 
-        if mac not in mac_to_port_name_map:
+        is_zero_mac = (mac == ZERO_MAC)
+        if mac not in mac_to_port_name_map and not is_zero_mac:
             check_results.append(check_result)
             continue
 
-        port_name = mac_to_port_name_map[mac]
-        # NOTE: mux server ips are always fixed to the mux port
-        if neighbor_ip in mux_server_to_port_map:
-            port_name = mux_server_to_port_map[neighbor_ip]
-        check_result[2] = port_name
+        if not is_zero_mac:
+            port_name = mac_to_port_name_map[mac]
+            # NOTE: mux server ips are always fixed to the mux port
+            if neighbor_ip in mux_server_to_port_map:
+                port_name = mux_server_to_port_map[neighbor_ip]
+            check_result[2] = port_name
 
         mux_state = mux_states[port_name]
         hw_mux_state = hw_mux_states[port_name]
@@ -385,7 +398,12 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
         check_result[5] = "yes" if neighbor_ip in asic_neighs else "no"
         check_result[6] = "yes" if neighbor_ip in asic_route_destinations else "no"
 
-        if mux_state == "active":
+        if is_zero_mac:
+            if check_result[5] != "yes" and check_result[6] == "yes":
+                check_result[7] = "consistent"
+            else:
+                check_result[7] = "inconsistent"
+        elif mux_state == "active":
             if check_result[5] == "yes" and check_result[6] != "yes":
                 check_result[7] = "consistent"
             else:
@@ -397,6 +415,9 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
                 check_result[7] = "inconsistent"
         check_results.append(check_result)
 
+        if check_result[7] == "inconsistent":
+            failed_neighbors.append(check_result)
+
     output_lines = tabulate.tabulate(
         check_results,
         headers=show_items,
@@ -405,18 +426,34 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
     for output_line in output_lines.split("\n"):
         WRITE_LOG_WARN(output_line)
 
+    if failed_neighbors:
+        WRITE_LOG_ERROR("Found neighbors that are inconsistent with mux states: %s", [_[0] for _ in failed_neighbors])
+        err_output_lines = tabulate.tabulate(
+            failed_neighbors,
+            headers=show_items,
+            tablefmt="simple"
+        )
+        for output_line in output_lines.split("\n"):
+            WRITE_LOG_ERROR(output_line)
+        return False
+    return True
+
 
 if __name__ == "__main__":
     args = parse_args()
     config_logging(args)
 
-    mux_cables = get_mux_cable_config()
+    config_db = swsscommon.ConfigDBConnector(use_unix_socket_path=False)
+    config_db.connect()
+    appl_db = daemon_base.db_connect("APPL_DB")
+
+    mux_cables = get_mux_cable_config(config_db)
     mux_server_to_port_map = get_mux_server_to_port_map(mux_cables)
     if_oid_to_port_name_map = get_if_br_oid_to_port_name_map()
-    neighbors, mux_states, hw_mux_states, asic_fdb, asic_route_table, asic_neigh_table = read_tables_from_db()
+    neighbors, mux_states, hw_mux_states, asic_fdb, asic_route_table, asic_neigh_table = read_tables_from_db(appl_db)
     mac_to_port_name_map = get_mac_to_port_name_map(asic_fdb, if_oid_to_port_name_map)
 
-    check_neighbor_consistency(
+    res = check_neighbor_consistency(
         neighbors,
         mux_states,
         hw_mux_states,
@@ -425,3 +462,4 @@ if __name__ == "__main__":
         asic_neigh_table,
         mux_server_to_port_map
     )
+    sys.exit(0 if res else 1)
