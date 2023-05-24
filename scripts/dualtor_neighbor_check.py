@@ -5,13 +5,6 @@ dualtor_neighbor_check.py
 
 This tool is designed to verify that, for dualtor SONiC, the neighbors learnt from
 mux ports should have correct neighbor/route entry in ASIC.
-
-Check steps:
-1.
-2.
-3.
-4.
-5.
 """
 import argparse
 import enum
@@ -420,11 +413,16 @@ def parse_check_results(check_results):
     bool_to_yes_no = ("no", "yes")
     bool_to_consistency = ("inconsistent", "consistent")
     for check_result in check_results:
+        is_zero_mac = check_result["MAC"] == ZERO_MAC
+        in_toggle = check_result["IN_MUX_TOGGLE"]
+        hwstatus = check_result["HWSTATUS"]
+        if not is_zero_mac:
+            check_result["IN_MUX_TOGGLE"] = bool_to_yes_no[in_toggle]
         check_result["NEIGHBOR_IN_ASIC"] = bool_to_yes_no[check_result["NEIGHBOR_IN_ASIC"]]
         check_result["TUNNERL_IN_ASIC"] = bool_to_yes_no[check_result["TUNNERL_IN_ASIC"]]
-        hwstatus = check_result["HWSTATUS"]
         check_result["HWSTATUS"] = bool_to_consistency[hwstatus]
-        if not hwstatus:
+        if not (is_zero_mac or in_toggle or hwstatus):
+            # NOTE: skip zero mac or in-toggling neighbors
             failed_neighbors.append(check_result)
 
     output_lines = tabulate.tabulate(
@@ -436,7 +434,7 @@ def parse_check_results(check_results):
         WRITE_LOG_WARN(output_line)
 
     if failed_neighbors:
-        WRITE_LOG_ERROR("Found neighbors that are inconsistent with mux states: %s", [_[0] for _ in failed_neighbors])
+        WRITE_LOG_ERROR("Found neighbors that are inconsistent with mux states: %s", [_["NEIGHBOR"] for _ in failed_neighbors])
         err_output_lines = tabulate.tabulate(
             [[neighbor[attr] for attr in NEIGHBOR_ATTRIBUTES] for neighbor in failed_neighbors],
             headers=NEIGHBOR_ATTRIBUTES,
