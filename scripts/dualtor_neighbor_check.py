@@ -161,6 +161,7 @@ return redis.status_reply(cjson.encode(result))
 
 DB_READ_SCRIPT_CONFIG_DB_KEY = "_DUALTOR_NEIGHBOR_CHECK_SCRIPT_SHA1"
 ZERO_MAC = "00:00:00:00:00:00"
+NEIGHBOR_ATTRIBUTES = ["NEIGHBOR", "MAC", "PORT", "MUX_STATE", "IN_MUX_TOGGLE", "NEIGHBOR_IN_ASIC", "TUNNERL_IN_ASIC", "HWSTATUS"]
 
 
 class LogOutput(enum.Enum):
@@ -328,7 +329,10 @@ def read_tables_from_db(appl_db):
 def get_if_br_oid_to_port_name_map():
     """Return port bridge oid to port name map."""
     db = swsscommon.SonicV2Connector(host="127.0.0.1")
-    port_name_map = port_util.get_interface_oid_map(db)[1]
+    try:
+        port_name_map = port_util.get_interface_oid_map(db)[1]
+    except IndexError:
+        port_name_map = {}
     if_br_oid_map = port_util.get_bridge_port_map(db)
     if_br_oid_to_port_name_map = {}
     for if_br_oid, if_oid in if_br_oid_map.items():
@@ -371,56 +375,61 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
     asic_neighs = set(json.loads(_)["ip"] for _ in asic_neigh_table)
 
     check_results = []
-    failed_neighbors = []
-    show_items = ["NEIGHBOR", "MAC", "PORT", "MUX_STATE", "IN_MUX_TOGGLE", "NEIGHBOR_IN_ASIC", "TUNNERL_IN_ASIC", "HWSTATUS"]
     for neighbor_ip in natsorted(list(neighbors.keys())):
         mac = neighbors[neighbor_ip]
-        check_result = ["N/A"] * len(show_items)
-        check_result[0] = neighbor_ip
-        check_result[1] = mac
+        check_result = {attr: "N/A" for attr in NEIGHBOR_ATTRIBUTES}
+        check_result["NEIGHBOR"] = neighbor_ip
+        check_result["MAC"] = mac
 
         is_zero_mac = (mac == ZERO_MAC)
         if mac not in mac_to_port_name_map and not is_zero_mac:
             check_results.append(check_result)
             continue
 
-        if not is_zero_mac:
+        check_result["NEIGHBOR_IN_ASIC"] = neighbor_ip in asic_neighs
+        check_result["TUNNERL_IN_ASIC"] = neighbor_ip in asic_route_destinations
+        if is_zero_mac:
+            check_result["HWSTATUS"] = ((not check_result["NEIGHBOR_IN_ASIC"]) and check_result["TUNNERL_IN_ASIC"])
+        else:
             port_name = mac_to_port_name_map[mac]
             # NOTE: mux server ips are always fixed to the mux port
             if neighbor_ip in mux_server_to_port_map:
                 port_name = mux_server_to_port_map[neighbor_ip]
-            check_result[2] = port_name
+            mux_state = mux_states[port_name]
+            hw_mux_state = hw_mux_states[port_name]
+            check_result["PORT"] = port_name
+            check_result["MUX_STATE"] = mux_state
+            check_result["IN_MUX_TOGGLE"] = mux_state != hw_mux_state
 
-        mux_state = mux_states[port_name]
-        hw_mux_state = hw_mux_states[port_name]
-        check_result[3] = mux_state
-        check_result[4] = "yes" if mux_state != hw_mux_state else "no"
-        check_result[5] = "yes" if neighbor_ip in asic_neighs else "no"
-        check_result[6] = "yes" if neighbor_ip in asic_route_destinations else "no"
+            if mux_state == "active":
+                check_result["HWSTATUS"] = (check_result["NEIGHBOR_IN_ASIC"] and (not check_result["TUNNERL_IN_ASIC"]))
+            elif mux_state == "standby":
+                check_result["HWSTATUS"] = ((not check_result["NEIGHBOR_IN_ASIC"]) and check_result["TUNNERL_IN_ASIC"])
+            else:
+                # skip as unknown mux state
+                continue
 
-        if is_zero_mac:
-            if check_result[5] != "yes" and check_result[6] == "yes":
-                check_result[7] = "consistent"
-            else:
-                check_result[7] = "inconsistent"
-        elif mux_state == "active":
-            if check_result[5] == "yes" and check_result[6] != "yes":
-                check_result[7] = "consistent"
-            else:
-                check_result[7] = "inconsistent"
-        elif mux_state == "standby":
-            if check_result[5] != "yes" and check_result[6] == "yes":
-                check_result[7] = "consistent"
-            else:
-                check_result[7] = "inconsistent"
         check_results.append(check_result)
 
-        if check_result[7] == "inconsistent":
+    return check_results
+
+
+def parse_check_results(check_results):
+    """Parse the check results to see if there are neighbors that are inconsistent with mux state."""
+    failed_neighbors = []
+    bool_to_yes_no = ("no", "yes")
+    bool_to_consistency = ("inconsistent", "consistent")
+    for check_result in check_results:
+        check_result["NEIGHBOR_IN_ASIC"] = bool_to_yes_no[check_result["NEIGHBOR_IN_ASIC"]]
+        check_result["TUNNERL_IN_ASIC"] = bool_to_yes_no[check_result["TUNNERL_IN_ASIC"]]
+        hwstatus = check_result["HWSTATUS"]
+        check_result["HWSTATUS"] = bool_to_consistency[hwstatus]
+        if not hwstatus:
             failed_neighbors.append(check_result)
 
     output_lines = tabulate.tabulate(
-        check_results,
-        headers=show_items,
+        [[check_result[attr] for attr in NEIGHBOR_ATTRIBUTES] for check_result in check_results],
+        headers=NEIGHBOR_ATTRIBUTES,
         tablefmt="simple"
     )
     for output_line in output_lines.split("\n"):
@@ -429,8 +438,8 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
     if failed_neighbors:
         WRITE_LOG_ERROR("Found neighbors that are inconsistent with mux states: %s", [_[0] for _ in failed_neighbors])
         err_output_lines = tabulate.tabulate(
-            failed_neighbors,
-            headers=show_items,
+            [[neighbor[attr] for attr in NEIGHBOR_ATTRIBUTES] for neighbor in failed_neighbors],
+            headers=NEIGHBOR_ATTRIBUTES,
             tablefmt="simple"
         )
         for output_line in output_lines.split("\n"):
@@ -453,7 +462,7 @@ if __name__ == "__main__":
     neighbors, mux_states, hw_mux_states, asic_fdb, asic_route_table, asic_neigh_table = read_tables_from_db(appl_db)
     mac_to_port_name_map = get_mac_to_port_name_map(asic_fdb, if_oid_to_port_name_map)
 
-    res = check_neighbor_consistency(
+    check_results = check_neighbor_consistency(
         neighbors,
         mux_states,
         hw_mux_states,
@@ -462,4 +471,5 @@ if __name__ == "__main__":
         asic_neigh_table,
         mux_server_to_port_map
     )
+    res = parse_check_results(check_results)
     sys.exit(0 if res else 1)
