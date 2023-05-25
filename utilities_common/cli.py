@@ -391,16 +391,12 @@ def print_output_in_alias_mode(output, index):
 
     click.echo(output.rstrip('\n'))
 
-def run_command_in_alias_mode(command, shell=False):
+def run_command_in_alias_mode(command):
     """Run command and replace all instances of SONiC interface names
        in output with vendor-sepecific interface aliases.
     """
-    if not shell:
-        command_str = ' '.join(command)
-    else:
-        command_str = command
-
-    process = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
+    command_str = ' '.join(command)
+    process = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -515,7 +511,7 @@ def run_command_in_alias_mode(command, shell=False):
         sys.exit(rc)
 
 
-def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, shell=False, interactive_mode=False):
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
     """
     Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
     return code, the function will exit with that return code.
@@ -528,11 +524,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
                           multiple lines of output over time
         shell: Boolean; If true, the command will be run in a shell
     """
-    if not shell:
-        command_str = ' '.join(command)
-    else:
-        command_str = command
-
+    command_str = ' '.join(command)
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command_str, fg='green'))
 
@@ -541,10 +533,10 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format 
     # with a list for next hops 
     if get_interface_naming_mode() == "alias" and not command_str.startswith("intfutil") and not re.search("show ip|ipv6 route", command_str):
-        run_command_in_alias_mode(command, shell=shell)
+        run_command_in_alias_mode(command)
         sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
         output = proc.communicate()[0]

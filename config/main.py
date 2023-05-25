@@ -870,9 +870,10 @@ def _stop_services():
 
 
 def _get_sonic_services():
-    cmd = "systemctl list-dependencies --plain sonic.target | sed '1d'"
-    out, _ = clicommon.run_command(cmd, return_cmd=True, shell=True)
-    return (unit.strip() for unit in out.splitlines())
+    cmd = ['systemctl', 'list-dependencies', '--plain', 'sonic.target']
+    out, _ = clicommon.run_command(cmd, return_cmd=True)
+    out = out.strip().split('\n')[1:]
+    return (unit.strip() for unit in out)
 
 def _reset_failed_services():
     for service in _get_sonic_services():
@@ -1654,8 +1655,19 @@ def load_mgmt_config(filename):
         command = ['ip'] + (["-6"] if mgmt_conf.version == 6 else []) + ['rule', 'add', 'from', str(mgmt_conf.ip), 'table', 'default']
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
     if len(config_data['MGMT_INTERFACE'].keys()) > 0:
-        command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-        clicommon.run_command(command, display_cmd=True, ignore_error=True, shell=True)
+        filepath = '/var/run/dhclient.eth0.pid'
+        if os.path.isfile(filepath):
+            out0, rc0 = clicommon.run_command(['cat', filepath], display_cmd=True, return_cmd=True)
+            if rc0 == 0:
+                out1, rc1 = clicommon.run_command(['kill', out0], return_cmd=True)
+                if rc1 == 0:
+                    clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
+                else:
+                    sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
+            else:
+                sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
+        else:
+            sys.exit('File {} does not exist'.format(filepath))
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")

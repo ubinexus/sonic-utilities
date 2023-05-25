@@ -69,7 +69,8 @@ change hostname to dummy
 Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
 Running command: ip route add default via 10.0.0.1 dev eth0 table default
 Running command: ip rule add from 10.0.0.100 table default
-Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Running command: kill `cat /var/run/dhclient.eth0.pid`
+Running command: rm -f /var/run/dhclient.eth0.pid
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
 
@@ -80,7 +81,8 @@ change hostname to dummy
 Running command: ifconfig eth0 add fc00:1::32/64
 Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
 Running command: ip -6 rule add from fc00:1::32 table default
-Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Running command: kill `cat /var/run/dhclient.eth0.pid`
+Running command: rm -f /var/run/dhclient.eth0.pid
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
 
@@ -94,7 +96,8 @@ Running command: ip rule add from 10.0.0.100 table default
 Running command: ifconfig eth0 add fc00:1::32/64
 Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
 Running command: ip -6 rule add from fc00:1::32 table default
-Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
+Running command: kill `cat /var/run/dhclient.eth0.pid`
+Running command: rm -f /var/run/dhclient.eth0.pid
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
 
@@ -131,10 +134,6 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-reload_config_with_untriggered_timer_output="""\
-Relevant services are not up. Retry later or use -f to avoid system checks
-"""
-
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
     if isinstance(command, str):
@@ -143,13 +142,15 @@ def mock_run_command_side_effect(*args, **kwargs):
         command = ' '.join(command)
 
     if kwargs.get('display_cmd'):
+        if 'cat /var/run/dhclient.eth0.pid' in command:
+            command = 'kill `cat /var/run/dhclient.eth0.pid`'
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
             return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
+        elif command == "systemctl list-dependencies --plain sonic.target":
+            return 'sonic.target\nswss', 0
         elif command == "systemctl is-enabled snmp.timer":
             return 'enabled', 0
         else:
@@ -168,8 +169,8 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
             return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
+        elif command == "systemctl list-dependencies --plain sonic.target":
+            return 'sonic.target\nswss', 0
         elif command == "systemctl is-enabled snmp.timer":
             return 'masked', 0
         elif command == "systemctl show swss.service --property ActiveState --value":
@@ -1563,7 +1564,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_only_output, 5)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_only_output, 7)
 
     def test_config_load_mgmt_config_ipv6_only(self, get_cmd_module, setup_single_broadcom_asic):
         device_desc_result = {
@@ -1578,7 +1579,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv6_only_output, 5)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv6_only_output, 7)
     
     def test_config_load_mgmt_config_ipv4_ipv6(self, get_cmd_module, setup_single_broadcom_asic):
         device_desc_result = {
@@ -1596,7 +1597,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_ipv6_output, 8)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_ipv6_output, 10)
 
     def check_output(self, get_cmd_module, parse_device_desc_xml_result, expected_output, expected_command_call_count):
         def parse_device_desc_xml_side_effect(filename):
@@ -1605,20 +1606,21 @@ class TestConfigLoadMgmtConfig(object):
         def change_hostname_side_effect(hostname):
             print("change hostname to {}".format(hostname))
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            with mock.patch('config.main.parse_device_desc_xml', mock.MagicMock(side_effect=parse_device_desc_xml_side_effect)):
-                with mock.patch('config.main._change_hostname', mock.MagicMock(side_effect=change_hostname_side_effect)):
-                    (config, show) = get_cmd_module
-                    runner = CliRunner()
-                    with runner.isolated_filesystem():
-                        with open('device_desc.xml', 'w') as f:
-                            f.write('dummy')
-                            result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
-                            print(result.exit_code)
-                            print(result.output)
-                            traceback.print_tb(result.exc_info[2])
-                            assert result.exit_code == 0
-                            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
-                            assert mock_run_command.call_count == expected_command_call_count
+            with mock.patch('os.path.isfile', mock.MagicMock(return_value=True)):
+                with mock.patch('config.main.parse_device_desc_xml', mock.MagicMock(side_effect=parse_device_desc_xml_side_effect)):
+                    with mock.patch('config.main._change_hostname', mock.MagicMock(side_effect=change_hostname_side_effect)):
+                        (config, show) = get_cmd_module
+                        runner = CliRunner()
+                        with runner.isolated_filesystem():
+                            with open('device_desc.xml', 'w') as f:
+                                f.write('dummy')
+                                result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
+                                print(result.exit_code)
+                                print(result.output)
+                                traceback.print_tb(result.exc_info[2])
+                                assert result.exit_code == 0
+                                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
+                                assert mock_run_command.call_count == expected_command_call_count
 
     @classmethod
     def teardown_class(cls):
