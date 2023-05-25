@@ -1,6 +1,7 @@
 import os
 import sys
 import pytest
+import subprocess
 import show.main as show
 from click.testing import CliRunner
 from unittest import mock
@@ -409,6 +410,30 @@ class TestShow(object):
         mock_run_command.assert_called_with(['sonic-cfggen', '-d', '--var-json', 'INTERFACE', '--key', 'Ethernet0'], display_cmd=True)
 
     @patch('show.main.run_command')
+    @patch('show.main.getstatusoutput_noshell_pipe', MagicMock(return_value=(0, 'quagga')))
+    def test_show_startupconfiguration_bgp_quagga(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['startupconfiguration'].commands['bgp'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/quagga/bgpd.conf'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    @patch('show.main.getstatusoutput_noshell_pipe', MagicMock(return_value=(0, 'frr')))
+    def test_show_startupconfiguration_bgp_frr(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['startupconfiguration'].commands['bgp'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/frr/bgpd.conf'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    @patch('show.main.getstatusoutput_noshell_pipe', MagicMock(return_value=(0, 'gobgp')))
+    def test_show_startupconfiguration_bgp_gobgp(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['startupconfiguration'].commands['bgp'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/gpbgp/bgpd.conf'], display_cmd=True)
+
+    @patch('show.main.run_command')
     def test_show_uptime(self, mock_run_command):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands['uptime'], ['--verbose'])
@@ -443,6 +468,13 @@ class TestShow(object):
         assert result.exit_code == 0
         mock_run_command.assert_called_with(['acl-loader', 'show', 'policer', 'policer0'], display_cmd=True)
 
+    @patch('subprocess.Popen')
+    def test_show_boot(self, mock_subprocess_popen):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['boot'])
+        assert result.exit_code == 0
+        mock_subprocess_popen.assert_called_with(["sudo", "sonic-installer", "list"], stdout=subprocess.PIPE, text=True)
+
     @patch('show.main.run_command')
     def test_show_mmu(self, mock_run_command):
         runner = CliRunner()
@@ -467,3 +499,18 @@ class TestShow(object):
 
     def teardown(self):
         print('TEAR DOWN')
+
+class TestShowPlatform(object):
+    def setup(self):
+        print('SETUP')
+
+    @patch('subprocess.check_call')
+    def test_firmware(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['platform'].commands['firmware'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["sudo", "fwutil", "show"])
+
+    def teardown(self):
+        print('TEAR DOWN')
+
