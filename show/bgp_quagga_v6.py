@@ -1,7 +1,8 @@
 import click
-from show.main import AliasedGroup, ipv6, run_command
+from show.main import ipv6, run_command
 from utilities_common.bgp_util import get_bgp_summary_extended
 import utilities_common.constants as constants
+import utilities_common.cli as clicommon
 
 
 ###############################################################################
@@ -11,7 +12,7 @@ import utilities_common.constants as constants
 ###############################################################################
 
 
-@ipv6.group(cls=AliasedGroup)
+@ipv6.group(cls=clicommon.AliasedGroup)
 def bgp():
     """Show IPv6 BGP (Border Gateway Protocol) information"""
     pass

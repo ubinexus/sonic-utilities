@@ -4,6 +4,7 @@ import pytest
 import show.main as show
 from click.testing import CliRunner
 from unittest import mock
+from utilities_common import constants
 from unittest.mock import call, MagicMock, patch
 
 EXPECTED_BASE_COMMAND = 'sudo '
@@ -176,3 +177,293 @@ def test_show_version():
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["version"])
     assert "SONiC OS Version: 11" in result.output
+
+
+class TestShowQuagga(object):
+    def setup(self):
+        print('SETUP')
+
+    @patch('show.main.run_command')
+    @patch('show.main.get_routing_stack', MagicMock(return_value='quagga'))
+    def test_show_ip_bgp(self, mock_run_command):
+        from show.bgp_quagga_v4 import bgp
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["ip"].commands['bgp'].commands['summary'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp summary"], return_cmd=True)
+
+        result = runner.invoke(show.cli.commands["ip"].commands['bgp'].commands['neighbors'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp neighbor"])
+
+        result = runner.invoke(show.cli.commands["ip"].commands['bgp'].commands['neighbors'], ['0.0.0.0', 'routes'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp neighbor 0.0.0.0 routes"])
+
+    @patch('show.main.run_command')
+    @patch('show.main.get_routing_stack', MagicMock(return_value='quagga'))
+    def test_show_ipv6_bgp(self, mock_run_command):
+        from show.bgp_quagga_v6 import bgp
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["ipv6"].commands['bgp'].commands['summary'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', "show ipv6 bgp summary"], return_cmd=True)
+
+        result = runner.invoke(show.cli.commands["ipv6"].commands['bgp'].commands['neighbors'], ['0.0.0.0', 'routes'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', "show ipv6 bgp neighbor 0.0.0.0 routes"])
+
+    def teardown(self):
+        print('TEAR DOWN')
+
+
+class TestShow(object):
+    def setup(self):
+        print('SETUP')
+
+    @patch('show.main.run_command')
+    def test_show_arp(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["arp"], ['0.0.0.0', '-if', 'Ethernet0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['nbrshow', '-4', '-ip', '0.0.0.0', '-if', 'Ethernet0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ndp(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["ndp"], ['0.0.0.0', '-if', 'Ethernet0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['nbrshow', '-6', '-ip', '0.0.0.0', '-if', 'Ethernet0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    @patch('show.main.is_mgmt_vrf_enabled', MagicMock(return_value=True))
+    def test_show_mgmt_vrf_routes(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["mgmt-vrf"], ['routes'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['ip', 'route', 'show', 'table', '5000'])
+
+    @patch('show.main.run_command')
+    @patch('show.main.is_mgmt_vrf_enabled', MagicMock(return_value=True))
+    def test_show_mgmt_vrf(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["mgmt-vrf"])
+        assert result.exit_code == 0
+        assert mock_run_command.call_args_list == [
+            call(['ip', '-d', 'link', 'show', 'mgmt']),
+            call(['ip', 'link', 'show', 'vrf', 'mgmt'])
+        ]
+
+    @patch('show.main.run_command')
+    def test_show_pfc_priority(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["pfc"].commands['priority'], ['Ethernet0'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['pfc', 'show', 'priority', 'Ethernet0'])
+
+    @patch('show.main.run_command')
+    def test_show_pfc_asymmetric(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["pfc"].commands['asymmetric'], ['Ethernet0'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['pfc', 'show', 'asymmetric', 'Ethernet0'])
+
+    @patch('show.main.run_command')
+    def test_show_pfcwd_config(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["pfcwd"].commands['config'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['pfcwd', 'show', 'config', '-d', 'all'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_pfcwd_stats(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["pfcwd"].commands['stats'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['pfcwd', 'show', 'stats', '-d', 'all'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_watermark_telemetry_interval(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["watermark"].commands['telemetry'].commands['interval'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['watermarkcfg', '--show-interval'])
+
+    @patch('show.main.run_command')
+    def test_show_route_map(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["route-map"], ['BGP', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', 'show route-map BGP'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ip_prefix_list(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ip'].commands["prefix-list"], ['0.0.0.0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', 'show ip prefix-list 0.0.0.0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ip_protocol(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ip'].commands["protocol"], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', 'show ip protocol'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ip_fib(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ip'].commands["fib"], ['0.0.0.0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['fibshow', '-4', '-ip', '0.0.0.0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ipv6_prefix_list(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ipv6'].commands["prefix-list"], ['0.0.0.0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', 'show ipv6 prefix-list 0.0.0.0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ipv6_protocol(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ipv6'].commands["protocol"], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', constants.RVTYSH_COMMAND, '-c', 'show ipv6 protocol'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ipv6_fib(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ipv6'].commands["fib"], ['0.0.0.0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['fibshow', '-6', '-ip', '0.0.0.0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_ipv6_fib(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ipv6'].commands["fib"], ['0.0.0.0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['fibshow', '-6', '-ip', '0.0.0.0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_lldp_neighbors(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['lldp'].commands["neighbors"], ['Ethernet0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'lldpshow', '-d', '-p' ,'Ethernet0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_lldp_table(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['lldp'].commands["table"], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'lldpshow'], display_cmd=True)
+
+    def test_show_logging_invalid_process(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['logging'], ['systemd | grep ERR'])
+        assert result.output == 'Process contains only number, alphabet, and whitespace.\n'
+
+    @patch('show.main.run_command')
+    def test_show_environment(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['environment'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sudo', 'sensors'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_users(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['users'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['who'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_users(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['users'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['who'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_runningconfiguration_acl(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['acl'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sonic-cfggen', '-d', '--var-json', 'ACL_RULE'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_runningconfiguration_ports(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['ports'], ['Ethernet0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sonic-cfggen', '-d', '--var-json', 'PORT', '--key', 'Ethernet0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_runningconfiguration_interfaces(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['runningconfiguration'].commands['interfaces'], ['Ethernet0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['sonic-cfggen', '-d', '--var-json', 'INTERFACE', '--key', 'Ethernet0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_uptime(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['uptime'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['uptime', '-p'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_clock(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['clock'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['date'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_system_memory(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['system-memory'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['free', '-m'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_mirror_session(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['mirror_session'], ['SPAN', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['acl-loader', 'show', 'session', 'SPAN'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_policer(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['policer'], ['policer0', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['acl-loader', 'show', 'policer', 'policer0'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    def test_show_mmu(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['mmu'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['mmuconfig', '-l'])
+
+    @patch('show.main.run_command')
+    def test_show_lines(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['line'], ['--brief', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['consutil', 'show', '-b'], display_cmd=True)
+
+    @patch('show.main.run_command')
+    @patch('os.path.isfile', MagicMock(return_value=True))
+    def test_show_ztp(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands['ztp'], ['status', '--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_with(['ztp', 'status', '--verbose'], display_cmd=True)
+
+    def teardown(self):
+        print('TEAR DOWN')
