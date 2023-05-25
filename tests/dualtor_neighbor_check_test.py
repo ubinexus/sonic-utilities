@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 
 sys.path.append("scripts")
-
 import dualtor_neighbor_check
 
 
@@ -18,11 +17,80 @@ class TestDualtorNeighborCheck(object):
 
     @pytest.fixture
     def mock_log_functions(self):
-        with patch("dualtor_neighbor_check.WRITE_LOG_ERROR") as mock_log_err:
-            with patch("dualtor_neighbor_check.WRITE_LOG_WARN") as mock_log_warn:
-                with patch("dualtor_neighbor_check.WRITE_LOG_INFO") as mock_log_info:
-                    with patch("dualtor_neighbor_check.WRITE_LOG_DEBUG") as mock_log_debug:
-                        yield mock_log_err, mock_log_warn, mock_log_info, mock_log_debug
+        with patch("dualtor_neighbor_check.WRITE_LOG_ERROR") as mock_log_err, \
+                patch("dualtor_neighbor_check.WRITE_LOG_WARN") as mock_log_warn, \
+                patch("dualtor_neighbor_check.WRITE_LOG_INFO") as mock_log_info, \
+                patch("dualtor_neighbor_check.WRITE_LOG_DEBUG") as mock_log_debug:
+            yield mock_log_err, mock_log_warn, mock_log_info, mock_log_debug
+
+    @pytest.fixture
+    def mock_py_log_functions(self):
+        with patch("dualtor_neighbor_check.logging.error") as mock_log_err, \
+                patch("dualtor_neighbor_check.logging.warning") as mock_log_warn, \
+                patch("dualtor_neighbor_check.logging.info") as mock_log_info, \
+                patch("dualtor_neighbor_check.logging.debug") as mock_log_debug:
+            yield mock_log_err, mock_log_warn, mock_log_info, mock_log_debug
+
+    @pytest.fixture
+    def mock_syslog_log_function(self):
+        with patch("dualtor_neighbor_check.syslog.syslog") as mock_syslog_log:
+            yield mock_syslog_log
+
+    def test_log_config_default(self, mock_py_log_functions):
+        mock_log_err, mock_log_warn, mock_log_info, mock_log_debug = mock_py_log_functions
+        with patch("dualtor_neighbor_check.sys.argv", ["dualtor_neighbor_check.py"]) as mock_argv:
+            args = dualtor_neighbor_check.parse_args()
+            dualtor_neighbor_check.config_logging(args)
+            dualtor_neighbor_check.WRITE_LOG_ERROR("test_error")
+            dualtor_neighbor_check.WRITE_LOG_WARN("test_warn")
+            dualtor_neighbor_check.WRITE_LOG_INFO("test_info")
+            dualtor_neighbor_check.WRITE_LOG_DEBUG("test_debug")
+
+            assert args.log_output == dualtor_neighbor_check.LogOutput.STDOUT
+            assert args.log_level == dualtor_neighbor_check.logging.WARNING
+            assert args.syslog_level is None
+            mock_log_err.assert_called_once_with("test_error")
+            mock_log_warn.assert_called_once_with("test_warn")
+            mock_log_info.assert_called_once_with("test_info")
+            mock_log_debug.assert_called_once_with("test_debug")
+
+    def test_log_config_syslog_default_level(self, mock_syslog_log_function):
+        expected_syslog_calls = [
+            call(dualtor_neighbor_check.syslog.LOG_ERR, "test_error"),
+            call(dualtor_neighbor_check.syslog.LOG_NOTICE, "test_warn")
+        ]
+        with patch("dualtor_neighbor_check.sys.argv", ["dualtor_neighbor_check.py", "-o", "SYSLOG"]) as mock_argv:
+            args = dualtor_neighbor_check.parse_args()
+            dualtor_neighbor_check.config_logging(args)
+            dualtor_neighbor_check.WRITE_LOG_ERROR("test_error")
+            dualtor_neighbor_check.WRITE_LOG_WARN("test_warn")
+            dualtor_neighbor_check.WRITE_LOG_INFO("test_info")
+            dualtor_neighbor_check.WRITE_LOG_DEBUG("test_debug")
+
+            assert args.log_output == dualtor_neighbor_check.LogOutput.SYSLOG
+            assert args.syslog_level == dualtor_neighbor_check.SyslogLevel.NOTICE
+            assert args.log_level is None
+            mock_syslog_log_function.assert_has_calls(expected_syslog_calls)
+
+    def test_log_config_syslog_debug_level(self, mock_syslog_log_function):
+        expected_syslog_calls = [
+            call(dualtor_neighbor_check.syslog.LOG_ERR, "test_error"),
+            call(dualtor_neighbor_check.syslog.LOG_NOTICE, "test_warn"),
+            call(dualtor_neighbor_check.syslog.LOG_INFO, "test_info"),
+            call(dualtor_neighbor_check.syslog.LOG_DEBUG, "test_debug")
+        ]
+        with patch("dualtor_neighbor_check.sys.argv", ["dualtor_neighbor_check.py", "-o", "SYSLOG", "-s", "DEBUG"]) as mock_argv:
+            args = dualtor_neighbor_check.parse_args()
+            dualtor_neighbor_check.config_logging(args)
+            dualtor_neighbor_check.WRITE_LOG_ERROR("test_error")
+            dualtor_neighbor_check.WRITE_LOG_WARN("test_warn")
+            dualtor_neighbor_check.WRITE_LOG_INFO("test_info")
+            dualtor_neighbor_check.WRITE_LOG_DEBUG("test_debug")
+
+            assert args.log_output == dualtor_neighbor_check.LogOutput.SYSLOG
+            assert args.syslog_level == dualtor_neighbor_check.SyslogLevel.DEBUG
+            assert args.log_level is None
+            mock_syslog_log_function.assert_has_calls(expected_syslog_calls)
 
     def test_read_from_db(self, mock_log_functions):
         with patch("dualtor_neighbor_check.run_command") as mock_run_command:
