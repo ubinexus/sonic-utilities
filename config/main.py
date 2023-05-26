@@ -6423,7 +6423,7 @@ def del_ntp_server(ctx, ntp_ip_address):
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
-        clicommon.run_command(['systemctl', 'restart',' ntp-config'], display_cmd=False)
+        clicommon.run_command(['systemctl', 'restart', 'ntp-config'], display_cmd=False)
     except SystemExit as e:
         ctx.fail("Restart service ntp-config failed with error {}".format(e))
 
