@@ -1260,9 +1260,6 @@ def table(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def logging(process, lines, follow, verbose):
     """Show system log"""
-    if process and not re.match(r'^[a-zA-Z0-9\s]+$', process):
-        sys.exit('Process contains only number, alphabet, and whitespace.')
-
     if os.path.exists("/var/log.tmpfs"):
         log_path = "/var/log.tmpfs"
     else:
