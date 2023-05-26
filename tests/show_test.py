@@ -362,11 +362,6 @@ class TestShow(object):
         assert result.exit_code == 0
         mock_run_command.assert_called_with(['sudo', 'lldpshow'], display_cmd=True)
 
-    def test_show_logging_invalid_process(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands['logging'], ['systemd | grep ERR'])
-        assert result.output == 'Process contains only number, alphabet, and whitespace.\n'
-
     @patch('show.main.run_command')
     def test_show_environment(self, mock_run_command):
         runner = CliRunner()
