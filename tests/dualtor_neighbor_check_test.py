@@ -1,12 +1,12 @@
 import json
 import pytest
 import sys
+import subprocess
 import tabulate
 
 from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
-
 
 sys.path.append("scripts")
 import dualtor_neighbor_check
@@ -35,6 +35,45 @@ class TestDualtorNeighborCheck(object):
     def mock_syslog_log_function(self):
         with patch("dualtor_neighbor_check.syslog.syslog") as mock_syslog_log:
             yield mock_syslog_log
+
+    def test_run_command(self, mock_log_functions):
+        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_popen.return_value = mock_proc
+            mock_proc.communicate.return_value = (b"admin", None)
+            mock_proc.returncode = 0
+
+            out = dualtor_neighbor_check.run_command("whoami")
+
+            mock_popen.assert_called_once_with("whoami", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_proc.communicate.assert_called_once()
+            assert out == "admin"
+
+    def test_run_command(self, mock_log_functions):
+        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_popen.return_value = mock_proc
+            mock_proc.communicate.return_value = (b"admin", None)
+            mock_proc.returncode = 0
+
+            out = dualtor_neighbor_check.run_command("whoami")
+
+            mock_popen.assert_called_once_with("whoami", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_proc.communicate.assert_called_once()
+            assert out == "admin"
+
+    def test_run_command_nonzero_return(self, mock_log_functions):
+        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_popen.return_value = mock_proc
+            mock_proc.communicate.return_value = (b"ls: cannot access '/tmp/not-existed': No such file or directory", None)
+            mock_proc.returncode = 2
+
+            with pytest.raises(RuntimeError):
+                dualtor_neighbor_check.run_command("ls /tmp/not-existed")
+
+            mock_popen.assert_called_once_with("ls /tmp/not-existed", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_proc.communicate.assert_called_once()
 
     def test_log_config_default(self, mock_py_log_functions):
         mock_log_err, mock_log_warn, mock_log_info, mock_log_debug = mock_py_log_functions
