@@ -593,8 +593,6 @@ class DBMigrator():
             Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
         2. 'protocol' attr in ROUTE introduced in 202305 onwards.
             WarmRestartHelper reconcile logic requires to have "protocol" field in the old dumped ROUTE_TABLE.
-            Since an empty value is invalid and we can't know which protocol routes have originated from from
-            the old dump we assume it is "bgp". Later fpmsyncd will correct this during reconciliation.
         """
         route_table = self.appDB.get_table("ROUTE_TABLE")
         for route_prefix, route_attr in route_table.items():
@@ -609,7 +607,7 @@ class DBMigrator():
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
 
             if 'protocol' not in route_attr:
-                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', 'bgp')
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
 
     def update_edgezone_aggregator_config(self):
         """
