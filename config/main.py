@@ -1694,15 +1694,20 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     for namespace in namespace_list:
         if namespace is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
+            profile_db = ConfigDBConnector()
             cfggen_namespace_option = " "
             ns_cmd_prefix = ""
         else:
             config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            profile_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
             cfggen_namespace_option = " -n {}".format(namespace)
             ns_cmd_prefix = "sudo ip netns exec {} ".format(namespace)
         config_db.connect()
+        profile_db.db_connect("PROFILE_DB")
         client = config_db.get_redis_client(config_db.CONFIG_DB)
         client.flushdb()
+        profile_db_client = profile_db.get_redis_client("PROFILE_DB")
+        profile_db_client.flushdb()
         if os.path.isfile('/etc/sonic/init_cfg.json'):
             command = "{} -H -m -j /etc/sonic/init_cfg.json {} --write-to-db".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
         else:
@@ -2748,6 +2753,16 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose)
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
+                clicommon.run_command(command, display_cmd=True)
+                
+                # write profile to profile-db
+                if not dry_run:
+                    from_db = "-d --write-to-db -P"
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "profile-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
+                )
                 clicommon.run_command(command, display_cmd=True)
             else:
                 click.secho("QoS definition template not found at {}".format(
@@ -6111,6 +6126,7 @@ def remove_profile(db, profile):
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         ctx.fail("Profile {} doesn't exist".format(profile))
+        # TODO: mask profile_db profile.
 
 @buffer.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context

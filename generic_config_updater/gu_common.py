@@ -55,6 +55,7 @@ class ConfigWrapper:
     def __init__(self, yang_dir = YANG_DIR):
         self.yang_dir = YANG_DIR
         self.sonic_yang_with_loaded_models = None
+        self.logger = genericUpdaterLogging.get_logger(title="Config Wrapper", print_all_to_console=True)
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
@@ -141,6 +142,7 @@ class ConfigWrapper:
                 if not success:
                     return success, error
         except sonic_yang.SonicYangException as ex:
+            self.logger.log_notice("Validating config_db failed:{}".format(json.dumps(config_db_as_json)))
             return False, ex
 
         return True, None
