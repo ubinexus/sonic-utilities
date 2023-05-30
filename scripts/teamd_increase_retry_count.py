@@ -238,7 +238,7 @@ def main(probeOnly=False):
                     log.log_warning("WARNING: No peer description available via LLDP for {}; skipping".format(portName))
                     continue
                 portChannelChecked = True
-                if "SONiC" not in peerInfo["descr"]:
+                if "sonic" not in peerInfo["descr"].lower():
                     log.log_warning("WARNING: Peer device is not a SONiC device; skipping")
                     failedPortChannels.append(portChannel)
                     break
