@@ -96,7 +96,7 @@ def getPortChannels():
     activePortChannels = []
     for portChannel in portChannels:
         state = portChannelTable.get(portChannel)
-        if not state[0]:
+        if not state or not state[0]:
             continue
         isAdminUp = False
         isOperUp = False
@@ -209,10 +209,10 @@ def main(probeOnly=False):
     if os.geteuid() != 0:
         log.log_error("Root privileges required for this operation", also_print_to_console=True)
         sys.exit(1)
-        return False
     portChannels = getPortChannels()
     if not portChannels:
-        return True
+        log.log_info("No port channels retrieved; exiting")
+        return
     failedPortChannels = []
     if probeOnly:
         for portChannel in portChannels:
@@ -274,7 +274,6 @@ def main(probeOnly=False):
         if failedPortChannels:
             log.log_error("ERROR: There are port channels/peer devices that failed the probe: {}".format(failedPortChannels), also_print_to_console=True)
             sys.exit(2)
-            return False
     else:
         signal.signal(signal.SIGUSR1, abortTeamdChanges)
         signal.signal(signal.SIGTERM, abortTeamdChanges)

@@ -48,6 +48,7 @@ EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 EXIT_PLATFORM_FW_AU_FAILURE=22
+EXIT_TEAMD_RETRY_COUNT_FAILURE=23
 
 function error()
 {
@@ -648,12 +649,12 @@ TEAMD_INCREASE_RETRY_COUNT=0
 if [[ "${REBOOT_TYPE}" = "warm-reboot" || "${REBOOT_TYPE}" = "fastfast-reboot" ]]; then
     TEAMD_RETRY_COUNT_PROBE_RC=0
     /usr/local/bin/teamd_increase_retry_count.py --probe-only || TEAMD_RETRY_COUNT_PROBE_RC=$?
-    if [[ $TEAMD_RETRY_COUNT_PROBE_RC -ne 0 ]]; then
+    if [[ ${TEAMD_RETRY_COUNT_PROBE_RC} -ne 0 ]]; then
         if [[ "${REQUIRE_TEAMD_RETRY_COUNT}" = "yes" ]]; then
             error "Could not confirm that all neighbor devices are running SONiC with the retry count feature"
+            exit "${EXIT_TEAMD_RETRY_COUNT_FAILURE}"
         else
             debug "Warning: Retry count feature support unknown for one or more neighbor devices; assuming that it's not available"
-            TEAMD_INCREASE_RETRY_COUNT=0
         fi
     else
         TEAMD_INCREASE_RETRY_COUNT=1
