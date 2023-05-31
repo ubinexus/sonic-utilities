@@ -128,6 +128,7 @@ setup(
         'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/fast-reboot-filter-routes.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/fibshow',
@@ -138,6 +139,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/ipintutil',
+        'scripts/lag_keepalive.py',
         'scripts/lldpshow',
         'scripts/log_ssd_health',
         'scripts/mellanox_buffer_migrator.py',
@@ -217,6 +219,7 @@ setup(
     },
     install_requires=[
         'click==7.0',
+        'urllib3<2',
         'click-log>=0.3.2',
         'docker>=4.4.4',
         'docker-image-py>=0.1.10',

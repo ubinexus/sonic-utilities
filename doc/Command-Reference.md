@@ -53,6 +53,8 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Fabric](#fabric)
+  * [Fabric config commands](#fabric-config-commands)
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
@@ -1821,6 +1823,36 @@ This command is used to create new ACL tables.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**aclshow**
+
+This command is used to display: ACL rules, tables and their priority, ACL packets counters, and bytes counters
+
+- Usage:
+  ```
+  aclshow [-h] [-a] [-c] [-r RULES] [-t TABLES] [-v] [-vv]
+  ```
+
+- Parameters:
+  - -a, --all: Show all ACL counters
+  - -c, --clear: Clear ACL counters statistics
+  - -r RULES, --rules RULES: Show only specified ACL rules and their counters
+  - -t TABLES, --tables TABLES: Show only specified ACL tables and their counters
+  - -vv, --verbose: Verbose output
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo aclshow -a
+  RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
+  -----------  ------------  ------  ---------------  -------------
+  RULE_1       DATAACL       9999    0                0
+  RULE_2       DATAACL       9998    0                0
+  RULE_1       SNMP_ACL      9999    N/A              N/A
+  ```
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have the `N/A` value it means either that the ACL rule is invalid or it is a `control plane` ACL and those counters are created in Linux, not in SONiC `COUNTERS_DB` and the [iptables](https://linux.die.net/man/8/iptables) utility should be used to view those counters.
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have some numeric value it means that it is a SONiC ACL's and those counters are created in SONiC `COUNTERS_DB`.
+
 
 ## ARP & NDP
 
@@ -3539,6 +3571,71 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
+
+## Fabric
+
+This section explains all Fabric commands that are supported in SONiC.
+
+### Fabric config commands
+
+**config fabric port isolate <portId>**
+**config fabric port unisolate <portId>**
+
+The above two commands can be used to manually isolate and unisolate a fabric link.
+
+- Usage:
+  ```
+  config fabric port isolate [OPTIONS] <portid>
+  config fabric port unisolate [OPTIONS] <portid>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port isolate 0 -n asic0
+  admin@sonic:~$ config fabric port unisolate 0 -n asic0
+  ```
+
+**config fabric port monitor error threshold <crcCells> <rxCells>**
+
+This command sets a fabric link monitoring error threshold
+
+- Usage:
+  ```
+  config fabric port monitor error threshold [OPTIONS] <crcCells> <rxCells>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor error threshold 2 61035156 -n asic0
+  ```
+
+**config fabric port monitor poll threshold isolation <pollnumber>**
+
+This command sets the number of consecutive polls in which the threshold needs to be detected to isolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold isolation [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold isolation 2 -n asic0
+  ```
+
+**config fabric port monitor poll threshold recovery <pollnumber>**
+
+This command sets the number of consecutive polls in which no error is detected to unisolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold recovery [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold recovery 5 -n asic0
+  ```
 
 ## Feature
 
