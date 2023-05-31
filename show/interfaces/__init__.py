@@ -479,16 +479,16 @@ def transceiver_status(interfacename, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sfpshow status"
+    cmd = ['sfpshow', 'status']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(
             ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
