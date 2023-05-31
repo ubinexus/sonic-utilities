@@ -232,7 +232,7 @@ class TestIntfstat(object):
         print(output4)
         assert show_interfaces_counters_rif_clear in output4
 
-        show.run_command("intfstat -D")
+        show.run_command(["intfstat", "-D"])
 
     @classmethod
     def teardown_class(cls):
