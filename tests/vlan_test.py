@@ -391,10 +391,12 @@ class TestVlan(object):
             print(result.output)
             assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
+        with mock.patch("config.vlan.delete_state_db_entry") as delete_state_db_entry:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            delete_state_db_entry.assert_called_once_with("Vlan1000")
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -565,12 +567,12 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
 
-            expected_calls = [mock.call("docker container inspect -f '{{.State.Status}}' swss", return_cmd=True),
-                              mock.call('docker exec -i swss supervisorctl status ndppd', ignore_error=True, return_cmd=True),
-                              mock.call('docker exec -i swss cp /usr/share/sonic/templates/ndppd.conf /etc/supervisor/conf.d/'),
-                              mock.call('docker exec -i swss supervisorctl update', return_cmd=True),
-                              mock.call('docker exec -i swss sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf'),
-                              mock.call('docker exec -i swss supervisorctl restart ndppd', return_cmd=True)]
+            expected_calls = [mock.call(['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss'], return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'cp', '/usr/share/sonic/templates/ndppd.conf', '/etc/supervisor/conf.d/']),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'update'], return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'restart', 'ndppd'], return_cmd=True)]
             mock_run_command.assert_has_calls(expected_calls)
 
             assert result.exit_code == 0 

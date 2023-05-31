@@ -1,6 +1,7 @@
 import click
 import utilities_common.cli as clicommon
 import utilities_common.dhcp_relay_util as dhcp_relay_util
+from swsscommon.swsscommon import SonicV2Connector
 
 from jsonpatch import JsonPatchConflict
 from time import sleep
@@ -65,6 +66,14 @@ def is_dhcpv6_relay_config_exist(db, vlan_name):
         return True
 
 
+def delete_state_db_entry(entry_name):
+    state_db = SonicV2Connector()
+    state_db.connect(state_db.STATE_DB)
+    exists = state_db.exists(state_db.STATE_DB, 'DHCPv6_COUNTER_TABLE|{}'.format(entry_name))
+    if exists:
+        state_db.delete(state_db.STATE_DB, 'DHCPv6_COUNTER_TABLE|{}'.format(entry_name))
+
+
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.option('--no_restart_dhcp_relay', is_flag=True, type=click.BOOL, required=False, default=False,
@@ -109,6 +118,8 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
     # set dhcpv4_relay table
     set_dhcp_relay_table('VLAN', config_db, vlan, None)
 
+    delete_state_db_entry(vlan)
+
     if not no_restart_dhcp_relay and is_dhcpv6_relay_config_exist(db, vlan):
         # set dhcpv6_relay table
         set_dhcp_relay_table('DHCP_RELAY', config_db, vlan, None)
@@ -128,13 +139,13 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
 
 
 def restart_ndppd():
-    verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
-    docker_exec_cmd = "docker exec -i swss {}"
-    ndppd_status_cmd= "supervisorctl status ndppd"
-    ndppd_conf_copy_cmd = "cp /usr/share/sonic/templates/ndppd.conf /etc/supervisor/conf.d/"
-    supervisor_update_cmd = "supervisorctl update"
-    ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
-    ndppd_restart_cmd = "supervisorctl restart ndppd"
+    verify_swss_running_cmd = ['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss']
+    docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
+    ndppd_config_gen_cmd = ['sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']
+    ndppd_restart_cmd =['supervisorctl', 'restart', 'ndppd']
+    ndppd_status_cmd= ["supervisorctl", "status", "ndppd"]
+    ndppd_conf_copy_cmd = ['cp', '/usr/share/sonic/templates/ndppd.conf', '/etc/supervisor/conf.d/']
+    supervisor_update_cmd = ['supervisorctl', 'update']
 
     output, _ = clicommon.run_command(verify_swss_running_cmd, return_cmd=True)
 
@@ -142,17 +153,16 @@ def restart_ndppd():
         click.echo(click.style('SWSS container is not running, changes will take effect the next time the SWSS container starts', fg='red'),)
         return
 
-    _, rc = clicommon.run_command(docker_exec_cmd.format(ndppd_status_cmd), ignore_error=True, return_cmd=True)
+    _, rc = clicommon.run_command(docker_exec_cmd + ndppd_status_cmd, ignore_error=True, return_cmd=True)
 
     if rc != 0:
-        clicommon.run_command(docker_exec_cmd.format(ndppd_conf_copy_cmd))
-        clicommon.run_command(docker_exec_cmd.format(supervisor_update_cmd), return_cmd=True)
+        clicommon.run_command(docker_exec_cmd + ndppd_conf_copy_cmd)
+        clicommon.run_command(docker_exec_cmd + supervisor_update_cmd, return_cmd=True)
 
     click.echo("Starting ndppd service")
-    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd))
+    clicommon.run_command(docker_exec_cmd + ndppd_config_gen_cmd)
     sleep(3)
-    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), return_cmd=True)
-
+    clicommon.run_command(docker_exec_cmd + ndppd_restart_cmd, return_cmd=True)
 
 @vlan.command('proxy_arp')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
