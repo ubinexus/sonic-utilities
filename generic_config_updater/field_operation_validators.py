@@ -23,6 +23,8 @@ def get_asic_name():
     
     if device_info.get_sonic_version_info()['asic_type'] == 'cisco-8000':
         asic = "cisco-8000"
+    elif device_info.get_sonic_version_info()['asic_type'] == 'vs':
+        asic = "td2"
     elif device_info.get_sonic_version_info()['asic_type'] == 'mellanox':
         GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
         spc1_hwskus = asic_mapping["mellanox_asics"]["spc1"]
