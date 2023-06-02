@@ -189,6 +189,7 @@ def craftLacpPacket(portChannelConfig, portName, isResetPacket=False, newVersion
     return packet
 
 def sendLacpPackets(packets, revertPackets):
+    global revertTeamdRetryCountChanges
     while not revertTeamdRetryCountChanges:
         for port, packet in packets:
             sendp(packet, iface=port)
@@ -198,6 +199,7 @@ def sendLacpPackets(packets, revertPackets):
             sendp(packet, iface=port)
 
 def abortTeamdChanges(signum, frame):
+    global revertTeamdRetryCountChanges
     log.log_info("Got signal {}, reverting teamd retry count change".format(signum))
     revertTeamdRetryCountChanges = True
 
@@ -275,6 +277,7 @@ def main(probeOnly=False):
             log.log_error("ERROR: There are port channels/peer devices that failed the probe: {}".format(failedPortChannels), also_print_to_console=True)
             sys.exit(2)
     else:
+        global revertTeamdRetryCountChanges
         signal.signal(signal.SIGUSR1, abortTeamdChanges)
         signal.signal(signal.SIGTERM, abortTeamdChanges)
         (_, rc) = getCmdOutput(["config", "portchannel", "retry-count", "get", list(portChannels)[0]])
