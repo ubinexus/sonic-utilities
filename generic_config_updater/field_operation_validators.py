@@ -9,6 +9,7 @@ from .gu_common import GenericConfigUpdaterError
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
+GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
 
 def get_asic_name():
     asic = "unknown"
@@ -20,32 +21,28 @@ def get_asic_name():
         raise GenericConfigUpdaterError("GCU table modification validators config file not found")
     
     asic_mapping = gcu_field_operation_conf["helper_data"]["rdma_config_update_validator"]
-    
-    if device_info.get_sonic_version_info()['asic_type'] == 'cisco-8000':
+    asic_type = device_info.get_sonic_version_info()['asic_type'] 
+
+    if asic_type == 'cisco-8000':
         asic = "cisco-8000"
-    elif device_info.get_sonic_version_info()['asic_type'] == 'vs':
-        asic = "td2"
-    elif device_info.get_sonic_version_info()['asic_type'] == 'mellanox':
-        GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
-        spc1_hwskus = asic_mapping["mellanox_asics"]["spc1"]
+    elif asic_type == 'mellanox' or asic_type == 'vs' or asic_type == 'broadcom':
         proc = subprocess.Popen(GET_HWSKU_CMD, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
         output, err = proc.communicate()
         hwsku = output.rstrip('\n')
-        if hwsku.lower() in [spc1_hwsku.lower() for spc1_hwsku in spc1_hwskus]:
-            asic = "spc1"
-    elif device_info.get_sonic_version_info()['asic_type'] == 'broadcom':
-        command = ["sudo", "lspci"]
-        proc = subprocess.Popen(command, universal_newlines=True, stdout=subprocess.PIPE)
-        output, err = proc.communicate()
-        broadcom_asics = asic_mapping["broadcom_asics"]
-        for asic_shorthand, asic_descriptions in broadcom_asics.items():
-            if asic != "unknown":
-                break
-            for asic_description in asic_descriptions:
-                if asic_description in output:
-                    asic = asic_shorthand
+        if asic_type == 'mellanox' or asic_type == 'vs':
+            spc1_hwskus = asic_mapping["mellanox_asics"]["spc1"]
+            if hwsku.lower() in [spc1_hwsku.lower() for spc1_hwsku in spc1_hwskus]:
+                asic = "spc1"
+        if asic_type == 'broadcom' or asic_type == 'vs':
+            broadcom_asics = asic_mapping["broadcom_asics"]
+            for asic_shorthand, hwskus in broadcom_asics.items():
+                if asic != "unknown":
                     break
-    
+                for hwsku_cur in hwskus:
+                    if hwsku_cur.lower() in hwsku.lower():
+                        asic = asic_shorthand
+                        break
+
     return asic
 
 

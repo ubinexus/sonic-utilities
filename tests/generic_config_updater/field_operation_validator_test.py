@@ -108,7 +108,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_th(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b960", 0]
+        mock_popen.return_value.communicate.return_value = ["Force10-S6100", 0]
         self.assertEqual(fov.get_asic_name(), "th")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -116,7 +116,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_th2(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b971", 0]
+        mock_popen.return_value.communicate.return_value = ["Arista-7260CX3-D108C8", 0]
         self.assertEqual(fov.get_asic_name(), "th2")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -124,7 +124,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_td2(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b850", 0]
+        mock_popen.return_value.communicate.return_value = ["Force10-S6000", 0]
         self.assertEqual(fov.get_asic_name(), "td2")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
@@ -132,7 +132,7 @@ class TestGetAsicName(unittest.TestCase):
     def test_get_asic_td3(self, mock_popen, mock_get_sonic_version_info):
         mock_get_sonic_version_info.return_value = {'asic_type': 'broadcom'}
         mock_popen.return_value = mock.Mock()
-        mock_popen.return_value.communicate.return_value = ["Broadcom Limited Device b870", 0]
+        mock_popen.return_value.communicate.return_value = ["Arista-7050CX3-32S-C32", 0]
         self.assertEqual(fov.get_asic_name(), "td3")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
