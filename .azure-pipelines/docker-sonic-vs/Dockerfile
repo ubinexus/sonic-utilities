@@ -2,7 +2,7 @@ FROM docker-sonic-vs
 
 ARG docker_container_name
 
-ADD ["wheels", "/wheels"]
+COPY ["wheels", "/wheels"]
 
 # Uninstalls only sonic-utilities and does not impact its dependencies
 RUN pip3 uninstall -y sonic-utilities
