@@ -898,7 +898,7 @@ Ethernet36  Present
         
     def test_osfp_eeprom_with_dom(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet72 -d"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet72", "-d"])
         assert result.exit_code == 0
         assert result.output == test_osfp_eeprom_with_dom_output
 
