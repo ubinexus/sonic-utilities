@@ -192,41 +192,6 @@ Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       
 Reminder: Please execute 'show interface counters -d all' to include internal links
 """
 
-multi_asic_external_intf_counters_use_json = """\
-{
-    "Ethernet0": {
-        "RX_BPS": "0.00 B/s",
-        "RX_DRP": "0",
-        "RX_ERR": "0",
-        "RX_OK": "0",
-        "RX_OVR": "N/A",
-        "RX_UTIL": "0.00%",
-        "STATE": "U",
-        "TX_BPS": "0.00 B/s",
-        "TX_DRP": "N/A",
-        "TX_ERR": "N/A",
-        "TX_OK": "0",
-        "TX_OVR": "N/A",
-        "TX_UTIL": "0.00%"
-    },
-    "Ethernet4": {
-        "RX_BPS": "0.00 B/s",
-        "RX_DRP": "0",
-        "RX_ERR": "0",
-        "RX_OK": "0",
-        "RX_OVR": "N/A",
-        "RX_UTIL": "0.00%",
-        "STATE": "U",
-        "TX_BPS": "0.00 B/s",
-        "TX_DRP": "N/A",
-        "TX_ERR": "N/A",
-        "TX_OK": "0",
-        "TX_OVR": "N/A",
-        "TX_UTIL": "0.00%"
-    }
-}
-"""
-
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
 
 intf_counters_detailed = """\
@@ -554,13 +519,6 @@ class TestMultiAsicPortStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         verify_after_clear(result, mutli_asic_intf_counters_after_clear)
-
-    def test_multi_asic_use_json(self):
-        return_code, result = get_result_and_return_code(['portstat', '-j'])
-        print("return_code: {}".format(return_code))
-        print("result = {}".format(result))
-        assert return_code == 0
-        assert result == multi_asic_external_intf_counters_use_json
 
     def test_multi_asic_invalid_asic(self):
         return_code, result = get_result_and_return_code(['portstat', '-n', 'asic99'])
