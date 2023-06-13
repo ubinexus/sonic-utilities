@@ -166,6 +166,7 @@ setup(
         'scripts/soft-reboot',
         'scripts/storyteller',
         'scripts/syseeprom-to-json',
+        'scripts/teamd_increase_retry_count.py',
         'scripts/tempershow',
         'scripts/tunnelstat',
         'scripts/update_json.py',
@@ -221,7 +222,9 @@ setup(
         ]
     },
     install_requires=[
+        'bcrypt==3.2.2',
         'click==7.0',
+        'cryptography==3.3.2',
         'urllib3<2',
         'click-log>=0.3.2',
         'docker>=4.4.4',
