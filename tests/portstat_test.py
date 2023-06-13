@@ -192,6 +192,12 @@ Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       
 Reminder: Please execute 'show interface counters -d all' to include internal links
 """
 
+multi_asic_external_intf_counters_use_json = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+"""
 
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
 
@@ -527,6 +533,13 @@ class TestMultiAsicPortStat(object):
         print("result = {}".format(result))
         assert return_code == 1
         assert result == intf_invalid_asic_error
+
+    def test_multi_asic_use_json(self):
+        return_code, result = get_result_and_return_code(['portstat', '-j'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == multi_asic_external_intf_counters_use_json
 
     @classmethod
     def teardown_class(cls):
