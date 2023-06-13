@@ -527,19 +527,19 @@ class TestMultiAsicPortStat(object):
         assert return_code == 0
         verify_after_clear(result, mutli_asic_intf_counters_after_clear)
 
+    def test_multi_asic_use_json(self):
+        return_code, result = get_result_and_return_code(['portstat', '-j'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_external_intf_counters_use_json
+
     def test_multi_asic_invalid_asic(self):
         return_code, result = get_result_and_return_code(['portstat', '-n', 'asic99'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
         assert result == intf_invalid_asic_error
-
-    def test_multi_asic_use_json(self):
-        return_code, result = get_result_and_return_code(['portstat', '-j'])
-        print("return_code: {}".format(return_code))
-        print("result = {}".format(result))
-        assert return_code == 1
-        assert result == multi_asic_external_intf_counters_use_json
 
     @classmethod
     def teardown_class(cls):
