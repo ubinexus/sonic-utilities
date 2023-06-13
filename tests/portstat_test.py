@@ -193,10 +193,38 @@ Reminder: Please execute 'show interface counters -d all' to include internal li
 """
 
 multi_asic_external_intf_counters_use_json = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+{
+    "Ethernet0": {
+        "RX_BPS": "0.00 B/s",
+        "RX_DRP": "0",
+        "RX_ERR": "0",
+        "RX_OK": "0",
+        "RX_OVR": "N/A",
+        "RX_UTIL": "0.00%",
+        "STATE": "U",
+        "TX_BPS": "0.00 B/s",
+        "TX_DRP": "N/A",
+        "TX_ERR": "N/A",
+        "TX_OK": "0",
+        "TX_OVR": "N/A",
+        "TX_UTIL": "0.00%"
+    },
+    "Ethernet4": {
+        "RX_BPS": "0.00 B/s",
+        "RX_DRP": "0",
+        "RX_ERR": "0",
+        "RX_OK": "0",
+        "RX_OVR": "N/A",
+        "RX_UTIL": "0.00%",
+        "STATE": "U",
+        "TX_BPS": "0.00 B/s",
+        "TX_DRP": "N/A",
+        "TX_ERR": "N/A",
+        "TX_OK": "0",
+        "TX_OVR": "N/A",
+        "TX_UTIL": "0.00%"
+    }
+}
 """
 
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
