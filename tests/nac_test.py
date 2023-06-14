@@ -127,6 +127,11 @@ class TestShowNac(object):
         db = Db()
         runner = CliRunner()
         obj = {'db':db.cfgdb}
+        
+        #disable - default check
+        result = runner.invoke(config.config.commands["nac"].commands["disable"], [], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
 
         #enable
         result = runner.invoke(config.config.commands["nac"].commands["enable"], [], obj=obj)
@@ -142,16 +147,21 @@ class TestShowNac(object):
         # run show and check
         result = runner.invoke(show.cli.commands["nac"], [], obj=db)
         print(result.exit_code, result.output, show_nac_output_local)
+        print(result.output, file=sys.stderr)
+        traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_nac_output_local
 
+        #disable
         result = runner.invoke(config.config.commands["nac"].commands["disable"], [], obj=obj)
         print(result.exit_code, result.output)
+        traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
 
         # run show and check
         result = runner.invoke(show.cli.commands["nac"], [], obj=db)
         print(result.exit_code, result.output)
+        traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_nac_output
 
@@ -162,12 +172,17 @@ class TestShowNac(object):
         runner = CliRunner()
         obj = {'db':db.cfgdb}
 
+        #mac - default behavior
+        result = runner.invoke(config.config.commands["nac"].commands["type"], ["mac"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
         #enable
         result = runner.invoke(config.config.commands["nac"].commands["enable"], [], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         
-        #port
+        #mac
         result = runner.invoke(config.config.commands["nac"].commands["type"], ["mac"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -183,7 +198,8 @@ class TestShowNac(object):
         print(result.exit_code, result.output, show_nac_output_enable_local)
         assert result.exit_code == 0
         assert result.output == show_nac_output_enable_local
-
+        
+        #port
         result = runner.invoke(config.config.commands["nac"].commands["type"], ["port"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -193,6 +209,101 @@ class TestShowNac(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_nac_output_enable
+
+        #nac type setting when NAC feature is disabled
+        result = runner.invoke(config.config.commands["nac"].commands["disable"], [], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        #port
+        result = runner.invoke(config.config.commands["nac"].commands["type"], ["port"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        return
+
+    def test_config_nac_interface_name_enable_disable(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        #enable
+        result = runner.invoke(config.config.commands["nac"].commands["enable"], [], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        
+        #interface enable 
+        db.cfgdb.mod_entry("NAC_SESSION", "Ethernet4", \
+            {'admin_state' : 'down', \
+            'nac_status'   : 'unauthorized', \
+            } \
+        )
+
+        result = runner.invoke(config.config.commands["nac"].commands["interface"].commands["enable"], ["Ethernet4"], obj=obj)
+        print(result.exit_code, result.output)
+
+        # change the output
+        global show_nac_interface_name_output
+        show_nac_interface_name_output_local = show_nac_interface_name_output.replace(
+            'down',
+            'up  ')
+
+        # run show and check
+        result = runner.invoke(show.cli.commands["nac"].commands["interface"], ["Ethernet4"], obj=db)
+        print(result.output, show_nac_interface_name_output_local)
+        assert result.exit_code == 0
+        assert result.output == show_nac_interface_name_output_local
+
+        #interface disable
+        result = runner.invoke(config.config.commands["nac"].commands["interface"].commands["disable"], ["Ethernet4"],obj=obj)
+        print(result.exit_code, result.output)
+
+        # run show and check
+        result = runner.invoke(show.cli.commands["nac"].commands["interface"], ["Ethernet4"], obj=db)
+        print(result.output, show_nac_interface_name_output)
+        assert result.exit_code == 0
+        assert result.output == show_nac_interface_name_output
+
+        return
+
+    def test_config_nac_interface_all_enable_disable(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        #config nac interface enable all - when nac feature is not configured
+        result = runner.invoke(config.config.commands["nac"].
+            commands["interface"].commands["enable"], ["all"], obj=obj)
+        assert result.exit_code == 0
+        
+        #config nac interface enable all - when nac feature is configured, but disabled
+        result = runner.invoke(config.config.commands["nac"].commands["disable"], [], obj=obj)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["nac"].
+            commands["interface"].commands["enable"], ["all"], obj=obj)
+        assert result.exit_code == 0
+        
+        #config nac interface enable all - when nac feature is configured, enabled but nac-type is mac
+        result = runner.invoke(config.config.commands["nac"].commands["enable"], [], obj=obj)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["nac"].commands["type"], ["mac"], obj=obj)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["nac"].
+            commands["interface"].commands["enable"], ["all"], obj=obj)
+        assert result.exit_code == 0
+        
+        #Functional test : revert to working configuration : nac-type port
+        result = runner.invoke(config.config.commands["nac"].commands["type"], ["port"], obj=obj)
+        assert result.exit_code == 0
+        # intf enable
+        result = runner.invoke(config.config.commands["nac"].
+            commands["interface"].commands["enable"], ["all"], obj=obj)
+        print(result.output, file=sys.stderr)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        # intf disable
+        result = runner.invoke(config.config.commands["nac"].
+            commands["interface"].commands["disable"], ["all"], obj=obj)
+        print(result.output, file=sys.stderr)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
 
         return
 
