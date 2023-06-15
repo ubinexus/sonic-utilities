@@ -6503,29 +6503,31 @@ def init_nac_interface_to_enable():
         else:
             config_db.set_entry('NAC_SESSION', intf_name, {'admin_state': 'up', 'nac_status': 'unauthorized'})
 
+        intf_fs = parse_interface_in_filter(intf_name)
         if intf_name in port_dict:
-            config_db.mod_entry("PORT", intf_name, {"admin_status": "down"})
+            if intf_name in intf_fs:
+                config_db.mod_entry("PORT", intf_name, {"admin_status": "down"})
 
             for po_name in portchannel_list:
-                if po_name in intf_name:
+                if po_name in intf_fs:
                     config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
 
             for sp_name in subport_list:
-                if sp_name in intf_name:
+                if sp_name in intf_fs:
                     config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
             time.sleep(1)
             config_db.mod_entry("PORT", intf_name, {"admin_status": "up"})
 
             for po_name in portchannel_list:
-                if po_name in intf_name:
+                if po_name in intf_fs:
                     config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
 
             for sp_name in subport_list:
-                if sp_name in intf_name:
+                if sp_name in intf_fs:
                     config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
             config_db.mod_entry('PORT', intf_name, {'learn_mode': 'drop'})
-            click.echo("learn mode set to drop")
+            #click.echo("learn mode set to drop")
 
 
 def init_nac_interface_to_default():
@@ -6578,7 +6580,7 @@ def disable(ctx):
     nac_tbl = config_db.get_table('NAC')
 
     if not nac_tbl:
-        nac_tbl = {'global': {'admin_state': 'down'}}
+        nac_tbl = {'global': {'admin_state': 'down', 'auth_type': 'local', 'nac_type':'port'}}
         config_db.mod_entry('NAC', 'global', nac_tbl['global'])
     else:
         nac_tbl['global']['admin_state'] = 'down'
@@ -6607,11 +6609,14 @@ def nac_type(ctx, nac_type):
         init_nac_interface_to_default()
 
 def fdb_clear_all():
+    """Clear All FDB entries"""
     appl_db = SonicV2Connector(host="127.0.0.1")
-    appl_db.connect(appl_db.APPL_DB)
-    opdata = ["ALL", "ALL"]
-    dbmsg = json.dumps(opdata, separators=(',',':'))
-    appl_db.publish('APPL_DB', 'FLUSHFDBREQUEST', dbmsg)
+    if appl_db != None:
+        hndl_appl_db = appl_db.connect(appl_db.APPL_DB)
+        if hndl_appl_db != None:
+            opdata = ["ALL", "ALL"]
+            dbmsg = json.dumps(opdata, separators=(',',':'))
+            appl_db.publish('APPL_DB', 'FLUSHFDBREQUEST', dbmsg)
 
 #
 # 'nac interface' group
