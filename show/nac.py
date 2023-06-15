@@ -48,7 +48,7 @@ def nac_interface(db, interfacename):
 
     nac_tbl = config_db.get_table('NAC')
     if not nac_tbl:
-        click.echo("NAC feature not enabled. Enable feature to set NAC type.")
+        click.echo("NAC feature not enabled. Enable feature to configure NAC settings")
         return
     else:
         if nac_tbl['global']['admin_state'] == 'down':
@@ -58,17 +58,8 @@ def nac_interface(db, interfacename):
     header = ['InterfaceName', 'NAC AdminState', 'Authorization State', 'Mapped Profile']
     body = []
 
-    try:
-        port_dict = config_db.get_table('PORT')
-    except Exception as e:
-        click.echo("PORT Table is not present in Config DB")
-        raise click.Abort()
-
-    try:
-        nac_session_dict = config_db.get_table('NAC_SESSION')
-    except Exception as e:
-        click.echo("NAC_SESSION Table is not present in Config DB")
-        raise click.Abort()
+    port_dict = config_db.get_table('PORT')
+    nac_session_dict = config_db.get_table('NAC_SESSION')
 
     ports = ast.literal_eval(json.dumps(port_dict))
     nac_sessions = ast.literal_eval(json.dumps(nac_session_dict))
