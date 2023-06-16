@@ -994,6 +994,8 @@ class DBMigrator():
         """
         Version 4_0_1.
         """
+        log.log_info('Handling version_4_0_1')
+
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
@@ -1017,7 +1019,6 @@ class DBMigrator():
         log.log_info('Handling version_4_0_3')
         
         self.migrate_config_db_switchport_mode()
-		
         self.set_version('version_4_0_4')
         return 'version_4_0_4'
       
