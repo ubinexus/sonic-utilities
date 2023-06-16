@@ -1021,7 +1021,7 @@ class DBMigrator():
         self.set_version('version_4_0_4')
         return 'version_4_0_4'
       
-	def version_4_0_4(self):
+    def version_4_0_4(self):
         """
         Version 4_0_4.
         This is the latest version for master branch
