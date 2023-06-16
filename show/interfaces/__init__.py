@@ -774,6 +774,7 @@ def switchport():
     """Show interface switchport information"""
     pass
 
+
 @switchport.command(name="config")
 @clicommon.pass_db
 def switchport_mode_config(db):
