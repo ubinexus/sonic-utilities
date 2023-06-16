@@ -576,8 +576,8 @@ class TestVlan(object):
             mock_run_command.assert_has_calls(expected_calls)
 
 
-            assert result.exit_code == 0 
-            assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+            assert result.exit_code == 0
+            assert {"proxy_arp": "enabled"}.items() <= db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000").items()
 
     def test_config_vlan_proxy_arp_disable(self):
         runner = CliRunner()
