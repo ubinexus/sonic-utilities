@@ -204,7 +204,7 @@ def setup_single_bgp_instance(request):
             return mock_frr_data
         return ""
 
-    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=constants.RVTYSH_COMMAND):
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=[], vtysh_shell_cmd=constants.RVTYSH_COMMAND):
         if vtysh_cmd == "show ip route vrf all static":
             return config_int_ip_common.show_ip_route_with_static_expected_output
         elif vtysh_cmd == "show ipv6 route vrf all static":
@@ -361,9 +361,13 @@ def setup_fib_commands():
 @pytest.fixture(scope='function')
 def mock_restart_dhcp_relay_service():
     print("We are mocking restart dhcp_relay")
-    origin_func = config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    origin_funcs = []
+    origin_funcs.append(config.vlan.dhcp_relay_util.restart_dhcp_relay_service)
+    origin_funcs.append(config.vlan.is_dhcp_relay_running)
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    config.vlan.is_dhcp_relay_running = mock.MagicMock(return_value=True)
 
     yield
 
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = origin_func
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = origin_funcs[0]
+    config.vlan.is_dhcp_relay_running = origin_funcs[1]

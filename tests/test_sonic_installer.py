@@ -1,9 +1,17 @@
 import os
+import sys
+import pytest
 from contextlib import contextmanager
 from sonic_installer.main import sonic_installer
 from click.testing import CliRunner
 from unittest.mock import patch, Mock, call
-from sonic_installer.bootloader import GrubBootloader
+import sonic_installer.common as sonic_installer_common
+
+
+def test_run_command():
+    with pytest.raises(SystemExit) as e:
+        output = sonic_installer_common.run_command([sys.executable, "-c", "import sys; sys.exit(6)"])
+    assert e.value.code == 6
 
 @patch("sonic_installer.main.SWAPAllocator")
 @patch("sonic_installer.main.get_bootloader")
@@ -32,7 +40,7 @@ def test_install(run_command, run_command_or_raise, get_bootloader, swap, fs):
     mock_bootloader.get_binary_image_version = Mock(return_value=new_image_version)
     mock_bootloader.get_installed_images = Mock(return_value=[current_image_version])
     mock_bootloader.get_image_path = Mock(return_value=new_image_folder)
-    mock_bootloader.verify_image_sign = Mock(return_value=True)
+
     @contextmanager
     def rootfs_path_mock(path):
         yield mounted_image_folder
@@ -46,13 +54,7 @@ def test_install(run_command, run_command_or_raise, get_bootloader, swap, fs):
     print(result.output)
 
     assert result.exit_code == 0
-    mock_bootloader_verify_image_sign_fail = mock_bootloader
-    mock_bootloader_verify_image_sign_fail.verify_image_sign = Mock(return_value=False)
-    get_bootloader.return_value=mock_bootloader_verify_image_sign_fail
-    result = runner.invoke(sonic_installer.commands["install"], [sonic_image_filename, "-y"])
-    print(result.output)
 
-    assert result.exit_code != 0
     # Assert bootloader install API was called
     mock_bootloader.install_image.assert_called_with(f"./{sonic_image_filename}")
     # Assert all below commands were called, so we ensure that
