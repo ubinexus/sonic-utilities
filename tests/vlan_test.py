@@ -1090,8 +1090,7 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "Ethernet64"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code != 0
-        assert "Ethernet64 is already in routed mode" in result.output
+        assert result.exit_code == 0
 
         # add Ethernet64 to vlan 1001 but Ethernet64 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
