@@ -317,9 +317,6 @@ def disable_vlan_sag(db, vid):
 
     log.log_info(f"'vlan static-anycast-gateway disable {vid}' executing...")
 
-    if not clicommon.is_vlanid_in_range(vid):
-        ctx.fail(f"Invalid VLAN ID {vid} (1-4094)")
-
     vlan = f'Vlan{vid}'
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
         ctx.fail(f"Interface {vlan} does not exist")
