@@ -35,7 +35,7 @@ class TestSag(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["del"],
-                        ["00:11:22:33:44:55"], obj=db)
+                        obj=db)
         assert result.exit_code == 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
         assert not db.cfgdb.get_entry("SAG", "GLOBAL")
         
@@ -49,7 +49,7 @@ class TestSag(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["del"],
-                        ["00:11:22:33:44:55"], obj=db)
+                        obj=db)
         assert result.exit_code == 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
         assert not db.cfgdb.get_entry("SAG", "GLOBAL")
 
@@ -86,3 +86,4 @@ class TestSag(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
+

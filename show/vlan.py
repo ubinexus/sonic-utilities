@@ -93,13 +93,10 @@ def get_static_anycast_gateway(ctx, vlan):
     cfg, _ = ctx
     _, vlan_ip_data, _ = cfg
 
-    for key in vlan_ip_data:
-        if clicommon.is_ip_prefix_in_key(key):
-            continue
-        if vlan == key:
-            sag = vlan_ip_data[key].get("static_anycast_gateway")
-            if sag == "true":
-                return "enabled"
+    if vlan in vlan_ip_data:
+        if vlan_ip_data[vlan].get("static_anycast_gateway") == "true":
+            return "enabled"
+
     return "disabled"
 
 class VlanBrief:

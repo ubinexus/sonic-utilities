@@ -2062,20 +2062,21 @@ def ztp(status, verbose):
 @clicommon.pass_db
 def sag(db):
     """Show static anycast gateway information"""
-    sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
-    sag_mac = sag_entry.get('gateway_mac')
-    
     header = ['MacAddress', 'Interfaces']
     body = []
-    intf_dict = db.cfgdb.get_table('VLAN_INTERFACE')
-    if intf_dict:
-        for intf in intf_dict:
-            if 'static_anycast_gateway' in intf_dict[intf] and 'true' == intf_dict[intf]['static_anycast_gateway']:
+
+    sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
+    if sag_entry:
+        sag_mac = sag_entry.get('gateway_mac')
+
+        intf_dict = db.cfgdb.get_table('VLAN_INTERFACE')
+        for key, value in intf_dict.items():
+            if value.get('static_anycast_gateway') == 'true':
                 if not body:
-                    body.append([sag_mac, intf])
+                    body.append([sag_mac, key])
                 else:
-                    body.append(['', intf])
-    
+                    body.append(['', key])
+
     click.echo("Static Anycast Gateway Information")
     click.echo(tabulate(body, header, tablefmt='simple'))
 

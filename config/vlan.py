@@ -136,13 +136,6 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
             clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
             clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
 
-    keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-
-    if keys:
-        ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
-
-    db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
-
 def restart_ndppd():
     verify_swss_running_cmd = ['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss']
     docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
@@ -308,6 +301,9 @@ def enable_vlan_sag(db, vid):
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
         ctx.fail(f"Interface {vlan} does not exist")
 
+    if db.cfgdb.get_entry('VLAN_INTERFACE', vlan) == 'true':
+        ctx.fail(f"static-anycast-gateway is already enabled")
+
     db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"static_anycast_gateway": "true"})
     click.echo('static-anycast-gateway setting saved to ConfigDB')
 
@@ -327,6 +323,9 @@ def disable_vlan_sag(db, vid):
     vlan = f'Vlan{vid}'
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
         ctx.fail(f"Interface {vlan} does not exist")
+
+    if db.cfgdb.get_entry('VLAN_INTERFACE', vlan) == 'false':
+        ctx.fail(f"static-anycast-gateway is already disabled")
 
     db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"static_anycast_gateway": "false"})
     click.echo('static-anycast-gateway setting saved to ConfigDB')

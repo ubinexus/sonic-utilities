@@ -7040,16 +7040,14 @@ def add_mac(db, mac_address):
         click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} is alreday existed. Remove it first')
 
 @mac_address.command('del')
-@click.argument('mac_address', metavar='<mac_address>', required=True, type=str)
 @clicommon.pass_db
-def del_mac(db, mac_address):
+def del_mac(db):
     """Del static-anycast-gateway mac address command"""
     log.log_info(f"'static-anycast-gateway mac_address del {mac_address}' executing...")
 
     sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
     if sag_entry:
-        if sag_entry.get('gateway_mac').lower() == mac_address.lower():
-            db.cfgdb.mod_entry('SAG', 'GLOBAL', None)
+        db.cfgdb.mod_entry('SAG', 'GLOBAL', None)
     else:
         click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} not found.')
 
