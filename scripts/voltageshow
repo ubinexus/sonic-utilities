@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-    Script to show fan status.
+    Script to show voltage sensors info.
 """
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
