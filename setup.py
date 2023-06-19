@@ -170,6 +170,7 @@ setup(
         'scripts/tempershow',
         'scripts/tunnelstat',
         'scripts/update_json.py',
+        'scripts/voltageshow',
         'scripts/voqutil',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
