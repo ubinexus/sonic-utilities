@@ -86,12 +86,12 @@ TEST_DATA = {
         UPD: {
             ASIC_DB: {
                 RT_ENTRY_TABLE: {
-                    OP_SET: {
-                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    },
-                    OP_DEL: {
-                        RT_ENTRY_KEY_PREFIX + "10.10.10.10/32" + RT_ENTRY_KEY_SUFFIX: {}
-                    }
+                    OP_SET: [
+                        (RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX, {}),
+                    ],
+                    OP_DEL: [
+                        (RT_ENTRY_KEY_PREFIX + "10.10.10.10/32" + RT_ENTRY_KEY_SUFFIX, {}),
+                    ]
                 }
             }
         }
@@ -480,4 +480,44 @@ TEST_DATA = {
             }
         }
     },
+    "11": {
+        DESCR: "dualtor duplicate updates",
+        ARGS: "route_check -m DEBUG -i 1",
+        RET: 0,
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "20.20.196.12/31" : { "ifname": "portchannel0" },
+                    "20.20.196.20/31" : { "ifname": "portchannel0" },
+                    "10.10.196.30/31" : { "ifname": "lo" }
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
+                }
+            }
+        },
+        UPD: {
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    OP_SET: [
+                        (RT_ENTRY_KEY_PREFIX + "20.20.196.12/31" + RT_ENTRY_KEY_SUFFIX, {}),
+                        (RT_ENTRY_KEY_PREFIX + "20.20.196.12/31" + RT_ENTRY_KEY_SUFFIX, {}),
+                        (RT_ENTRY_KEY_PREFIX + "20.20.196.20/31" + RT_ENTRY_KEY_SUFFIX, {}),
+                        (RT_ENTRY_KEY_PREFIX + "20.20.196.20/31" + RT_ENTRY_KEY_SUFFIX, {}),
+                    ],
+                    OP_DEL: [
+                    ]
+                }
+            }
+        }
+    }
 }

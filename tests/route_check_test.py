@@ -35,38 +35,24 @@ def set_test_case_data(ctdata):
     subscribers_returned = {}
 
 
-def recursive_update(d, t):
-    assert (type(t) is dict)
-    for k in t.keys():
-        if type(t[k]) is not dict:
-            d.update(t)
-            return
-
-        if k not in d:
-            d[k] = {}
-        recursive_update(d[k], t[k])
-
-
 class Table:
 
     def __init__(self, db, tbl):
         self.db = db
         self.tbl = tbl
-        self.data = copy.deepcopy(self.get_val(current_test_data[PRE], [db, tbl]))
+        self.data = self.get_val(current_test_data[PRE], [db, tbl])
         # print("Table:init: db={} tbl={} data={}".format(db, tbl, json.dumps(self.data, indent=4)))
 
 
     def update(self):
-        t = copy.deepcopy(self.get_val(current_test_data.get(UPD, {}),
-            [self.db, self.tbl, OP_SET]))
-        drop = copy.deepcopy(self.get_val(current_test_data.get(UPD, {}),
-                        [self.db, self.tbl, OP_DEL]))
-        if t:
-            recursive_update(self.data, t)
+        add = self.get_val(current_test_data.get(UPD, {}), [self.db, self.tbl, OP_SET])
+        drop = self.get_val(current_test_data.get(UPD, {}), [self.db, self.tbl, OP_DEL])
 
-        for k in drop:
+        # update existing table content
+        for k, _ in drop:
             self.data.pop(k, None)
-        return (list(t.keys()), list(drop.keys()))
+        self.data.update(add)
+        return ([_[0] for _ in add], [_[0] for _ in drop])
 
 
     def get_val(self, d, keys):

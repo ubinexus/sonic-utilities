@@ -192,38 +192,16 @@ def cmps(s1, s2):
     return 1
 
 
-def diff_sorted_lists(t1, t2):
+def diff_lists(t1, t2):
     """
-    helper to compare two sorted lists.
+    helper to compare two lists.
     :param t1: list 1
     :param t2: list 2
     :return (<t1 entries that are not in t2>, <t2 entries that are not in t1>)
     """
-    t1_x = t2_x = 0
-    t1_miss = []
-    t2_miss = []
-    t1_len = len(t1);
-    t2_len = len(t2);
-    while t1_x < t1_len and t2_x < t2_len:
-        d = cmps(t1[t1_x], t2[t2_x])
-        if (d == 0):
-            t1_x += 1
-            t2_x += 1
-        elif (d < 0):
-            t1_miss.append(t1[t1_x])
-            t1_x += 1
-        else:
-            t2_miss.append(t2[t2_x])
-            t2_x += 1
-
-    while t1_x < t1_len:
-        t1_miss.append(t1[t1_x])
-        t1_x += 1
-
-    while t2_x < t2_len:
-        t2_miss.append(t2[t2_x])
-        t2_x += 1
-    return t1_miss, t2_miss
+    t1_set = set(t1)
+    t2_set = set(t2)
+    return list(t1_set.difference(t2_set)), list(t2_set.difference(t1_set))
 
 
 def checkout_rt_entry(k):
@@ -244,7 +222,7 @@ def get_subscribe_updates(selector, subs):
     helper to collect subscribe messages for a period
     :param selector: Selector object to wait
     :param subs: Subscription object to pop messages
-    :return (add, del) messages as sorted
+    :return (add, del) messages
     """
     adds = []
     deletes = []
@@ -267,7 +245,7 @@ def get_subscribe_updates(selector, subs):
 
     print_message(syslog.LOG_DEBUG, "adds={}".format(adds))
     print_message(syslog.LOG_DEBUG, "dels={}".format(deletes))
-    return (sorted(adds), sorted(deletes))
+    return (adds, deletes)
 
 
 def is_vrf(k):
@@ -277,7 +255,7 @@ def is_vrf(k):
 def get_routes():
     """
     helper to read route table from APPL-DB.
-    :return list of sorted routes with prefix ensured
+    :return list of routes with prefix ensured
     """
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for routes")
@@ -292,15 +270,15 @@ def get_routes():
         if not is_local(k):
             valid_rt.append(add_prefix_ifnot(k.lower()))
 
-    print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
-    return sorted(valid_rt)
+    print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": valid_rt}, indent=4))
+    return valid_rt
 
 
 def get_route_entries():
     """
     helper to read present route entries from ASIC-DB and
     as well initiate selector for ASIC-DB:ASIC-state updates.
-    :return (selector,  subscriber, <list of sorted routes>)
+    :return (selector,  subscriber, <list of routes>)
     """
     db = swsscommon.DBConnector(ASIC_DB_NAME, 0)
     subs = swsscommon.SubscriberStateTable(db, ASIC_TABLE_NAME)
@@ -315,11 +293,11 @@ def get_route_entries():
         if res:
             rt.append(e)
 
-    print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
+    print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": rt}, indent=4))
 
     selector = swsscommon.Select()
     selector.addSelectable(subs)
-    return (selector, subs, sorted(rt))
+    return (selector, subs, rt)
 
 
 def is_suppress_fib_pending_enabled():
@@ -350,7 +328,7 @@ def get_frr_routes():
 def get_interfaces():
     """
     helper to read interface table from APPL-DB.
-    :return sorted list of IP addresses with added prefix
+    :return list of IP addresses with added prefix
     """
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for interfaces")
@@ -368,8 +346,8 @@ def get_interfaces():
         if not is_local(ip):
             intf.append(ip)
 
-    print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": sorted(intf)}, indent=4))
-    return sorted(intf)
+    print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": intf}, indent=4))
+    return intf
 
 
 def filter_out_local_interfaces(keys):
@@ -651,17 +629,17 @@ def check_routes():
     intf_appl = get_interfaces()
 
     # Diff APPL-DB routes & ASIC-DB routes
-    rt_appl_miss, rt_asic_miss = diff_sorted_lists(rt_appl, rt_asic)
+    rt_appl_miss, rt_asic_miss = diff_lists(rt_appl, rt_asic)
 
     # Check missed ASIC routes against APPL-DB INTF_TABLE
-    _, rt_asic_miss = diff_sorted_lists(intf_appl, rt_asic_miss)
+    _, rt_asic_miss = diff_lists(intf_appl, rt_asic_miss)
     rt_asic_miss = filter_out_default_routes(rt_asic_miss)
     rt_asic_miss = filter_out_vnet_routes(rt_asic_miss)
     rt_asic_miss = filter_out_standalone_tunnel_routes(rt_asic_miss)
     rt_asic_miss = filter_out_soc_ip_routes(rt_asic_miss)
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
-    intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
+    intf_appl_miss, _ = diff_lists(intf_appl, rt_asic)
 
     if rt_appl_miss:
         rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
@@ -674,18 +652,21 @@ def check_routes():
         adds, deletes = get_subscribe_updates(selector, subs)
 
         # Drop all those for which SET received
-        rt_appl_miss, _ = diff_sorted_lists(rt_appl_miss, adds)
+        rt_appl_miss, _ = diff_lists(rt_appl_miss, adds)
 
         # Drop all those for which DEL received
-        rt_asic_miss, _ = diff_sorted_lists(rt_asic_miss, deletes)
+        rt_asic_miss, _ = diff_lists(rt_asic_miss, deletes)
 
     if rt_appl_miss:
+        rt_appl_miss.sort()
         results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
 
     if intf_appl_miss:
+        intf_appl_miss.sort()
         results["missed_INTF_TABLE_entries"] = intf_appl_miss
 
     if rt_asic_miss:
+        rt_asic_miss.sort()
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
     rt_frr_miss = check_frr_pending_routes()
