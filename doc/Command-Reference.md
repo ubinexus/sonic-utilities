@@ -202,7 +202,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
-| v7 | May-06-2021 | Add static DNS show and config commands |
+| v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
