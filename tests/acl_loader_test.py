@@ -235,6 +235,10 @@ class TestMasicAclLoader(object):
                         mock.MagicMock(return_value={'front_ns': ['asic0', 'asic1'], 'back_ns': '', 'fabric_ns': ''})):
             yield AclLoader()
 
+        # mock single asic to avoid affecting other tests
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+
     def test_check_npu_db(self, acl_loader):
         assert len(acl_loader.per_npu_configdb) == 2
         assert len(acl_loader.per_npu_statedb) == 2
