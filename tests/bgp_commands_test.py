@@ -20,7 +20,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 10.0.0.1       4  65200       5919       2717         0      0       0  1d21h11m   6402            ARISTA01T2
 10.0.0.5       4  65200       5916       2714         0      0       0  1d21h10m   6402            ARISTA03T2
@@ -60,7 +60,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 fc00::1a       4  65200       6665       6672         0      0       0  2d09h39m   6402            ARISTA07T2
 fc00::2        4  65200       6666       7913         0      0       0  2d09h39m   6402            ARISTA01T2
@@ -98,11 +98,35 @@ Error: bgp summary from bgp container not in json format
 """
 
 show_error_no_v6_neighbor = """\
-No IPv6 neighbor is configured
+
+IPv6 Unicast Summary:
+BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
 """
 
 show_error_no_v4_neighbor = """\
-No IPv4 neighbor is configured
+
+IPv4 Unicast Summary:
+BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 12811
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
 """
 
 show_bgp_summary_v4_chassis = """\
@@ -337,10 +361,10 @@ class TestBgpCommands(object):
         show = setup_bgp_commands
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
         print("{}".format(result.output))
         assert result.exit_code == 0
-        assert result.output == show_error_no_v6_neighbor
+        assert result.output == show_error_no_v4_neighbor
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['show_bgp_summary_no_neigh'], indirect=['setup_single_bgp_instance'])
@@ -351,7 +375,7 @@ class TestBgpCommands(object):
         show = setup_bgp_commands
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
         print("{}".format(result.output))
         assert result.exit_code == 0
-        assert result.output == show_error_no_v4_neighbor
+        assert result.output == show_error_no_v6_neighbor

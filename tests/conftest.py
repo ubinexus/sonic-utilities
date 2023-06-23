@@ -170,6 +170,9 @@ def setup_single_bgp_instance(request):
     elif request.param == 'v6':
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'ipv6_bgp_summary.json')
+    elif request.param == 'show_bgp_summary_no_neigh':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'no_bgp_neigh.json')
     elif request.param == 'show_run_bgp':
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'show_run_bgp.txt')
@@ -186,9 +189,6 @@ def setup_single_bgp_instance(request):
     else:
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
-
-    def mock_show_bgp_summary_no_neigh(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
-        return "{}"
 
     def mock_show_bgp_summary(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
         if os.path.isfile(bgp_mocked_json):
@@ -247,9 +247,6 @@ def setup_single_bgp_instance(request):
             return_value=mock_show_bgp_network_single_asic(request))
     elif request.param == 'ip_route_for_int_ip':
         bgp_util.run_bgp_command = mock_run_bgp_command_for_static
-    elif request.param == "show_bgp_summary_no_neigh":
-        bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=mock_show_bgp_summary_no_neigh("", ""))
     elif request.param.startswith('show_run_bgp'):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_run_bgp(request))
