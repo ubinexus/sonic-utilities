@@ -181,8 +181,9 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
     bgp_summary = {}
     cmd_output_json = {}
-    has_bgp_neighbors = False
+
     for ns in device.get_ns_list_based_on_options():
+        has_bgp_neighbors = False
         cmd_output = run_bgp_show_command(vtysh_cmd, ns)
         device.current_namespace = ns
         try:
@@ -203,7 +204,7 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
         out_cmd = cmd_output_json[key] if has_bgp_neighbors else no_neigh_cmd_output_json
         process_bgp_summary_json(bgp_summary, out_cmd, device, has_bgp_neighbors=has_bgp_neighbors)
-        has_bgp_neighbors = False
+
     return bgp_summary
 
 
@@ -216,7 +217,7 @@ def display_bgp_summary(bgp_summary, af):
         af: IPV4 or IPV6
 
     '''
-    headers = ["Neighbhor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
+    headers = ["Neighbor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
                "InQ", "OutQ", "Up/Down", "State/PfxRcd", "NeighborName"]
 
     try:
