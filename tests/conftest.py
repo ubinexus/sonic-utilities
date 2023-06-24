@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from sonic_py_common import device_info
@@ -61,18 +61,18 @@ def get_cmd_module():
 def set_mock_apis():
     import config.main as config
     cwd = os.path.dirname(os.path.realpath(__file__))
-    config.asic_type = mock.MagicMock(return_value="broadcom")
-    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+    config.asic_type = MagicMock(return_value="broadcom")
+    config._get_device_type = MagicMock(return_value="ToRRouter")
 
 @pytest.fixture
 def setup_qos_mock_apis():
     cwd = os.path.dirname(os.path.realpath(__file__))
-    device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
+    device_info.get_paths_to_platform_and_hwsku_dirs = MagicMock(
         return_value=(
             os.path.join(cwd, "."), os.path.join(cwd, "qos_config_input")
         )
     )
-    device_info.get_sonic_version_file = mock.MagicMock(
+    device_info.get_sonic_version_file = MagicMock(
         return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
     )
 
@@ -82,9 +82,9 @@ def setup_single_broadcom_asic():
     import show.main as show
 
     set_mock_apis()
-    device_info.get_num_npus = mock.MagicMock(return_value=1)
+    device_info.get_num_npus = MagicMock(return_value=1)
     config._get_sonic_generated_services = \
-        mock.MagicMock(return_value=(generated_services_list, []))
+        MagicMock(return_value=(generated_services_list, []))
 
 
 @pytest.fixture
@@ -93,11 +93,11 @@ def setup_multi_broadcom_masic():
     import show.main as show
 
     set_mock_apis()
-    device_info.get_num_npus = mock.MagicMock(return_value=2)
+    device_info.get_num_npus = MagicMock(return_value=2)
 
     yield
 
-    device_info.get_num_npus = mock.MagicMock(return_value=1)
+    device_info.get_num_npus = MagicMock(return_value=1)
 
 
 @pytest.fixture
@@ -150,10 +150,10 @@ def setup_single_bgp_instance(request):
     if any ([request.param == 'ipv6_route_err', request.param == 'ip_route',\
              request.param == 'ip_specific_route', request.param == 'ip_special_route',\
              request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
-        bgp_util.run_bgp_command = mock.MagicMock(
+        bgp_util.run_bgp_command = MagicMock(
             return_value=mock_run_show_ip_route_commands(request))
     else:
-        bgp_util.run_bgp_command = mock.MagicMock(
+        bgp_util.run_bgp_command = MagicMock(
             return_value=mock_run_bgp_command("", ""))
 
 
@@ -224,8 +224,8 @@ def mock_restart_dhcp_relay_service():
     origin_funcs = []
     origin_funcs.append(config.vlan.dhcp_relay_util.restart_dhcp_relay_service)
     origin_funcs.append(config.vlan.is_dhcp_relay_running)
-    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = mock.MagicMock(return_value=0)
-    config.vlan.is_dhcp_relay_running = mock.MagicMock(return_value=True)
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = MagicMock(return_value=0)
+    config.vlan.is_dhcp_relay_running = MagicMock(return_value=True)
 
     yield
 
