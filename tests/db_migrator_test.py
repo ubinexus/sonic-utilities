@@ -719,6 +719,7 @@ class TestFastUpgrade_to_4_0_3(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
         dbconnector.dedicated_dbs['STATE_DB'] = None
 
     def mock_dedicated_config_db(self, filename):
