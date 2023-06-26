@@ -20,7 +20,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 10.0.0.1       4  65200       5919       2717         0      0       0  1d21h11m   6402            ARISTA01T2
 10.0.0.5       4  65200       5916       2714         0      0       0  1d21h10m   6402            ARISTA03T2
@@ -60,7 +60,7 @@ Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 fc00::1a       4  65200       6665       6672         0      0       0  2d09h39m   6402            ARISTA07T2
 fc00::2        4  65200       6666       7913         0      0       0  2d09h39m   6402            ARISTA01T2
@@ -107,7 +107,7 @@ Peers 0, using 0 KiB of memory
 Peer groups 0, using 0 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 
 Total number of neighbors 0
@@ -123,7 +123,7 @@ Peers 0, using 0 KiB of memory
 Peer groups 0, using 0 bytes of memory
 
 
-Neighbor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
 -----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
 
 Total number of neighbors 0
