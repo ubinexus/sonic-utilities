@@ -217,7 +217,7 @@ def display_bgp_summary(bgp_summary, af):
         af: IPV4 or IPV6
 
     '''
-    headers = ["Neighbor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
+    headers = ["Neighbhor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
                "InQ", "OutQ", "Up/Down", "State/PfxRcd", "NeighborName"]
 
     try:
