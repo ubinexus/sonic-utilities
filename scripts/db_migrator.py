@@ -534,7 +534,7 @@ class DBMigrator():
 
     def migrate_restapi(self):
         # RESTAPI - add missing key
-        if not self.minigraph_data:
+        if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
             return
         RESTAPI = self.minigraph_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
@@ -547,7 +547,7 @@ class DBMigrator():
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
-        if not self.minigraph_data:
+        if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
             return
         TELEMETRY = self.minigraph_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
@@ -560,7 +560,7 @@ class DBMigrator():
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
-        if not self.minigraph_data:
+        if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
             return
         CONSOLE_SWITCH = self.minigraph_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
@@ -571,7 +571,7 @@ class DBMigrator():
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
-        if not self.minigraph_data:
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
             return
         log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
@@ -579,7 +579,6 @@ class DBMigrator():
         docker_routing_config_mode = self.minigraph_data["DEVICE_METADATA"]["localhost"]["docker_routing_config_mode"]
         if 'synchronous_mode' not in metadata:
             metadata['synchronous_mode'] = synchronous_mode
-            metadata['docker_routing_config_mode'] = docker_routing_config_mode
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
