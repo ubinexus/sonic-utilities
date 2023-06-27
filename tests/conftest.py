@@ -117,15 +117,17 @@ def setup_single_bgp_instance(request):
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'ipv6_bgp_summary.json')
     elif request.param == 'show_bgp_summary_no_neigh':
-        bgp_mocked_json = os.path.join(
+        bgp_neigh_mocked_json = os.path.join(
             test_path, 'mock_tables', 'no_bgp_neigh.json')
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'device_bgp_info.json')
     else:
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
-    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
-        if os.path.isfile(bgp_mocked_json):
-            with open(bgp_mocked_json) as json_data:
+    def mock_run_bgp_command(mock_bgp_file):
+        if os.path.isfile(mock_bgp_file):
+            with open(mock_bgp_file) as json_data:
                 mock_frr_data = json_data.read()
             return mock_frr_data
         return ""
@@ -146,15 +148,18 @@ def setup_single_bgp_instance(request):
         else:
             return ""
 
-
-    if any ([request.param == 'ipv6_route_err', request.param == 'ip_route',\
-             request.param == 'ip_specific_route', request.param == 'ip_special_route',\
-             request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
+    if any([request.param == 'ipv6_route_err', request.param == 'ip_route',
+            request.param == 'ip_specific_route', request.param == 'ip_special_route',
+            request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_run_show_ip_route_commands(request))
+    elif request.param == "show_bgp_summary_no_neigh":
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=iter([mock_run_bgp_command(bgp_neigh_mocked_json),
+                               mock_run_bgp_command(bgp_mocked_json)]))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=mock_run_bgp_command("", ""))
+            return_value=mock_run_bgp_command(bgp_mocked_json))
 
 
 @pytest.fixture
