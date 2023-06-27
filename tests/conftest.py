@@ -154,9 +154,9 @@ def setup_single_bgp_instance(request):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_run_show_ip_route_commands(request))
     elif request.param == "show_bgp_summary_no_neigh":
+        functions_to_call = [mock_run_bgp_command(bgp_neigh_mocked_json), mock_run_bgp_command(bgp_mocked_json)]
         bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=iter([mock_run_bgp_command(bgp_neigh_mocked_json),
-                               mock_run_bgp_command(bgp_mocked_json)]))
+            return_value=iter(functions_to_call))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_run_bgp_command(bgp_mocked_json))
