@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 
 """
-    Script to show Voltage Sensor status.
+    Script to show fan status.
 """
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 
 
-header = ['Sensor', 'Voltage', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
+header = ['Sensor', 'Current(mA)', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
 
-VOLTAGE_TABLE_NAME = 'VOLTAGE_INFO'
-VOLTAGE_FIELD_NAME = 'voltage'
+CURRENT_TABLE_NAME = 'CURRENT_INFO'
+CURRENT_FIELD_NAME = 'current'
 TIMESTAMP_FIELD_NAME = 'timestamp'
 HIGH_THRESH_FIELD_NAME = 'high_threshold'
 LOW_THRESH_FIELD_NAME = 'low_threshold'
@@ -20,28 +20,28 @@ CRIT_LOW_THRESH_FIELD_NAME = 'critical_low_threshold'
 WARNING_STATUS_FIELD_NAME = 'warning_status'
 
 
-class VoltageShow(object):
+class CurrentShow(object):
     def __init__(self):
         self.db = SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.STATE_DB)
 
     def show(self):
-        keys = self.db.keys(self.db.STATE_DB, VOLTAGE_TABLE_NAME + '*')
+        keys = self.db.keys(self.db.STATE_DB, CURRENT_TABLE_NAME + '*')
         if not keys:
-            print('Voltage Not detected\n')
+            print('Current Not detected\n')
             return
 
         table = []
         for key in natsorted(keys):
             key_list = key.split('|')
             if len(key_list) != 2: # error data in DB, log it and ignore
-                print('Warn: Invalid key in table {}: {}'.format(VOLTAGE_TABLE_NAME, key))
+                print('Warn: Invalid key in table {}: {}'.format(CURRENT_TABLE_NAME, key))
                 continue
 
             name = key_list[1]
             data_dict = self.db.get_all(self.db.STATE_DB, key)
             table.append((name, 
-                          data_dict[VOLTAGE_FIELD_NAME], 
+                          data_dict[CURRENT_FIELD_NAME], 
                           data_dict[HIGH_THRESH_FIELD_NAME],
                           data_dict[LOW_THRESH_FIELD_NAME],
                           data_dict[CRIT_HIGH_THRESH_FIELD_NAME],
@@ -53,9 +53,9 @@ class VoltageShow(object):
         if table:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
-            print('No voltage data available\n')
+            print('No current data available\n')
 
 
 if __name__ == "__main__":
-    voltageShow = VoltageShow()
-    voltageShow.show()
+    currentShow = CurrentShow()
+    currentShow.show()

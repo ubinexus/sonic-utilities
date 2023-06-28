@@ -142,7 +142,15 @@ def temperature():
 @platform.command()
 def voltage():
     """Show device voltage information"""
-    cmd = 'voltageshow'
+    cmd = ['voltageshow']
+    clicommon.run_command(cmd)
+
+
+# 'current' subcommand ("show platform current")
+@platform.command()
+def current():
+    """Show device current information"""
+    cmd = ['currentshow']
     clicommon.run_command(cmd)
 
 
