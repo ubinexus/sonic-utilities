@@ -23,6 +23,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+        MINIGRAPH_FILE = os.path.join(mocked_db_path, "minigraph.xml")
 except KeyError:
     pass
 
