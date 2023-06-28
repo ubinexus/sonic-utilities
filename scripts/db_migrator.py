@@ -57,7 +57,7 @@ class DBMigrator():
         # this is to avoid duplicating the hardcoded these values in db_migrator
         self.minigraph_data = None
         if os.path.isfile(MINIGRAPH_FILE):
-            self.minigraph_data = parse_xml("/etc/sonic/minigraph.xml")
+            self.minigraph_data = parse_xml(MINIGRAPH_FILE)
 
         db_kwargs = {}
         if socket:
@@ -574,12 +574,11 @@ class DBMigrator():
         # DEVICE_METADATA - synchronous_mode entry
         if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
             return
-        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        synchronous_mode = self.minigraph_data["DEVICE_METADATA"]["localhost"]["synchronous_mode"]
-        docker_routing_config_mode = self.minigraph_data["DEVICE_METADATA"]["localhost"]["docker_routing_config_mode"]
+        DEVICE_METADATA = self.minigraph_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
-            metadata['synchronous_mode'] = synchronous_mode
+            metadata['synchronous_mode'] = DEVICE_METADATA.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
