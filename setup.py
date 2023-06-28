@@ -171,6 +171,7 @@ setup(
         'scripts/tunnelstat',
         'scripts/update_json.py',
         'scripts/voltageshow',
+        'scripts/currentshow',
         'scripts/voqutil',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
