@@ -9,9 +9,10 @@ import re
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
-from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
+from minigraph import parse_xml
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
 
 # mock the redis for unit test purposes #
 try:
@@ -22,6 +23,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+        MINIGRAPH_FILE = os.path.join(mocked_db_path, "minigraph.xml")
 except KeyError:
     pass
 
@@ -45,11 +47,21 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_1'
+        self.CURRENT_VERSION = 'version_4_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
+
+        # load config data from minigraph to get the default/hardcoded values from minigraph.py
+        # this is to avoid duplicating the hardcoded these values in db_migrator
+        self.minigraph_data = None
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+        except Exception as e:
+            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
+            pass
 
         db_kwargs = {}
         if socket:
@@ -76,11 +88,14 @@ class DBMigrator():
             self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
 
         version_info = device_info.get_sonic_version_info()
-        asic_type = version_info.get('asic_type')
-        self.asic_type = asic_type
+        self.asic_type = version_info.get('asic_type')
+        if not self.asic_type:
+            log.log_error("ASIC type information not obtained. DB migration will not be reliable")
         self.hwsku = device_info.get_hwsku()
+        if not self.hwsku:
+            log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
-        if asic_type == "mellanox":
+        if self.asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
             self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
@@ -167,7 +182,7 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
             log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-        
+
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -265,7 +280,6 @@ class DBMigrator():
         @append_item_method - a function which is called to append an item to the list of pending commit items
                               any update to buffer configuration will be pended and won't be applied until
                               all configuration is checked and aligns with the default one
-
         1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
            if their names have the convention of pg_lossless_<speed>_<cable_length>_profile
            where the speed and cable_length belongs speed_list and cable_len_list respectively
@@ -349,7 +363,6 @@ class DBMigrator():
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
         In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
-
         During warm reboot, buffer tables should be installed in the first place.
         However, it isn't able to achieve that when system is warm-rebooted from an old image
         without dynamic buffer supported, because the buffer info wasn't in the APPL_DB in the old image.
@@ -357,7 +370,6 @@ class DBMigrator():
         During warm-reboot, db_migrator adjusts buffer info in CONFIG_DB by removing some fields
         according to requirement from dynamic buffer calculation.
         The buffer info before that adjustment needs to be copied to APPL_DB.
-
         1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
         2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
            The separator in fields that reference objects in other table needs to be updated from '|' to ':'
@@ -367,7 +379,6 @@ class DBMigrator():
            - BUFFER_QUEUE, separator updated for field 'profile
            - BUFFER_PORT_INGRESS_PROFILE_LIST, separator updated for field 'profile_list'
            - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
-
         '''
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
@@ -528,38 +539,50 @@ class DBMigrator():
 
     def migrate_restapi(self):
         # RESTAPI - add missing key
+        if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
+            return
+        restapi_data = self.minigraph_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
         config = self.configDB.get_entry('RESTAPI', 'config')
         if not config:
-            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+            self.configDB.set_entry("RESTAPI", "config", restapi_data.get("config"))
         certs = self.configDB.get_entry('RESTAPI', 'certs')
         if not certs:
-            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+            self.configDB.set_entry("RESTAPI", "certs", restapi_data.get("certs"))
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
+        if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
+            return
+        telemetry_data = self.minigraph_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
         gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
         if not gnmi:
-            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+            self.configDB.set_entry("TELEMETRY", "gnmi", telemetry_data.get("gnmi"))
         certs = self.configDB.get_entry('TELEMETRY', 'certs')
         if not certs:
-            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+            self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
+        if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
+            return
+        console_switch_data = self.minigraph_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
         console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
         if not console_mgmt:
             self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
-                CONSOLE_SWITCH.get("console_mgmt"))
+                console_switch_data.get("console_mgmt"))
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
-        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_data = self.minigraph_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
-            metadata['synchronous_mode'] = 'enable'
+            metadata['synchronous_mode'] = device_metadata_data.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
@@ -572,29 +595,104 @@ class DBMigrator():
         dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
         if len(dscp_to_tc_map_table_names) == 0:
             return
-        
+
         qos_maps = self.configDB.get_table('PORT_QOS_MAP')
         if 'global' not in qos_maps.keys():
             # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
+    def migrate_feature_timer(self):
+        '''
+        Migrate feature 'has_timer' field to 'delayed'
+        '''
+        feature_table = self.configDB.get_table('FEATURE')
+        for feature, config in feature_table.items():
+            state = config.get('has_timer')
+            if state is not None:
+                config['delayed'] = state
+                config.pop('has_timer')
+                self.configDB.set_entry('FEATURE', feature, config)
     def migrate_route_table(self):
         """
         Handle route table migration. Migrations handled:
         1. 'weight' attr in ROUTE object was introduced 202205 onwards.
             Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        2. 'protocol' attr in ROUTE introduced in 202305 onwards.
+            WarmRestartHelper reconcile logic requires to have "protocol" field in the old dumped ROUTE_TABLE.
         """
         route_table = self.appDB.get_table("ROUTE_TABLE")
         for route_prefix, route_attr in route_table.items():
+            if type(route_prefix) == tuple:
+                # IPv6 route_prefix is returned from db as tuple
+                route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+            else:
+                # IPv4 route_prefix is returned from db as str
+                route_key = "ROUTE_TABLE:{}".format(route_prefix)
+
             if 'weight' not in route_attr:
-                if type(route_prefix) == tuple:
-                    # IPv6 route_prefix is returned from db as tuple
-                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
-                else:
-                    # IPv4 route_prefix is returned from db as str
-                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
+            if 'protocol' not in route_attr:
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
+
+    def update_edgezone_aggregator_config(self):
+        """
+        Update cable length configuration in ConfigDB for T0 neighbor interfaces
+        connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
+        1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
+        2. If all the cable lengths are the same, do nothing and return.
+        3. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
+        """
+        device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
+        device_neighbors = self.configDB.get_table("DEVICE_NEIGHBOR")
+        cable_length = self.configDB.get_table("CABLE_LENGTH")
+        port_table = self.configDB.get_table("PORT")
+        edgezone_aggregator_devs = []
+        edgezone_aggregator_intfs = []
+        EDGEZONE_AGG_CABLE_LENGTH = "40m"
+        for k, v in device_neighbor_metadata.items():
+            if v.get("type") == "EdgeZoneAggregator":
+                    edgezone_aggregator_devs.append(k)
+
+        if len(edgezone_aggregator_devs) == 0:
+            return
+
+        for intf, intf_info in device_neighbors.items():
+            if intf_info.get("name") in edgezone_aggregator_devs:
+                edgezone_aggregator_intfs.append(intf)
+
+        cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+        first_cable_intf = next(iter(cable_length_table))
+        first_cable_length = cable_length_table[first_cable_intf]
+        index = 0
+
+        for intf, length in cable_length_table.items():
+            index += 1
+            if first_cable_length != length:
+                break
+            elif index == len(cable_length_table):
+                # All cable lengths are the same, nothing to modify
+                return
+
+        for intf, length in cable_length_table.items():
+            if intf in edgezone_aggregator_intfs:
+                # Set new cable length values
+                self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
+
+    def migrate_config_db_flex_counter_delay_status(self):
+        """
+        Migrate "FLEX_COUNTER_TABLE|*": { "value": { "FLEX_COUNTER_DELAY_STATUS": "false" } }
+        Set FLEX_COUNTER_DELAY_STATUS true in case of fast-reboot
+        """
+
+        flex_counter_objects = self.configDB.get_keys('FLEX_COUNTER_TABLE')
+        for obj in flex_counter_objects:
+            flex_counter = self.configDB.get_entry('FLEX_COUNTER_TABLE', obj)
+            delay_status = flex_counter.get('FLEX_COUNTER_DELAY_STATUS')
+            if delay_status is None or delay_status == 'false':
+                flex_counter['FLEX_COUNTER_DELAY_STATUS'] = 'true'
+                self.configDB.mod_entry('FLEX_COUNTER_TABLE', obj, flex_counter)
 
     def version_unknown(self):
         """
@@ -757,7 +855,7 @@ class DBMigrator():
     def version_2_0_2(self):
         """
         Version 2_0_2
-        This is the latest version for 202012 branch 
+        This is the latest version for 202012 branch
         """
         log.log_info('Handling version_2_0_2')
         self.set_version('version_3_0_0')
@@ -882,13 +980,33 @@ class DBMigrator():
         self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
-    
+
     def version_4_0_1(self):
         """
         Version 4_0_1.
+        """
+        self.migrate_feature_timer()
+        self.set_version('version_4_0_2')
+        return 'version_4_0_2'
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2.
+        """
+        log.log_info('Handling version_4_0_2')
+
+        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
+            self.migrate_config_db_flex_counter_delay_status()
+
+        self.set_version('version_4_0_3')
+        return 'version_4_0_3'
+
+    def version_4_0_3(self):
+        """
+        Version 4_0_3.
         This is the latest version for master branch
         """
-        log.log_info('Handling version_4_0_1')
+        log.log_info('Handling version_4_0_3')
         return None
 
     def get_version(self):
@@ -930,12 +1048,15 @@ class DBMigrator():
         # removed together with calling to migrate_copp_table function.
         if self.asic_type != "mellanox":
             self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+        if self.asic_type == "broadcom" and 'Force10-S6100' in str(self.hwsku):
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
+
+        # Updating edgezone aggregator cable length config for T0 devices
+        self.update_edgezone_aggregator_config()
 
     def migrate(self):
         version = self.get_version()
