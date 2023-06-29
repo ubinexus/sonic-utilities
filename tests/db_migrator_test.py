@@ -501,7 +501,6 @@ class TestWarmUpgrade_to_2_0_2(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_expected')
         expected_db = Db()
 
-        expected_db
         new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
@@ -519,7 +518,6 @@ class TestWarmUpgrade_to_2_0_2(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_without_mg_2_0_2_expected.json')
         expected_db = Db()
 
-        expected_db
         new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
