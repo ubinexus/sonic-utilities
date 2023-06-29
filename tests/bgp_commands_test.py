@@ -379,3 +379,31 @@ class TestBgpCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_error_no_v6_neighbor
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_multi_asic_no_v4_neigh(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v4_neighbor
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_multi_asic_no_v6_neigh(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v6_neighbor

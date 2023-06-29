@@ -296,6 +296,9 @@ def setup_multi_asic_bgp_instance(request):
         request.param.startswith('bgp_v4_neighbor') or \
         request.param.startswith('bgp_v6_neighbor'):
         m_asic_json_file = request.param
+    elif request.param == 'show_bgp_summary_no_neigh':
+        m_asic_no_neigh_json_file = 'no_bgp_neigh.json'
+        m_asic_basic_device_info_json_file = 'device_bgp_info.json'
     else:
         m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
@@ -310,7 +313,8 @@ def setup_multi_asic_bgp_instance(request):
         else:
             return ""
 
-    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
+    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND,
+                             m_asic_json_file=m_asic_json_file):
         if m_asic_json_file.startswith('bgp_v4_network') or \
             m_asic_json_file.startswith('bgp_v6_network'):
             return mock_show_bgp_network_multi_asic(m_asic_json_file)
@@ -331,6 +335,11 @@ def setup_multi_asic_bgp_instance(request):
     _old_run_bgp_command = bgp_util.run_bgp_command
     if request.param == 'ip_route_for_int_ip':
         bgp_util.run_bgp_command = mock_run_bgp_command_for_static
+    elif request.param == 'show_bgp_summary_no_neigh':
+        functions_to_call = [mock_run_bgp_command(m_asic_json_file=m_asic_no_neigh_json_file),
+                             mock_run_bgp_command(m_asic_json_file=m_asic_basic_device_info_json_file)]
+        bgp_util.run_bgp_command = mock.MagicMock(
+            side_effect=functions_to_call)
     else:
         bgp_util.run_bgp_command = mock_run_bgp_command
 
