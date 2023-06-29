@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import importlib
 
 from click.testing import CliRunner
 
@@ -381,16 +380,6 @@ class TestBgpCommands(object):
         assert result.exit_code == 0
         assert result.output == show_error_no_v6_neighbor
 
-
-class TestShowSumBgpMultiAsic(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-        from .mock_tables import mock_multi_asic
-        importlib.reload(mock_multi_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_namespace_config()
-
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['show_bgp_summary_no_neigh'], indirect=['setup_multi_asic_bgp_instance'])
     def test_bgp_summary_multi_asic_no_v4_neigh(
@@ -418,11 +407,3 @@ class TestShowSumBgpMultiAsic(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_error_no_v6_neighbor
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        from .mock_tables import mock_single_asic
-        importlib.reload(mock_single_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_database_config
