@@ -56,8 +56,12 @@ class DBMigrator():
         # load config data from minigraph to get the default/hardcoded values from minigraph.py
         # this is to avoid duplicating the hardcoded these values in db_migrator
         self.minigraph_data = None
-        if os.path.isfile(MINIGRAPH_FILE):
-            self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+        except Exception:
+            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
+            pass
 
         db_kwargs = {}
         if socket:
@@ -537,38 +541,38 @@ class DBMigrator():
         # RESTAPI - add missing key
         if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
             return
-        RESTAPI = self.minigraph_data['RESTAPI']
+        restapi_data = self.minigraph_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
         config = self.configDB.get_entry('RESTAPI', 'config')
         if not config:
-            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+            self.configDB.set_entry("RESTAPI", "config", restapi_data.get("config"))
         certs = self.configDB.get_entry('RESTAPI', 'certs')
         if not certs:
-            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+            self.configDB.set_entry("RESTAPI", "certs", restapi_data.get("certs"))
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
         if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
             return
-        TELEMETRY = self.minigraph_data['TELEMETRY']
+        telemetry_data = self.minigraph_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
         gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
         if not gnmi:
-            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+            self.configDB.set_entry("TELEMETRY", "gnmi", telemetry_data.get("gnmi"))
         certs = self.configDB.get_entry('TELEMETRY', 'certs')
         if not certs:
-            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+            self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
         if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
             return
-        CONSOLE_SWITCH = self.minigraph_data['CONSOLE_SWITCH']
+        console_switch_data = self.minigraph_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
         console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
         if not console_mgmt:
             self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
-                CONSOLE_SWITCH.get("console_mgmt"))
+                console_switch_data.get("console_mgmt"))
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
@@ -576,9 +580,9 @@ class DBMigrator():
             return
         log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        DEVICE_METADATA = self.minigraph_data["DEVICE_METADATA"]["localhost"]
+        device_metadata_data = self.minigraph_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
-            metadata['synchronous_mode'] = DEVICE_METADATA.get("synchronous_mode")
+            metadata['synchronous_mode'] = device_metadata_data.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
