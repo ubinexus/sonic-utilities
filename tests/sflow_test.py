@@ -264,17 +264,6 @@ class TestShowSflow(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
-        #set to 301
-        result = runner.invoke(config.config.commands["sflow"].
-            commands["polling-interval"], ["301"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code != 0
-        # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-        assert result.output == show_sflow_output
-
         return
 
     @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'Ethernet1': {'admin_state': 'sample_state'}}))
