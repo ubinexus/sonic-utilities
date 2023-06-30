@@ -240,6 +240,15 @@ class TestBgpCommandsSingleAsic(object):
         assert result.exit_code == 0
         assert result.output == show_error_no_v6_neighbor_single_asic
 
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
+
 
 class TestBgpCommandsMultiAsic(object):
     @classmethod
@@ -278,10 +287,10 @@ class TestBgpCommandsMultiAsic(object):
         assert result.exit_code == 0
         assert result.output == show_error_no_v6_neighbor_multi_asic
 
-    # @classmethod
-    # def teardown_class(cls):
-    #     print("TEARDOWN")
-    #     from .mock_tables import mock_single_asic
-    #     importlib.reload(mock_single_asic)
-    #     from .mock_tables import dbconnector
-    #     dbconnector.load_database_config
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config
