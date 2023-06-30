@@ -125,6 +125,7 @@ Total number of neighbors 0
 """
 
 show_error_no_v6_neighbor_multi_asic = """\
+
 IPv6 Unicast Summary:
 asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
 BGP table version 8972
@@ -133,12 +134,16 @@ BGP table version 8972
 RIB entries 0, using 0 bytes of memory
 Peers 0, using 0 KiB of memory
 Peer groups 0, using 0 bytes of memory
+
+
 Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
 -----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
 Total number of neighbors 0
 """
 
 show_error_no_v4_neighbor_multi_asic = """\
+
 IPv4 Unicast Summary:
 asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
 BGP table version 8972
@@ -147,8 +152,11 @@ BGP table version 8972
 RIB entries 0, using 0 bytes of memory
 Peers 0, using 0 KiB of memory
 Peer groups 0, using 0 bytes of memory
+
+
 Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
 -----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
 Total number of neighbors 0
 """
 
