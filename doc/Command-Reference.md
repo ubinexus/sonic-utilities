@@ -194,12 +194,15 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
-
+* [Static DNS Commands](#static-dns-commands)
+  * [Static DNS config command](#static-dns-config-command)
+  * [Static DNS show command](#static-dns-show-command)
 
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
@@ -541,6 +544,62 @@ This command displays the current date and time configured on the system
   ```
   admin@sonic:~$ show clock
   Mon Mar 25 20:25:16 UTC 2019
+  ```
+
+**config clock date**
+	
+This command will set the date-time of the systetm, given strings with date-time format <YYYY-MM-DD> <HH:MM:SS>
+
+- Usage:
+  ```
+  config clock date <YYYY-MM-DD> <HH:MM:SS>
+  ```
+
+- Parameters:
+  - _date_: valid date in format YYYY-MM-DD
+  - _time_: valid time in format HH:MM:SS
+
+- Example:
+  ```
+  admin@sonic:~$ config clock date 2023-04-10 13:54:36
+  ```
+
+**config clock timezone**
+	
+This command will set the timezone of the systetm, given a string of a valid timezone.
+
+- Usage:
+  ```
+  config clock timezone <timezone>
+  ```
+
+- Parameters:
+  - _timezone_: valid timezone to be configured
+	
+	
+- Example:
+  ```
+  admin@sonic:~$ config clock timezone Africa/Accra
+
+	
+**show clock timezones**
+
+This command Will display list of all valid timezones to be configured.
+
+- Usage:
+  ```
+  show clock timezones
+  ```
+
+- Example:
+  ```
+  root@host:~$ show clock timezones
+  Africa/Abidjan
+  Africa/Accra
+  Africa/Addis_Ababa
+  Africa/Algiers
+  Africa/Asmara
+  ...
   ```
 
 **show boot**
@@ -1805,7 +1864,7 @@ This command is used to create new ACL tables.
 
 - Parameters:
   - table_name: The name of the ACL table to create.
-  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "L3V4V6", "MIRROR")
   - description: A description of the table for the user. (default is the table_name)
   - ports: A comma-separated list of ports/interfaces to add to the table. The behavior is as follows:
     - Physical ports will be bound as physical ports
@@ -1990,7 +2049,7 @@ This command displays the state and key parameters of all BFD sessions that matc
 
 - Usage:
   ```
-  show bgp peer <peer-ip>
+  show bfd peer <peer-ip>
   ```
 - Example:
   ```
@@ -12386,3 +12445,55 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
+
+# Static DNS Commands
+
+This sub-section explains the list of the configuration options available for static DNS feature.
+
+## Static DNS config command
+
+- Add static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver add -h
+Usage: config dns nameserver add [OPTIONS] <ip_address>
+
+  Add static DNS nameserver entry
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Delete static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver del -h
+Usage: config dns nameserver del [OPTIONS] <ip_address>
+
+  Delete static DNS nameserver entry
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+## Static DNS  show command
+
+- Show static DNS configuration
+
+```
+admin@sonic:~$ show dns nameserver -h
+Usage: show dns nameserver [OPTIONS]
+
+  Show static DNS configuration
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+```
+admin@sonic:~$ show dns nameserver
+  Nameserver
+------------
+     1.1.1.1
+     8.8.8.8
+
+```
