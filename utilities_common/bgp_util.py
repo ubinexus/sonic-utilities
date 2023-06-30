@@ -183,18 +183,17 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
     cmd_output_json = {}
 
     for ns in device.get_ns_list_based_on_options():
-        has_bgp_neighbors = False
+        has_bgp_neighbors = True
         cmd_output = run_bgp_show_command(vtysh_cmd, ns)
         device.current_namespace = ns
         try:
             cmd_output_json = json.loads(cmd_output)
-            if cmd_output_json:
-                has_bgp_neighbors = True
         except ValueError:
             ctx.fail("bgp summary from bgp container not in json format")
 
         # no bgp neighbors found so print basic device bgp info
-        if key not in cmd_output_json or not has_bgp_neighbors:
+        if key not in cmd_output_json:
+            has_bgp_neighbors = False
             vtysh_cmd = "show ip bgp json"
             no_neigh_cmd_output = run_bgp_show_command(vtysh_cmd, ns)
             try:
