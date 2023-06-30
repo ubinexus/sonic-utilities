@@ -4944,7 +4944,7 @@ def remove_queue(db, interface_name, queue_map):
 # 'cable_length' subcommand
 #
 
-@interface.command("cable_length")
+@interface.command("cable-length")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('length', metavar='<length>', required=True)
 @click.pass_context
