@@ -20,6 +20,8 @@ from sonic_platform_base.sfp_base import SfpBase
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
+from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
+from utilities_common.sfp_helper import QSFP_DATA_MAP
 from tabulate import tabulate
 
 VERSION = '3.0'
@@ -50,25 +52,6 @@ PAGE_OFFSET = 128
 SFF8472_A0_SIZE = 256
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
-QSFP_DATA_MAP = {
-    'model': 'Vendor PN',
-    'vendor_oui': 'Vendor OUI',
-    'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
-    'manufacturer': 'Vendor Name',
-    'vendor_rev': 'Vendor Rev',
-    'serial': 'Vendor SN',
-    'type': 'Identifier',
-    'ext_identifier': 'Extended Identifier',
-    'ext_rateselect_compliance': 'Extended RateSelect Compliance',
-    'cable_length': 'cable_length',
-    'cable_type': 'Length',
-    'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
-    'specification_compliance': 'Specification compliance',
-    'encoding': 'Encoding',
-    'connector': 'Connector',
-    'application_advertisement': 'Application Advertisement'
-}
-
 QSFP_DD_DATA_MAP = {
     'model': 'Vendor PN',
     'vendor_oui': 'Vendor OUI',
@@ -350,6 +333,8 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'supported_max_laser_freq' or key == 'supported_min_laser_freq':
                 if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
                     output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+            elif key == 'application_advertisement':
+                output += covert_application_advertisement_to_output_string(indent, sfp_info_dict)
             else:
                 try:
                     output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
@@ -387,9 +372,9 @@ def convert_dom_to_output_string(sfp_type, dom_info_dict):
     channel_threshold_align = 18
     module_threshold_align = 15
 
-    if sfp_type.startswith('QSFP'):
+    if sfp_type.startswith('QSFP') or sfp_type.startswith('OSFP'):
         # Channel Monitor
-        if sfp_type.startswith('QSFP-DD'):
+        if sfp_type.startswith('QSFP-DD') or sfp_type.startswith('OSFP'):
             output_dom += (indent + 'ChannelMonitorValues:\n')
             sorted_key_table = natsorted(QSFP_DD_DOM_CHANNEL_MONITOR_MAP)
             output_channel = format_dict_value_to_string(
@@ -407,7 +392,7 @@ def convert_dom_to_output_string(sfp_type, dom_info_dict):
             output_dom += output_channel
 
         # Channel Threshold
-        if sfp_type.startswith('QSFP-DD'):
+        if sfp_type.startswith('QSFP-DD') or sfp_type.startswith('OSFP'):
             dom_map = SFP_DOM_CHANNEL_THRESHOLD_MAP
         else:
             dom_map = QSFP_DOM_CHANNEL_THRESHOLD_MAP
@@ -828,7 +813,7 @@ def hexdump(indent, data, mem_address):
             result += '{} '.format(byte_string)
             result += '|{}|'.format(ascii_string)
             ascii_string = ""
-        elif mem_address % 16 == 7:
+        elif mem_address % 16 == 8:
             result += ' {} '.format(byte_string)
         else:
             result += '{} '.format(byte_string)
@@ -921,11 +906,11 @@ def fetch_error_status_from_platform_api(port):
         "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
         "print(errors)\n"
 
-    get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
-        init_chassis_code, generate_sfp_list_code, get_error_status_code)
+    get_error_status_command = ["docker", "exec", "pmon", "python3", "-c", "{}{}{}".format(
+        init_chassis_code, generate_sfp_list_code, get_error_status_code)]
     # Fetch error status from pmon docker
     try:
-        output = subprocess.check_output(get_error_status_command, shell=True, universal_newlines=True)
+        output = subprocess.check_output(get_error_status_command, universal_newlines=True)
     except subprocess.CalledProcessError as e:
         click.Abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
         return None
@@ -1216,6 +1201,18 @@ def reset(port_name):
 
         i += 1
 
+def update_firmware_info_to_state_db(port_name):
+    physical_port = logical_port_to_physical_port_index(port_name)
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        if state_db is not None:
+            state_db.connect(state_db.STATE_DB)
+            active_firmware, inactive_firmware = platform_chassis.get_sfp(physical_port).get_transceiver_info_firmware_versions()
+            state_db.set(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), "active_firmware", active_firmware)
+            state_db.set(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), "inactive_firmware", inactive_firmware)
+
 # 'firmware' subgroup
 @cli.group()
 def firmware():
@@ -1256,6 +1253,59 @@ def run_firmware(port_name, mode):
     except NotImplementedError:
         click.echo("This functionality is not applicable for this transceiver")
         sys.exit(EXIT_FAIL)
+
+    return status
+
+def is_fw_switch_done(port_name):
+    """
+        Make sure the run_firmware cmd is done
+        @port_name:
+        Returns 1 on success, and exit_code = -1 on failure
+    """
+    status = 0
+    physical_port = logical_port_to_physical_port_index(port_name)
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    try:
+        api = sfp.get_xcvr_api()
+    except NotImplementedError:
+        click.echo("This functionality is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    try:
+        MAX_WAIT = 60 # 60s timeout.
+        is_busy = 1 # Initial to 1 for entering while loop at least one time.
+        timeout_time = time.time() + MAX_WAIT
+        while is_busy and (time.time() < timeout_time):
+            fw_info = api.get_module_fw_info()
+            is_busy = 1 if (fw_info['status'] == False) and (fw_info['result'] is not None) else 0
+            time.sleep(2)
+
+        if fw_info['status'] == True:
+            (ImageA, ImageARunning, ImageACommitted, ImageAInvalid,
+             ImageB, ImageBRunning, ImageBCommitted, ImageBInvalid, _, _) = fw_info['result']
+
+            if (ImageARunning == 1) and (ImageAInvalid == 1):       # ImageA is running, but also invalid.
+                click.echo("FW info error : ImageA shows running, but also shows invalid!")
+                status = -1 # Abnormal status.
+            elif (ImageBRunning == 1) and (ImageBInvalid == 1):     # ImageB is running, but also invalid.
+                click.echo("FW info error : ImageB shows running, but also shows invalid!")
+                status = -1 # Abnormal status.
+            elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
+                click.echo("FW images switch successful : ImageA is running")
+                status = 1  # run_firmware is done. 
+            elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
+                click.echo("FW images switch successful : ImageB is running")
+                status = 1  # run_firmware is done. 
+            else:                                                   # No image is running, or running and committed image is same.
+                click.echo("FW info error : Failed to switch into uncommitted image!")
+                status = -1 # Failure for Switching images.
+        else:
+            click.echo("FW switch : Timeout!")
+            status = -1     # Timeout or check code error or CDB not supported.
+
+    except NotImplementedError:
+        click.echo("This functionality is not applicable for this transceiver")
 
     return status
 
@@ -1344,22 +1394,23 @@ def download_firmware(port_name, filepath):
     sfp.set_optoe_write_max(1)
 
     status = api.cdb_firmware_download_complete()
+    update_firmware_info_to_state_db(port_name)
     click.echo('CDB: firmware download complete')
     return status
 
 # 'run' subcommand
 @firmware.command()
 @click.argument('port_name', required=True, default=None)
-@click.option('--mode', default="1", type=click.Choice(["0", "1", "2", "3"]), show_default=True,
+@click.option('--mode', default="0", type=click.Choice(["0", "1", "2", "3"]), show_default=True,
                                                          help="0 = Non-hitless Reset to Inactive Image\n \
                                                                1 = Hitless Reset to Inactive Image (Default)\n \
                                                                2 = Attempt non-hitless Reset to Running Image\n \
                                                                3 = Attempt Hitless Reset to Running Image\n")
 def run(port_name, mode):
-    """Run the firmware with default mode=1"""
+    """Run the firmware with default mode=0"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1371,6 +1422,7 @@ def run(port_name, mode):
         click.echo('Failed to run firmware in mode={}! CDB status: {}'.format(mode, status))
         sys.exit(EXIT_FAIL)
 
+    update_firmware_info_to_state_db(port_name)
     click.echo("Firmware run in mode={} success".format(mode))
 
 # 'commit' subcommand
@@ -1379,8 +1431,8 @@ def run(port_name, mode):
 def commit(port_name):
     """Commit the running firmware"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1392,6 +1444,7 @@ def commit(port_name):
         click.echo('Failed to commit firmware! CDB status: {}'.format(status))
         sys.exit(EXIT_FAIL)
 
+    update_firmware_info_to_state_db(port_name)
     click.echo("Firmware commit successful")
 
 # 'upgrade' subcommand
@@ -1403,8 +1456,8 @@ def upgrade(port_name, filepath):
 
     physical_port = logical_port_to_physical_port_index(port_name)
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1420,12 +1473,17 @@ def upgrade(port_name, filepath):
         click.echo("Firmware download complete failed! CDB status = {}".format(status))
         sys.exit(EXIT_FAIL)
 
-    status = run_firmware(port_name, 1)
+    default_mode = 0
+    status = run_firmware(port_name, default_mode)
     if status != 1:
-        click.echo('Failed to run firmware in mode=1 ! CDB status: {}'.format(status))
+        click.echo('Failed to run firmware in mode={} ! CDB status: {}'.format(default_mode, status))
         sys.exit(EXIT_FAIL)
 
-    click.echo("Firmware run in mode 1 successful")
+    click.echo("Firmware run in mode {} successful".format(default_mode))
+
+    if is_fw_switch_done(port_name) != 1:
+        click.echo('Failed to switch firmware images!')
+        sys.exit(EXIT_FAIL)
 
     status = commit_firmware(port_name)
     if status != 1:
@@ -1441,8 +1499,8 @@ def upgrade(port_name, filepath):
 def download(port_name, filepath):
     """Download firmware on the transceiver"""
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):
@@ -1469,8 +1527,8 @@ def unlock(port_name, password):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
 
-    if is_port_type_rj45(port_name): 
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+    if is_port_type_rj45(port_name):
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     if not is_sfp_present(port_name):

@@ -40,6 +40,8 @@
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
 * [DHCP Relay](#dhcp-relay)
+  * [DHCP Relay show commands](#dhcp-relay-show-commands)
+  * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
@@ -51,6 +53,8 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Fabric](#fabric)
+  * [Fabric config commands](#fabric-config-commands)
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
@@ -190,12 +194,15 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
-
+* [Static DNS Commands](#static-dns-commands)
+  * [Static DNS config command](#static-dns-config-command)
+  * [Static DNS show command](#static-dns-show-command)
 
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
@@ -441,14 +448,15 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
     -?, -h, --help  Show this message and exit.
 
   Commands:
-    counters     Show interface counters
-    description  Show interface status, protocol and...
-    naming_mode  Show interface naming_mode status
-    neighbor     Show neighbor related information
-    portchannel  Show PortChannel information
-    status       Show Interface status information
-    tpid         Show Interface tpid information
-    transceiver  Show SFP Transceiver information
+    counters       Show interface counters
+    description    Show interface status, protocol and...
+    link-training  Show interface link-training information
+    naming_mode    Show interface naming_mode status
+    neighbor       Show neighbor related information
+    portchannel    Show PortChannel information
+    status         Show Interface status information
+    tpid           Show Interface tpid information
+    transceiver    Show SFP Transceiver information
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
@@ -536,6 +544,62 @@ This command displays the current date and time configured on the system
   ```
   admin@sonic:~$ show clock
   Mon Mar 25 20:25:16 UTC 2019
+  ```
+
+**config clock date**
+	
+This command will set the date-time of the systetm, given strings with date-time format <YYYY-MM-DD> <HH:MM:SS>
+
+- Usage:
+  ```
+  config clock date <YYYY-MM-DD> <HH:MM:SS>
+  ```
+
+- Parameters:
+  - _date_: valid date in format YYYY-MM-DD
+  - _time_: valid time in format HH:MM:SS
+
+- Example:
+  ```
+  admin@sonic:~$ config clock date 2023-04-10 13:54:36
+  ```
+
+**config clock timezone**
+	
+This command will set the timezone of the systetm, given a string of a valid timezone.
+
+- Usage:
+  ```
+  config clock timezone <timezone>
+  ```
+
+- Parameters:
+  - _timezone_: valid timezone to be configured
+	
+	
+- Example:
+  ```
+  admin@sonic:~$ config clock timezone Africa/Accra
+
+	
+**show clock timezones**
+
+This command Will display list of all valid timezones to be configured.
+
+- Usage:
+  ```
+  show clock timezones
+  ```
+
+- Example:
+  ```
+  root@host:~$ show clock timezones
+  Africa/Abidjan
+  Africa/Accra
+  Africa/Addis_Ababa
+  Africa/Algiers
+  Africa/Asmara
+  ...
   ```
 
 **show boot**
@@ -834,6 +898,7 @@ This command displays the status of the device's power supply units
   PSU    Model          Serial        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
   -----  -------------  ------------  --------  -------------  -------------  -----------  --------  -----
   PSU 1  MTEF-PSF-AC-A  MT1621X15246  A3                11.97           4.56        54.56  OK        green
+  PSU 2  MTEF-PSF-AC-A  MT1621X15247  A3                11.97           4.56        54.56  WARNING   green
   ```
 
 **show platform fan**
@@ -925,7 +990,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware]) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | info | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm | status) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -963,6 +1028,48 @@ This command displays information for all the interfaces for the transceiver req
                   Vcc : 0.0000Volts
   ```
 
+- Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet16):
+  ```
+  admin@sonic:~$ show interfaces transceiver info Ethernet16
+  Ethernet16: SFP EEPROM detected
+          Active Firmware: 61.20
+          Active application selected code assigned to host lane 1: 1
+          Active application selected code assigned to host lane 2: 1
+          Active application selected code assigned to host lane 3: 1
+          Active application selected code assigned to host lane 4: 1
+          Active application selected code assigned to host lane 5: 1
+          Active application selected code assigned to host lane 6: 1
+          Active application selected code assigned to host lane 7: 1
+          Active application selected code assigned to host lane 8: 1
+          Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                    400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                    100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+          CMIS Rev: 4.1
+          Connector: LC
+          Encoding: N/A
+          Extended Identifier: Power Class 8 (20.0W Max)
+          Extended RateSelect Compliance: N/A
+          Host Lane Count: 8
+          Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+          Inactive Firmware: 61.20
+          Length Cable Assembly(m): 0.0
+          Media Interface Technology: 1550 nm DFB
+          Media Lane Count: 1
+          Module Hardware Rev: 49.49
+          Nominal Bit Rate(100Mbs): 0
+          Specification Compliance: sm_media_interface
+          Supported Max Laser Frequency: 196100
+          Supported Max TX Power: 4.0
+          Supported Min Laser Frequency: 191300
+          Supported Min TX Power: -22.9
+          Vendor Date Code(YYYY-MM-DD Lot): 2020-21-02 17
+          Vendor Name: Acacia Comm Inc.
+          Vendor OUI: 7c-b2-5c
+          Vendor PN: DP04QSDD-E20-00E
+          Vendor Rev: 01
+          Vendor SN: 210753986
+  ```
+
 - Example (Display status of low-power mode of SFP transceiver connected to Ethernet100):
   ```
   admin@sonic:~$ show interfaces transceiver lpmode Ethernet100
@@ -986,6 +1093,313 @@ This command displays information for all the interfaces for the transceiver req
   Port         Error Status
   -----------  --------------
   Ethernet100  OK
+  ```
+
+- Example (Display performance monitoring info of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver pm Ethernet100
+  Ethernet100:
+      Parameter        Unit    Min       Avg       Max       Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
+                                                             High         High         Crossing      Low          Low          Crossing
+                                                             Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
+      ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
+      Tx Power         dBm     -8.22     -8.23     -8.24     -5.0         -6.0         False         -16.99       -16.003      False
+      Rx Total Power   dBm     -10.61    -10.62    -10.62    2.0          0.0          False         -21.0        -18.0        False
+      Rx Signal Power  dBm     -40.0     0.0       40.0      13.0         10.0         True          -18.0        -15.0        True
+      CD-short link    ps/nm   0.0       0.0       0.0       1000.0       500.0        False         -1000.0      -500.0       False
+      PDL              dB      0.5       0.6       0.6       4.0          4.0          False         0.0          0.0          False
+      OSNR             dB      36.5      36.5      36.5      99.0         99.0         False         0.0          0.0          False
+      eSNR             dB      30.5      30.5      30.5      99.0         99.0         False         0.0          0.0          False
+      CFO              MHz     54.0      70.0      121.0     3800.0       3800.0       False         -3800.0      -3800.0      False
+      DGD              ps      5.37      5.56      5.81      7.0          7.0          False         0.0          0.0          False
+      SOPMD            ps^2    0.0       0.0       0.0       655.35       655.35       False         0.0          0.0          False
+      SOP ROC          krad/s  1.0       1.0       2.0       N/A          N/A          N/A           N/A          N/A          N/A
+      Pre-FEC BER      N/A     4.58E-04  4.66E-04  5.76E-04  1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
+      Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
+      EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
+  ```
+
+- Example (Display status info of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver status Ethernet100
+  Ethernet100:
+          Tx fault flag on media lane 1: False
+          Tx fault flag on media lane 2: False
+          Tx fault flag on media lane 3: False
+          Tx fault flag on media lane 4: False
+          Tx fault flag on media lane 5: False
+          Tx fault flag on media lane 6: False
+          Tx fault flag on media lane 7: False
+          Tx fault flag on media lane 8: False
+          Rx loss of signal flag on media lane 1: False
+          Rx loss of signal flag on media lane 2: False
+          Rx loss of signal flag on media lane 3: False
+          Rx loss of signal flag on media lane 4: False
+          Rx loss of signal flag on media lane 5: False
+          Rx loss of signal flag on media lane 6: False
+          Rx loss of signal flag on media lane 7: False
+          Rx loss of signal flag on media lane 8: False
+          TX disable status on lane 1: False
+          TX disable status on lane 2: False
+          TX disable status on lane 3: False
+          TX disable status on lane 4: False
+          TX disable status on lane 5: False
+          TX disable status on lane 6: False
+          TX disable status on lane 7: False
+          TX disable status on lane 8: False
+          Disabled TX channels: 0
+          Current module state: ModuleReady
+          Reason of entering the module fault state: No Fault detected
+          Datapath firmware fault: False
+          Module firmware fault: False
+          Module state changed: False
+          Data path state indicator on host lane 1: DataPathActivated
+          Data path state indicator on host lane 2: DataPathActivated
+          Data path state indicator on host lane 3: DataPathActivated
+          Data path state indicator on host lane 4: DataPathActivated
+          Data path state indicator on host lane 5: DataPathActivated
+          Data path state indicator on host lane 6: DataPathActivated
+          Data path state indicator on host lane 7: DataPathActivated
+          Data path state indicator on host lane 8: DataPathActivated
+          Tx output status on media lane 1: False
+          Tx output status on media lane 2: False
+          Tx output status on media lane 3: False
+          Tx output status on media lane 4: False
+          Tx output status on media lane 5: False
+          Tx output status on media lane 6: False
+          Tx output status on media lane 7: False
+          Tx output status on media lane 8: False
+          Rx output status on host lane 1: True
+          Rx output status on host lane 2: True
+          Rx output status on host lane 3: True
+          Rx output status on host lane 4: True
+          Rx output status on host lane 5: True
+          Rx output status on host lane 6: True
+          Rx output status on host lane 7: True
+          Rx output status on host lane 8: True
+          Tx loss of signal flag on host lane 1: False
+          Tx loss of signal flag on host lane 2: False
+          Tx loss of signal flag on host lane 3: False
+          Tx loss of signal flag on host lane 4: False
+          Tx loss of signal flag on host lane 5: False
+          Tx loss of signal flag on host lane 6: False
+          Tx loss of signal flag on host lane 7: False
+          Tx loss of signal flag on host lane 8: False
+          Tx clock and data recovery loss of lock on host lane 1: False
+          Tx clock and data recovery loss of lock on host lane 2: False
+          Tx clock and data recovery loss of lock on host lane 3: False
+          Tx clock and data recovery loss of lock on host lane 4: False
+          Tx clock and data recovery loss of lock on host lane 5: False
+          Tx clock and data recovery loss of lock on host lane 6: False
+          Tx clock and data recovery loss of lock on host lane 7: False
+          Tx clock and data recovery loss of lock on host lane 8: False
+          Rx clock and data recovery loss of lock on media lane 1: False
+          Rx clock and data recovery loss of lock on media lane 2: False
+          Rx clock and data recovery loss of lock on media lane 3: False
+          Rx clock and data recovery loss of lock on media lane 4: False
+          Rx clock and data recovery loss of lock on media lane 5: False
+          Rx clock and data recovery loss of lock on media lane 6: False
+          Rx clock and data recovery loss of lock on media lane 7: False
+          Rx clock and data recovery loss of lock on media lane 8: False
+          Configuration status for the data path of host line 1: ConfigSuccess
+          Configuration status for the data path of host line 2: ConfigSuccess
+          Configuration status for the data path of host line 3: ConfigSuccess
+          Configuration status for the data path of host line 4: ConfigSuccess
+          Configuration status for the data path of host line 5: ConfigSuccess
+          Configuration status for the data path of host line 6: ConfigSuccess
+          Configuration status for the data path of host line 7: ConfigSuccess
+          Configuration status for the data path of host line 8: ConfigSuccess
+          Data path configuration updated on host lane 1: False
+          Data path configuration updated on host lane 2: False
+          Data path configuration updated on host lane 3: False
+          Data path configuration updated on host lane 4: False
+          Data path configuration updated on host lane 5: False
+          Data path configuration updated on host lane 6: False
+          Data path configuration updated on host lane 7: False
+          Data path configuration updated on host lane 8: False
+          Temperature high alarm flag: False
+          Temperature high warning flag: False
+          Temperature low warning flag: False
+          Temperature low alarm flag: False
+          Vcc high alarm flag: False
+          Vcc high warning flag: False
+          Vcc low warning flag: False
+          Vcc low alarm flag: False
+          Tx power high alarm flag on lane 1: False
+          Tx power high alarm flag on lane 2: False
+          Tx power high alarm flag on lane 3: False
+          Tx power high alarm flag on lane 4: False
+          Tx power high alarm flag on lane 5: False
+          Tx power high alarm flag on lane 6: False
+          Tx power high alarm flag on lane 7: False
+          Tx power high alarm flag on lane 8: False
+          Tx power high warning flag on lane 1: False
+          Tx power high warning flag on lane 2: False
+          Tx power high warning flag on lane 3: False
+          Tx power high warning flag on lane 4: False
+          Tx power high warning flag on lane 5: False
+          Tx power high warning flag on lane 6: False
+          Tx power high warning flag on lane 7: False
+          Tx power high warning flag on lane 8: False
+          Tx power low warning flag on lane 1: False
+          Tx power low warning flag on lane 2: False
+          Tx power low warning flag on lane 3: False
+          Tx power low warning flag on lane 4: False
+          Tx power low warning flag on lane 5: False
+          Tx power low warning flag on lane 6: False
+          Tx power low warning flag on lane 7: False
+          Tx power low warning flag on lane 8: False
+          Tx power low alarm flag on lane 1: False
+          Tx power low alarm flag on lane 2: False
+          Tx power low alarm flag on lane 3: False
+          Tx power low alarm flag on lane 4: False
+          Tx power low alarm flag on lane 5: False
+          Tx power low alarm flag on lane 6: False
+          Tx power low alarm flag on lane 7: False
+          Tx power low alarm flag on lane 8: False
+          Rx power high alarm flag on lane 1: False
+          Rx power high alarm flag on lane 2: False
+          Rx power high alarm flag on lane 3: False
+          Rx power high alarm flag on lane 4: False
+          Rx power high alarm flag on lane 5: False
+          Rx power high alarm flag on lane 6: False
+          Rx power high alarm flag on lane 7: False
+          Rx power high alarm flag on lane 8: False
+          Rx power high warning flag on lane 1: False
+          Rx power high warning flag on lane 2: False
+          Rx power high warning flag on lane 3: False
+          Rx power high warning flag on lane 4: False
+          Rx power high warning flag on lane 5: False
+          Rx power high warning flag on lane 6: False
+          Rx power high warning flag on lane 7: False
+          Rx power high warning flag on lane 8: False
+          Rx power low warning flag on lane 1: False
+          Rx power low warning flag on lane 2: False
+          Rx power low warning flag on lane 3: False
+          Rx power low warning flag on lane 4: False
+          Rx power low warning flag on lane 5: False
+          Rx power low warning flag on lane 6: False
+          Rx power low warning flag on lane 7: False
+          Rx power low warning flag on lane 8: False
+          Rx power low alarm flag on lane 1: False
+          Rx power low alarm flag on lane 2: False
+          Rx power low alarm flag on lane 3: False
+          Rx power low alarm flag on lane 4: False
+          Rx power low alarm flag on lane 5: False
+          Rx power low alarm flag on lane 6: False
+          Rx power low alarm flag on lane 7: False
+          Rx power low alarm flag on lane 8: False
+          Tx bias high alarm flag on lane 1: False
+          Tx bias high alarm flag on lane 2: False
+          Tx bias high alarm flag on lane 3: False
+          Tx bias high alarm flag on lane 4: False
+          Tx bias high alarm flag on lane 5: False
+          Tx bias high alarm flag on lane 6: False
+          Tx bias high alarm flag on lane 7: False
+          Tx bias high alarm flag on lane 8: False
+          Tx bias high warning flag on lane 1: False
+          Tx bias high warning flag on lane 2: False
+          Tx bias high warning flag on lane 3: False
+          Tx bias high warning flag on lane 4: False
+          Tx bias high warning flag on lane 5: False
+          Tx bias high warning flag on lane 6: False
+          Tx bias high warning flag on lane 7: False
+          Tx bias high warning flag on lane 8: False
+          Tx bias low warning flag on lane 1: False
+          Tx bias low warning flag on lane 2: False
+          Tx bias low warning flag on lane 3: False
+          Tx bias low warning flag on lane 4: False
+          Tx bias low warning flag on lane 5: False
+          Tx bias low warning flag on lane 6: False
+          Tx bias low warning flag on lane 7: False
+          Tx bias low warning flag on lane 8: False
+          Tx bias low alarm flag on lane 1: False
+          Tx bias low alarm flag on lane 2: False
+          Tx bias low alarm flag on lane 3: False
+          Tx bias low alarm flag on lane 4: False
+          Tx bias low alarm flag on lane 5: False
+          Tx bias low alarm flag on lane 6: False
+          Tx bias low alarm flag on lane 7: False
+          Tx bias low alarm flag on lane 8: False
+          Laser temperature high alarm flag: False
+          Laser temperature high warning flag: False
+          Laser temperature low warning flag: False
+          Laser temperature low alarm flag: False
+          Prefec ber high alarm flag: False
+          Prefec ber high warning flag: False
+          Prefec ber low warning flag: False
+          Prefec ber low alarm flag: False
+          Postfec ber high alarm flag: False
+          Postfec ber high warning flag: False
+          Postfec ber low warning flag: False
+          Postfec ber low alarm flag: False
+          Tuning in progress status: False
+          Laser unlocked status: False
+          Target output power out of range flag: False
+          Fine tuning out of range flag: False
+          Tuning not accepted flag: False
+          Invalid channel number flag: False
+          Tuning complete flag: False
+          Bias xi high alarm flag: False
+          Bias xi high warning flag: False
+          Bias xi low warning flag: False
+          Bias xi low alarm flag: False
+          Bias xq high alarm flag: False
+          Bias xq high warning flag: False
+          Bias xq low warning flag: False
+          Bias xq low alarm flag: False
+          Bias xp high alarm flag: False
+          Bias xp high warning flag: False
+          Bias xp low warning flag: False
+          Bias xp low alarm flag: False
+          Bias yi high alarm flag: False
+          Bias yi high warning flag: False
+          Bias yi low warning flag: False
+          Bias yi low alarm flag: False
+          Bias yq high alarm flag: False
+          Bias yq high warning flag: False
+          Bias yq low warning flag: False
+          Bias yq low alarm flag: False
+          Bias yp high alarm flag: False
+          Bias yp high warning flag: False
+          Bias yp low warning flag: False
+          Bias yp low alarm flag: False
+          CD short high alarm flag: False
+          CD short high warning flag: False
+          CD short low warning flag: False
+          CD short low alarm flag: False
+          CD long high alarm flag: False
+          CD long high warning flag: False
+          CD long low warning flag: False
+          CD long low alarm flag: False
+          DGD high alarm flag: False
+          DGD high warning flag: False
+          DGD low warning flag: False
+          DGD low alarm flag: False
+          PDL high alarm flag: False
+          PDL high warning flag: False
+          PDL low warning flag: False
+          PDL low alarm flag: False
+          OSNR high alarm flag: False
+          OSNR high warning flag: False
+          OSNR low warning flag: False
+          OSNR low alarm flag: False
+          ESNR high alarm flag: False
+          ESNR high warning flag: False
+          ESNR low warning flag: False
+          ESNR low alarm flag: False
+          CFO high alarm flag: False
+          CFO high warning flag: False
+          CFO low warning flag: False
+          CFO low alarm flag: False
+          Txcurrpower high alarm flag: False
+          Txcurrpower high warning flag: False
+          Txcurrpower low warning flag: False
+          Txcurrpower low alarm flag: False
+          Rxtotpower high alarm flag: False
+          Rxtotpower high warning flag: False
+          Rxtotpower low warning flag: False
+          Rxtotpower low alarm flag: False
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
@@ -1450,7 +1864,7 @@ This command is used to create new ACL tables.
 
 - Parameters:
   - table_name: The name of the ACL table to create.
-  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "L3V4V6", "MIRROR")
   - description: A description of the table for the user. (default is the table_name)
   - ports: A comma-separated list of ports/interfaces to add to the table. The behavior is as follows:
     - Physical ports will be bound as physical ports
@@ -1467,6 +1881,36 @@ This command is used to create new ACL tables.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
+
+**aclshow**
+
+This command is used to display: ACL rules, tables and their priority, ACL packets counters, and bytes counters
+
+- Usage:
+  ```
+  aclshow [-h] [-a] [-c] [-r RULES] [-t TABLES] [-v] [-vv]
+  ```
+
+- Parameters:
+  - -a, --all: Show all ACL counters
+  - -c, --clear: Clear ACL counters statistics
+  - -r RULES, --rules RULES: Show only specified ACL rules and their counters
+  - -t TABLES, --tables TABLES: Show only specified ACL tables and their counters
+  - -vv, --verbose: Verbose output
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo aclshow -a
+  RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
+  -----------  ------------  ------  ---------------  -------------
+  RULE_1       DATAACL       9999    0                0
+  RULE_2       DATAACL       9998    0                0
+  RULE_1       SNMP_ACL      9999    N/A              N/A
+  ```
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have the `N/A` value it means either that the ACL rule is invalid or it is a `control plane` ACL and those counters are created in Linux, not in SONiC `COUNTERS_DB` and the [iptables](https://linux.die.net/man/8/iptables) utility should be used to view those counters.
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have some numeric value it means that it is a SONiC ACL's and those counters are created in SONiC `COUNTERS_DB`.
 
 
 ## ARP & NDP
@@ -1605,7 +2049,7 @@ This command displays the state and key parameters of all BFD sessions that matc
 
 - Usage:
   ```
-  show bgp peer <peer-ip>
+  show bfd peer <peer-ip>
   ```
 - Example:
   ```
@@ -1987,6 +2431,26 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
+**show suppress-fib-pending**
+
+This command is used to show the status of suppress pending FIB feature.
+When enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  show suppress-fib-pending
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show suppress-fib-pending
+  Enabled
+  ```
+  ```
+  admin@sonic:~$ show suppress-fib-pending
+  Disabled
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ### BGP config commands
@@ -2077,6 +2541,24 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
+  ```
+
+**config suppress-fib-pending**
+
+This command is used to enable or disable announcements of routes not yet installed in the HW.
+Once enabled, BGP will not advertise routes which aren't yet offloaded.
+
+- Usage:
+  ```
+  config suppress-fib-pending <enabled|disabled>
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config suppress-fib-pending enabled
+  ```
+  ```
+  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -2301,6 +2783,97 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#consol
 
 ## DHCP Relay
 
+### DHCP Relay show commands
+
+This sub-section of commands is used to show the DHCP Relay IP address(es) in a VLAN interface and show dhcpv6_relay counter of a VLAN.
+
+**show dhcp_relay ipv4 helper**
+
+This command is used to show ipv4 dhcp_relay helper.
+
+- Usage:
+  ```
+  show dhcp_relay ipv4 helper
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv4 helper
+  --------  ---------
+  Vlan1000  192.0.0.1
+            192.0.0.2
+  --------  ---------
+  ```
+
+**show dhcp_relay ipv6 destination**
+
+This command is used to show ipv6 dhcp_relay destination.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 destination
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv6 destination
+  --------  ------------
+  Vlan1000  fc02:2000::1
+            fc02:2000::2
+            fc02:2000::3
+            fc02:2000::4
+  --------  ------------
+  ```
+
+**show dhcp_relay ipv6 counters**
+
+This command is used to show ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 counters
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay counters
+         Message Type    Vlan1000
+  -------------------  ----------
+              Unknown           0
+              Solicit           0
+            Advertise           0
+              Request           5
+              Confirm           0
+                Renew           0
+               Rebind           0
+                Reply           0
+              Release           0
+              Decline           0
+          Reconfigure           0
+  Information-Request           0
+        Relay-Forward           0
+          Relay-Reply           0
+            Malformed           0
+  ```
+
+### DHCP Relay clear commands
+
+This sub-section of commands is used to clear the DHCP Relay counters.
+
+**sonic-clear dhcp_relay ipv6 counter**
+
+This command is used to clear ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  sonic-clear dhcp_relay ipv6 counter [-i <interface>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay ipv6 counters
+  ```
+
 ### DHCP Relay config commands
 
 This sub-section of commands is used to add or remove the DHCP Relay Destination IP address(es) for a VLAN interface.
@@ -2344,6 +2917,74 @@ This command is used to delete a configured DHCP Relay Destination IP address or
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7 1.1.1.1
   Removed DHCP relay destination address ('7.7.7.7', '1.1.1.1') from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+**config dhcp_relay ipv4 helper add/del**
+
+This command is used to add or delete IPv4 DHCP Relay helper addresses to a VLAN. Note that more than one DHCP Relay helper addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv4 helper (add | del) <vlan_id> <dhcp_helper_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7
+  Added DHCP relay address [7.7.7.7] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7 1.1.1.1
+  Added DHCP relay address [7.7.7.7, 1.1.1.1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7
+  Removed DHCP relay address [7.7.7.7] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7 1.1.1.1
+  Removed DHCP relay address [7.7.7.7, 1.1.1.1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+**config dhcp_relay ipv6 destination add/del**
+
+This command is used to add or del IPv6 DHCP Relay destination addresses to a VLAN. Note that more than one DHCP Relay Destination addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv6 destination (add | del) <vlan_id> <dhcp_destination_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1
+  Added DHCP relay address [fc02:2000::1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1 fc02:2000::2
+  Added DHCP relay address [fc02:2000::1, fc02:2000::2] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1
+  Removed DHCP relay address [fc02:2000::1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1 fc02:2000::2
+  Removed DHCP relay address [fc02:2000::1, fc02:2000::2] from Vlan1000
   Restarting DHCP relay service...
   ```
 
@@ -2990,6 +3631,71 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
+## Fabric
+
+This section explains all Fabric commands that are supported in SONiC.
+
+### Fabric config commands
+
+**config fabric port isolate <portId>**
+**config fabric port unisolate <portId>**
+
+The above two commands can be used to manually isolate and unisolate a fabric link.
+
+- Usage:
+  ```
+  config fabric port isolate [OPTIONS] <portid>
+  config fabric port unisolate [OPTIONS] <portid>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port isolate 0 -n asic0
+  admin@sonic:~$ config fabric port unisolate 0 -n asic0
+  ```
+
+**config fabric port monitor error threshold <crcCells> <rxCells>**
+
+This command sets a fabric link monitoring error threshold
+
+- Usage:
+  ```
+  config fabric port monitor error threshold [OPTIONS] <crcCells> <rxCells>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor error threshold 2 61035156 -n asic0
+  ```
+
+**config fabric port monitor poll threshold isolation <pollnumber>**
+
+This command sets the number of consecutive polls in which the threshold needs to be detected to isolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold isolation [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold isolation 2 -n asic0
+  ```
+
+**config fabric port monitor poll threshold recovery <pollnumber>**
+
+This command sets the number of consecutive polls in which no error is detected to unisolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold recovery [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold recovery 5 -n asic0
+  ```
+
 ## Feature
 
 SONiC includes a capability in which Feature state can be enabled/disabled
@@ -3356,7 +4062,7 @@ This command displays basic information about the gearbox phys configured on the
     PHY Id     Name    Firmware
   --------  -------  ----------
         1  sesto-1        v0.1
-  
+
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
@@ -3642,6 +4348,35 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces link-training (Versions >= 202211)**
+
+This command is to display the link-training status of the selected interfaces. If **interface_name** is not specicied, this command shows the link-training status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces link-training status [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces link-training status
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet0      trained          on      up       up
+    Ethernet8      trained          on      up       up
+   Ethernet16          off         off    down       up
+   Ethernet24  not trained          on    down       up
+   Ethernet32          off         off    down       up
+  ```
+
+- Example (to only display the link-training status of interface Ethernet8):
+  ```
+  admin@sonic:~$ show interfaces link-training status Ethernet8
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet8      trained          on      up       up
+  ```
+
 **show interfaces mpls**
 
 This command is used to display the configured MPLS state for the list of configured interfaces.
@@ -3840,6 +4575,7 @@ This sub-section explains the following list of configuration on the interfaces.
 10) type - to set interface type
 11) mpls - To add or remove MPLS operation for the interface
 12) loopback-action - to set action for packet that ingress and gets routed on the same IP interface
+13) link-training - to set interface link-training mode
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -4410,6 +5146,29 @@ Loopback action can be drop or forward.
   admin@sonic:~$ config interface ip loopback-action Ethernet0 forward
 
   ```
+
+**config interface link-training <interface_name> (Versions >= 202211)**
+
+This command is used for setting link-training mode of a interface.
+
+- Usage:
+  ```
+  sudo config interface link-training --help
+  Usage: config interface link-training [OPTIONS] <interface_name> <mode>
+
+    Set interface link-training mode
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface link-training Ethernet0 on
+  admin@sonic:~$ sudo config interface link-training Ethernet0 off
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
@@ -5805,6 +6564,154 @@ This command displays the eye info in mv(milli volts) of the port user provides 
         -------  -------
         632      622
     ```
+
+
+**show muxcable health <port>**
+
+This command displays the hardware health of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current hadrware health of the cable as Ok, Not Ok, Unknown.
+
+- Usage:
+  ```
+  show muxcable health [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable health, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+-Ok means the cable is healthy
+
+in order to detemine whether the health of the cable is Ok
+the following are checked
+- the vendor name is correct able to be read
+- the FW is correctly loaded for SerDes by reading the appropriate register val
+- the Counters for UART are displaying healthy status 
+       i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4
+      PORT       ATTR    HEALTH
+      ---------  ------  --------
+      Ethernet4  health  Ok
+    ```
+    ```
+      admin@sonic:~$ show muxcable health Ethernet4 --json
+    ```
+    ```json
+           {
+               "health": "Ok"
+           }
+
+    ```
+
+
+**show muxcable queueinfo <port>**
+
+This command displays the queue info of  the Y-cable which are connected to muxcable. The resultant table or json output will show the queue info in terms transactions for the UART stats in particular currently relevant to the MCU of the cable.
+
+- Usage:
+  ```
+  show muxcable queueinfo [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable queueinfo, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+the result will be displayed like this, each item in the dictionary shows the health of the attribute in the queue
+```
+"{'VSC': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 0, 'node_size': 0}, 'UART1': {'r_ptr': 0, 'w_ptr': 0, 'total_count': 0, 'free_count': 0, 'buff_addr': 209870, 'node_size': 1682183}, 'UART2': {'r_ptr': 13262, 'w_ptr': 3, 'total_count': 0, 'free_count': 0, 'buff_addr': 12, 'node_size': 0}
+```
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable queueinfo Ethernet0
+      PORT       ATTR          VALUE
+      ---------  ----------  -------
+      Ethernet0  uart_stat1        2
+      Ethernet0  uart_stat2        1
+    ```
+    ```
+      admin@sonic:~$ show muxcable queueinfo Ethernet4 --json
+    ```
+    ```json
+           {
+               "uart_stat1": "2",
+               "uart_stat2": "1",
+                 
+           }
+    ```
+
+**show muxcable operationtime <port>**
+
+This command displays the operationtime of  the Y-cable which are connected to muxcable. The resultant table or json output will show the current operation time of the cable as `hh:mm:ss` format. Operation time means the time since the last time the reseated/reset of the cable is done, and the time would be in the format specified
+
+- Usage:
+  ```
+  show muxcable operationtime [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable operationtime, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4
+      PORT       ATTR            OPERATION_TIME
+      ---------  --------------  ----------------
+      Ethernet4  operation_time  00:22:22
+    ```
+    ```
+      admin@sonic:~$ show muxcable operationtime Ethernet4 --json
+    ```
+    ```json
+           {
+               "operation_time": "00:22:22"
+           }
+    ```
+
+**show muxcable resetcause <port>**
+
+This command displays the resetcause of  the Y-cable which are connected to muxcable. The resultant table or json output will show the most recent reset cause of the cable as string format.
+
+- Usage:
+  ```
+  show muxcable resetcause [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable resetcause, users need to provide the following fields
+
+- PORT     required - Port name should be a valid port
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.
+
+the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
+display cold reset if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
+display warm reset if the last reset is warm reset (ex. sudo config mux firmware activate....)
+the value is persistent, no clear on read
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4
+      PORT       ATTR           RESETCAUSE
+      ---------  -----------  ------------
+      Ethernet4  reset_cause    warm reset
+    ```
+    ```
+      admin@sonic:~$ show muxcable resetcause Ethernet4 --json
+    ```
+    ```json
+           {
+               "reset_cause": "warm reset"
+           }
+    ```
+
 
 ### Muxcable Config commands
 
@@ -8701,7 +9608,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#subint
 
 ### Syslog Show Commands
 
-This subsection explains how to display configured syslog servers.
+This subsection explains how to display syslog related configuration.
 
 **show syslog**
 
@@ -8720,9 +9627,58 @@ This command displays configured syslog servers.
   2.2.2.2      1.1.1.1      514     default
   ```
 
+**show syslog rate-limit-host**
+
+This command displays rate limit configuration for host.
+
+- Usage
+  ```
+  show syslog rate-limit-host
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog rate-limit-host
+  INTERVAL     BURST
+  ----------   --------
+  500          50000
+  ```
+
+**show syslog rate-limit-container**
+
+This command displays rate limit configuration for containers.
+
+- Usage
+  ```
+  show syslog rate-limit-container [<service_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog rate-limit-container
+  SERVICE         INTERVAL    BURST
+  --------------  ----------  -------
+  bgp             0           0
+  database        300         20000
+  lldp            300         20000
+  mgmt-framework  300         20000
+  pmon            300         20000
+  radv            300         20000
+  snmp            300         20000
+  swss            300         20000
+  syncd           300         20000
+  teamd           300         20000
+  telemetry       300         20000
+
+  admin@sonic:~$ show syslog rate-limit-container bgp
+  SERVICE         INTERVAL    BURST
+  --------------  ----------  -------
+  bgp             0           0
+  ```
+
 ### Syslog Config Commands
 
-This subsection explains how to configure syslog servers.
+This subsection explains how to configure syslog.
 
 **config syslog add**
 
@@ -8765,6 +9721,43 @@ This command is used to delete the configured syslog server.
   Running command: systemctl reset-failed rsyslog-config
   Running command: systemctl restart rsyslog-config
   ```
+
+**config syslog rate-limit-host**
+
+This command is used to configure syslog rate limit for host.
+
+- Usage:
+  ```
+  config syslog rate-limit-host
+  ```
+
+- Parameters:
+  - _interval_: determines the amount of time that is being measured for rate limiting.
+  - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-host --interval 300 --burst 20000
+  ```
+
+**config syslog rate-limit-container**
+
+This command is used to configure syslog rate limit for containers.
+
+- Usage:
+  ```
+  config syslog rate-limit-container <container-name>
+  ```
+
+- Parameters:
+  - _interval_: determines the amount of time that is being measured for rate limiting.
+  - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
+  ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
@@ -9239,7 +10232,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#System
 
 **show vlan brief**
 
-This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCP Helper Address, and the proxy ARP status
+This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCPv4 Helper Address, and the proxy ARP status
 
 - Usage:
   ```
@@ -11452,3 +12445,55 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
+
+# Static DNS Commands
+
+This sub-section explains the list of the configuration options available for static DNS feature.
+
+## Static DNS config command
+
+- Add static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver add -h
+Usage: config dns nameserver add [OPTIONS] <ip_address>
+
+  Add static DNS nameserver entry
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Delete static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver del -h
+Usage: config dns nameserver del [OPTIONS] <ip_address>
+
+  Delete static DNS nameserver entry
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+## Static DNS  show command
+
+- Show static DNS configuration
+
+```
+admin@sonic:~$ show dns nameserver -h
+Usage: show dns nameserver [OPTIONS]
+
+  Show static DNS configuration
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+```
+admin@sonic:~$ show dns nameserver
+  Nameserver
+------------
+     1.1.1.1
+     8.8.8.8
+
+```

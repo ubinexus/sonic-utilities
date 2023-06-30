@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import copy
-from unittest.mock import Mock, MagicMock, call
+from unittest.mock import Mock, MagicMock, call, patch
 
 import pytest
 
@@ -36,6 +37,9 @@ def manifest():
             'fast-shutdown': {
                 'before': ['swss'],
             },
+            'syslog': {
+                'support-rate-limit': False
+            }
         },
         'container': {
             'privileged': True,
@@ -59,6 +63,22 @@ def manifest():
         ]
     })
 
+def test_is_list_of_strings():
+    output = is_list_of_strings(['a', 'b', 'c'])
+    assert output is True
+
+    output = is_list_of_strings('abc')
+    assert output is False
+
+    output = is_list_of_strings(['a', 'b', 1])
+    assert output is False
+
+def test_run_command():
+    with pytest.raises(SystemExit) as e:
+        run_command('echo 1')
+
+    with pytest.raises(ServiceCreatorError) as e:
+        run_command([sys.executable, "-c", "import sys; sys.exit(6)"])
 
 @pytest.fixture()
 def service_creator(mock_feature_registry,
@@ -137,7 +157,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     })
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
     service_creator.create(package)
 
     mock_config_mgmt.add_module.assert_called_with(test_yang)
@@ -151,7 +171,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
             },
         },
     }
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
 
     service_creator.create(package)
 
@@ -170,6 +190,42 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     mock_config_mgmt.remove_module.assert_called_with(test_yang_module)
 
 
+def test_service_creator_multi_yang(sonic_fs, manifest, mock_config_mgmt, service_creator):
+    test_yang = 'TEST YANG'
+    test_yang_2 = 'TEST YANG 2'
+
+    def get_module_name(module_src):
+        if module_src == test_yang:
+            return 'sonic-test'
+        elif module_src == test_yang_2:
+            return 'sonic-test-2'
+        else:
+            raise ValueError(f'Unknown module {module_src}')
+
+    entry = PackageEntry('test', 'azure/sonic-test')
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang, test_yang_2]))
+    service_creator.create(package)
+
+    mock_config_mgmt.add_module.assert_has_calls(
+        [
+            call(test_yang),
+            call(test_yang_2)
+        ],
+        any_order=True,
+    )
+
+    mock_config_mgmt.get_module_name = Mock(side_effect=get_module_name)
+
+    service_creator.remove(package)
+    mock_config_mgmt.remove_module.assert_has_calls(
+        [
+            call(get_module_name(test_yang)),
+            call(get_module_name(test_yang_2))
+        ],
+        any_order=True,
+    )
+
+
 def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
                                  mock_config_mgmt, service_creator):
     test_yang = 'TEST YANG'
@@ -179,7 +235,7 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
     manifest['cli']['auto-generate-config'] = True
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
     mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
     service_creator.create(package)
 
@@ -200,6 +256,63 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
         any_order=True
     )
 
+def test_service_creator_post_operation_hook(sonic_fs, manifest, mock_sonic_db, mock_config_mgmt, service_creator):
+    with patch('sonic_package_manager.service_creator.creator.run_command') as run_command:
+        with patch('sonic_package_manager.service_creator.creator.in_chroot', MagicMock(return_value=False)):
+            service_creator._post_operation_hook()
+            run_command.assert_called_with(['systemctl', 'daemon-reload'])
+
+def test_service_creator_multi_yang_filter_auto_cli_modules(sonic_fs, manifest, mock_cli_gen,
+                                                            mock_config_mgmt, service_creator):
+    test_yang = 'TEST YANG'
+    test_yang_2 = 'TEST YANG 2'
+    test_yang_3 = 'TEST YANG 3'
+    test_yang_4 = 'TEST YANG 4'
+
+    def get_module_name(module_src):
+        if module_src == test_yang:
+            return 'sonic-test'
+        elif module_src == test_yang_2:
+            return 'sonic-test-2'
+        elif module_src == test_yang_3:
+            return 'sonic-test-3'
+        elif module_src == test_yang_4:
+            return 'sonic-test-4'
+        else:
+            raise ValueError(f'Unknown module {module_src}')
+
+    manifest['cli']['auto-generate-show'] = True
+    manifest['cli']['auto-generate-config'] = True
+    manifest['cli']['auto-generate-show-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+    manifest['cli']['auto-generate-config-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+
+    entry = PackageEntry('test', 'azure/sonic-test')
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang, test_yang_2, test_yang_3, test_yang_4]))
+    mock_config_mgmt.get_module_name = Mock(side_effect=get_module_name)
+    service_creator.create(package)
+
+    assert mock_cli_gen.generate_cli_plugin.call_count == 4
+    mock_cli_gen.generate_cli_plugin.assert_has_calls(
+        [
+            call('show', get_module_name(test_yang_2)),
+            call('show', get_module_name(test_yang_4)),
+            call('config', get_module_name(test_yang_2)),
+            call('config', get_module_name(test_yang_4)),
+        ],
+        any_order=True
+    )
+
+    service_creator.remove(package)
+    assert mock_cli_gen.remove_cli_plugin.call_count == 4
+    mock_cli_gen.remove_cli_plugin.assert_has_calls(
+        [
+            call('show', get_module_name(test_yang_2)),
+            call('show', get_module_name(test_yang_4)),
+            call('config', get_module_name(test_yang_2)),
+            call('config', get_module_name(test_yang_4)),
+        ],
+        any_order=True
+    )
 
 def test_feature_registration(mock_sonic_db, manifest):
     mock_connector = Mock()
@@ -215,8 +328,9 @@ def test_feature_registration(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -228,8 +342,9 @@ def test_feature_update(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     }
     mock_connector = Mock()
     mock_connector.get_entry = Mock(return_value=curr_feature_config)
@@ -251,8 +366,9 @@ def test_feature_update(mock_sonic_db, manifest):
             'set_owner': 'local',
             'has_per_asic_scope': 'False',
             'has_global_scope': 'True',
-            'has_timer': 'True',
+            'delayed': 'True',
             'check_up_status': 'False',
+            'support_syslog_rate_limit': 'False',
         }),
     ], any_order=True)
 
@@ -272,8 +388,9 @@ def test_feature_registration_with_timer(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'True',
+        'delayed': 'True',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -291,8 +408,9 @@ def test_feature_registration_with_non_default_owner(mock_sonic_db, manifest):
         'set_owner': 'kube',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -309,7 +427,7 @@ class AutoTSHelp:
             return {"state" : "enabled", "rate_limit_interval" : "600"}
         else:
             return {}
-        
+
     @classmethod
     def get_entry_running_cfg(cls, table, key):
         if table == "AUTO_TECHSUPPORT_FEATURE" and key == "test":
@@ -362,7 +480,7 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
     new_manifest = copy.deepcopy(manifest)
     new_manifest['service']['name'] = 'test_new'
     new_manifest['service']['delayed'] = True
-    
+
     AutoTSHelp.GLOBAL_STATE = {"state" : "enabled"}
     # Mock init_cfg connector
     mock_init_cfg = Mock()
@@ -402,3 +520,80 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
         ],
         any_order = True
     )
+
+
+class TestSyslogRateLimit:
+    """ Helper class for Syslog rate limit Tests
+    """
+    @classmethod
+    def get_entry_running_cfg(cls, table, key):
+        if table == "SYSLOG_CONFIG_FEATURE" and key == "test":
+            return {"rate_limit_burst" : "10000", "rate_limit_interval" : "20"}
+        else:
+            return {}
+
+    def test_rate_limit_register(self, mock_sonic_db, manifest):
+        mock_init_cfg = Mock()
+        mock_init_cfg.get_entry = Mock(side_effect=AutoTSHelp.get_entry)
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_init_cfg])
+        mock_sonic_db.get_initial_db_connector = Mock(return_value=mock_init_cfg)
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        new_manifest = copy.deepcopy(manifest)
+        new_manifest['service']['syslog']['support-rate-limit'] = True
+        feature_registry.register(new_manifest)
+        mock_init_cfg.set_entry.assert_any_call("SYSLOG_CONFIG_FEATURE", "test", {
+                "rate_limit_interval" : "300",
+                "rate_limit_burst" : "20000"
+            }
+        )
+
+    def test_rate_limit_deregister(self, mock_sonic_db):
+        mock_connector = Mock()
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        feature_registry.deregister("test")
+        mock_connector.set_entry.assert_any_call("SYSLOG_CONFIG_FEATURE", "test", None)
+
+    def test_rate_limit_update(self, mock_sonic_db, manifest):
+        rate_limit_manifest = copy.deepcopy(manifest)
+        rate_limit_manifest['service']['syslog']['support-rate-limit'] = True
+        new_rate_limit_manifest = copy.deepcopy(rate_limit_manifest)
+        new_rate_limit_manifest['service']['name'] = 'test_new'
+        new_rate_limit_manifest['service']['delayed'] = True
+
+        # Mock init_cfg connector
+        mock_init_cfg = Mock()
+        mock_init_cfg.get_entry = Mock(side_effect=AutoTSHelp.get_entry)
+
+        # Mock running/peristent cfg connector
+        mock_other_cfg = Mock()
+        mock_other_cfg.get_entry = Mock(side_effect=TestSyslogRateLimit.get_entry_running_cfg)
+
+        # Setup sonic_db class
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_init_cfg, mock_other_cfg])
+        mock_sonic_db.get_initial_db_connector = Mock(return_value=mock_init_cfg)
+
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        feature_registry.update(rate_limit_manifest, new_rate_limit_manifest)
+
+        mock_init_cfg.set_entry.assert_has_calls(
+            [
+                call("SYSLOG_CONFIG_FEATURE", "test", None),
+                call("SYSLOG_CONFIG_FEATURE", "test_new", {
+                        "rate_limit_interval" : "300",
+                        "rate_limit_burst" : "20000"
+                    })
+            ],
+            any_order = True
+        )
+
+        mock_other_cfg.set_entry.assert_has_calls(
+            [
+                call("SYSLOG_CONFIG_FEATURE", "test", None),
+                call("SYSLOG_CONFIG_FEATURE", "test_new", {
+                        "rate_limit_interval" : "20",
+                        "rate_limit_burst" : "10000"
+                    })
+            ],
+            any_order = True
+        )

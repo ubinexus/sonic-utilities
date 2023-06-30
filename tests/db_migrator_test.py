@@ -409,7 +409,7 @@ class TestGlobalDscpToTcMapMigrator(object):
         dbmgtr_mlnx.migrate()
         resulting_table = dbmgtr_mlnx.configDB.get_table('PORT_QOS_MAP')
         assert resulting_table == {}
-        
+
 class TestMoveLoggerTablesInWarmUpgrade(object):
     @classmethod
     def setup_class(cls):
@@ -450,3 +450,228 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
+
+class TestFastRebootTableModification(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
+    def mock_dedicated_state_db(self):
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
+
+    def test_rename_fast_reboot_table_check_enable(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_input')
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'empty-config-input')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_expected')
+        expected_db = SonicV2Connector(host='127.0.0.1')
+        expected_db.connect(expected_db.STATE_DB)
+
+        resulting_table = dbmgtr.stateDB.get_all(dbmgtr.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+        expected_table = expected_db.get_all(expected_db.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+class TestWarmUpgrade_to_2_0_2(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_warm_upgrade_to_2_0_2(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_expected')
+        expected_db = Db()
+
+        new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
+        for table in new_tables:
+            resulting_table = dbmgtr.configDB.get_table(table)
+            expected_table = expected_db.cfgdb.get_table(table)
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff
+
+    def test_warm_upgrade__without_mg_to_2_0_2(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # set minigraph_data to None to mimic the missing minigraph.xml scenario
+        dbmgtr.minigraph_data = None
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_without_mg_2_0_2_expected.json')
+        expected_db = Db()
+
+        new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
+        for table in new_tables:
+            resulting_table = dbmgtr.configDB.get_table(table)
+            expected_table = expected_db.cfgdb.get_table(table)
+            print(resulting_table)
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff
+
+class Test_Migrate_Loopback(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['APPL_DB'] = None
+
+    def test_migrate_loopback_int(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'loopback_interface_migrate_from_1_0_1_input')
+        dbconnector.dedicated_dbs['APPL_DB'] = os.path.join(mock_db_path, 'appl_db', 'loopback_interface_migrate_from_1_0_1_input')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'loopback_interface_migrate_from_1_0_1_expected')
+        dbconnector.dedicated_dbs['APPL_DB'] = os.path.join(mock_db_path, 'appl_db', 'loopback_interface_migrate_from_1_0_1_expected')
+        expected_db = Db()
+
+        # verify migrated configDB
+        resulting_table = dbmgtr.configDB.get_table("LOOPBACK_INTERFACE")
+        expected_table = expected_db.cfgdb.get_table("LOOPBACK_INTERFACE")
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+        # verify migrated appDB
+        expected_appl_db = SonicV2Connector(host='127.0.0.1')
+        expected_appl_db.connect(expected_appl_db.APPL_DB)
+        expected_keys = expected_appl_db.keys(expected_appl_db.APPL_DB, "INTF_TABLE:*")
+        expected_keys.sort()
+        resulting_keys = dbmgtr.appDB.keys(dbmgtr.appDB.APPL_DB, "INTF_TABLE:*")
+        resulting_keys.sort()
+        assert expected_keys == resulting_keys
+        for key in expected_keys:
+            resulting_keys = dbmgtr.appDB.get_all(dbmgtr.appDB.APPL_DB, key)
+            expected_keys = expected_appl_db.get_all(expected_appl_db.APPL_DB, key)
+            diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
+            assert not diff
+
+class TestWarmUpgrade_without_required_attributes(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['APPL_DB'] = None
+
+    def test_migrate_weights_protocol_for_nexthops(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'routes_migrate_input')
+        dbconnector.dedicated_dbs['APPL_DB'] = os.path.join(mock_db_path, 'appl_db', 'routes_migrate_input')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['APPL_DB'] = os.path.join(mock_db_path, 'appl_db', 'routes_migrate_expected')
+        expected_db = Db()
+
+        # verify migrated appDB
+        expected_appl_db = SonicV2Connector(host='127.0.0.1')
+        expected_appl_db.connect(expected_appl_db.APPL_DB)
+        expected_keys = expected_appl_db.keys(expected_appl_db.APPL_DB, "ROUTE_TABLE:*")
+        expected_keys.sort()
+        resulting_keys = dbmgtr.appDB.keys(dbmgtr.appDB.APPL_DB, "ROUTE_TABLE:*")
+        resulting_keys.sort()
+        assert expected_keys == resulting_keys
+        for key in expected_keys:
+            resulting_keys = dbmgtr.appDB.get_all(dbmgtr.appDB.APPL_DB, key)
+            expected_keys = expected_appl_db.get_all(expected_appl_db.APPL_DB, key)
+            diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
+            assert not diff
+
+class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_warm_upgrade_t0_edgezone_aggregator_diff_cable_length(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-output')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')
+        expected_table = expected_db.cfgdb.get_table('CABLE_LENGTH')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+    def test_warm_upgrade_t0_edgezone_aggregator_same_cable_length(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-same-cable-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'sample-t0-edgezoneagg-config-same-cable-output')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('CABLE_LENGTH')
+        expected_table = expected_db.cfgdb.get_table('CABLE_LENGTH')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+
+class TestFastUpgrade_to_4_0_3(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        cls.config_db_tables_to_verify = ['FLEX_COUNTER_TABLE']
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade')
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
+    def mock_dedicated_config_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'config_db', filename)
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile
+        db = Db()
+        return db
+
+    def check_config_db(self, result, expected):
+        for table in self.config_db_tables_to_verify:
+            assert result.get_table(table) == expected.get_table(table)
+
+    def test_fast_reboot_upgrade_to_4_0_3(self):
+        db_before_migrate = 'cross_branch_upgrade_to_4_0_3_input'
+        db_after_migrate = 'cross_branch_upgrade_to_4_0_3_expected'
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        db = self.mock_dedicated_config_db(db_before_migrate)
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)

@@ -90,6 +90,66 @@ multi_asic_fabric_counters_queue_asic0 = """\
 
 """
 
+multi_asic_fabric_reachability = """\
+
+asic0
+  Local Link    Remote Module    Remote Link    Status
+------------  ---------------  -------------  --------
+           0                0             79        up
+           2                0             94        up
+           4                0             85        up
+           6                0             84        up
+           7                0             93        up
+
+asic1
+  Local Link    Remote Module    Remote Link    Status
+------------  ---------------  -------------  --------
+           0                0             69        up
+           4                0             75        up
+"""
+
+multi_asic_fabric_reachability_asic0 = """\
+
+asic0
+  Local Link    Remote Module    Remote Link    Status
+------------  ---------------  -------------  --------
+           0                0             79        up
+           2                0             94        up
+           4                0             85        up
+           6                0             84        up
+           7                0             93        up
+"""
+
+class TestFabricStat(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "1"
+
+    def test_single_show_fabric_counters(self):
+        from .mock_tables import mock_single_asic
+        import importlib
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config
+        dbconnector.load_namespace_config()
+
+        return_code, result = get_result_and_return_code(['fabricstat'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_counters_asic0
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(
+            os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+
+
 class TestMultiAsicFabricStat(object):
     @classmethod
     def setup_class(cls):
@@ -99,39 +159,53 @@ class TestMultiAsicFabricStat(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
 
     def test_multi_show_fabric_counters(self):
-        return_code, result = get_result_and_return_code('fabricstat')
+        return_code, result = get_result_and_return_code(['fabricstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters
 
     def test_multi_show_fabric_counters_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_asic0
 
     def test_multi_asic_invalid_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -n asic99')
+        return_code, result = get_result_and_return_code(['fabricstat', '-n', 'asic99'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
         assert result == fabric_invalid_asic_error
 
     def test_multi_show_fabric_counters_queue(self):
-        return_code, result = get_result_and_return_code('fabricstat -q')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_queue
 
     def test_multi_show_fabric_counters_queue_asic(self):
-        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_queue_asic0
+
+    def test_multi_show_fabric_reachability(self):
+        return_code, result = get_result_and_return_code(['fabricstat', '-r'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_reachability
+
+    def test_multi_show_fabric_reachability_asic(self):
+        return_code, result = get_result_and_return_code(['fabricstat', '-r', '-n', 'asic0'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_reachability_asic0
 
     @classmethod
     def teardown_class(cls):

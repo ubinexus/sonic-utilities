@@ -3,12 +3,26 @@ import json
 import jsonpatch
 import sonic_yang
 import unittest
-from unittest.mock import MagicMock, Mock
+import mock
 
+from unittest.mock import MagicMock, Mock
+from mock import patch
 from .gutest_helpers import create_side_effect_dict, Files
 import generic_config_updater.gu_common as gu_common
 
 class TestDryRunConfigWrapper(unittest.TestCase):
+    @patch('generic_config_updater.gu_common.subprocess.Popen')
+    def test_get_config_db_as_json(self, mock_popen):
+        config_wrapper = gu_common.DryRunConfigWrapper()
+        mock_proc = MagicMock()
+        mock_proc.communicate = MagicMock(
+            return_value=('{"PORT": {}, "bgpraw": ""}', None))
+        mock_proc.returncode = 0
+        mock_popen.return_value = mock_proc
+        actual = config_wrapper.get_config_db_as_json()
+        expected = {"PORT": {}}
+        self.assertDictEqual(actual, expected)
+
     def test_get_config_db_as_json__returns_imitated_config_db(self):
         # Arrange
         config_wrapper = gu_common.DryRunConfigWrapper(Files.CONFIG_DB_AS_JSON)

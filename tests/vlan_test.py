@@ -1,5 +1,6 @@
 import os
 import traceback
+import pytest
 from unittest import mock
 
 from click.testing import CliRunner
@@ -8,6 +9,16 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 from importlib import reload
+import utilities_common.bgp_util as bgp_util
+
+IP_VERSION_PARAMS_MAP = {
+    "ipv4": {
+        "table": "VLAN"
+    },
+    "ipv6": {
+        "table": "DHCP_RELAY"
+    }
+}
 
 show_vlan_brief_output="""\
 +-----------+-----------------+-----------------+----------------+-------------+
@@ -142,16 +153,25 @@ config_add_del_vlan_and_vlan_member_in_alias_mode_output="""\
 |      4000 |                 | PortChannel1001 | tagged         | disabled    |
 +-----------+-----------------+-----------------+----------------+-------------+
 """
+
+
 class TestVlan(object):
+    _old_run_bgp_command = None
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         # ensure that we are working with single asic config
+        cls._old_run_bgp_command = bgp_util.run_bgp_command
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=cls.mock_run_bgp_command())
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
         reload(mock_single_asic)
         dbconnector.load_namespace_config()
         print("SETUP")
+
+    def mock_run_bgp_command():
+        return ""
 
     def test_show_vlan(self):
         runner = CliRunner()
@@ -311,7 +331,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0001 is a router interface!" in result.output
 
-    def test_config_vlan_with_vxlanmap_del_vlan(self):
+    def test_config_vlan_with_vxlanmap_del_vlan(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
@@ -335,7 +355,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: vlan: 1027 can not be removed. First remove vxlan mapping" in result.output
 
-    def test_config_vlan_del_vlan(self):
+    def test_config_vlan_del_vlan(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
@@ -371,10 +391,12 @@ class TestVlan(object):
             print(result.output)
             assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
+        with mock.patch("config.vlan.delete_state_db_entry") as delete_state_db_entry:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            delete_state_db_entry.assert_called_once_with("Vlan1000")
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -382,6 +404,27 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_empty_output
+
+    def test_config_vlan_del_last_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.delete_table("VLAN_MEMBER")
+        db.cfgdb.delete_table("VLAN_INTERFACE")
+        db.cfgdb.set_entry("VLAN", "Vlan2000", None)
+        db.cfgdb.set_entry("VLAN", "Vlan3000", None)
+        db.cfgdb.set_entry("VLAN", "Vlan4000", None)
+
+        with mock.patch("utilities_common.cli.run_command", mock.Mock(return_value=("", 0))) as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            mock_run_command.assert_has_calls([
+                mock.call("docker exec -i swss supervisorctl status ndppd", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss supervisorctl stop ndppd", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss rm -f /etc/supervisor/conf.d/ndppd.conf", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss supervisorctl update", return_cmd=True)
+            ])
+            assert result.exit_code == 0
 
     def test_config_vlan_del_nonexist_vlan_member(self):
         runner = CliRunner()
@@ -393,7 +436,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet0 is not a member of Vlan1000" in result.output
 
-    def test_config_add_del_vlan_and_vlan_member(self):
+    def test_config_add_del_vlan_and_vlan_member(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -436,7 +479,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_output
 
-    def test_config_add_del_vlan_and_vlan_member_in_alias_mode(self):
+    def test_config_add_del_vlan_and_vlan_member_in_alias_mode(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
 
@@ -514,16 +557,26 @@ class TestVlan(object):
             assert "Interface Vlan1001 does not exist" in result.output
 
     def test_config_vlan_proxy_arp_enable(self):
-        runner = CliRunner()
-        db = Db()
+        mock_cli_returns = [("running", 0),("", 1)] + [("", 0)] * 4
+        with mock.patch("utilities_common.cli.run_command", mock.Mock(side_effect=mock_cli_returns)) as mock_run_command:
+            runner = CliRunner()
+            db = Db()
 
-        result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
+            result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
 
-        print(result.exit_code)
-        print(result.output)
+            print(result.exit_code)
+            print(result.output)
 
-        assert result.exit_code == 0 
-        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+            expected_calls = [mock.call(['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss'], return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'cp', '/usr/share/sonic/templates/ndppd.conf', '/etc/supervisor/conf.d/']),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'update'], return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'restart', 'ndppd'], return_cmd=True)]
+            mock_run_command.assert_has_calls(expected_calls)
+
+            assert result.exit_code == 0 
+            assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
 
     def test_config_vlan_proxy_arp_disable(self):
         runner = CliRunner()
@@ -576,7 +629,134 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet32 is part of portchannel!" in result.output
 
+    @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
+    def test_config_add_del_vlan_dhcp_relay_with_empty_entry(self, ip_version, mock_restart_dhcp_relay_service):
+        runner = CliRunner()
+        db = Db()
+
+        # add vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        exp_output = {"vlanid": "1001"} if ip_version == "ipv4" else {}
+        assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == exp_output
+
+        # del vlan 1001
+        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") as mock_handle_restart:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code == 0
+            assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
+            assert "Restart service dhcp_relay failed with error" not in result.output
+
+    @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
+    def test_config_add_del_vlan_dhcp_relay_with_non_empty_entry(self, ip_version, mock_restart_dhcp_relay_service):
+        runner = CliRunner()
+        db = Db()
+
+        # add vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        exp_output = {"vlanid": "1001"} if ip_version == "ipv4" else {}
+        assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == exp_output
+        db.cfgdb.set_entry("DHCP_RELAY", "Vlan1001", {"dhcpv6_servers": ["fc02:2000::5"]})
+
+        # del vlan 1001
+        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") as mock_handle_restart:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code == 0
+            assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
+            mock_handle_restart.assert_called_once()
+            assert "Restart service dhcp_relay failed with error" not in result.output
+
+    @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
+    def test_config_add_del_vlan_with_dhcp_relay_not_running(self, ip_version):
+        runner = CliRunner()
+        db = Db()
+
+        # add vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        exp_output = {"vlanid": "1001"} if ip_version == "ipv4" else {}
+        assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == exp_output
+
+        # del vlan 1001
+        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") \
+             as mock_restart_dhcp_relay_service:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code == 0
+            assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
+            assert mock_restart_dhcp_relay_service.call_count == 0
+            assert "Restarting DHCP relay service..." not in result.output
+            assert "Restart service dhcp_relay failed with error" not in result.output
+
+    def test_config_add_del_vlan_with_not_restart_dhcp_relay_ipv6(self):
+        runner = CliRunner()
+        db = Db()
+
+        # add vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        db.cfgdb.set_entry("DHCP_RELAY", "Vlan1001", {"dhcpv6_servers": ["fc02:2000::5"]})
+
+        # del vlan 1001
+        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") \
+             as mock_restart_dhcp_relay_service:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001", "--no_restart_dhcp_relay"],
+                                   obj=db)
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code != 0
+            assert mock_restart_dhcp_relay_service.call_count == 0
+            assert "Can't delete Vlan1001 because related DHCPv6 Relay config is exist" in result.output
+
+        db.cfgdb.set_entry("DHCP_RELAY", "Vlan1001", None)
+        # del vlan 1001
+        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") \
+             as mock_restart_dhcp_relay_service:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001", "--no_restart_dhcp_relay"],
+                                   obj=db)
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code == 0
+            assert mock_restart_dhcp_relay_service.call_count == 0
+
+    @pytest.mark.parametrize("ip_version", ["ipv6"])
+    def test_config_add_exist_vlan_dhcp_relay(self, ip_version):
+        runner = CliRunner()
+        db = Db()
+
+        db.cfgdb.set_entry("DHCP_RELAY", "Vlan1001", {"vlanid": "1001"})
+        # add vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "DHCPv6 relay config for Vlan1001 already exists" in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        bgp_util.run_bgp_command = cls._old_run_bgp_command
         print("TEARDOWN")
