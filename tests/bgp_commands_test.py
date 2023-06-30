@@ -254,6 +254,8 @@ class TestBgpCommandsMultiAsic(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import mock_multi_asic
         importlib.reload(mock_multi_asic)
         from .mock_tables import dbconnector
@@ -290,7 +292,10 @@ class TestBgpCommandsMultiAsic(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         from .mock_tables import dbconnector
         dbconnector.load_database_config()
+        dbconnector.load_namespace_config()
