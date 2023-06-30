@@ -1,3 +1,4 @@
+import importlib
 import sys
 import os
 import pytest
@@ -21,7 +22,7 @@ class TestAclLoader(object):
 
     def test_valid(self):
         yang_acl = AclLoader.parse_acl_json(os.path.join(test_path, 'acl_input/acl1.json'))
-        assert len(yang_acl.acl.acl_sets.acl_set) == 8
+        assert len(yang_acl.acl.acl_sets.acl_set) == 9
 
     def test_invalid(self):
         with pytest.raises(AclLoaderException):
@@ -95,6 +96,42 @@ class TestAclLoader(object):
             "PRIORITY": "9997"
         }
 
+    def test_v4_rule_inv4v6_table(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_1")]
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_1")] == {
+            "VLAN_ID": 369,
+            "ETHER_TYPE": 2048,
+            "IP_PROTOCOL": 6,
+            "SRC_IP": "20.0.0.2/32",
+            "DST_IP": "30.0.0.3/32",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
+
+    def test_v6_rule_inv4v6_table(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")]
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")] == {
+            "ETHER_TYPE": 34525,
+            "IP_PROTOCOL": 58,
+            "SRC_IPV6": "::1/128",
+            "DST_IPV6": "::1/128",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9998",
+            'ICMPV6_CODE': 0,
+            'ICMPV6_TYPE': 1
+        }
+
+    def test_rule_without_ethertype_inv4v6(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_v4v6_rule_no_ethertype.json'))
+        assert not acl_loader.rules_info.get(("DATAACLV4V6", "RULE_1"))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")]
+        assert not acl_loader.rules_info.get(("DATAACLV4V6", "RULE_3"))
+
     def test_icmp_translation(self, acl_loader):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
@@ -151,6 +188,12 @@ class TestAclLoader(object):
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        assert acl_loader.rules_info[('DATAACLV4V6', 'DEFAULT_RULE')] == {
+            'PRIORITY': '1',
+            'PACKET_ACTION': 'DROP',
+            'IP_TYPE': 'IP'
+        }
+
         # Verify acl-loader doesn't add default deny rule to MIRROR
         assert ('EVERFLOW', 'DEFAULT_RULE') not in acl_loader.rules_info
         # Verify acl-loader doesn't add default deny rule to MIRRORV6
@@ -224,6 +267,46 @@ class TestAclLoader(object):
         acl_loader.per_npu_configdb = None
         acl_loader.configdb.mod_entry = mock.MagicMock(return_value=True)
         acl_loader.configdb.set_entry = mock.MagicMock(return_value=True)
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_2.json'))
+        acl_loader.incremental_update()
+        assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "DROP"
+
+
+
+class TestMasicAclLoader(object):
+
+
+    @pytest.fixture(scope="class")
+    def acl_loader(self):
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
+
+        with mock.patch("sonic_py_common.multi_asic.get_all_namespaces",
+                        mock.MagicMock(return_value={'front_ns': ['asic0', 'asic1'], 'back_ns': '', 'fabric_ns': ''})):
+            yield AclLoader()
+
+        # mock single asic to avoid affecting other tests
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+
+    def test_check_npu_db(self, acl_loader):
+        assert len(acl_loader.per_npu_configdb) == 2
+        assert len(acl_loader.per_npu_statedb) == 2
+
+    def test_incremental_update(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.tables_db_info['NTP_ACL'] = {
+            "stage": "INGRESS",
+            "type": "CTRLPLANE"
+        }
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_1.json'))
+        acl_loader.rules_db_info = acl_loader.rules_info
+        assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "ACCEPT"
+        for configdb in acl_loader.per_npu_configdb.values():
+            configdb.mod_entry = mock.MagicMock(return_value=True)
+            configdb.set_entry = mock.MagicMock(return_value=True)
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_2.json'))
         acl_loader.incremental_update()
         assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "DROP"

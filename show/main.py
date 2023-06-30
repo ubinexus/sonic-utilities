@@ -64,6 +64,7 @@ from . import system_health
 from . import warm_restart
 from . import plugins
 from . import syslog
+from . import dns
 from . import nac
 
 # Global Variables
@@ -296,6 +297,7 @@ cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
 cli.add_command(warm_restart.warm_restart)
+cli.add_command(dns.dns)
 
 # syslog module
 cli.add_command(syslog.syslog)
@@ -1688,7 +1690,7 @@ def syslog(verbose):
     header = ["Syslog Servers"]
     body = []
 
-    re_syslog = re.compile(r'^\*\.\* action\(.*target=\"{1}(.+?)\"{1}.*\)')
+    re_syslog = re.compile(r'^action\(type=\"omfwd\" Target=\"{1}(.+?)\"{1}.*\)')
 
     try:
         with open("/etc/rsyslog.conf") as syslog_file:
@@ -1773,13 +1775,32 @@ def uptime(verbose):
     cmd = ['uptime', '-p']
     run_command(cmd, display_cmd=verbose)
 
-@cli.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def clock(verbose):
-    """Show date and time"""
-    cmd = ["date"]
-    run_command(cmd, display_cmd=verbose)
 
+#
+# 'clock' command group ("show clock ...")
+#
+@cli.group('clock', invoke_without_command=True)
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def clock(ctx, verbose):
+    """Show date and time"""
+    # If invoking subcomand, no need to do anything
+    if ctx.invoked_subcommand is not None:
+        return
+
+    run_command(['date'], display_cmd=verbose)
+
+
+@clock.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def timezones(verbose):
+    """List of available timezones"""
+    run_command(['timedatectl', 'list-timezones'], display_cmd=verbose)
+
+
+#
+# 'system-memory' command ("show system-memory")
+#
 @cli.command('system-memory')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_memory(verbose):
