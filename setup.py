@@ -117,7 +117,6 @@ setup(
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
-        'scripts/db_migrator_constants.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/disk_check.py',
@@ -183,6 +182,8 @@ setup(
         'scripts/memory_threshold_check_handler.py',
         'scripts/techsupport_cleanup.py',
         'scripts/storm_control.py',
+        'scripts/verify_image_sign.sh',
+        'scripts/verify_image_sign_common.sh',
         'scripts/check_db_integrity.py',
         'scripts/sysreadyshow'
     ],
