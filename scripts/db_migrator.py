@@ -1091,7 +1091,6 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_5')
-
         return None
 
     def get_version(self):
@@ -1139,7 +1138,6 @@ class DBMigrator():
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
-        self.migrate_sflow_table()
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
