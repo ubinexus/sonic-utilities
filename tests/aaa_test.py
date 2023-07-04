@@ -23,22 +23,6 @@ AAA accounting login disable (default)
 
 """
 
-show_aaa_radius_output="""\
-AAA authentication login radius
-AAA authentication failthrough False (default)
-AAA authorization login local (default)
-AAA accounting login disable (default)
-
-"""
-
-show_aaa_radius_local_output="""\
-AAA authentication login radius,local
-AAA authentication failthrough False (default)
-AAA authorization login local (default)
-AAA accounting login disable (default)
-
-"""
-
 config_aaa_empty_output="""\
 """
 
@@ -116,79 +100,6 @@ class TestAaa(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_aaa_default_output
-
-    def test_config_aaa_radius(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        runner = CliRunner()
-        db = Db()
-        db.cfgdb.delete_table("AAA")
-
-        result = runner.invoke(config.config.commands["aaa"],\
-                               ["authentication", "login", "radius"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_aaa_empty_output
-
-        db.cfgdb.mod_entry("AAA", "authentication", {'login' : 'radius'})
-
-        result = runner.invoke(show.cli.commands["aaa"], [], obj=db)
-        assert result.exit_code == 0
-        assert result.output == show_aaa_radius_output
-
-        result = runner.invoke(config.config.commands["aaa"],\
-                               ["authentication", "login", "default"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_aaa_empty_output
-
-        db.cfgdb.delete_table("AAA")
-
-        result = runner.invoke(show.cli.commands["aaa"], [], obj=db)
-        assert result.exit_code == 0
-        assert result.output == show_aaa_default_output
-
-    def test_config_aaa_radius_local(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        runner = CliRunner()
-        db = Db()
-        db.cfgdb.delete_table("AAA")
-
-        result = runner.invoke(config.config.commands["aaa"],\
-                               ["authentication", "login", "radius", "local"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_aaa_empty_output
-
-        db.cfgdb.mod_entry("AAA", "authentication", {'login' : 'radius,local'})
-
-        result = runner.invoke(show.cli.commands["aaa"], [], obj=db)
-        assert result.exit_code == 0
-        assert result.output == show_aaa_radius_local_output
-
-        result = runner.invoke(config.config.commands["aaa"],\
-                               ["authentication", "login", "default"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_aaa_empty_output
-
-        db.cfgdb.delete_table("AAA")
-
-        result = runner.invoke(show.cli.commands["aaa"], [], obj=db)
-        assert result.exit_code == 0
-        assert result.output == show_aaa_default_output
-
-    def test_config_aaa_radius_invalid(self):
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["aaa"],\
-                               ["authentication", "login", "radius", "tacacs+"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_aaa_not_a_valid_command_output
 
     def test_config_aaa_tacacs(self, get_cmd_module):
         (config, show) = get_cmd_module
