@@ -32,7 +32,6 @@
         </a:Properties>
       </a:DeviceMetadata>
     </Devices>
-    <Properties xmlns:a="http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"/>
   </MetadataDeclaration>
   <Hostname>SONiC-Dummy</Hostname>
 </DeviceMiniGraph>
