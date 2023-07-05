@@ -19,11 +19,20 @@
     </Devices>
    </PngDec>
   <MetadataDeclaration>
-    <Devices xmlns:a="http://schemas">
+    <Devices xmlns:a="http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution">
       <a:DeviceMetadata>
-        <a:Properties/>
+        <a:Name>SONiC-Dummy</a:Name>
+        <a:Properties>
+          <a:DeviceProperty>
+            <a:Name>DnsNameserverResources</a:Name>
+            <a:Value>
+             1.1.1.1;8.8.8.8
+            </a:Value>
+          </a:DeviceProperty>
+        </a:Properties>
       </a:DeviceMetadata>
     </Devices>
+    <Properties xmlns:a="http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"/>
   </MetadataDeclaration>
   <Hostname>SONiC-Dummy</Hostname>
 </DeviceMiniGraph>

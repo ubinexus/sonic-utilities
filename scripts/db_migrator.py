@@ -636,6 +636,18 @@ class DBMigrator():
             if 'protocol' not in route_attr:
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
 
+    def migrate_dns_nameserver(self):
+        """
+        Handle DNS_NAMESERVER table migration. Migrations handled:
+        If there's no DNS_NAMESERVER in config_DB, load DNS_NAMESERVER from minigraph
+        """
+        if not self.minigraph_data or 'DNS_NAMESERVER' not in self.minigraph_data:
+            return
+        dns_table = self.configDB.get_table('DNS_NAMESERVER')
+        if not dns_table:
+            for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
+                self.configDB.set_entry('DNS_NAMESERVER', addr, config)
+
     def update_edgezone_aggregator_config(self):
         """
         Update cable length configuration in ConfigDB for T0 neighbor interfaces
@@ -1054,6 +1066,9 @@ class DBMigrator():
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
+
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
