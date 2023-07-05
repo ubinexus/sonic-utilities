@@ -159,7 +159,7 @@ class TestFabricStat(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_single_show_fabric_counters(self):
-        return_code, result = get_result_and_return_code('fabricstat -D')
+        return_code, result = get_result_and_return_code(['fabricstat', '-D'])
         assert return_code == 0
 
         return_code, result = get_result_and_return_code(['fabricstat'])
@@ -169,19 +169,19 @@ class TestFabricStat(object):
         assert result == multi_asic_fabric_counters_asic0
 
     def test_single_clear_fabric_counters(self):
-        return_code, result = get_result_and_return_code('fabricstat -C')
+        return_code, result = get_result_and_return_code(['fabricstat', '-C'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result.rstrip() == clear_counter
 
-        return_code, result = get_result_and_return_code('fabricstat')
+        return_code, result = get_result_and_return_code(['fabricstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_asic0_clear
 
-        return_code, result = get_result_and_return_code('fabricstat -D')
+        return_code, result = get_result_and_return_code(['fabricstat', '-D'])
         assert return_code == 0
 
     @classmethod
@@ -237,21 +237,21 @@ class TestMultiAsicFabricStat(object):
         assert result == multi_asic_fabric_counters_queue_asic0
 
     def test_multi_show_fabric_counters_queue_clear(self):
-        return_code, result = get_result_and_return_code('fabricstat -C -q')
+        return_code, result = get_result_and_return_code(['fabricstat', '-C', '-q'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
 
-        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_counters_queue_asic0_clear
 
-        return_code, result = get_result_and_return_code('fabricstat -D')
+        return_code, result = get_result_and_return_code(['fabricstat', '-D'])
         assert return_code == 0
 
-        return_code, result = get_result_and_return_code('fabricstat -q -n asic0')
+        return_code, result = get_result_and_return_code(['fabricstat', '-q', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -296,7 +296,7 @@ class TestMultiAsicFabricStatCmd(object):
         result = runner.invoke(clear.cli.commands["fabriccountersport"], [])
         assert result.exit_code == 0
 
-        return_code, result = get_result_and_return_code('fabricstat -D')
+        return_code, result = get_result_and_return_code(['fabricstat', '-D'])
         assert return_code == 0
 
     @classmethod
