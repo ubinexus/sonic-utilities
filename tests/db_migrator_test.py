@@ -311,11 +311,12 @@ class TestDnsNameserverMigrator(object):
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-expected')
         expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         resulting_keys = dbmgtr.configDB.keys(dbmgtr.configDB.CONFIG_DB, 'DNS_NAMESERVER*')
-        expected_kesy = expected_db.cfgdb.keys(expected_db.cfgdb.CONFIG_DB, 'DNS_NAMESERVER*')
+        expected_keys = expected_db.cfgdb.keys(expected_db.cfgdb.CONFIG_DB, 'DNS_NAMESERVER*')
 
-        for key in expected_kesy:
-            assert key in resulting_keys
+        diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
+        assert not diff
 
 class TestQosDBFieldValueReferenceRemoveMigrator(object):
     @classmethod

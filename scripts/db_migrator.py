@@ -1019,6 +1019,8 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_3')
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
         return None
 
     def get_version(self):
@@ -1066,9 +1068,6 @@ class DBMigrator():
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
-
-        # Updating DNS nameserver
-        self.migrate_dns_nameserver()
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
