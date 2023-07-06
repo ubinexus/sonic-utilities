@@ -117,7 +117,6 @@ setup(
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
-        'scripts/db_migrator_constants.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/disk_check.py',
@@ -140,6 +139,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/ipintutil',
+        'scripts/lag_keepalive.py',
         'scripts/lldpshow',
         'scripts/log_ssd_health',
         'scripts/mellanox_buffer_migrator.py',
@@ -165,6 +165,7 @@ setup(
         'scripts/soft-reboot',
         'scripts/storyteller',
         'scripts/syseeprom-to-json',
+        'scripts/teamd_increase_retry_count.py',
         'scripts/tempershow',
         'scripts/tunnelstat',
         'scripts/update_json.py',
@@ -181,6 +182,8 @@ setup(
         'scripts/memory_threshold_check_handler.py',
         'scripts/techsupport_cleanup.py',
         'scripts/storm_control.py',
+        'scripts/verify_image_sign.sh',
+        'scripts/verify_image_sign_common.sh',
         'scripts/check_db_integrity.py',
         'scripts/sysreadyshow'
     ],
@@ -220,7 +223,10 @@ setup(
         ]
     },
     install_requires=[
+        'bcrypt==3.2.2',
         'click==7.0',
+        'cryptography==3.3.2',
+        'urllib3<2',
         'click-log>=0.3.2',
         'docker>=4.4.4',
         'docker-image-py>=0.1.10',
