@@ -57,6 +57,7 @@ from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
 from . import switchport
+from . import dns
 
 # mock masic APIs for unit test
 try:
@@ -1201,6 +1202,9 @@ config.add_command(mclag.mclag_unique_ip)
 
 # syslog module
 config.add_command(syslog.syslog)
+
+# DNS module
+config.add_command(dns.dns)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
