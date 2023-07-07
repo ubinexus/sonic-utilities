@@ -171,6 +171,7 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                 # We need to restart dhcp_relay service after dhcpv6_relay config change
                 if is_dhcp_relay_running():
                     dhcp_relay_util.handle_restart_dhcp_relay_service()
+                    
             delete_state_db_entry(vlan)
                
     vlans = db.cfgdb.get_keys('VLAN')
