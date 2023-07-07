@@ -1,7 +1,6 @@
-import imp
 import os
 import sys
-from importlib import reload
+import importlib
 
 from click.testing import CliRunner
 import crm.main as crm
@@ -1216,6 +1215,7 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
         dbconnector.load_namespace_config()
 
     def test_crm_show_summary(self):
@@ -1569,7 +1569,6 @@ class TestCrmMultiAsic(object):
         assert result.exit_code == 0
         assert result.output == crm_multi_asic_show_resources_ipmc
 
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -1577,5 +1576,5 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
-        imp.reload(mock_single_asic)
+        importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()

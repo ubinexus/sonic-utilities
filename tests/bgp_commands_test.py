@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import importlib
 
 from click.testing import CliRunner
 
@@ -91,19 +92,83 @@ Try "summary --help" for help.
 Error: bgp summary from bgp container not in json format
 """
 
-show_error_no_v6_neighbor = """\
-No IPv6 neighbor is configured
+show_error_no_v6_neighbor_single_asic = """\
+
+IPv6 Unicast Summary:
+BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
+-----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
 """
 
-show_error_no_v4_neighbor = """\
-No IPv4 neighbor is configured
+show_error_no_v4_neighbor_single_asic = """\
+
+IPv4 Unicast Summary:
+BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
+-----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
 """
 
-class TestBgpCommands(object):
+show_error_no_v6_neighbor_multi_asic = """\
+
+IPv6 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+asic1: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
+-----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
+"""
+
+show_error_no_v4_neighbor_multi_asic = """\
+
+IPv4 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+asic1: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8972
+RIB entries 0, using 0 bytes of memory
+Peers 0, using 0 KiB of memory
+Peer groups 0, using 0 bytes of memory
+
+
+Neighbhor    V    AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ    Up/Down    State/PfxRcd    NeighborName
+-----------  ---  ----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+
+Total number of neighbors 0
+"""
+
+
+class TestBgpCommandsSingleAsic(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
         from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['v4'], indirect=['setup_single_bgp_instance'])
@@ -156,10 +221,10 @@ class TestBgpCommands(object):
         show = setup_bgp_commands
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
         print("{}".format(result.output))
         assert result.exit_code == 0
-        assert result.output == show_error_no_v6_neighbor
+        assert result.output == show_error_no_v4_neighbor_single_asic
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['show_bgp_summary_no_neigh'], indirect=['setup_single_bgp_instance'])
@@ -170,7 +235,64 @@ class TestBgpCommands(object):
         show = setup_bgp_commands
         runner = CliRunner()
         result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v6_neighbor_single_asic
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
+
+
+class TestBgpCommandsMultiAsic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_multi_asic_no_v4_neigh(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
             show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
         print("{}".format(result.output))
         assert result.exit_code == 0
-        assert result.output == show_error_no_v4_neighbor
+        assert result.output == show_error_no_v4_neighbor_multi_asic
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_multi_asic_no_v6_neigh(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v6_neighbor_multi_asic
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config()
