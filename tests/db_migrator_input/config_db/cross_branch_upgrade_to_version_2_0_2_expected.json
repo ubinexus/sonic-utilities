@@ -8,7 +8,7 @@
             "server_key": "/etc/sonic/credentials/restapiserver.key", 
             "ca_crt": "/etc/sonic/credentials/restapica.crt",
             "server_crt": "/etc/sonic/credentials/restapiserver.crt",
-            "client_crt_cname": "client.restapi.sonic"
+            "client_crt_cname": "client.restapi.sonic.gbl,vnetds.prod.int.azure-int.net"
         },
     "TELEMETRY|gnmi": {
             "client_auth": "true", 
