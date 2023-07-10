@@ -422,9 +422,11 @@ def parse_check_results(check_results):
         check_result["NEIGHBOR_IN_ASIC"] = bool_to_yes_no[check_result["NEIGHBOR_IN_ASIC"]]
         check_result["TUNNERL_IN_ASIC"] = bool_to_yes_no[check_result["TUNNERL_IN_ASIC"]]
         check_result["HWSTATUS"] = bool_to_consistency[hwstatus]
-        if not (is_zero_mac or in_toggle or hwstatus):
-            # NOTE: skip zero mac or in-toggling neighbors
-            failed_neighbors.append(check_result)
+        if (not hwstatus):
+            if is_zero_mac:
+                failed_neighbors.append(check_result)
+            elif not in_toggle:
+                failed_neighbors.append(check_result)
 
     output_lines = tabulate.tabulate(
         [[check_result[attr] for attr in NEIGHBOR_ATTRIBUTES] for check_result in check_results],
@@ -441,7 +443,7 @@ def parse_check_results(check_results):
             headers=NEIGHBOR_ATTRIBUTES,
             tablefmt="simple"
         )
-        for output_line in output_lines.split("\n"):
+        for output_line in err_output_lines.split("\n"):
             WRITE_LOG_ERROR(output_line)
         return False
     return True
