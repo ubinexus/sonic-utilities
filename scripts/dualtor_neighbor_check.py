@@ -356,7 +356,8 @@ def get_mac_to_port_name_map(asic_fdb, if_oid_to_port_name_map):
     """Return mac to port name map."""
     mac_to_port_name_map = {}
     for mac, port_br_oid in asic_fdb.items():
-        mac_to_port_name_map[mac] = if_oid_to_port_name_map[port_br_oid]
+        if port_br_oid in if_oid_to_port_name_map:
+            mac_to_port_name_map[mac] = if_oid_to_port_name_map[port_br_oid]
     return mac_to_port_name_map
 
 
