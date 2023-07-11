@@ -55,15 +55,15 @@ show_p4_table_filter_acl_table_output = r"""{
 class TestP4Table(object):
 
   def test_show_p4_table(self):
-    runner = CliRunner()
-    result = runner.invoke(show.cli.commands["p4-table"], [])
-    print(result.output)
-    assert result.exit_code == 0
-    assert result.output == show_p4_table_output
+      runner = CliRunner()
+      result = runner.invoke(show.cli.commands["p4-table"], [])
+      print(result.output)
+      assert result.exit_code == 0
+      assert result.output == show_p4_table_output
 
   def test_show_p4_table_filter_acl_table(self):
-    runner = CliRunner()
-    result = runner.invoke(show.cli.commands["p4-table"], ["ACL_ACL"])
-    print(result.output)
-    assert result.exit_code == 0
-    assert result.output == show_p4_table_filter_acl_table_output
+      runner = CliRunner()
+      result = runner.invoke(show.cli.commands["p4-table"], ["ACL_ACL"])
+      print(result.output)
+      assert result.exit_code == 0
+      assert result.output == show_p4_table_filter_acl_table_output
