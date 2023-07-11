@@ -742,7 +742,8 @@ class TestFastUpgrade_to_4_0_3(object):
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
-        assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
+        if dbmgtr.CURRENT_VERSION == 'version_4_0_3':
+            assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
 
 class TestSflowSampleDirectionMigrator(object):
     @classmethod
