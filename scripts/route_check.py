@@ -585,6 +585,9 @@ def get_soc_ips(config_db):
         if mux_entry.get("cable_type", "") == "active-active" and "soc_ipv4" in mux_entry:
             soc_ips.append(mux_entry["soc_ipv4"])
 
+            if "soc_ipv6" in mux_entry and mux_entry["soc_ipv6"]:
+                soc_ips.append(mux_entry["soc_ipv6"])
+
     return soc_ips
 
 
