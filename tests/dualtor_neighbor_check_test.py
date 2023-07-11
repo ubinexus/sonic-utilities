@@ -1,3 +1,4 @@
+import dualtor_neighbor_check
 import json
 import pytest
 import sys
@@ -9,7 +10,6 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 sys.path.append("scripts")
-import dualtor_neighbor_check
 
 
 class TestDualtorNeighborCheck(object):
@@ -131,6 +131,44 @@ class TestDualtorNeighborCheck(object):
             assert args.log_level is None
             mock_syslog_log_function.assert_has_calls(expected_syslog_calls)
 
+    def test_is_dualtor_true(self, mock_log_functions):
+        mock_config_db = MagicMock()
+        mock_config_db.get_table = MagicMock(
+            return_value={
+                "localhost": {
+                    "bgp_asn": "65100",
+                    "hostname": "lab-dev-01-t0",
+                    "peer_switch": "lab-dev-01-lt0",
+                    "subtype": "DualToR",
+                    "type": "ToRRouter",
+                }
+            }
+        )
+
+        is_dualtor = dualtor_neighbor_check.is_dualtor(mock_config_db)
+        mock_config_db.get_table.assert_has_calls(
+            [call("DEVICE_METADATA")]
+        )
+        assert is_dualtor
+
+    def test_is_dualtor_false(self, mock_log_functions):
+        mock_config_db = MagicMock()
+        mock_config_db.get_table = MagicMock(
+            return_value={
+                "localhost": {
+                    "bgp_asn": "65100",
+                    "hostname": "lab-dev-01-t0",
+                    "type": "ToRRouter",
+                }
+            }
+        )
+
+        is_dualtor = dualtor_neighbor_check.is_dualtor(mock_config_db)
+        mock_config_db.get_table.assert_has_calls(
+            [call("DEVICE_METADATA")]
+        )
+        assert not is_dualtor
+
     def test_read_from_db(self, mock_log_functions):
         with patch("dualtor_neighbor_check.run_command") as mock_run_command:
             neighbors = {"192.168.0.2": "ee:86:d8:46:7d:01"}
@@ -219,6 +257,38 @@ class TestDualtorNeighborCheck(object):
         result = dualtor_neighbor_check.get_mux_server_to_port_map(mux_cables)
 
         assert mux_server_to_port_map == result
+
+    def test_check_neighbor_consistency_no_fdb_entry(self, mock_log_functions):
+        mock_log_error, mock_log_warn, _, _ = mock_log_functions
+        neighbors = {"192.168.0.2": "ee:86:d8:46:7d:01"}
+        mux_states = {"Ethernet4": "active"}
+        hw_mux_states = {"Ethernet4": "active"}
+        mac_to_port_name_map = {"ee:86:d8:46:7d:02": "Ethernet4"}
+        asic_route_table = []
+        asic_neigh_table = []
+        mux_server_to_port_map = {}
+        expected_output = ["192.168.0.2", "ee:86:d8:46:7d:01", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"]
+        expected_log_output = tabulate.tabulate(
+            [expected_output],
+            headers=dualtor_neighbor_check.NEIGHBOR_ATTRIBUTES,
+            tablefmt="simple"
+        ).split("\n")
+        expected_log_warn_calls = [call(line) for line in expected_log_output]
+
+        check_results = dualtor_neighbor_check.check_neighbor_consistency(
+            neighbors,
+            mux_states,
+            hw_mux_states,
+            mac_to_port_name_map,
+            asic_route_table,
+            asic_neigh_table,
+            mux_server_to_port_map
+        )
+        res = dualtor_neighbor_check.parse_check_results(check_results)
+
+        assert res is True
+        mock_log_warn.assert_has_calls(expected_log_warn_calls)
+        mock_log_error.assert_not_called()
 
     def test_check_neighbor_consistency_consistent_neighbor_mux_active(self, mock_log_functions):
         mock_log_error, mock_log_warn, _, _ = mock_log_functions

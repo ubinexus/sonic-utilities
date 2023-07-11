@@ -155,6 +155,7 @@ return redis.status_reply(cjson.encode(result))
 DB_READ_SCRIPT_CONFIG_DB_KEY = "_DUALTOR_NEIGHBOR_CHECK_SCRIPT_SHA1"
 ZERO_MAC = "00:00:00:00:00:00"
 NEIGHBOR_ATTRIBUTES = ["NEIGHBOR", "MAC", "PORT", "MUX_STATE", "IN_MUX_TOGGLE", "NEIGHBOR_IN_ASIC", "TUNNERL_IN_ASIC", "HWSTATUS"]
+NOT_AVAILABLE = "N/A"
 
 
 class LogOutput(enum.Enum):
@@ -334,6 +335,12 @@ def get_if_br_oid_to_port_name_map():
     return if_br_oid_to_port_name_map
 
 
+def is_dualtor(config_db):
+    device_metadata = config_db.get_table('DEVICE_METADATA')
+    subtype = device_metadata['localhost'].get('subtype', '')
+    return subtype.lower() == 'dualtor'
+
+
 def get_mux_cable_config(config_db):
     """Return mux cable config from CONFIG_DB."""
     return config_db.get_table("MUX_CABLE")
@@ -371,7 +378,7 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
     check_results = []
     for neighbor_ip in natsorted(list(neighbors.keys())):
         mac = neighbors[neighbor_ip]
-        check_result = {attr: "N/A" for attr in NEIGHBOR_ATTRIBUTES}
+        check_result = {attr: NOT_AVAILABLE for attr in NEIGHBOR_ATTRIBUTES}
         check_result["NEIGHBOR"] = neighbor_ip
         check_result["MAC"] = mac
 
@@ -414,7 +421,10 @@ def parse_check_results(check_results):
     bool_to_yes_no = ("no", "yes")
     bool_to_consistency = ("inconsistent", "consistent")
     for check_result in check_results:
+        port = check_result["PORT"]
         is_zero_mac = check_result["MAC"] == ZERO_MAC
+        if port == NOT_AVAILABLE and not is_zero_mac:
+            continue
         in_toggle = check_result["IN_MUX_TOGGLE"]
         hwstatus = check_result["HWSTATUS"]
         if not is_zero_mac:
@@ -458,6 +468,11 @@ if __name__ == "__main__":
     appl_db = daemon_base.db_connect("APPL_DB")
 
     mux_cables = get_mux_cable_config(config_db)
+
+    if not is_dualtor(config_db) or not mux_cables:
+        WRITE_LOG_DEBUG("Not a valid dualtor setup, skip the check.")
+        sys.exit(0)
+
     mux_server_to_port_map = get_mux_server_to_port_map(mux_cables)
     if_oid_to_port_name_map = get_if_br_oid_to_port_name_map()
     neighbors, mux_states, hw_mux_states, asic_fdb, asic_route_table, asic_neigh_table = read_tables_from_db(appl_db)
