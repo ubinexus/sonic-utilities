@@ -47,7 +47,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_3'
+        self.CURRENT_VERSION = 'version_4_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -1016,9 +1016,17 @@ class DBMigrator():
     def version_4_0_3(self):
         """
         Version 4_0_3.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_3')
+        self.set_version('version_4_0_4')
+        return 'version_4_0_4'
+
+    def version_4_0_4(self):
+        """
+        Version 4_0_4.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_4')
         # Updating DNS nameserver
         self.migrate_dns_nameserver()
         return None

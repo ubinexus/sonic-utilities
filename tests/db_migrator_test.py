@@ -308,10 +308,17 @@ class TestDnsNameserverMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
+        # Set minigraph_data to DNS_NAMESERVERS
+        dbmgtr.minigraph_data = {
+            'DNS_NAMESERVER': {
+                '1.1.1.1': {},
+                '2001:1001:110:1001::1': {}
+            }
+        }
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-expected')
         expected_db = Db()
-        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_4')
         resulting_keys = dbmgtr.configDB.keys(dbmgtr.configDB.CONFIG_DB, 'DNS_NAMESERVER*')
         expected_keys = expected_db.cfgdb.keys(expected_db.cfgdb.CONFIG_DB, 'DNS_NAMESERVER*')
 
