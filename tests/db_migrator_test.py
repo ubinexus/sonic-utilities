@@ -335,6 +335,13 @@ class TestWarmUpgrade_to_2_0_2(object):
             diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 
+        target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        target_routing_mode_expected = expected_db.cfgdb.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert target_routing_mode_result == target_routing_mode_expected,\
+            "After migration: {}. Expected after migration: {}".format(
+                target_routing_mode_result, target_routing_mode_expected)
+
 class Test_Migrate_Loopback(object):
     @classmethod
     def setup_class(cls):
