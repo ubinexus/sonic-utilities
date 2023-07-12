@@ -648,6 +648,7 @@ class DBMigrator():
         if not dns_table:
             for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
                 self.configDB.set_entry('DNS_NAMESERVER', addr, config)
+
     def migrate_routing_config_mode(self):
         # DEVICE_METADATA - synchronous_mode entry
         if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
