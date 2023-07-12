@@ -217,11 +217,6 @@ def ipaddress_type(val):
 
     return ip_version.version
 
-def is_ipv4addr_loopback(ipaddr):
-    if ipaddress.ip_network("127.0.0.0/8", False).overlaps(ipaddress.ip_network(ipaddr, False)):
-        return True
-    return False
-
 def is_ip_prefix_in_key(key):
     '''
     Function to check if IP address is present in the key. If it
