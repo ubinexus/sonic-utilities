@@ -153,7 +153,7 @@ sonic-switch   10.2.2.2
 port        state    ipv4      ipv6      cable_type      soc_ipv4    soc_ipv6
 ----------  -------  --------  --------  --------------  ----------  ----------
 Ethernet0   active   10.2.1.1  e800::46
-Ethernet4   auto     10.3.1.1  e801::46
+Ethernet4   auto     10.3.1.1  e801::46                              e801::47
 Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
 Ethernet16  standby  10.1.1.1  fc00::75  active-standby
@@ -168,7 +168,7 @@ sonic-switch   10.2.2.2
 port    state    ipv4      ipv6      cable_type      soc_ipv4    soc_ipv6
 ------  -------  --------  --------  --------------  ----------  ----------
 etp1    active   10.2.1.1  e800::46
-etp2    auto     10.3.1.1  e801::46
+etp2    auto     10.3.1.1  e801::46                              e801::47
 etp3    active   10.4.1.1  e802::46
 etp4    active   10.4.1.1  e802::46
 etp5    standby  10.1.1.1  fc00::75  active-standby
@@ -192,7 +192,8 @@ json_data_status_config_output_expected = """\
                 "STATE": "auto",
                 "SERVER": {
                     "IPv4": "10.3.1.1",
-                    "IPv6": "e801::46"
+                    "IPv6": "e801::46",
+                    "soc_ipv6": "e801::47"
                 }
             },
             "Ethernet8": {
@@ -255,7 +256,8 @@ json_data_status_config_output_expected_alias = """\
                 "STATE": "auto",
                 "SERVER": {
                     "IPv4": "10.3.1.1",
-                    "IPv6": "e801::46"
+                    "IPv6": "e801::46",
+                    "soc_ipv6": "e801::47"
                 }
             },
             "etp3": {
