@@ -1091,6 +1091,7 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_5')
+
         return None
 
     def get_version(self):
