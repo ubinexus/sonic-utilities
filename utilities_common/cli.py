@@ -10,6 +10,7 @@ import click
 import json
 import lazy_object_proxy
 import netaddr
+import ipaddress
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
