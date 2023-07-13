@@ -336,9 +336,11 @@ def get_if_br_oid_to_port_name_map():
 
 
 def is_dualtor(config_db):
+    """Check if it is a dualtor device."""
     device_metadata = config_db.get_table('DEVICE_METADATA')
-    subtype = device_metadata['localhost'].get('subtype', '')
-    return subtype.lower() == 'dualtor'
+    return ("localhost" in device_metadata and
+            "subtype" in device_metadata['localhost'] and
+            device_metadata['localhost']['subtype'].lower() == 'dualtor')
 
 
 def get_mux_cable_config(config_db):

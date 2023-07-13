@@ -169,6 +169,16 @@ class TestDualtorNeighborCheck(object):
         )
         assert not is_dualtor
 
+    def test_is_dualtor_false_empty_metadata(self, mock_log_functions):
+        mock_config_db = MagicMock()
+        mock_config_db.get_table = MagicMock(return_value={})
+
+        is_dualtor = dualtor_neighbor_check.is_dualtor(mock_config_db)
+        mock_config_db.get_table.assert_has_calls(
+            [call("DEVICE_METADATA")]
+        )
+        assert not is_dualtor
+
     def test_read_from_db(self, mock_log_functions):
         with patch("dualtor_neighbor_check.run_command") as mock_run_command:
             neighbors = {"192.168.0.2": "ee:86:d8:46:7d:01"}
