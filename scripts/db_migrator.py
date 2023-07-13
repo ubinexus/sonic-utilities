@@ -1039,7 +1039,6 @@ class DBMigrator():
 
         # Updating DNS nameserver
         self.migrate_dns_nameserver()
-
         self.set_version('version_4_0_4')
         return 'version_4_0_4'
 
