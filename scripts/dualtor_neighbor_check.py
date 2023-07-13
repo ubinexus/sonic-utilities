@@ -12,6 +12,7 @@ import functools
 import ipaddress
 import json
 import logging
+import shlex
 import sys
 import syslog
 import subprocess
@@ -279,7 +280,7 @@ def run_command(cmd):
     """Runs a command and returns its output."""
     WRITE_LOG_DEBUG("Running command: %s", cmd)
     try:
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         (output, _) = p.communicate()
     except Exception as details:
         raise RuntimeError("Failed to run command: %s", details)
@@ -290,19 +291,28 @@ def run_command(cmd):
     return output.decode()
 
 
+def redis_cli(redis_cmd):
+    """Call a redis command with return error check."""
+    run_cmd = "sudo redis-cli %s" % redis_cmd
+    result = run_command(run_cmd).strip()
+    if "error" in result or "ERR" in result:
+        raise RuntimeError("Redis command '%s' failed: %s" % (redis_cmd, result))
+    return result
+
+
 def read_tables_from_db(appl_db):
     """Reads required tables from db."""
     # NOTE: let's cache the db read script sha1 in APPL_DB under
     # key "_DUALTOR_NEIGHBOR_CHECK_SCRIPT_SHA1"
     db_read_script_sha1 = appl_db.get(DB_READ_SCRIPT_CONFIG_DB_KEY)
     if not db_read_script_sha1:
-        load_cmd = "sudo redis-cli SCRIPT LOAD \"%s\"" % DB_READ_SCRIPT
-        db_read_script_sha1 = run_command(load_cmd).strip()
+        redis_load_cmd = "SCRIPT LOAD \"%s\"" % DB_READ_SCRIPT
+        db_read_script_sha1 = redis_cli(redis_load_cmd).strip()
         WRITE_LOG_INFO("loaded script sha1: %s", db_read_script_sha1)
         appl_db.set(DB_READ_SCRIPT_CONFIG_DB_KEY, db_read_script_sha1)
 
-    run_cmd = "sudo redis-cli EVALSHA %s 0" % db_read_script_sha1
-    result = run_command(run_cmd).strip()
+    redis_run_cmd = "EVALSHA %s 0" % db_read_script_sha1
+    result = redis_cli(redis_run_cmd).strip()
     tables = json.loads(result)
 
     neighbors = tables["neighbors"]

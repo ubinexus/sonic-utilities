@@ -1,6 +1,7 @@
 import dualtor_neighbor_check
 import json
 import pytest
+import shlex
 import sys
 import subprocess
 import tabulate
@@ -45,20 +46,7 @@ class TestDualtorNeighborCheck(object):
 
             out = dualtor_neighbor_check.run_command("whoami")
 
-            mock_popen.assert_called_once_with("whoami", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            mock_proc.communicate.assert_called_once()
-            assert out == "admin"
-
-    def test_run_command(self, mock_log_functions):
-        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
-            mock_proc = MagicMock()
-            mock_popen.return_value = mock_proc
-            mock_proc.communicate.return_value = (b"admin", None)
-            mock_proc.returncode = 0
-
-            out = dualtor_neighbor_check.run_command("whoami")
-
-            mock_popen.assert_called_once_with("whoami", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_popen.assert_called_once_with(shlex.split("whoami"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             mock_proc.communicate.assert_called_once()
             assert out == "admin"
 
@@ -72,7 +60,35 @@ class TestDualtorNeighborCheck(object):
             with pytest.raises(RuntimeError):
                 dualtor_neighbor_check.run_command("ls /tmp/not-existed")
 
-            mock_popen.assert_called_once_with("ls /tmp/not-existed", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_popen.assert_called_once_with(shlex.split("ls /tmp/not-existed"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_proc.communicate.assert_called_once()
+
+    def test_redis_cli(self, mock_log_functions):
+        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_popen.return_value = mock_proc
+            mock_proc.communicate.return_value = (b"6cde21a0d21ab29e08dd72e13b77214dbb01902f", None)
+            mock_proc.returncode = 0
+
+            redis_cmd = "script load \"return helloworld\""
+            out = dualtor_neighbor_check.redis_cli(redis_cmd)
+
+            mock_popen.assert_called_once_with(shlex.split("sudo redis-cli %s" % redis_cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            mock_proc.communicate.assert_called_once()
+            assert out == "6cde21a0d21ab29e08dd72e13b77214dbb01902f"
+
+    def test_redis_cli_error_stdout(self, mock_log_functions):
+        with patch("dualtor_neighbor_check.subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_popen.return_value = mock_proc
+            mock_proc.communicate.return_value = (b"(error) NOSCRIPT No matching script. Please use EVAL.", None)
+            mock_proc.returncode = 0
+
+            redis_cmd = "evalsha 0 0"
+            with pytest.raises(RuntimeError):
+                dualtor_neighbor_check.redis_cli(redis_cmd)
+
+            mock_popen.assert_called_once_with(shlex.split("sudo redis-cli %s" % redis_cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             mock_proc.communicate.assert_called_once()
 
     def test_log_config_default(self, mock_py_log_functions):
