@@ -75,7 +75,10 @@ def rdma_config_update_validator(patch_element):
 
         if 'value' in patch_element.keys() and isinstance(patch_element['value'], dict):
             for key in patch_element['value']:
-                cleaned_fields.append(cleaned_field+ '/' + key)
+                if len(cleaned_field) > 0:
+                    cleaned_fields.append(cleaned_field+ '/' + key)
+                else:
+                    cleaned_fields.append(key)
         else:
             cleaned_fields.append(cleaned_field)
 

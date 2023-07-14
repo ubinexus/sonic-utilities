@@ -37,7 +37,8 @@
                             "restoration_time",
                             "detection_time",
                             "action",
-                            "global/poll_interval"
+                            "global/poll_interval",
+                            ""
                         ],
                         "operations": ["remove", "add", "replace"],
                         "platforms": {
