@@ -184,13 +184,13 @@ def queuecounters():
 @cli.command()
 def fabriccountersqueue():
     """Clear fabric queue counters"""
-    command = "fabricstat -C -q"
+    command = ["fabricstat", "-C", "-q"]
     run_command(command)
 
 @cli.command()
 def fabriccountersport():
    """Clear fabric port counters"""
-   command = "fabricstat -C"
+   command = ["fabricstat", "-C"]
    run_command(command)
 
 @cli.command()
