@@ -1158,6 +1158,67 @@ collect_mellanox_dfw_dumps() {
 }
 
 ###############################################################################
+# Runs a given marvellcmd command in all namesapces in case of multi ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  cmd: The command to run. Make sure that arguments with spaces have quotes
+#  filename: the filename to save the output as in $BASE/dump
+#  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+# Returns:
+#  None
+###############################################################################
+save_marvellcmd() {
+    trap 'handle_error $? $LINENO' ERR
+
+    mkdir -p $LOGDIR/sdkdump
+    local cmd="docker exec syncd mrvlcmd -c \"$1\""
+    save_cmd "$cmd" "sdkdump/$2"
+}
+
+###############################################################################
+# Collect Marvell specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_marvell() {
+    trap 'handle_error $? $LINENO' ERR
+
+    save_marvellcmd "show version" "CPSS_version"
+    save_marvellcmd "debug-mode;xps-api call xpsDataIntegrityDumpSerInfo all" "SER_table"
+    save_marvellcmd "show traffic cpu rx statistic device 0" "CPU_stat"
+    save_marvellcmd "show interfaces status all" "INTERFACE_config"
+    save_marvellcmd "show port monitor" "PORT_mirror"
+    save_marvellcmd "show vlan device 0" "VLAN_table"
+    save_marvellcmd "show ip route device 0" "IP_route"
+    save_marvellcmd "show ipv6 route device 0" "IPV6_route"
+    save_marvellcmd "show ip route_fdb device 0" "IP_forward_route"
+    save_marvellcmd "show ipv6 route_fdb device 0" "IPV6_forward_route"
+    save_marvellcmd "show ip next-hop device 0" "NH_table"
+    save_marvellcmd "show mac address-table device 0" "MAC_forward"
+    save_marvellcmd "show mac address-table count device 0" "MAC_count"
+    save_marvellcmd "show tail-drop-allocated buffers all" "Tail_drop"
+    save_marvellcmd "show policy device 0" "POLICER_table"
+    save_marvellcmd "show system policy-tcam utilization device 0" "Policy_count"
+    save_marvellcmd "show access-list device 0 pcl-id 0 format ingress_udb_30" "UDB30_acl"
+    save_marvellcmd "show access-list device 0 pcl-id 0 format ingress_udb_60" "UDB60_acl"
+    save_marvellcmd "debug-mode;show drop counters 0" "Drop_count"
+    save_marvellcmd "debug-mode;dump all registers" "REGISTER_table"
+    save_marvellcmd "debug-mode;dump all tables0" "HW_table_0"
+    save_marvellcmd "debug-mode;dump all tables1" "HW_table_1"
+    save_marvellcmd "debug-mode;dump all tables2" "HW_table_2"
+    save_marvellcmd "debug-mode;dump all tables3" "HW_table_3"
+    save_marvellcmd "debug-mode;dump all tables4" "HW_table_4"
+    save_marvellcmd "debug-mode;dump all tables5" "HW_table_5"
+    save_marvellcmd "debug-mode;dump all tables6" "HW_table_6"
+    save_marvellcmd "debug-mode;dump all tables7" "HW_table_7"
+}
+
+###############################################################################
 # Collect Broadcom specific information
 # Globals:
 #  None
@@ -1226,39 +1287,47 @@ collect_broadcom() {
     fi
 
     if [ "$bcm_family" == "broadcom-dnx" ]; then
-       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
-       save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
-       total_fp_groups=34
-       for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
-       do
-         save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
-       done
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
-       save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
-       save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
-       save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
-       save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+       supervisor=0
+       PLATFORM_ENV_CONF=/usr/share/sonic/device/${platform}/platform_env.conf
+       if [ -f "$PLATFORM_ENV_CONF" ]; then
+          source $PLATFORM_ENV_CONF
+       fi
+       if [[ x"$supervisor" != x"1" ]]; then
+
+          save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+          save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
+          total_fp_groups=34
+          for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
+          do
+            save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
+          done
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
+          save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
+          save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
+          save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
+          save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+          save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+          save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+          for group in {a..f}
+          do
+             save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+          done
+       fi
        save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
        save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
        save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
        save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
-       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
-       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
-       for group in {a..f}
-       do
-          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
-       done
        save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
        save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
     else
@@ -1726,6 +1795,11 @@ main() {
         collect_cisco_8000
     fi
 
+    if [ "$asic" = "marvell" ]; then
+        collect_marvell
+    fi
+
+
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
 
@@ -2000,7 +2074,7 @@ else
         rm_lock_and_exit
     else
         # Lock is valid and the other instance is active. Exit Now
-        echo "Accquiring lock failed, PID ${PID_PROG} is active" >&2
+        echo "Another instance of techsupport running with PID: ${PID_PROG}, please retry after some time..." >&2
         exit $EXT_LOCKFAIL
     fi
 fi

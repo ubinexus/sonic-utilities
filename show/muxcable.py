@@ -568,6 +568,13 @@ def create_table_dump_per_port_config(db ,print_data, per_npu_configdb, asic_id,
     if soc_ipv4_value is not None:
         port_list.append(soc_ipv4_value)
         is_dualtor_active_active[0] = True
+    soc_ipv6_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv6", "MUX_CABLE")
+    if soc_ipv6_value is not None:
+        if cable_type is None:
+            port_list.append("")
+        if soc_ipv4_value is None:
+            port_list.append("")
+        port_list.append(soc_ipv6_value)
     print_data.append(port_list)
 
 
@@ -587,12 +594,15 @@ def create_json_dump_per_port_config(db, port_status_dict, per_npu_configdb, asi
     soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
     if soc_ipv4_value is not None:
         port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
+    soc_ipv6_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv6", "MUX_CABLE")
+    if soc_ipv6_value is not None:
+        port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv6"] = soc_ipv6_value
 
 def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db, per_npu_asic_db, asic_id, port):
 
     mux_cfg_dict = per_npu_configdb[asic_id].get_all(
     per_npu_configdb[asic_id].CONFIG_DB, 'MUX_CABLE|{}'.format(port))
-    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4"]
+    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4", "soc_ipv6"]
 
     for name in dest_names:
         dest_address = mux_cfg_dict.get(name, None)
@@ -863,7 +873,7 @@ def config(db, port, json_output):
                     print_peer_tor.append(peer_tor_data)
                     click.echo(tabulate(print_peer_tor, headers=headers))
                     if is_dualtor_active_active[0]:
-                        headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
+                        headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4', 'soc_ipv6']
                     else:
                         headers = ['port', 'state', 'ipv4', 'ipv6']
                     click.echo(tabulate(print_data, headers=headers))
@@ -915,7 +925,7 @@ def config(db, port, json_output):
             print_peer_tor.append(peer_tor_data)
             click.echo(tabulate(print_peer_tor, headers=headers))
             if is_dualtor_active_active[0]:
-                headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
+                headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4', 'soc_ipv6']
             else:
                 headers = ['port', 'state', 'ipv4', 'ipv6']
             click.echo(tabulate(print_data, headers=headers))
@@ -1394,13 +1404,14 @@ def muxdirection(db, port, json_output):
                 headers = ['Port', 'Direction', 'Presence']
             click.echo(tabulate(body, headers=headers))
 
-        return rc
+        rc_exit = EXIT_SUCCESS if rc==0  else EXIT_FAIL
+        sys.exit(rc_exit)
 
     else:
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc_exit = True
+        rc_exit = EXIT_SUCCESS
         body = []
         active_active = False
         if json_output:
@@ -1449,8 +1460,9 @@ def muxdirection(db, port, json_output):
                     active_active = True
                 else:
                     rc = create_active_standby_mux_direction_result(body, port, db)
-                if rc != 0:
-                    rc_exit = False
+
+            if rc != 0:
+                rc_exit = EXIT_FAIL
 
 
 
@@ -1464,8 +1476,7 @@ def muxdirection(db, port, json_output):
                 headers = ['Port', 'Direction', 'Presence']
             click.echo(tabulate(body, headers=headers))
 
-        if rc_exit == False:
-            sys.exit(EXIT_FAIL)
+        sys.exit(rc_exit)
 
 
 @hwmode.command()
@@ -2140,7 +2151,7 @@ def get_grpc_cached_version_mux_direction_per_port(db, port):
     mux_info_dict = {}
     mux_info_full_dict = {}
     trans_info_full_dict = {}
-    mux_info_dict["rc"] = False
+    mux_info_dict["rc"] = 1
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -2182,7 +2193,7 @@ def get_grpc_cached_version_mux_direction_per_port(db, port):
 
     mux_info_dict["presence"] = presence
 
-    mux_info_dict["rc"] = True
+    mux_info_dict["rc"] = 0
 
     return mux_info_dict
 
@@ -2222,14 +2233,15 @@ def muxdirection(db, port, json_output):
             rc = create_active_active_mux_direction_result(body, port, db)
             click.echo(tabulate(body, headers=headers))
 
-        return rc
+        rc_exit = EXIT_SUCCESS if rc==0  else EXIT_FAIL
+        sys.exit(rc_exit)
 
     else:
 
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc_exit = True
+        rc_exit = EXIT_SUCCESS
         body = []
         if json_output:
             result = {}
@@ -2266,8 +2278,8 @@ def muxdirection(db, port, json_output):
             else:
                 rc = create_active_active_mux_direction_result(body, port, db)
 
-            if rc != True:
-                rc_exit = False
+            if rc != 0:
+                rc_exit = EXIT_FAIL
 
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
@@ -2276,8 +2288,7 @@ def muxdirection(db, port, json_output):
 
             click.echo(tabulate(body, headers=headers))
 
-        if rc_exit == False:
-            sys.exit(EXIT_FAIL)
+        sys.exit(rc_exit)
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
