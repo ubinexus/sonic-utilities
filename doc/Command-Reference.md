@@ -64,6 +64,9 @@
   * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Hash](#hash)
+  * [Hash show commands](#hash-show-commands)
+  * [Hash config commands](#hash-config-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -194,12 +197,15 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
-
+* [Static DNS Commands](#static-dns-commands)
+  * [Static DNS config command](#static-dns-config-command)
+  * [Static DNS show command](#static-dns-show-command)
 
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
@@ -2046,7 +2052,7 @@ This command displays the state and key parameters of all BFD sessions that matc
 
 - Usage:
   ```
-  show bgp peer <peer-ip>
+  show bfd peer <peer-ip>
   ```
 - Example:
   ```
@@ -4082,6 +4088,101 @@ This command is used to change device hostname without traffic being impacted.
   ```
   admin@sonic:~$ sudo config hostname CSW06
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+  ```
+
+## Hash
+
+This section explains the various show and configuration commands available for user.
+
+### Hash Show Commands
+
+This subsection explains how to display switch hash configuration.
+
+**show switch-hash global**
+
+This command displays switch hash global configuration.
+
+- Usage:
+  ```bash
+  show switch-hash global
+  ```
+
+- Example:
+  ```bash
+  admin@sonic:~$ show switch-hash global
+  ECMP HASH          LAG HASH
+  -----------------  -----------------
+  DST_MAC            DST_MAC
+  SRC_MAC            SRC_MAC
+  ETHERTYPE          ETHERTYPE
+  IP_PROTOCOL        IP_PROTOCOL
+  DST_IP             DST_IP
+  SRC_IP             SRC_IP
+  L4_DST_PORT        L4_DST_PORT
+  L4_SRC_PORT        L4_SRC_PORT
+  INNER_DST_MAC      INNER_DST_MAC
+  INNER_SRC_MAC      INNER_SRC_MAC
+  INNER_ETHERTYPE    INNER_ETHERTYPE
+  INNER_IP_PROTOCOL  INNER_IP_PROTOCOL
+  INNER_DST_IP       INNER_DST_IP
+  INNER_SRC_IP       INNER_SRC_IP
+  INNER_L4_DST_PORT  INNER_L4_DST_PORT
+  INNER_L4_SRC_PORT  INNER_L4_SRC_PORT
+  ```
+
+### Hash Config Commands
+
+This subsection explains how to configure switch hash.
+
+**config switch-hash global**
+
+This command is used to manage switch hash global configuration.
+
+- Usage:
+  ```bash
+  config switch-hash global ecmp-hash <hash_field_list>
+  config switch-hash global lag-hash <hash_field_list>
+  ```
+
+- Parameters:
+  - _hash_field_list_: hash fields for hashing packets going through ECMP/LAG
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config switch-hash global ecmp-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
+  admin@sonic:~$ config switch-hash global lag-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
   ```
 
 ## Interfaces
@@ -12442,3 +12543,55 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
+
+# Static DNS Commands
+
+This sub-section explains the list of the configuration options available for static DNS feature.
+
+## Static DNS config command
+
+- Add static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver add -h
+Usage: config dns nameserver add [OPTIONS] <ip_address>
+
+  Add static DNS nameserver entry
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Delete static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver del -h
+Usage: config dns nameserver del [OPTIONS] <ip_address>
+
+  Delete static DNS nameserver entry
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+## Static DNS  show command
+
+- Show static DNS configuration
+
+```
+admin@sonic:~$ show dns nameserver -h
+Usage: show dns nameserver [OPTIONS]
+
+  Show static DNS configuration
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+```
+admin@sonic:~$ show dns nameserver
+  Nameserver
+------------
+     1.1.1.1
+     8.8.8.8
+
+```
