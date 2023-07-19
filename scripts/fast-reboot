@@ -791,6 +791,7 @@ for service in ${SERVICES_TO_STOP}; do
             sonic-db-cli ASIC_DB FLUSHDB > /dev/null
             sonic-db-cli COUNTERS_DB FLUSHDB > /dev/null
             sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
+            sonic-db-cli RESTAPI_DB FLUSHDB > /dev/null
         fi
 
         backup_database
