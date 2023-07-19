@@ -13,31 +13,31 @@ from utilities_common.db import Db
 from .utils import get_result_and_return_code
 
 show_linecard0_shutdown_output="""\
-LINE-CARD0 line-card 1 Empty down
+LINE-CARD0 line-card 1 Empty down LC1000101
 """
 
 show_linecard0_startup_output="""\
-LINE-CARD0 line-card 1 Empty up
+LINE-CARD0 line-card 1 Empty up LC1000101
 """
 header_lines = 2
 warning_lines = 0
 
 show_chassis_modules_output="""\
-        Name      Description    Physical-Slot    Oper-Status    Admin-Status
-------------  ---------------  ---------------  -------------  --------------
-FABRIC-CARD0      fabric-card               17         Online              up
-FABRIC-CARD1      fabric-card               18        Offline              up
-  LINE-CARD0        line-card                1          Empty              up
-  LINE-CARD1        line-card                2         Online            down
- SUPERVISOR0  supervisor-card               16         Online              up
+        Name      Description    Physical-Slot    Oper-Status    Admin-Status     Serial
+------------  ---------------  ---------------  -------------  --------------  ---------
+FABRIC-CARD0      fabric-card               17         Online              up  FC1000101
+FABRIC-CARD1      fabric-card               18        Offline              up  FC1000102
+  LINE-CARD0        line-card                1          Empty              up  LC1000101
+  LINE-CARD1        line-card                2         Online            down  LC1000102
+ SUPERVISOR0  supervisor-card               16         Online              up  RP1000101
 """
 
 show_chassis_midplane_output="""\
-       Name     IP-Address    Reachability
------------  -------------  --------------
- LINE-CARD0    192.168.1.1            True
- LINE-CARD1    192.168.1.2           False
-SUPERVISOR0  192.168.1.100            True
+      Name     IP-Address    Reachability
+----------  -------------  --------------
+LINE-CARD0  192.168.1.100            True
+LINE-CARD1    192.168.1.2           False
+LINE-CARD2    192.168.1.1            True
 """
 
 show_chassis_system_ports_output_asic0="""\
@@ -225,7 +225,7 @@ class TestChassisModules(object):
         result = runner.invoke(show.cli.commands["chassis"].commands["modules"].commands["midplane-status"], [])
         print(result.output)
         result_lines = result.output.strip('\n').split('\n')
-        modules = ["LINE-CARD0", "LINE-CARD1", "SUPERVISOR0"]
+        modules = ["LINE-CARD0", "LINE-CARD1", "LINE-CARD2"]
         for i, module in enumerate(modules):
             assert module in result_lines[i + warning_lines + header_lines]
         assert len(result_lines) == warning_lines + header_lines + len(modules)
