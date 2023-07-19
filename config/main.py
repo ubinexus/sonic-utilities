@@ -1901,14 +1901,14 @@ def override_config_table(db, input_config_db, dry_run):
                 if "localhost" in config_input.keys():
                     ns_config_input = config_input["localhost"]
                 else:
-                    ctx = click.get_current_context()
-                    ctx.fail("Wrong config format! cannot override config.. abort".format(e))
+                    click.secho("Wrong config format on host config! cannot override config.. abort")
+                    sys.exit(1)
             else:
                 if ns in config_input.keys():
                     ns_config_input = config_input[ns]
                 else:
-                    ctx = click.get_current_context()
-                    ctx.fail("Wrong config format! cannot override config.. abort".format(e))
+                    click.secho("Wrong config format on asic config! cannot override config.. abort")
+                    sys.exit(1)
         if not ns_config_input:
             # if ns_config_input is not defined, define it
             # it could be single-asic dut, or config_input is empty
