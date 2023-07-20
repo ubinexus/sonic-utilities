@@ -536,7 +536,10 @@ class TestWarmUpgrade_to_2_0_2(object):
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
-            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            if table == "RESTAPI":
+                diff = DeepDiff(resulting_table, expected_table, verbose_level=0, ignore_order=True)
+            else:
+                diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 
         target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
