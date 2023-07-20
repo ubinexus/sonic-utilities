@@ -24,7 +24,7 @@ FINAL_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "final_config_yang_failure.js
 MULTI_ASIC_MACSEC_OV = os.path.join(DATA_DIR, "multi_asic_macsec_ov.json")
 MULTI_ASIC_DEVICE_METADATA_RM = os.path.join(DATA_DIR, "multi_asic_dm_rm.json")
 MULTI_ASIC_DEVICE_METADATA_GEN_SYSINFO = os.path.join(DATA_DIR, "multi_asic_dm_gen_sysinfo.json")
-MULTI_ASIC_MISSING_LOCALHOST = os.path.join(DATA_DIR, "multi_asic_missing_localhost.json")
+MULTI_ASIC_MISSING_LOCALHOST_OV = os.path.join(DATA_DIR, "multi_asic_missing_localhost.json")
 MULTI_ASIC_MISSING_ASIC_OV = os.path.join(DATA_DIR, "multi_asic_missing_asic.json")
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
