@@ -381,6 +381,27 @@ class TestConfigOverrideMultiasic(object):
             assert platform == "multi_asic"
             assert mac == "11:22:33:44:55:66"
 
+    def test_masic_wrong_format_override(self):
+        def read_json_file_side_effect(filename):
+            with open(MULTI_ASIC_WRONG_FORMAT, "r") as f:
+                wrong_format = json.load(f)
+            return wrong_format
+        db = Db()
+        cfgdb_clients = db.cfgdb_clients
+
+        with mock.patch('config.main.read_json_file',
+                        mock.MagicMock(side_effect=read_json_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["override-config-table"],
+                                   ['golden_config_db.json'], obj=db)
+            # make sure program aborted with return code 1
+            assert result.exit_code == 1
+
+        for ns, config_db in cfgdb_clients.items():
+            if ns:
+                assert "not found in asic config" in result.output
+            else:
+                assert "'localhost' not found in host config" in result.output
 
     @classmethod
     def teardown_class(cls):
