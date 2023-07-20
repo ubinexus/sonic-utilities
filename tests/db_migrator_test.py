@@ -537,7 +537,10 @@ class TestWarmUpgrade_to_2_0_2(object):
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
             if table == "RESTAPI":
-                diff = DeepDiff(resulting_table, expected_table, verbose_level=0, ignore_order=True)
+                # for RESTAPI - just make sure if the new fields are added, and ignore values match
+                # values are ignored as minigraph parser is expected to generate different
+                # results for cert names based on the project specific config.
+                diff = set(resulting_table.get("certs").keys()) != set(expected_table.get("certs").keys())
             else:
                 diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
