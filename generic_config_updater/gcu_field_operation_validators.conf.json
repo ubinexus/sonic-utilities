@@ -18,6 +18,7 @@
         "rdma_config_update_validator": {
             "mellanox_asics": {
                 "spc1": [ "ACS-MSN2700", "ACS-MSN2740", "ACS-MSN2100", "ACS-MSN2410", "ACS-MSN2010", "Mellanox-SN2700", "Mellanox-SN2700-D48C8" ],
+                "spc2": [ "ACS-MSN3800", "Mellanox-SN3800-D112C8" ],
                 "spc3": [ "ACS-MSN4700", "ACS-MSN4600", "ACS-MSN4600C", "ACS-MSN4410", "Mellanox-SN4600C-D112C8", "Mellanox-SN4600C-C64" ]
             },
             "broadcom_asics": {
@@ -44,6 +45,7 @@
                         "operations": ["remove", "add", "replace"],
                         "platforms": {
                             "spc1": "20181100",
+			    "spc2": "20191100",
                             "spc3": "20220500",
                             "td2": "20181100",
                             "th": "20181100",
@@ -68,6 +70,7 @@
                         "operations": ["replace"],
                         "platforms": {
                             "spc1": "20191100",
+			    "spc2": "20191100",
                             "spc3": "20220500",
                             "td2": "",
                             "th": "20221100",
@@ -90,6 +93,7 @@
                         "operations": ["replace"],
                         "platforms": {
                             "spc1": "20181100",
+			    "spc2": "20191100",
                             "spc3": "20220500",
                             "td2": "20181100",
                             "th": "20181100",
@@ -105,6 +109,7 @@
                         "operations": ["replace"],
                         "platforms": {
                             "spc1": "20191100",
+			    "spc2": "20191100",
                             "spc3": "20220500",
                             "td2": "",
                             "th": "20221100",

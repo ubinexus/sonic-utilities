@@ -31,9 +31,13 @@ def get_asic_name():
         hwsku = output.rstrip('\n')
         if asic_type == 'mellanox' or asic_type == 'vs':
             spc1_hwskus = asic_mapping["mellanox_asics"]["spc1"]
+            spc2_hwskus = asic_mapping["mellanox_asics"]["spc2"]
             spc3_hwskus = asic_mapping["mellanox_asics"]["spc3"]
             if hwsku.lower() in [spc1_hwsku.lower() for spc1_hwsku in spc1_hwskus]:
                 asic = "spc1"
+                return asic
+            if hwsku.lower() in [spc2_hwsku.lower() for spc2_hwsku in spc2_hwskus]:
+                asic = "spc2"
                 return asic
             if hwsku.lower() in [spc3_hwsku.lower() for spc3_hwsku in spc3_hwskus]:
                 asic = "spc3"
