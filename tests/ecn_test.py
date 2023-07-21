@@ -168,8 +168,6 @@ class TestEcnConfig(object):
         if 'cmp_args' in input:
             fd = open('/tmp/ecnconfig', 'r')
             cmp_data = json.load(fd)
-            # Dictionary with keys of form:
-            # "('Ethernet0', '4')": {'scheduler': '[SCHEDULER|scheduler.1]', 'wred_profile': 'AZURE_LOSSLESS'}
             if 'cmp_q_args' in input:
                 profile, value = self.process_cmp_args(input['cmp_args'][0])
                 if 'other_q' in input:
