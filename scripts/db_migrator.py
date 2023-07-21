@@ -1081,12 +1081,12 @@ class DBMigrator():
         """
         log.log_info('Handling version_4_0_4')
 		
-		self.migrate_config_db_switchport_mode()
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_4_0_4')
         return 'version_4_0_5'
 	
-	def version_4_0_5(self):
-		"""
+    def version_4_0_5(self):
+        """
         Version 4_0_5.
         This is the latest version for master branch
         """
