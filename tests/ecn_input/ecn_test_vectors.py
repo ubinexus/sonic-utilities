@@ -133,6 +133,13 @@ testData = {
                                     'cmp_q_args' : ['3', '4'],
                                     'db_table' : 'DEVICE_NEIGHBOR'
                                    },
+             'ecn_lossy_q_get' : {'cmd' : ['q_cmd'],
+                                  'args' : ['-q', '2'],
+                                  'rc' : 0,
+                                  'rc_msg' : 'ECN status:\nqueue 2: off\n',
+                                  'cmp_args' : [None],
+                                  'cmp_q_args' : ['2']
+                                 },
              'ecn_q_all_get_verbose' : {'cmd' : ['q_cmd'],
                                         'args' : ['-q', '3,4', '-vv'],
                                         'rc' : 0,
@@ -205,5 +212,11 @@ testData = {
                                        'cmp_q_args' : ['3', '4'],
                                        'db_table' : 'DEVICE_NEIGHBOR',
                                        'rc_msg' : 'Enable ECN on {0} queue 4'
-                                      }
+                                      },
+             'ecn_cfg_lossy_q_on' : {'cmd' : ['q_cmd'],
+                                     'args' : ['-q', '0,1,2,5,6,7', 'on'],
+                                     'rc' : 0,
+                                     'cmp_args' : ['wred_profile,AZURE_LOSSLESS'],
+                                     'cmp_q_args' : ['0', '1', '2', '5', '6', '7']
+                                    }
            }

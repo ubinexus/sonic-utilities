@@ -88,6 +88,9 @@ class TestEcnConfig(object):
     def test_ecn_queue_get_verbose(self):
         self.executor(testData['ecn_q_get_verbose'])
 
+    def test_ecn_queue_get_lossy(self):
+        self.executor(testData['ecn_lossy_q_get'])
+
     def test_ecn_all_queue_get(self):
         self.executor(testData['ecn_q_all_get'])
 
@@ -117,6 +120,9 @@ class TestEcnConfig(object):
 
     def test_ecn_queue_set_all_on_verbose(self):
         self.executor(testData['ecn_cfg_q_all_on_verbose'])
+
+    def test_ecn_queue_set_lossy_q_on(self):
+        self.executor(testData['ecn_cfg_lossy_q_on'])
 
     def process_cmp_args(self, cmp_args):
         '''
