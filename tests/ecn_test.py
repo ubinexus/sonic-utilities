@@ -125,10 +125,6 @@ class TestEcnConfig(object):
         self.executor(testData['ecn_cfg_lossy_q_on'])
 
     def process_cmp_args(self, cmp_args):
-        '''
-        Takes cmp_args or cmp_q_args value from test vectors.
-        Returns tuple of profile and expected value, or both None if no profile is expected.
-        '''
         if cmp_args is None:
             return (None, None)
         return cmp_args.split(',')
