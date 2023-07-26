@@ -564,8 +564,11 @@ class PackageManager:
 
         # After all checks are passed we proceed to actual upgrade
 
+        feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
+
         service_create_opts = {
             'register_feature': False,
+            'transient_disabled_state': feature_enabled,
         }
         service_remove_opts = {
             'deregister_feature': False,
@@ -578,8 +581,6 @@ class PackageManager:
 
                 source.install(new_package)
                 exits.callback(rollback(source.uninstall, new_package))
-
-                feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
 
                 if feature_enabled:
                     self._stop_feature(old_package)

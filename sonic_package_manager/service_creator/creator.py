@@ -144,6 +144,7 @@ class ServiceCreator:
     def create(self,
                package: Package,
                register_feature: bool = True,
+               transient_disabled_state: bool = False,
                state: str = 'enabled',
                owner: str = 'local'):
         """ Register package as SONiC service.
@@ -166,7 +167,7 @@ class ServiceCreator:
             self.generate_dump_script(package)
             self.generate_service_reconciliation_file(package)
             self.install_yang_module(package)
-            self.set_initial_config(package)
+            self.set_initial_config(package, transient_disabled_state)
             self.install_autogen_cli_all(package)
             self._post_operation_hook()
 
@@ -478,7 +479,7 @@ class ServiceCreator:
         with open(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'), 'w') as file:
             file.write(' '.join(processes))
 
-    def set_initial_config(self, package):
+    def set_initial_config(self, package, transient_disabled_state=False):
         """ Set initial package configuration from manifest.
         This method updates but does not override existing entries in tables.
 
@@ -504,8 +505,13 @@ class ServiceCreator:
 
         for conn in self.sonic_db.get_connectors():
             cfg = conn.get_config()
+
             new_cfg = init_cfg.copy()
             utils.deep_update(new_cfg, cfg)
+
+            if transient_disabled_state and conn == self.sonic_db.get_running_db_connector():
+                new_cfg['FEATURE'][package.manifest['service']['name']]['state'] = 'enabled'
+
             self.validate_config(new_cfg)
             update_config_with_init_cfg(cfg, conn)
 
