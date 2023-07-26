@@ -346,17 +346,22 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
             return get_existing_vlan_id(db) # config vlan member add
         if command_mode == "del":
             return get_existing_vlan_id_on_interface(db,port) # config vlan member del
+        
     if multiple:
         vid_list = multiple_vlan_parser(ctx, vid)
+
     if except_flag:
         if command_mode == "add":
             comp_list = get_existing_vlan_id(db)  # config vlan member add
+
         elif command_mode == "del":
             comp_list = get_existing_vlan_id_on_interface(db,port) # config vlan member del
+
         if multiple:
             for i in vid_list:
                 if i in comp_list:
                     comp_list.remove(i)
+
         else:
             if not vid.isdigit():
                 ctx.fail("Vlan is not integer.")
@@ -364,11 +369,13 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
             if vid in comp_list:
                 comp_list.remove(vid)
         vid_list = comp_list
+
     elif not multiple:
         # if entered vlan is not a integer
         if not vid.isdigit():
             ctx.fail("Vlan is not integer.")
         vid_list.append(int(vid))
+
     # sorting the vid_list
     vid_list.sort()
     return vid_list
