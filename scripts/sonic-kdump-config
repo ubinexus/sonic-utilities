@@ -82,7 +82,7 @@ def run_command(cmd, use_shell=False):
 def get_current_image():
     bootloader = get_bootloader()
     curimage = bootloader.get_current_image()
-    if IMAGE_PREFIX in curimage:
+    if curimage.startswith(IMAGE_PREFIX):
         return curimage[len(IMAGE_PREFIX):]
     print_err("Unable to locate current SONiC image")
     sys.exit(1)
@@ -99,7 +99,7 @@ def get_crash_kernel_size():
 def get_next_image():
     bootloader = get_bootloader()
     nextimage = bootloader.get_next_image()
-    if IMAGE_PREFIX in nextimage:
+    if nextimage.startswith(IMAGE_PREFIX):
         return nextimage[len(IMAGE_PREFIX):]
     print_err("Unable to locate next SONiC image")
     sys.exit(1)
