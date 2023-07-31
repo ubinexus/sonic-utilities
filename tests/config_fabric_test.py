@@ -93,3 +93,13 @@ class TestConfigFabric(object):
         result = self.basic_check("port", ["monitor", "poll", "threshold", "recovery", "8"], ctx)
         expect_result = 0
         assert operator.eq(result.exit_code, expect_result)
+
+    def test_config_fabric_monitor_state(self, ctx):
+        # Issue command "config fabric port monitor state <enable/disable>"
+        result = self.basic_check("port", ["monitor", "state", "enable"], ctx)
+        expect_result = 0
+        assert operator.eq(result.exit_code, expect_result)
+
+        result = self.basic_check("port", ["monitor", "state", "disable"], ctx)
+        expect_result = 0
+        assert operator.eq(result.exit_code, expect_result)
