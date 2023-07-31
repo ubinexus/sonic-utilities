@@ -157,15 +157,11 @@ def error_threshold(crccells, rxcells, namespace):
     config_db.mod_entry("FABRIC_MONITOR", "FABRIC_MONITOR_DATA",
         {'monErrThreshCrcCells': crccells, 'monErrThreshRxCells': rxcells})
 
-def setFabricPortMonitorState(state, namespace ):
+def setFabricPortMonitorState(state, namespace, ctx):
     """ set the fabric port monitor state"""
     # Connect to config database
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
     config_db.connect()
-
-    # Connect to state database
-    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
-    state_db.connect(state_db.STATE_DB, False)
 
     # Make sure configuration data exists
     monitorData = config_db.get_all(config_db.CONFIG_DB, "FABRIC_MONITOR|FABRIC_MONITOR_DATA")
@@ -188,12 +184,11 @@ def state(state, namespace):
 
     n_asics = multi_asic.get_num_asics()
     if n_asics > 1 and namespace is None:
-        ns = multi_asic.get_all_namespaces()
-        ns_list = ns['front_ns'] + ns['back_ns'] + ns['fabric_ns']
+        ns_list = multi_asic.get_namespace_list()
         for namespace in ns_list:
-            setFabricPortMonitorState(state, namespace)
+            setFabricPortMonitorState(state, namespace, ctx)
     else:
-        setFabricPortMonitorState(state, namespace)
+        setFabricPortMonitorState(state, namespace, ctx)
 
 #
 # 'config fabric port monitor poll ...'
