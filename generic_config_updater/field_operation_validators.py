@@ -5,7 +5,7 @@ import jsonpointer
 import subprocess
 from sonic_py_common import device_info
 from .gu_common import GenericConfigUpdaterError
-
+from swsscommon.swsscommon import SonicV2Connector
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
@@ -71,7 +71,7 @@ def rdma_config_update_validator(patch_element):
     path = patch_element["path"]
     table = jsonpointer.JsonPointer(path).parts[0]
     
-    # Helper function to return relevant cleaned paths, consdiers case where the jsonpatch value is a dict
+    # Helper function to return relevant cleaned paths, considers case where the jsonpatch value is a dict
     # For paths like /PFC_WD/Ethernet112/action, remove Ethernet112 from the path so that we can clearly determine the relevant field (i.e. action, not Ethernet112)
     def _get_fields_in_patch():
         cleaned_fields = []
@@ -125,4 +125,61 @@ def rdma_config_update_validator(patch_element):
             else:
                 return False
 
+    return True
+
+
+def read_statedb_entry(table, field):
+    state_db = SonicV2Connector(host="127.0.0.1")
+    state_db.connect(state_db.STATE_DB)
+    return state_db.get(state_db.STATE_DB, table, field)
+
+
+def port_config_update_validator(patch_element):
+    if patch_element["op"] == "remove":
+        return True
+    
+    # for PORT speed and fec configs, need to ensure value is allowed based on StateDB
+    patch_element_str = json.dumps(patch_element)
+    path = patch_element["path"]
+    match = re.search(r"Ethernet\d+", path)
+    if match:
+        port = match.group(0)
+    else:
+        return False
+    value = patch_element.get("value")
+        
+    if "fec" in patch_element_str:
+        if path.endswith("fec"):
+            fec_value = value
+        elif isinstance(value, dict):
+            try:
+                fec_value = value["fec"]
+            except KeyError:
+                return False
+            
+        supported_fecs_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_fecs")
+        if supported_fecs_str:
+            if supported_fecs_str != 'N/A':
+                supported_fecs_list = supported_fecs_str.split(',')
+            else:
+                supported_fecs_list = []
+        else:
+            supported_fecs_list = [ "rs", "fc", "none"]
+        if fec_value not in supported_fecs_list:
+            return False
+        
+    if "speed" in patch_element_str:
+        if path.endswith("speed"):
+            speed_value = value
+        elif isinstance(value, dict):
+            try:
+                speed_value = value["speed"]
+            except KeyError:
+                return False
+            
+        supported_speeds_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_speeds") or ''
+        supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
+        if supported_speeds and int(speed_value) not in supported_speeds:
+            return False
+    
     return True
