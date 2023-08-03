@@ -1084,7 +1084,7 @@ Ethernet200  Not present
 
     @patch.object(show_module.interfaces.click.Choice, 'convert', new=mocked_click_convert_method)
     def test_qsfp_dd_pm_with_ns(self):
-        runner = CliRunner(mix_stderr=False)
+        runner = CliRunner()
         result = runner.invoke(
                 show.cli.commands["interfaces"]
                         .commands["transceiver"]
@@ -1092,7 +1092,6 @@ Ethernet200  Not present
                         .commands["current"],
                 ["60sec", "Ethernet0", "-n", "asic0"]
         )
-        print("STDOUT:\n", result.stdout)
         result_lines = result.output.strip('\n')[result.output.find('\n'):].strip('\n')
         expected = "PM window: 60sec\nEthernet0: Transceiver performance monitoring not applicable"
         assert result.exit_code == 0
