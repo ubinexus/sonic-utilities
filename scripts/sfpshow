@@ -499,7 +499,7 @@ class SFPShow(object):
     def beautify_pm_field(self, prefix, field):
         if field is None:
             return 'N/A'
-        elif prefix in {'prefec_ber'}:
+        elif prefix in {'prefec_ber'} and isinstance(field, float):
             return "{:.2E}".format(field) if field != 0 else '0.0'
         else:
             return str(field)
@@ -513,6 +513,7 @@ class SFPShow(object):
 
     def get_pm_dict_for_specified_window(self, db, interface_name,
                                          window_size, window_index):
+        """Get PM dict for specified window size and index"""
         pm_windows_dict = db.get_all(
             db.STATE_DB, '{}|{}'.format(self.PM_TABLE_NAME_IN_DB, interface_name))
         if not pm_windows_dict:
@@ -528,6 +529,7 @@ class SFPShow(object):
                 pm_windows_dict[win_name] == 'N/A'):
                 pm_dict = None
             else:
+                # Convert string to dict
                 pm_dict = ast.literal_eval(pm_windows_dict[win_name])
             pm_windows_for_win_size.append(pm_dict)
             if (pm_dict is not None and
@@ -585,8 +587,11 @@ class SFPShow(object):
                                ZR_PM_HEADER, disable_numparse=True).replace('\n', '\n' + indent)
             start_timestamp = self.beautify_pm_timestamp(
                 float(sfp_pm_dict.get('pm_win_start_time', None)))
+            end_timestamp = self.beautify_pm_timestamp(
+                float(sfp_pm_dict.get('pm_win_end_time', None)))
             start_timestamp_output = '\n{}PM window start time: {}'.format(indent, start_timestamp)
-            output = start_timestamp_output + output + '\n'
+            end_timestamp_output = '\n{}PM window end time:   {}'.format(indent, end_timestamp)
+            output = start_timestamp_output + end_timestamp_output + output + '\n'
         else:
             output = ZR_PM_NOT_APPLICABLE_STR + '\n'
         return output

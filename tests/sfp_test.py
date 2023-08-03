@@ -266,49 +266,51 @@ Ethernet40: SFP EEPROM detected
 test_qsfp_dd_pm_output = """\
 PM window: 60sec
 Ethernet44:
-    PM window start time: Wed Jul 05 18:59:02 UTC 2023
-    Parameter        Unit    Min        Avg        Max        Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
-                                                              High         High         Crossing      Low          Low          Crossing
-                                                              Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
-    ---------------  ------  ---------  ---------  ---------  -----------  -----------  ------------  -----------  -----------  -----------
-    Tx Power         dBm     0.0        0.0        0.0        -5.0         -6.0         True          -16.99       -16.003      False
-    Rx Total Power   dBm     0.0        0.0        0.0        2.0          0.0          False         -21.0        -18.0        False
-    Rx Signal Power  dBm     0.0        0.0        0.0        13.0         10.0         False         -18.0        -15.0        False
-    CD-short link    ps/nm   6094848.0  6094848.0  6094848.0  1000.0       500.0        True          -1000.0      -500.0       False
-    PDL              dB      0.3        0.5        0.8        4.0          4.0          False         0.0          0.0          False
-    OSNR             dB      36.5       36.5       36.5       99.0         99.0         False         0.0          0.0          False
-    eSNR             dB      30.5       30.5       30.5       99.0         99.0         False         0.0          0.0          False
-    CFO              MHz     -66.0      34.9375    123.0      3800.0       3800.0       False         -3800.0      -3800.0      False
-    DGD              ps      4.81       5.304375   5.68       7.0          7.0          False         0.0          0.0          False
-    SOPMD            ps^2    0.0        0.0        0.0        655.35       655.35       False         0.0          0.0          False
-    SOP ROC          krad/s  0.0        1.0        3.0        N/A          N/A          N/A           N/A          N/A          N/A
-    Pre-FEC BER      N/A     7.99E-05   1.41E-04   1.67E-04   1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
-    Post-FEC BER     N/A     0.0        0.0        0.0        1000.0       1.0          False         0.0          0.0          False
-    EVM              %       100.0      100.0      100.0      N/A          N/A          N/A           N/A          N/A          N/A
+    PM window start time: Mon Jul 31 17:12:49 UTC 2023
+    PM window end time:   Mon Jul 31 17:13:50 UTC 2023
+    Parameter        Unit    Min       Avg       Max       Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
+                                                           High         High         Crossing      Low          Low          Crossing
+                                                           Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
+    ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
+    Tx Power         dBm     -8.19     -8.17     -8.15     -5.0         -6.0         False         -16.99       -16.003      False
+    Rx Total Power   dBm     -8.61     -8.56     -8.51     2.0          0.0          False         -21.0        -18.0        False
+    Rx Signal Power  dBm     -9.12     -9.09     -9.07     13.0         10.0         False         -18.0        -15.0        False
+    CD-short link    ps/nm   -2.0      -1.0      0.0       1000.0       500.0        False         -1000.0      -500.0       False
+    PDL              dB      0.3       0.3       0.4       4.0          4.0          False         0.0          0.0          False
+    OSNR             dB      36.4      36.4      36.4      99.0         99.0         False         0.0          0.0          False
+    eSNR             dB      17.9      18.0      18.2      99.0         99.0         False         0.0          0.0          False
+    CFO              MHz     -776.0    -659.0    -546.0    3800.0       3800.0       False         -3800.0      -3800.0      False
+    DGD              ps      2.0       2.0       2.0       7.0          7.0          False         0.0          0.0          False
+    SOPMD            ps^2    26.0      34.0      44.0      655.35       655.35       False         0.0          0.0          False
+    SOP ROC          krad/s  0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
+    Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0.0          0.0          False
+    Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
+    EVM              %       0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
 """
 
 test_qsfp_dd_pm_hist_60s_win1_output = """\
 PM window: 60sec
 Ethernet44:
-    PM window start time: Wed Jul 05 18:57:54 UTC 2023
-    Parameter        Unit    Min        Avg        Max        Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
-                                                              High         High         Crossing      Low          Low          Crossing
-                                                              Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
-    ---------------  ------  ---------  ---------  ---------  -----------  -----------  ------------  -----------  -----------  -----------
-    Tx Power         dBm     0.0        0.0        0.0        -5.0         -6.0         True          -16.99       -16.003      False
-    Rx Total Power   dBm     0.0        0.0        0.0        2.0          0.0          False         -21.0        -18.0        False
-    Rx Signal Power  dBm     0.0        0.0        0.0        13.0         10.0         False         -18.0        -15.0        False
-    CD-short link    ps/nm   6094848.0  6094848.0  6094848.0  1000.0       500.0        True          -1000.0      -500.0       False
-    PDL              dB      0.3        0.50625    0.7        4.0          4.0          False         0.0          0.0          False
-    OSNR             dB      36.5       36.5       36.5       99.0         99.0         False         0.0          0.0          False
-    eSNR             dB      30.5       30.5       30.5       99.0         99.0         False         0.0          0.0          False
-    CFO              MHz     -41.0      46.6875    152.0      3800.0       3800.0       False         -3800.0      -3800.0      False
-    DGD              ps      4.87       5.2878125  5.75       7.0          7.0          False         0.0          0.0          False
-    SOPMD            ps^2    0.0        0.0        0.0        655.35       655.35       False         0.0          0.0          False
-    SOP ROC          krad/s  0.0        1.0        5.0        N/A          N/A          N/A           N/A          N/A          N/A
-    Pre-FEC BER      N/A     9.94E-05   1.39E-04   2.24E-04   1.25E-02     1.10E-02     0.0           0.0          0.0          0.0
-    Post-FEC BER     N/A     0.0        0.0        0.0        1000.0       1.0          False         0.0          0.0          False
-    EVM              %       100.0      100.0      100.0      N/A          N/A          N/A           N/A          N/A          N/A
+    PM window start time: Mon Jul 31 17:11:48 UTC 2023
+    PM window end time:   Mon Jul 31 17:12:49 UTC 2023
+    Parameter        Unit    Min       Avg       Max       Threshold    Threshold    Threshold     Threshold    Threshold    Threshold
+                                                           High         High         Crossing      Low          Low          Crossing
+                                                           Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
+    ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
+    Tx Power         dBm     -8.17     -8.16     -8.15     -5.0         -6.0         False         -16.99       -16.003      False
+    Rx Total Power   dBm     -8.66     -8.6      -8.53     2.0          0.0          False         -21.0        -18.0        False
+    Rx Signal Power  dBm     -9.15     -9.12     -9.07     13.0         10.0         False         -18.0        -15.0        False
+    CD-short link    ps/nm   -2.0      0.0       2.0       1000.0       500.0        False         -1000.0      -500.0       False
+    PDL              dB      0.3       0.3       0.4       4.0          4.0          False         0.0          0.0          False
+    OSNR             dB      36.4      36.4      36.4      99.0         99.0         False         0.0          0.0          False
+    eSNR             dB      17.9      18.1      18.2      99.0         99.0         False         0.0          0.0          False
+    CFO              MHz     -768.0    -660.0    -561.0    3800.0       3800.0       False         -3800.0      -3800.0      False
+    DGD              ps      2.0       2.0       2.0       7.0          7.0          False         0.0          0.0          False
+    SOPMD            ps^2    26.0      34.0      42.0      655.35       655.35       False         0.0          0.0          False
+    SOP ROC          krad/s  0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
+    Pre-FEC BER      N/A     5.30E-04  5.49E-04  5.82E-04  1.25E-02     1.10E-02     False         0.0          0.0          False
+    Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
+    EVM              %       0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
 """
 
 test_qsfp_status_output = """\
@@ -1023,6 +1025,11 @@ Ethernet36  Present
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
 
+def mocked_click_convert_method(*args, **kwargs):
+    """Mock click.Choice.convert method to return the value passed in"""
+    value = args[1]
+    return value
+
 class Test_multiAsic_SFP(object):
     @classmethod
     def setup_class(cls):
@@ -1075,9 +1082,9 @@ Ethernet200  Not present
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
 
-    @patch.object(show_module.interfaces.click.Choice, 'convert', MagicMock(return_value='asic0'))
+    @patch.object(show_module.interfaces.click.Choice, 'convert', new=mocked_click_convert_method)
     def test_qsfp_dd_pm_with_ns(self):
-        runner = CliRunner()
+        runner = CliRunner(mix_stderr=False)
         result = runner.invoke(
                 show.cli.commands["interfaces"]
                         .commands["transceiver"]
@@ -1085,8 +1092,10 @@ Ethernet200  Not present
                         .commands["current"],
                 ["60sec", "Ethernet0", "-n", "asic0"]
         )
-        result_lines = result.output.strip('\n')
-        expected = ""
+        print("STDOUT:\n", result.stdout)
+        result_lines = result.output.strip('\n')[result.output.find('\n'):].strip('\n')
+        expected = "PM window: 60sec\nEthernet0: Transceiver performance monitoring not applicable"
+        assert result.exit_code == 0
         assert result_lines == expected
 
     @patch.object(show_module.interfaces.click.Choice, 'convert', MagicMock(return_value='asic0'))
