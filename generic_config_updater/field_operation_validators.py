@@ -135,51 +135,62 @@ def read_statedb_entry(table, field):
 
 
 def port_config_update_validator(patch_element):
+
+    def _validate_key(key, port, value):
+        if key == "fec":
+            supported_fecs_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_fecs")
+            if supported_fecs_str:
+                if supported_fecs_str != 'N/A':
+                    supported_fecs_list = [element.strip() for element in supported_fecs_str.split(',')]
+                else:
+                    supported_fecs_list = []
+            else:
+                supported_fecs_list = [ 'rs', 'fc', 'none']
+            if value.strip() not in supported_fecs_list:
+                return False
+            return True
+        if key == "speed":
+            supported_speeds_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_speeds") or ''
+            supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
+            if supported_speeds and int(value) not in supported_speeds:
+                return False
+            return True
+    
+    def _parse_port_from_path(path):
+        match = re.search(r"Ethernet\d+", path)
+        if match:
+            port = match.group(0)
+            return port
+        return None
+    
     if patch_element["op"] == "remove":
         return True
     
     # for PORT speed and fec configs, need to ensure value is allowed based on StateDB
     patch_element_str = json.dumps(patch_element)
     path = patch_element["path"]
-    match = re.search(r"Ethernet\d+", path)
-    if match:
-        port = match.group(0)
-    else:
-        return False
     value = patch_element.get("value")
-        
-    if "fec" in patch_element_str:
-        if path.endswith("fec"):
-            fec_value = value
-        elif isinstance(value, dict):
-            try:
-                fec_value = value["fec"]
-            except KeyError:
-                return False
-            
-        supported_fecs_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_fecs")
-        if supported_fecs_str:
-            if supported_fecs_str != 'N/A':
-                supported_fecs_list = supported_fecs_str.split(',')
-            else:
-                supported_fecs_list = []
-        else:
-            supported_fecs_list = [ "rs", "fc", "none"]
-        if fec_value not in supported_fecs_list:
-            return False
-        
-    if "speed" in patch_element_str:
-        if path.endswith("speed"):
-            speed_value = value
-        elif isinstance(value, dict):
-            try:
-                speed_value = value["speed"]
-            except KeyError:
-                return False
-            
-        supported_speeds_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_speeds") or ''
-        supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
-        if supported_speeds and int(speed_value) not in supported_speeds:
-            return False
-    
+    keys = ['fec', 'speed']
+    for key in keys:
+        if key in patch_element_str:
+            if path.endswith(key):
+                port = _parse_port_from_path(path)
+                if not _validate_key(key, port, value):
+                    return False
+            elif isinstance(value, dict):
+                if key in value.keys():
+                    port = _parse_port_from_path(path)
+                    value = value[key]
+                    if not _validate_key(key, port, value):
+                        return False
+                else:
+                    for port_name, port_info in value.items():
+                        if isinstance(port_info, dict):
+                            port = port_name
+                            if key in port_info.keys():
+                                value = port_info[key]
+                                if not _validate_key(key, port, value):
+                                    return False
+                            else:
+                                continue
     return True
