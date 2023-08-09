@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-"""
+'''
     Script to show Voltage and Current Sensor status.
-"""
+'''
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
@@ -17,6 +17,8 @@ LOW_THRESH_FIELD_NAME = 'low_threshold'
 CRIT_HIGH_THRESH_FIELD_NAME = 'critical_high_threshold'
 CRIT_LOW_THRESH_FIELD_NAME = 'critical_low_threshold'
 WARNING_STATUS_FIELD_NAME = 'warning_status'
+VOLTAGE_INFO_TABLE_NAME = 'VOLTAGE_INFO'
+CURRENT_INFO_TABLE_NAME = 'CURRENT_INFO'
 
 
 class SensorShow(object):
@@ -25,16 +27,16 @@ class SensorShow(object):
         self.db.connect(self.db.STATE_DB)
         self.field_name = type
         if type == "voltage":
-            self.table_name = 'VOLTAGE_INFO'
+            self.table_name = VOLTAGE_INFO_TABLE_NAME
             header[1]  = 'Voltage(mV)'
         else:
-            self.table_name = 'CURRENT_INFO'
+            self.table_name = CURRENT_INFO_TABLE_NAME
             header[1]  = 'Current(mA)'
 
     def show(self):
         keys = self.db.keys(self.db.STATE_DB, self.table_name + '*')
         if not keys:
-            print('Sensor Not detected\n')
+            print('Sensor not detected')
             return
 
         table = []
@@ -59,13 +61,13 @@ class SensorShow(object):
         if table:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
-            print('No sensor data available\n')
+            print('No sensor data available')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--type", help="sensor type", required=True, default="voltage", choices=['voltage', 'current'])
+    parser.add_argument("-t", "--type", help="sensor type", required=True, choices=['voltage', 'current'])
     args = parser.parse_args()
 
-    sensorShow = SensorShow(args.type)
-    sensorShow.show()
+    sensor_show = SensorShow(args.type)
+    sensor_show.show()
