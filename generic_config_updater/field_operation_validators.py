@@ -129,15 +129,15 @@ def rdma_config_update_validator(patch_element):
 
 
 def read_statedb_entry(table, field):
-    state_db = SonicV2Connector(host="127.0.0.1")
+    state_db = SonicV2Connector(use_unix_socket_path=False)
     state_db.connect(state_db.STATE_DB)
     return state_db.get(state_db.STATE_DB, table, field)
 
 
 def port_config_update_validator(patch_element):
 
-    def _validate_key(key, port, value):
-        if key == "fec":
+    def _validate_field(field, port, value):
+        if field == "fec":
             supported_fecs_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_fecs")
             if supported_fecs_str:
                 if supported_fecs_str != 'N/A':
@@ -149,12 +149,16 @@ def port_config_update_validator(patch_element):
             if value.strip() not in supported_fecs_list:
                 return False
             return True
-        if key == "speed":
+        if field == "speed":
             supported_speeds_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_speeds") or ''
-            supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
-            if supported_speeds and int(value) not in supported_speeds:
+            try:
+                supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
+                if supported_speeds and int(value) not in supported_speeds:
+                    return False
+            except ValueError:
                 return False
             return True
+        return False
     
     def _parse_port_from_path(path):
         match = re.search(r"Ethernet\d+", path)
@@ -170,26 +174,26 @@ def port_config_update_validator(patch_element):
     patch_element_str = json.dumps(patch_element)
     path = patch_element["path"]
     value = patch_element.get("value")
-    keys = ['fec', 'speed']
-    for key in keys:
-        if key in patch_element_str:
-            if path.endswith(key):
+    fields = ['fec', 'speed']
+    for field in fields:
+        if field in patch_element_str:
+            if path.endswith(field):
                 port = _parse_port_from_path(path)
-                if not _validate_key(key, port, value):
+                if not _validate_field(field, port, value):
                     return False
             elif isinstance(value, dict):
-                if key in value.keys():
+                if field in value.keys():
                     port = _parse_port_from_path(path)
-                    value = value[key]
-                    if not _validate_key(key, port, value):
+                    value = value[field]
+                    if not _validate_field(field, port, value):
                         return False
                 else:
                     for port_name, port_info in value.items():
                         if isinstance(port_info, dict):
                             port = port_name
-                            if key in port_info.keys():
-                                value = port_info[key]
-                                if not _validate_key(key, port, value):
+                            if field in port_info.keys():
+                                value = port_info[field]
+                                if not _validate_field(field, port, value):
                                     return False
                             else:
                                 continue
