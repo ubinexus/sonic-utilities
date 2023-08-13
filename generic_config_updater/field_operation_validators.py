@@ -10,6 +10,7 @@ from swsscommon.swsscommon import SonicV2Connector
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
+DEFAULT_SUPPORTED_FECS_LIST = [ 'rs', 'fc', 'none'] 
 
 def get_asic_name():
     asic = "unknown"
@@ -145,7 +146,7 @@ def port_config_update_validator(patch_element):
                 else:
                     supported_fecs_list = []
             else:
-                supported_fecs_list = [ 'rs', 'fc', 'none']
+                supported_fecs_list = DEFAULT_SUPPORTED_FECS_LIST
             if value.strip() not in supported_fecs_list:
                 return False
             return True
