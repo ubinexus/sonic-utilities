@@ -19,6 +19,11 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
         assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
     
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value=""))
+    def test_port_config_update_validator_invalid_speed_no_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "xyz"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
     def test_port_config_update_validator_valid_speed_existing_state_db(self):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
