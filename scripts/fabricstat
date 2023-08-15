@@ -132,6 +132,7 @@ class FabricPortStat(FabricStat):
         # Get stat for each port and save
         counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_FABRIC_PORT_NAME_MAP)
         if counter_port_name_map is None:
+            print("No counters require cleaning")
             return
         cnstat_dict = self.get_cnstat()
         asic_name = '0'
@@ -226,6 +227,7 @@ class FabricQueueStat(FabricStat):
         # Get stat for each port and save
         counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_FABRIC_PORT_NAME_MAP)
         if counter_port_name_map is None:
+            print("No counters require cleaning")
             return
         cnstat_dict = self.get_cnstat()
         asic_name = '0'
