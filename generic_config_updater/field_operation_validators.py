@@ -5,7 +5,7 @@ import jsonpointer
 import subprocess
 from sonic_py_common import device_info
 from .gu_common import GenericConfigUpdaterError
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon import swsscommon
 from utilities_common.constants import DEFAULT_SUPPORTED_FECS_LIST
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -129,17 +129,17 @@ def rdma_config_update_validator(patch_element):
     return True
 
 
-def read_statedb_entry(table, field):
-    state_db = SonicV2Connector(use_unix_socket_path=False)
-    state_db.connect(state_db.STATE_DB)
-    return state_db.get(state_db.STATE_DB, table, field)
+def read_statedb_entry(table, key, field):
+    state_db = swsscommon.DBConnector("STATE_DB", 0)
+    tbl = swsscommon.Table(state_db, table)
+    return tbl.hget(key, field)[1]
 
 
 def port_config_update_validator(patch_element):
 
     def _validate_field(field, port, value):
         if field == "fec":
-            supported_fecs_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_fecs")
+            supported_fecs_str = read_statedb_entry("PORT_TABLE", port, "supported_fecs")
             if supported_fecs_str:
                 if supported_fecs_str != 'N/A':
                     supported_fecs_list = [element.strip() for element in supported_fecs_str.split(',')]
@@ -151,7 +151,7 @@ def port_config_update_validator(patch_element):
                 return False
             return True
         if field == "speed":
-            supported_speeds_str = read_statedb_entry('{}|{}'.format("PORT_TABLE", port), "supported_speeds") or ''
+            supported_speeds_str = read_statedb_entry("PORT_TABLE", port, "supported_speeds") or ''
             try:
                 supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
                 if supported_speeds and int(value) not in supported_speeds:
