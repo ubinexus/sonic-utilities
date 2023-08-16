@@ -6,11 +6,11 @@ import subprocess
 from sonic_py_common import device_info
 from .gu_common import GenericConfigUpdaterError
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common.constants import DEFAULT_SUPPORTED_FECS_LIST
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_TABLE_MOD_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 GET_HWSKU_CMD = "sonic-cfggen -d -v DEVICE_METADATA.localhost.hwsku"
-DEFAULT_SUPPORTED_FECS_LIST = [ 'rs', 'fc', 'none'] 
 
 def get_asic_name():
     asic = "unknown"
