@@ -721,3 +721,11 @@ class TestFastUpgrade_to_4_0_3(object):
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
+
+
+class TestFastUpgrade_to_4_0_3_from_202205(TestFastUpgrade_to_4_0_3):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        cls.config_db_tables_to_verify = ['FLEX_COUNTER_TABLE']
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade_from_202205')
