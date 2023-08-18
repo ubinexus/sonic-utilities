@@ -4,12 +4,27 @@
     Script to show Voltage and Current Sensor status.
 '''
 from tabulate import tabulate
-from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
+from sonic_platform_base.sensor_base import CurrentSensorBase
+from sonic_platform_base.sensor_base import VoltageSensorBase
 import argparse
+import os
+import sys
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
 
-header = ['Sensor', 'Voltage(mV)', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
+from swsscommon.swsscommon import SonicV2Connector
+
+header = ['Sensor', '', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
 
 TIMESTAMP_FIELD_NAME = 'timestamp'
 HIGH_THRESH_FIELD_NAME = 'high_threshold'
@@ -28,10 +43,10 @@ class SensorShow(object):
         self.field_name = type
         if type == "voltage":
             self.table_name = VOLTAGE_INFO_TABLE_NAME
-            header[1]  = 'Voltage(mV)'
+            header[1]  = 'Voltage({})'.format(VoltageSensorBase.get_unit())
         else:
             self.table_name = CURRENT_INFO_TABLE_NAME
-            header[1]  = 'Current(mA)'
+            header[1]  = 'Current({})'.format(CurrentSensorBase.get_unit())
 
     def show(self):
         keys = self.db.keys(self.db.STATE_DB, self.table_name + '*')
@@ -48,6 +63,7 @@ class SensorShow(object):
 
             name = key_list[1]
             data_dict = self.db.get_all(self.db.STATE_DB, key)
+            #print(name, data_dict)
             table.append((name, 
                           data_dict[self.field_name], 
                           data_dict[HIGH_THRESH_FIELD_NAME],
