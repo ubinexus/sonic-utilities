@@ -922,12 +922,14 @@ class DBMigrator():
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
         # FAST_REBOOT table exists only if fast-reboot was triggered.
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
-        if keys:
-            enable_state = 'true'
-        else:
-            enable_state = 'false'
-        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_RESTART_ENABLE_TABLE|system")
+        if not keys:
+            keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+            if keys:
+                enable_state = 'true'
+            else:
+                enable_state = 'false'
+            self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
 
@@ -944,7 +946,8 @@ class DBMigrator():
         Version 4_0_2.
         """
         log.log_info('Handling version_4_0_2')
-        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
+        enable_state = self.stateDB.get(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable')
+        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system") or enable_state == 'true':
             self.migrate_config_db_flex_counter_delay_status()
         self.set_version('version_4_0_3')
         return 'version_4_0_3'
