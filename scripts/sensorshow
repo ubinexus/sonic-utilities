@@ -5,8 +5,6 @@
 '''
 from tabulate import tabulate
 from natsort import natsorted
-from sonic_platform_base.sensor_base import CurrentSensorBase
-from sonic_platform_base.sensor_base import VoltageSensorBase
 import argparse
 import os
 import sys
@@ -16,12 +14,16 @@ try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
+        libs_path = os.path.join(test_path, "mocked_libs")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
+        sys.path.insert(0, libs_path)
         import mock_tables.dbconnector
 except KeyError:
     pass
 
+from sonic_platform_base.sensor_base import CurrentSensorBase
+from sonic_platform_base.sensor_base import VoltageSensorBase
 from swsscommon.swsscommon import SonicV2Connector
 
 header = ['Sensor', '', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
