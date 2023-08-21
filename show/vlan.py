@@ -89,6 +89,15 @@ def get_proxy_arp(ctx, vlan):
 
     return proxy_arp
 
+def get_static_anycast_gateway(ctx, vlan):
+    cfg, _ = ctx
+    _, vlan_ip_data, _ = cfg
+
+    if vlan in vlan_ip_data:
+        if vlan_ip_data[vlan].get("static_anycast_gateway") == "true":
+            return "enabled"
+
+    return "disabled"
 
 class VlanBrief:
     """ This class is used as a namespace to
@@ -103,7 +112,8 @@ class VlanBrief:
         ("IP Address", get_vlan_ip_address),
         ("Ports", get_vlan_ports),
         ("Port Tagging", get_vlan_ports_tagging),
-        ("Proxy ARP", get_proxy_arp)
+        ("Proxy ARP", get_proxy_arp),
+        ("Static Anycast Gateway", get_static_anycast_gateway)
     ]
 
     @classmethod
@@ -147,19 +157,19 @@ def config(db):
     member_data = db.cfgdb.get_table('VLAN_MEMBER')
     interface_naming_mode = clicommon.get_interface_naming_mode()
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-   
+
     def get_iface_name_for_display(member):
         name_for_display = member
         if interface_naming_mode == "alias" and member:
             name_for_display = iface_alias_converter.name_to_alias(member)
         return name_for_display
-    
+
     def get_tagging_mode(vlan, member):
         if not member:
             return ''
         tagging_mode = db.cfgdb.get_entry('VLAN_MEMBER', (vlan, member)).get('tagging_mode')
         return '?' if tagging_mode is None else tagging_mode
-        
+
     def tablelize(keys, data):
         table = []
 
@@ -168,7 +178,7 @@ def config(db):
             # vlan with no members
             if not members:
                 members = [(k, '')]
-            
+
             for vlan, member in natsorted(members):
                 r = [vlan, data[vlan]['vlanid'], get_iface_name_for_display(member), get_tagging_mode(vlan, member)]
                 table.append(r)
