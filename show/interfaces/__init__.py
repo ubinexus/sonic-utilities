@@ -485,7 +485,7 @@ def transceiver_status(interfacename, namespace, verbose):
         interfacename = try_convert_interfacename_from_alias(
             ctx, interfacename)
 
-        cmd += ' -p {}'.format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
     if namespace is not None:
         cmd += " -n {}".format(namespace)
