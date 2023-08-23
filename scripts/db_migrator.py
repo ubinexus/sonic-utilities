@@ -9,9 +9,10 @@ import re
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
-from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
+from minigraph import parse_xml
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
 
 # mock the redis for unit test purposes #
 try:
@@ -22,6 +23,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+        MINIGRAPH_FILE = os.path.join(mocked_db_path, "minigraph.xml")
 except KeyError:
     pass
 
@@ -45,11 +47,21 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_2'
+        self.CURRENT_VERSION = 'version_4_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
+
+        # load config data from minigraph to get the default/hardcoded values from minigraph.py
+        # this is to avoid duplicating the hardcoded these values in db_migrator
+        self.minigraph_data = None
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+        except Exception as e:
+            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
+            pass
 
         db_kwargs = {}
         if socket:
@@ -76,11 +88,14 @@ class DBMigrator():
             self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
 
         version_info = device_info.get_sonic_version_info()
-        asic_type = version_info.get('asic_type')
-        self.asic_type = asic_type
+        self.asic_type = version_info.get('asic_type')
+        if not self.asic_type:
+            log.log_error("ASIC type information not obtained. DB migration will not be reliable")
         self.hwsku = device_info.get_hwsku()
+        if not self.hwsku:
+            log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
-        if asic_type == "mellanox":
+        if self.asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
             self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
@@ -524,38 +539,50 @@ class DBMigrator():
 
     def migrate_restapi(self):
         # RESTAPI - add missing key
+        if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
+            return
+        restapi_data = self.minigraph_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
         config = self.configDB.get_entry('RESTAPI', 'config')
         if not config:
-            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+            self.configDB.set_entry("RESTAPI", "config", restapi_data.get("config"))
         certs = self.configDB.get_entry('RESTAPI', 'certs')
         if not certs:
-            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+            self.configDB.set_entry("RESTAPI", "certs", restapi_data.get("certs"))
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
+        if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
+            return
+        telemetry_data = self.minigraph_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
         gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
         if not gnmi:
-            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+            self.configDB.set_entry("TELEMETRY", "gnmi", telemetry_data.get("gnmi"))
         certs = self.configDB.get_entry('TELEMETRY', 'certs')
         if not certs:
-            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+            self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
+        if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
+            return
+        console_switch_data = self.minigraph_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
         console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
         if not console_mgmt:
             self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
-                CONSOLE_SWITCH.get("console_mgmt"))
+                console_switch_data.get("console_mgmt"))
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
-        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_data = self.minigraph_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
-            metadata['synchronous_mode'] = 'enable'
+            metadata['synchronous_mode'] = device_metadata_data.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
@@ -586,22 +613,56 @@ class DBMigrator():
                 config['delayed'] = state
                 config.pop('has_timer')
                 self.configDB.set_entry('FEATURE', feature, config)
+
     def migrate_route_table(self):
         """
         Handle route table migration. Migrations handled:
         1. 'weight' attr in ROUTE object was introduced 202205 onwards.
             Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        2. 'protocol' attr in ROUTE introduced in 202305 onwards.
+            WarmRestartHelper reconcile logic requires to have "protocol" field in the old dumped ROUTE_TABLE.
         """
         route_table = self.appDB.get_table("ROUTE_TABLE")
         for route_prefix, route_attr in route_table.items():
+            if type(route_prefix) == tuple:
+                # IPv6 route_prefix is returned from db as tuple
+                route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+            else:
+                # IPv4 route_prefix is returned from db as str
+                route_key = "ROUTE_TABLE:{}".format(route_prefix)
+
             if 'weight' not in route_attr:
-                if type(route_prefix) == tuple:
-                    # IPv6 route_prefix is returned from db as tuple
-                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
-                else:
-                    # IPv4 route_prefix is returned from db as str
-                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
+            if 'protocol' not in route_attr:
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
+
+    def migrate_dns_nameserver(self):
+        """
+        Handle DNS_NAMESERVER table migration. Migrations handled:
+        If there's no DNS_NAMESERVER in config_DB, load DNS_NAMESERVER from minigraph
+        """
+        if not self.minigraph_data or 'DNS_NAMESERVER' not in self.minigraph_data:
+            return
+        dns_table = self.configDB.get_table('DNS_NAMESERVER')
+        if not dns_table:
+            for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
+                self.configDB.set_entry('DNS_NAMESERVER', addr, config)
+
+    def migrate_routing_config_mode(self):
+        # DEVICE_METADATA - synchronous_mode entry
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        device_metadata_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_new = self.minigraph_data['DEVICE_METADATA']['localhost']
+        # overwrite the routing-config-mode as per minigraph parser
+        # Criteria for update:
+        # if config mode is missing in base OS or if base and target modes are not same
+        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated" 
+        if ('docker_routing_config_mode' not in device_metadata_old and 'docker_routing_config_mode' in device_metadata_new) or \
+        (device_metadata_old.get('docker_routing_config_mode') != device_metadata_new.get('docker_routing_config_mode')):
+            device_metadata_old['docker_routing_config_mode'] = device_metadata_new.get('docker_routing_config_mode')
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', device_metadata_old)
 
     def update_edgezone_aggregator_config(self):
         """
@@ -646,6 +707,20 @@ class DBMigrator():
             if intf in edgezone_aggregator_intfs:
                 # Set new cable length values
                 self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
+
+    def migrate_config_db_flex_counter_delay_status(self):
+        """
+        Migrate "FLEX_COUNTER_TABLE|*": { "value": { "FLEX_COUNTER_DELAY_STATUS": "false" } }
+        Set FLEX_COUNTER_DELAY_STATUS true in case of fast-reboot
+        """
+
+        flex_counter_objects = self.configDB.get_keys('FLEX_COUNTER_TABLE')
+        for obj in flex_counter_objects:
+            flex_counter = self.configDB.get_entry('FLEX_COUNTER_TABLE', obj)
+            delay_status = flex_counter.get('FLEX_COUNTER_DELAY_STATUS')
+            if delay_status is None or delay_status == 'false':
+                flex_counter['FLEX_COUNTER_DELAY_STATUS'] = 'true'
+                self.configDB.mod_entry('FLEX_COUNTER_TABLE', obj, flex_counter)
 
     def version_unknown(self):
         """
@@ -938,6 +1013,8 @@ class DBMigrator():
         """
         Version 4_0_1.
         """
+        log.log_info('Handling version_4_0_1')
+
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
@@ -945,9 +1022,32 @@ class DBMigrator():
     def version_4_0_2(self):
         """
         Version 4_0_2.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_2')
+
+        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
+            self.migrate_config_db_flex_counter_delay_status()
+
+        self.set_version('version_4_0_3')
+        return 'version_4_0_3'
+
+    def version_4_0_3(self):
+        """
+        Version 4_0_3.
+        """
+        log.log_info('Handling version_4_0_3')
+
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
+        self.set_version('version_4_0_4')
+        return 'version_4_0_4'
+
+    def version_4_0_4(self):
+        """
+        Version 4_0_4.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_4')
         return None
 
     def get_version(self):
@@ -989,7 +1089,7 @@ class DBMigrator():
         # removed together with calling to migrate_copp_table function.
         if self.asic_type != "mellanox":
             self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:
+        if self.asic_type == "broadcom" and 'Force10-S6100' in str(self.hwsku):
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
@@ -998,6 +1098,8 @@ class DBMigrator():
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
+        # update FRR config mode based on minigraph parser on target image
+        self.migrate_routing_config_mode()
 
     def migrate(self):
         version = self.get_version()

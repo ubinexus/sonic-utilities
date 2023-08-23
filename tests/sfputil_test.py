@@ -221,27 +221,26 @@ class TestSfputil(object):
         output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output
 
-    def test_convert_dom_to_output_string(self):
-        sfp_type = 'QSFP28 or later'
-
-        dom_info_dict = {
-            'temperature': '41.7539C',
-            'voltage': '3.2577Volts',
-            'rx1power': '-1.6622dBm',
-            'rx2power': '-1.7901dBm',
-            'rx3power': '-1.6973dBm',
-            'rx4power': '-2.0915dBm',
-            'tx1bias': '35.8400mA',
-            'tx2bias': '37.5780mA',
-            'tx3bias': '35.8400mA',
-            'tx4bias': '35.8400mA',
-            'tx1power': 'N/A',
-            'tx2power': 'N/A',
-            'tx3power': 'N/A',
-            'tx4power': 'N/A'
-        }
-
-        expected_output = '''\
+    @pytest.mark.parametrize("sfp_type, dom_info_dict, expected_output", [
+        (
+            'QSFP28 or later',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A'
+            },
+            '''\
         ChannelMonitorValues:
                 RX1Power: -1.6622dBm
                 RX2Power: -1.7901dBm
@@ -257,11 +256,120 @@ class TestSfputil(object):
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
 '''
-
+        ), 
+        (
+            'QSFP-DD Double Density 8X Pluggable Transceiver',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'rx5power': '-1.6622dBm',
+                'rx6power': '-1.7901dBm',
+                'rx7power': '-1.6973dBm',
+                'rx8power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx5bias': '35.8400mA',
+                'tx6bias': '37.5780mA',
+                'tx7bias': '35.8400mA',
+                'tx8bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A',
+                'tx5power': 'N/A',
+                'tx6power': 'N/A',
+                'tx7power': 'N/A',
+                'tx8power': 'N/A'
+            },
+            '''\
+        ChannelMonitorValues:
+                RX1Power: -1.6622dBm
+                RX2Power: -1.7901dBm
+                RX3Power: -1.6973dBm
+                RX4Power: -2.0915dBm
+                RX5Power: -1.6622dBm
+                RX6Power: -1.7901dBm
+                RX7Power: -1.6973dBm
+                RX8Power: -2.0915dBm
+                TX1Bias: 35.8400mA
+                TX2Bias: 37.5780mA
+                TX3Bias: 35.8400mA
+                TX4Bias: 35.8400mA
+                TX5Bias: 35.8400mA
+                TX6Bias: 37.5780mA
+                TX7Bias: 35.8400mA
+                TX8Bias: 35.8400mA
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 41.7539C
+                Vcc: 3.2577Volts
+        ModuleThresholdValues:
+'''
+        ),
+        (
+            'OSFP 8X Pluggable Transceiver',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'rx5power': '-1.6622dBm',
+                'rx6power': '-1.7901dBm',
+                'rx7power': '-1.6973dBm',
+                'rx8power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx5bias': '35.8400mA',
+                'tx6bias': '37.5780mA',
+                'tx7bias': '35.8400mA',
+                'tx8bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A',
+                'tx5power': 'N/A',
+                'tx6power': 'N/A',
+                'tx7power': 'N/A',
+                'tx8power': 'N/A'
+            },
+            '''\
+        ChannelMonitorValues:
+                RX1Power: -1.6622dBm
+                RX2Power: -1.7901dBm
+                RX3Power: -1.6973dBm
+                RX4Power: -2.0915dBm
+                RX5Power: -1.6622dBm
+                RX6Power: -1.7901dBm
+                RX7Power: -1.6973dBm
+                RX8Power: -2.0915dBm
+                TX1Bias: 35.8400mA
+                TX2Bias: 37.5780mA
+                TX3Bias: 35.8400mA
+                TX4Bias: 35.8400mA
+                TX5Bias: 35.8400mA
+                TX6Bias: 37.5780mA
+                TX7Bias: 35.8400mA
+                TX8Bias: 35.8400mA
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 41.7539C
+                Vcc: 3.2577Volts
+        ModuleThresholdValues:
+'''
+        )])
+    def test_convert_dom_to_output_string(self, sfp_type, dom_info_dict, expected_output):
         output = sfputil.convert_dom_to_output_string(sfp_type, dom_info_dict)
         assert output == expected_output
-
-        # TODO: Add tests for other SFP types
 
     def test_get_physical_port_name(self):
         output = sfputil.get_physical_port_name(0, 0, False)
@@ -288,7 +396,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'Unplugged'],
                            ['Ethernet28', 'Unplugged'],
                            ['Ethernet36', 'Unknown'],
-                           ['Ethernet40', 'Unplugged']]
+                           ['Ethernet40', 'Unplugged'],
+                           ['Ethernet44', 'OK']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -306,7 +415,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'N/A'],
                            ['Ethernet28', 'N/A'],
                            ['Ethernet36', 'N/A'],
-                           ['Ethernet40', 'N/A']]
+                           ['Ethernet40', 'N/A'],
+                           ['Ethernet44', 'N/A']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -393,6 +503,7 @@ Ethernet16  Unplugged
 Ethernet28  Unplugged
 Ethernet36  Unknown
 Ethernet40  Unplugged
+Ethernet44  OK
 """
         assert result.output == expected_output
 
@@ -710,12 +821,12 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @pytest.mark.parametrize("mock_response, expected", [
         ({'status': False, 'result': None}                                 , -1),
-        ({'status': True,  'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0)} , -1),
-        ({'status': True,  'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0)} , -1),
-        ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0)} ,  1),
-        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 0)} ,  1),
-        ({'status': True,  'result': ("1.0.1", 1, 0, 1, "1.0.2", 0, 1, 0)} , -1),
-        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 1)} , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0, "1.0.1", "1.0.2")} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0, "1.0.2", "1.0.1")} , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0, "1.0.1", "1.0.2")} ,  1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 0, "1.0.2", "1.0.1")} ,  1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 1, "1.0.2", 0, 1, 0, "1.0.1", "1.0.2")} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 1, "1.0.2", "1.0.1")} , -1),
 
         # "is_fw_switch_done" function will waiting until timeout under below condition, so that this test will spend around 1min.
         ({'status': False, 'result': 0}                                    , -1),
@@ -790,3 +901,32 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['download'], ["Ethernet0", "a.b"])
         assert result.output == 'This functionality is not applicable for RJ45 port Ethernet0.\n'
         assert result.exit_code == EXIT_FAIL
+
+    @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.run_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
+    def test_firmware_run_cli(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['run'], ["Ethernet0"])
+        assert result.exit_code == 0
+
+    @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.commit_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
+    def test_firmware_commit_cli(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['commit'], ["Ethernet0"])
+        assert result.exit_code == 0
+
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sonic_py_common.multi_asic.get_front_end_namespaces', MagicMock(return_value=['']))
+    @patch('sfputil.main.SonicV2Connector', MagicMock())
+    @patch('sfputil.main.platform_chassis')
+    def test_update_firmware_info_to_state_db(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_transceiver_info_firmware_versions.return_value = ['a.b.c', 'd.e.f']
+
+        sfputil.update_firmware_info_to_state_db("Ethernet0")
