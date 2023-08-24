@@ -946,8 +946,7 @@ class DBMigrator():
         Version 4_0_2.
         """
         log.log_info('Handling version_4_0_2')
-        enable_state = self.stateDB.get(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable')
-        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system") or enable_state == 'true':
+        if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
         self.set_version('version_4_0_3')
         return 'version_4_0_3'
