@@ -41,6 +41,23 @@
             ]
         }
     }, 
+    "BGP_SENTINELS": {
+        "BGPSentinelV6": {
+            "src_address": "fc00:1::32",
+            "name": "BGPSentinelV6",
+            "ip_range": [
+                "2603:10a0:321:82f9::/64",
+                "2603:10a1:30a:8000::/59"
+            ]
+        },
+        "BGPSentinel": {
+            "name": "BGPSentinel", 
+            "src_address": "10.1.0.32",
+            "ip_range": [
+                "10.1.0.0/24"
+            ]
+        }
+    }, 
     "VLAN": {
         "Vlan1000": {
             "dhcp_servers": [
