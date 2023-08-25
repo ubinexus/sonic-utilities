@@ -424,13 +424,17 @@ class TestSfputil(object):
         output = sfputil.fetch_error_status_from_state_db('Ethernet0', db.db)
         assert output == expected_output_ethernet0
 
+    @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
-    @patch('subprocess.check_output', MagicMock(return_value="['0:OK']"))
-    def test_fetch_error_status_from_platform_api(self):
+    def test_fetch_error_status_from_platform_api(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_error_description = MagicMock(return_value='OK')
+
         output = sfputil.fetch_error_status_from_platform_api('Ethernet0')
-        assert output == [['Ethernet0', None]]
+        assert output == [['Ethernet0', 'OK']]
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))

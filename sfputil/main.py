@@ -889,15 +889,15 @@ def fetch_error_status_from_platform_api(port):
     for logical_port_name in logical_port_list:
         physical_port = logical_port_to_physical_port_index(logical_port_name)
 
-        try:
-            error_description = platform_chassis.get_sfp(physical_port).get_error_description()
-            if is_port_type_rj45(logical_port_name):
-                output.append([logical_port_name, "N/A"])
-            else:
+        if is_port_type_rj45(logical_port_name):
+            output.append([logical_port_name, "N/A"])
+        else:
+            try:
+                error_description = platform_chassis.get_sfp(physical_port).get_error_description()
                 output.append([logical_port_name, error_description])
-        except NotImplementedError:
-            click.echo("get_error_description NOT implemented for port {}".format(logical_port_name))
-            sys.exit(ERROR_NOT_IMPLEMENTED)
+            except NotImplementedError:
+                click.echo("get_error_description NOT implemented for port {}".format(logical_port_name))
+                sys.exit(ERROR_NOT_IMPLEMENTED)
 
     return output
 
