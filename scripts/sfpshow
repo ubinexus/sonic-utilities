@@ -269,7 +269,7 @@ def display_invalid_intf_status(intf_name):
 class SFPShow(object):
     PM_WINDOW_NUM_IN_DB = {'60sec': 15, '15min': 12, '24hrs': 2}
     PM_WINDOW_START_INDEX_IN_DB = {'60sec': 1, '15min': 16, '24hrs': 28}
-    PM_TABLE_NAME_IN_DB = 'TRANSCEIVER_PM_WINDOW_STATS_TABLE'
+    PM_TABLE_NAME_IN_DB = 'TRANSCEIVER_PM_WINDOW_STATS'
 
     def __init__(self, intf_name, namespace_option, dump_dom=False,
                  pm_window_size=None, pm_window_index=None):
