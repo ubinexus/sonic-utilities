@@ -479,7 +479,7 @@ def cli_pm_helper(window_size, window_index, interfacename, namespace, verbose, 
     cmd += ['-s', window_size, '-i', str(window_index)]
     clicommon.run_command(cmd, display_cmd=verbose)
 
-@pm.command(help="Display current PM data for the specified window size")
+@pm.command(help="Show PM stats of progressing window for the given window size")
 @click.argument('window_size', type=click.Choice(['60sec', '15min', '24hrs']))
 @click.argument('interfacename', required=False)
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
@@ -491,14 +491,14 @@ def current(window_size, interfacename, namespace, verbose):
     ctx = click.get_current_context()
     cli_pm_helper(window_size, 0, interfacename, namespace, verbose, ctx)
 
-@pm.group(help="Display history PM data for the specified window size")
+@pm.group(help="Show PM stats of a given window number for the given window size")
 @click.argument('window_size', type=click.Choice(['60sec', '15min', '24hrs']))
 def history(window_size):
     """Show interface transceiver pm history subcommand <window_size>"""
     ctx = click.get_current_context()
     ctx.obj = {'window_size': window_size}
 
-@history.command(help="Display history PM data for the specified window index, starting from 1")
+@history.command(help="PM window number; 60sec: (1 to 14), 15min: (1 to 11), 24hrs: (1)")
 @click.argument('window_index',  type=int)
 @click.argument('interfacename', required=False)
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
