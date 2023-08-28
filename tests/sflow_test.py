@@ -432,6 +432,12 @@ class TestShowSflow(object):
         runner = CliRunner()
         obj = {'db':db.cfgdb}
 
+        #Sample direction : Invalid
+        result = runner.invoke(config.config.commands["sflow"].commands["sample-direction"], ["NA"], obj=obj)
+        print(result.output)
+        expected = "Error: Direction NA is invalid"
+        assert expected in result.output
+
         #disable
         result = runner.invoke(config.config.commands["sflow"].commands["sample-direction"], ["tx"], obj=obj)
         print(result.exit_code, result.output)
@@ -511,6 +517,15 @@ class TestShowSflow(object):
 
         # mock interface_name_is_valid
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
+
+        # set sample-direction to Invalid
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["sample-direction"],
+            ["Ethernet2", "NA"], obj=obj)
+        print(result.exit_code, result.output)
+        expected = "Error: Direction NA is invalid"
+        assert result.exit_code == 2
+        assert expected in result.output
 
         # set sample-direction to both
         result = runner.invoke(config.config.commands["sflow"].
