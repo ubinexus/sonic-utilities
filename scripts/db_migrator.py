@@ -1060,7 +1060,7 @@ class DBMigrator():
 
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
-        
+
         self.set_version('version_4_0_3')
         return 'version_4_0_3'
 
