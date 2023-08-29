@@ -1631,6 +1631,7 @@
         "minimum_voltage": "759",
         "timestamp": "20230704 17:38:04",
         "voltage": "760",
+        "unit": "mV",
         "warning_status": "False"
     },
     "VOLTAGE_INFO|VSENSOR1": {
@@ -1643,12 +1644,14 @@
         "minimum_voltage": "759",
         "timestamp": "20230704 17:38:04",
         "voltage": "759",
+        "unit": "mV",
         "warning_status": "False"
     },
     "CURRENT_INFO|ISENSOR0": {
         "critical_high_threshold": "460",
         "critical_low_threshold": "300",
         "current": "410",
+         "unit": "mA",
         "high_threshold": "440",
         "is_replaceable": "False",
         "low_threshold": "320",
@@ -1661,6 +1664,7 @@
         "critical_high_threshold": "460",
         "critical_low_threshold": "300",
         "current": "360",
+         "unit": "mA",
         "high_threshold": "440",
         "is_replaceable": "False",
         "low_threshold": "320",

@@ -21,10 +21,10 @@ class TestVoltage(object):
         result = runner.invoke(show.cli.commands["platform"].commands["voltage"])
         print(result.output)
         expected = """\
-  Sensor    Voltage(mV)    High TH    Low TH    Crit High TH    Crit Low TH    Warning          Timestamp
---------  -------------  ---------  --------  --------------  -------------  ---------  -----------------
-VSENSOR0            760        852       684             872            664      False  20230704 17:38:04
-VSENSOR1            759        852       684             872            664      False  20230704 17:38:04
+  Sensor    Voltage    High TH    Low TH    Crit High TH    Crit Low TH    Warning          Timestamp
+--------  ---------  ---------  --------  --------------  -------------  ---------  -----------------
+VSENSOR0     760 mV        852       684             872            664      False  20230704 17:38:04
+VSENSOR1     759 mV        852       684             872            664      False  20230704 17:38:04
 """
 
         assert result.output == expected
@@ -34,10 +34,10 @@ VSENSOR1            759        852       684             872            664     
         result = runner.invoke(show.cli.commands["platform"].commands["current"])
         print(result.output)
         expected = """\
-  Sensor    Current(mA)    High TH    Low TH    Crit High TH    Crit Low TH    Warning          Timestamp
---------  -------------  ---------  --------  --------------  -------------  ---------  -----------------
-ISENSOR0            410        440       320             460            300      False  20230704 17:38:04
-ISENSOR1            360        440       320             460            300      False  20230704 17:38:04
+  Sensor    Current    High TH    Low TH    Crit High TH    Crit Low TH    Warning          Timestamp
+--------  ---------  ---------  --------  --------------  -------------  ---------  -----------------
+ISENSOR0     410 mA        440       320             460            300      False  20230704 17:38:04
+ISENSOR1     360 mA        440       320             460            300      False  20230704 17:38:04
 """
 
         assert result.output == expected

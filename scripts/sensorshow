@@ -14,21 +14,18 @@ try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
-        libs_path = os.path.join(test_path, "mocked_libs")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
-        sys.path.insert(0, libs_path)
         import mock_tables.dbconnector
 except KeyError:
     pass
 
-from sonic_platform_base.sensor_base import CurrentSensorBase
-from sonic_platform_base.sensor_base import VoltageSensorBase
 from swsscommon.swsscommon import SonicV2Connector
 
 header = ['Sensor', '', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
 
 TIMESTAMP_FIELD_NAME = 'timestamp'
+UNIT_FIELD_NAME = 'unit'
 HIGH_THRESH_FIELD_NAME = 'high_threshold'
 LOW_THRESH_FIELD_NAME = 'low_threshold'
 CRIT_HIGH_THRESH_FIELD_NAME = 'critical_high_threshold'
@@ -43,12 +40,12 @@ class SensorShow(object):
         self.db = SonicV2Connector(use_unix_socket_path=True)
         self.db.connect(self.db.STATE_DB)
         self.field_name = type
+        header[1] = type.capitalize()
+
         if type == "voltage":
             self.table_name = VOLTAGE_INFO_TABLE_NAME
-            header[1]  = 'Voltage({})'.format(VoltageSensorBase.get_unit())
         else:
             self.table_name = CURRENT_INFO_TABLE_NAME
-            header[1]  = 'Current({})'.format(CurrentSensorBase.get_unit())
 
     def show(self):
         keys = self.db.keys(self.db.STATE_DB, self.table_name + '*')
@@ -67,7 +64,7 @@ class SensorShow(object):
             data_dict = self.db.get_all(self.db.STATE_DB, key)
             #print(name, data_dict)
             table.append((name, 
-                          data_dict[self.field_name], 
+                          "{} {}".format(data_dict[self.field_name], data_dict[UNIT_FIELD_NAME]), 
                           data_dict[HIGH_THRESH_FIELD_NAME],
                           data_dict[LOW_THRESH_FIELD_NAME],
                           data_dict[CRIT_HIGH_THRESH_FIELD_NAME],
