@@ -8,7 +8,7 @@
         "type": "CTRLPLANE"
     },
     "ACL_TABLE_TYPE|MY_TYPE": {
-        "MATCHES@": "ETHER_TYPE,L4_DST_PORT_RANGE,L4_SRC_PORT_RANGE ",
+        "MATCHES@": "ETHER_TYPE,L4_DST_PORT_RANGE,L4_SRC_PORT_RANGE",
         "BIND_POINTS@": "PORT"
     },
     "ACL_TABLE|DATAACL": {
