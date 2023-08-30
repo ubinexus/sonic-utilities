@@ -901,9 +901,9 @@ def fetch_error_status_from_platform_api(port):
     # Code to fetch the error status
     get_error_status_code = \
         "try:\n"\
-        "    errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list]\n" \
+        "    errors=['{}'.format(sfp.get_error_description()) for sfp in sfp_list]\n" \
         "except NotImplementedError as e:\n"\
-        "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
+        "    errors=['{}'.format('OK (Not implemented)') for sfp in sfp_list]\n" \
         "print(errors)\n"
 
     get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
@@ -924,21 +924,10 @@ def fetch_error_status_from_platform_api(port):
             output_list = ast.literal_eval(output_str)
             break
 
-    output_dict = {}
-    for output in output_list:
-        sfp_index, error_status = output.split(':')
-        output_dict[int(sfp_index)] = error_status
-
     output = []
-    for logical_port_name in logical_port_list:
-        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
-        port_name = get_physical_port_name(logical_port_name, 1, False)
-
-        if is_port_type_rj45(logical_port_name):
-            output.append([port_name, "N/A"])
-        else:
-            output.append([port_name, output_dict.get(physical_port_list[0])])
-
+    assert len(output_list) == len(logical_port_list)
+    for i in range(len(logical_port_list)):
+        output.append([logical_port_list[i], output_list[i]])
     return output
 
 def fetch_error_status_from_state_db(port, state_db):
