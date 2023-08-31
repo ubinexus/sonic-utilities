@@ -917,17 +917,25 @@ def fetch_error_status_from_platform_api(port):
 
     output_list = output.split('\n')
     for output_str in output_list:
-        # The output of all SFP error status are a list consisting of element with convention of '<sfp no>:<error status>'
+        # The output of all SFP error status are a list consisting of <error status> sorted physical port indices
         # Besides, there can be some logs captured during the platform API executing
         # So, first of all, we need to skip all the logs until find the output list of SFP error status
         if output_str[0] == '[' and output_str[-1] == ']':
             output_list = ast.literal_eval(output_str)
             break
 
+    physical_port_set = set()
+    for port in logical_port_list: 
+        physical_port_set.add(logical_port_to_physical_port_index(port))
+
+    physical_port_list = list(physical_port_set)
+    # Map of <physical port# : error status> 
+    error_map = {physical_port_list[i] : output_list[i] for i in range(len(physical_port_list))}
+
     output = []
-    assert len(output_list) == len(logical_port_list)
     for i in range(len(logical_port_list)):
-        output.append([logical_port_list[i], output_list[i]])
+        physical_port = logical_port_to_physical_port_index(logical_port_list[i])
+        output.append([logical_port_list[i], error_map[physical_port]])
     return output
 
 def fetch_error_status_from_state_db(port, state_db):
