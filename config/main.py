@@ -6512,28 +6512,71 @@ def ntp(ctx):
 
 @ntp.command('add')
 @click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
+@click.argument('minpoll_maxpoll', metavar='[minpoll <minpoll> maxpoll <maxpoll>]', required=False, type=click.Path())
 @click.pass_context
-def add_ntp_server(ctx, ntp_ip_address):
+def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
     """ Add NTP server IP """
+    DEFAULT_MINPOLL = 6
+    DEFAULT_MAXPOLL = 10
+    MIN_POLL = 3
+    MAX_POLL = 17
+
+    new_minpoll = DEFAULT_MINPOLL
+    new_maxpoll = DEFAULT_MAXPOLL
+
     if ADHOC_VALIDATION:
         if not clicommon.is_ipaddress(ntp_ip_address): 
             ctx.fail('Invalid IP address')
-    db = ValidatedConfigDBConnector(ctx.obj['db'])    
-    ntp_servers = db.get_table("NTP_SERVER")
-    if ntp_ip_address in ntp_servers:
-        click.echo("NTP server {} is already configured".format(ntp_ip_address))
-        return
-    else:
-        try:
-            db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
-        except ValueError as e:
-            ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
-        click.echo("NTP server {} added to configuration".format(ntp_ip_address))
-        try:
-            click.echo("Restarting ntp-config service...")
-            clicommon.run_command(['systemctl', 'restart', 'ntp-config'], display_cmd=False)
-        except SystemExit as e:
-            ctx.fail("Restart service ntp-config failed with error {}".format(e))
+
+        if len(minpoll_maxpoll) != 0 and len(minpoll_maxpoll) != 4:
+            ctx.fail('Invalid input for minpoll and maxpoll')
+
+        if len(minpoll_maxpoll) != 0:
+            new_minpoll = int(minpoll_maxpoll[1])
+            new_maxpoll = int(minpoll_maxpoll[3])
+
+        if new_minpoll not in range(MIN_POLL, MAX_POLL + 1) or new_maxpoll not in range(MIN_POLL, MAX_POLL + 1):
+            ctx.fail('minpoll and maxpoll must be in the range 3-17') 
+    
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    ntp_server_entry = db.get_entry('NTP_SERVER', ntp_ip_address)
+
+    # init the curr_minpoll & curr_maxpoll with default values 
+    curr_minpoll = DEFAULT_MINPOLL 
+    curr_maxpoll = DEFAULT_MAXPOLL
+
+    if ntp_server_entry:
+        if ntp_server_entry.get('minpoll'):
+            curr_minpoll = int(ntp_server_entry.get('minpoll'))
+        if ntp_server_entry and ntp_server_entry.get('maxpoll'):
+            curr_maxpoll = int(ntp_server_entry.get('maxpoll'))
+
+        if (curr_minpoll == minpoll) and (curr_maxpoll == maxpoll):
+            click.echo("NTP server {} is already configured".format(ntp_ip_address))
+            return
+   
+    # if create or update
+    if new_minpoll >= new_maxpoll:
+        ctx.fail("Invalid minpoll:{} and maxpoll:{}".format(curr_minpoll, curr_maxpoll)) 
+
+    serverInfo = {
+        "minpoll": new_minpoll,
+        "maxpoll": new_maxpoll
+    } 
+    try:
+        if ntp_server_entry:
+            db.mod_entry('NTP_SERVER', ntp_ip_address, serverInfo)
+        else:
+            db.set_entry('NTP_SERVER', ntp_ip_address, serverInfo) 
+
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
+    click.echo("NTP server {} minpoll {} maxpoll {} added to configuration".format(ntp_ip_address, new_minpoll, new_maxpoll))
+    try:
+        click.echo("Restarting ntp-config service...")
+        clicommon.run_command(['systemctl', 'restart', 'ntp-config'], display_cmd=False)
+    except SystemExit as e:
+        ctx.fail("Restart service ntp-config failed with error {}".format(e))
 
 @ntp.command('del')
 @click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
