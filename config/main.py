@@ -6541,7 +6541,7 @@ def add_ntp_server(ctx, ntp_ip_address):
     """ Add NTP server IP """
     if ADHOC_VALIDATION:
         if not clicommon.is_ipaddress(ntp_ip_address): 
-            ctx.fail('Invalid IP address')
+            ctx.fail('Invalid IP address really')
     db = ValidatedConfigDBConnector(ctx.obj['db'])    
     ntp_servers = db.get_table("NTP_SERVER")
     if ntp_ip_address in ntp_servers:
