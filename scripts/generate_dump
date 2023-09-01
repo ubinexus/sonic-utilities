@@ -874,11 +874,11 @@ save_redis() {
 save_saidump() {
     trap 'handle_error $? $LINENO' ERR
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
-        save_cmd "docker exec syncd saidump" "saidump"
+        save_cmd "saidump.sh" "saidump"
     else
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_cmd "docker exec syncd$i saidump" "saidump$i"
+            save_cmd "saidump.sh $i" "saidump$i"
         done
     fi
 }
