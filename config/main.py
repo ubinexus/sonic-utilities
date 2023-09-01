@@ -6536,7 +6536,7 @@ def ntp(ctx):
 
 @ntp.command('add')
 @click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
-@click.argument('minpoll_maxpoll', metavar='[minpoll <minpoll> maxpoll <maxpoll>]', required=False, type=click.Path())
+@click.argument('minpoll_maxpoll', metavar='[minpoll <minpoll> maxpoll <maxpoll>]', required=False, nargs=-1, type=click.Path())
 @click.pass_context
 def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
     """ Add NTP server IP """
@@ -6555,8 +6555,11 @@ def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
         if len(minpoll_maxpoll) != 0 and len(minpoll_maxpoll) != 4:
             ctx.fail('Invalid input for minpoll and maxpoll')
 
+        if minpoll_maxpoll[0] != 'minpoll' and minpoll_maxpoll[2] != 'maxpoll':
+            ctx.fail('Invalid parameters')
+
         if len(minpoll_maxpoll) != 0:
-            new_minpoll = int(minpoll_maxpoll[1])
+           new_minpoll = int(minpoll_maxpoll[1])
            new_maxpoll = int(minpoll_maxpoll[3])
 
         if new_minpoll not in range(MIN_POLL, MAX_POLL + 1) or new_maxpoll not in range(MIN_POLL, MAX_POLL + 1):
@@ -6575,7 +6578,7 @@ def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
         if ntp_server_entry and ntp_server_entry.get('maxpoll'):
             curr_maxpoll = int(ntp_server_entry.get('maxpoll'))
 
-        if (curr_minpoll == minpoll) and (curr_maxpoll == maxpoll):
+        if (curr_minpoll == new_minpoll) and (curr_maxpoll == new_maxpoll):
             click.echo("NTP server {} is already configured".format(ntp_ip_address))
             return
    # if create or update
@@ -6598,7 +6601,7 @@ def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
     try:
         click.echo("Restarting ntp-config service...")
         clicommon.run_command(['systemctl', 'restart', 'ntp-config'], display_cmd=False)
-   except SystemExit as e:
+    except SystemExit as e:
         ctx.fail("Restart service ntp-config failed with error {}".format(e))
 
 
