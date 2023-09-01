@@ -6553,7 +6553,7 @@ def add_ntp_server(ctx, ntp_ip_address, minpoll_maxpoll):
             ctx.fail('Invalid IP address')
 
         if len(minpoll_maxpoll) != 0 and len(minpoll_maxpoll) != 4:
-            ctx.fail('Invalid input for minpoll and maxpoll')
+            ctx.fail('Invalid minpoll and maxpoll parameters')
 
         if minpoll_maxpoll[0] != 'minpoll' and minpoll_maxpoll[2] != 'maxpoll':
             ctx.fail('Invalid minpoll or maxpoll parameters')
