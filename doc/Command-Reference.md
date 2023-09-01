@@ -7458,18 +7458,23 @@ This sub-section of commands is used to add or remove the configured NTP servers
 **config ntp add**
 
 This command is used to add a NTP server IP address to the NTP server list.  Note that more that one NTP server IP address can be added in the device.
-
+User may optionally configure minpoll and maxpoll for each NTP server. Minpoll and maxpoll is in the range from 3-17. When not configured, minpoll has default value "6" and maxpoll has default value "10"
 - Usage:
   ```
-  config ntp add <ip_address>
+  config ntp add <ip_address> [minpoll] [maxpoll]
   ```
 
 - Example:
   ```
   admin@sonic:~$ sudo config ntp add 9.9.9.9
-  NTP server 9.9.9.9 added to configuration
+  NTP server 9.9.9.9 {'minpoll': 6, 'maxpoll': 10} added to configuration
   Restarting ntp-config service...
   ```
+
+  ```
+  admin@sonic:~# config ntp add 8.8.8.8 12 16
+  NTP server 8.8.8.8 {'minpoll': 12, 'maxpoll': 16} added to configuration
+  Restarting ntp-config service...
 
 **config ntp delete**
 
@@ -9600,11 +9605,10 @@ This command displays the running configuration of the ntp module.
 
 - Example:
   ```
-  admin@sonic:~$ show runningconfiguration ntp
   NTP Servers
-  -------------
-  1.1.1.1
-  2.2.2.2
+  -----------------------------
+  8.8.8.8 minpoll 12 maxpoll 16
+  9.9.9.9 minpoll 6 maxpoll 10
   ```
 
 **show runningconfiguration syslog**
