@@ -874,6 +874,27 @@ save_redis() {
 save_saidump() {
     trap 'handle_error $? $LINENO' ERR
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
+        save_cmd "docker exec syncd saidump" "saidump"
+    else
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_cmd "docker exec syncd$i saidump" "saidump$i"
+        done
+    fi
+}
+
+###############################################################################
+# SAI DUMP from syncd by Redis Save command
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_saidump_by_save_cmd() {
+    trap 'handle_error $? $LINENO' ERR
+    if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
         save_cmd "saidump.sh" "saidump"
     else
         for (( i=0; i<$NUM_ASICS; i++ ))
@@ -1791,6 +1812,8 @@ main() {
 
     if [[ "$device_type" != "SpineRouter" ]]; then
         save_saidump
+    else
+        save_saidump_by_save_cmd
     fi
 
     if [ "$asic" = "barefoot" ]; then
