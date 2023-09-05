@@ -935,7 +935,7 @@ def fetch_error_status_from_platform_api(port):
     output = []
     for i in range(len(logical_port_list)):
         physical_port = logical_port_to_physical_port_index(logical_port_list[i])
-        output.append([logical_port_list[i], error_map[physical_port]])
+        output.append([logical_port_list[i], error_map[physical_port] if not is_port_type_rj45(logical_port_list[i]) else 'N/A'])
     return output
 
 def fetch_error_status_from_state_db(port, state_db):
