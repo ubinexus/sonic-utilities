@@ -7,10 +7,6 @@ import syslog
 from swsssdk import  SonicV2Connector
 from sonic_py_common import multi_asic
 
-# Global variables
-MIN_SCAN_INTERVAL = 60      # Every minute
-MAX_SCAN_INTERVAL = 3600    # An hour
-
 class InternalLinkErrMontoring():
     '''Class to monitor the internal link errors for a given namespace'''
 
@@ -186,17 +182,13 @@ class PacketChassisInternalLinkMontoring():
                                         'Unable to shutdown internal port {}, return code {}'.format(port_name, ret))
     def attempt_to_mitigate_ports(self, namespace, err_port_per_ns):
         ''' Attempt to isolate given list of ports 
-            1. Check if port is already down, then skip mitigation
-            2. Check if number of active links in the portchannel where the port is a member is greater
+            1. Check if number of active links in the portchannel where the port is a member is greater
                 than min_links. 
                 a. If active links is greater, shutdown the port
                 b. If not, return after generating syslog
         '''
 
         for port_name in err_port_per_ns:            
-            if self.get_port_status(namespace, port_name) == 'down':
-                syslog.syslog(syslog.LOG_INFO, "Port {} is down, skipping mitigation".format(port_name))
-                continue
             syslog.syslog(syslog.LOG_INFO, "Attempting mitigation of port {}".format(port_name))
             lag_name = self.get_lag_name_for_port(namespace, port_name)
             active_count = self.get_active_lag_member_count(namespace, lag_name)
@@ -235,7 +227,7 @@ def main():
         if num_of_err_ports:
             syslog.syslog(syslog.LOG_CRIT, '{} internal ports have errors above threshold'.format(num_of_err_ports))
             return -1
-        return 0
+    return 0
 
 
 
