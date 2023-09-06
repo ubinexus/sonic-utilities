@@ -892,7 +892,7 @@ save_saidump() {
 # Returns:
 #  None
 ###############################################################################
-save_saidump_by_save_cmd() {
+save_saidump_by_redis_save_cmd() {
     trap 'handle_error $? $LINENO' ERR
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
         save_cmd "saidump.sh" "saidump"
@@ -1813,7 +1813,7 @@ main() {
     if [[ "$device_type" != "SpineRouter" ]]; then
         save_saidump
     else
-        save_saidump_by_save_cmd
+        save_saidump_by_redis_save_cmd
     fi
 
     if [ "$asic" = "barefoot" ]; then
