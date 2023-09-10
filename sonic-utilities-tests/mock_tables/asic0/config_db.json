@@ -60,28 +60,6 @@
         "speed": "40000",
         "asic_port_name": "Eth17-ASIC0"
     },
-    "PORT|Ethernet-BP8": {
-        "lanes": "101,102,103,104",
-        "description": "ASIC1:Eth2-ASIC1",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet-BP8",
-        "admin_status": "up",
-        "role": "Int",
-        "speed": "40000",
-        "asic_port_name": "Eth18-ASIC0"
-    },
-    "PORT|Ethernet-BP16": {
-        "lanes": "105,106,107,108",
-        "description": "ASIC1:Eth3-ASIC1",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet-BP16",
-        "admin_status": "up",
-        "role": "Int",
-        "speed": "40000",
-        "asic_port_name": "Eth19-ASIC0"
-    },
     "PORTCHANNEL|PortChannel1002": {
         "admin_status": "up",
         "members@": "Ethernet0,Ethernet4",
@@ -90,8 +68,8 @@
     },
     "PORTCHANNEL|PortChannel4001": {
         "admin_status": "up",
-        "members@": "Ethernet-BP0,Ethernet-BP4,Ethernet-BP8,Ethernet-BP16",
-        "min_links": "3",
+        "members@": "Ethernet-BP0,Ethernet-BP4",
+        "min_links": "2",
         "mtu": "9100"
     },
     "PORTCHANNEL_MEMBER|PortChannel1002|Ethernet0": {
@@ -104,12 +82,6 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP4": {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP8": {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP16": {
         "NULL": "NULL"
     },
     "PFC_WD|Ethernet0": {

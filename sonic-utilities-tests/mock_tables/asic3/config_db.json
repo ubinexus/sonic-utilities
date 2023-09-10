@@ -1,0 +1,115 @@
+{
+    "DEVICE_METADATA|localhost": {
+        "asic_id": "01.00.0",
+        "asic_name": "asic0",
+        "bgp_asn": "65100",
+        "cloudtype": "None",
+        "default_bgp_status": "down",
+        "default_pfcwd_status": "enable",
+        "deployment_id": "None",
+        "docker_routing_config_mode": "separated",
+        "hostname": "sonic",
+        "hwsku": "multi_asic",
+        "mac": "02:42:f0:7f:01:05",
+        "platform": "multi_asic",
+        "region": "None",
+        "sub_role": "FrontEnd",
+        "type": "LeafRouter"
+    },
+    "PORT|Ethernet200": {
+        "admin_status": "up",
+        "alias": "Ethernet1/51",
+        "asic_port_name": "Eth2-ASIC3",
+        "description": "ARISTA11T0:Ethernet1",
+        "lanes": "41,42,43,44",
+        "mtu": "9100",
+        "pfc_asym": "off",
+        "role": "Ext",
+        "speed": "40000"
+    },
+    "PORT|Ethernet208": {
+        "lanes": "49,50,51,52",
+        "description": "ARISTA12T0:Ethernet1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/53",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth4-ASIC3"
+    },
+    "PORT|Ethernet-BP192" : {
+        "lanes": "93,94,95,96",
+        "description": "ASIC4:Eth24-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP192",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth16-ASIC3"
+    },
+    "PORT|Ethernet-BP196" : {
+        "lanes": "97,98,99,100",
+        "description": "ASIC4:Eth25-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP196",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth17-ASIC3"
+    },
+    "PORT|Ethernet-BP200": {
+        "lanes": "101,102,103,104",
+        "description": "ASIC4:Eth26-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP200",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth18-ASIC3"
+    },
+    "PORT|Ethernet-BP204": {
+        "lanes": "105,106,107,108",
+        "description": "ASIC4:Eth27-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP204",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth19-ASIC3"
+    },
+    "PORTCHANNEL|PortChannel1015": {
+        "admin_status": "up",
+        "members@": "Ethernet200,Ethernet208",
+        "min_links": "2",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL|PortChannel4001": {
+        "admin_status": "up",
+        "members@": "Ethernet-BP192,Ethernet-BP196,Ethernet-BP200,Ethernet-BP208",
+        "min_links": "3",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel1002|Ethernet200": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel1002|Ethernet208": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP192": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP196": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP200": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP204": {
+        "NULL": "NULL"
+    }
+}

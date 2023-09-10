@@ -33,6 +33,17 @@
         "speed": "40000",
         "asic_port_name": "Eth1-ASIC1"
     },
+    "PORT_TABLE:Ethernet-BP264": {
+        "oper_status": "up",
+        "lanes": "53,54,55,56",
+        "description": "ASIC0:Eth18-ASIC0",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP264",
+        "admin_status": "up",
+        "speed": "40000",
+        "asic_port_name": "Eth2-ASIC1"
+    },    
     "LAG_TABLE:PortChannel4009": {
         "admin_status": "up",
         "oper_status": "up",
@@ -42,6 +53,9 @@
         "status": "enabled"
     },
     "LAG_MEMBER_TABLE:PortChannel4009:Ethernet-BP260": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4009:Ethernet-BP264": {
         "status": "enabled"
     }
 }

@@ -49,21 +49,10 @@
         "role": "Int",
         "asic_port_name": "Eth1-ASIC1"
     },
-    "PORT|Ethernet-BP264": {
-        "lanes": "53,54,55,56",
-        "description": "ASIC0:Eth18-ASIC0",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet-BP264",
-        "admin_status": "up",
-        "speed": "40000",
-        "role": "Int",
-        "asic_port_name": "Eth2-ASIC1"
-    },
     "PORTCHANNEL|PortChannel4009": {
         "admin_status": "up",
         "members": [
-            "Ethernet-BP256,Ethernet-BP260,Ethernet-BP264"
+            "Ethernet-BP256,Ethernet-BP260"
         ],
         "min_links": "2",
         "mtu": "9100"
@@ -72,9 +61,6 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260" : {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP264" : {
         "NULL": "NULL"
     },
     "PFC_WD|Ethernet-BP256": {

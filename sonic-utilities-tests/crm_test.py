@@ -760,6 +760,8 @@ class TestCrm(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        import mock_tables.mock_single_asic
+        imp.reload(mock_tables.mock_single_asic)
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_crm_show_summary(self):

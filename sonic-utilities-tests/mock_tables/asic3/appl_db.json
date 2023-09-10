@@ -1,0 +1,102 @@
+{
+    "PORT_TABLE:Ethernet200": {
+        "lanes": "41,42,43,44",
+        "description": "ARISTA11T0:Ethernet1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/51",
+        "oper_status": "up",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth2-ASIC3"
+    },
+    "PORT_TABLE:Ethernet208": {
+        "oper_status": "up",
+        "lanes": "49,50,51,52",
+        "description": "ARISTA12T0:Ethernet1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/53",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth4-ASIC3"
+    },
+    "PORT_TABLE:Ethernet-BP192": {
+        "oper_status": "up",
+        "lanes": "93,94,95,96",
+        "description": "ASIC4:Eth24-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP192",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth16-ASIC3"
+    },
+    "PORT_TABLE:Ethernet-BP196": {
+        "oper_status": "up",
+        "lanes": "97,98,99,100",
+        "description": "ASIC4:Eth25-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP196",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth17-ASIC3"
+    },
+    "PORT_TABLE:Ethernet-BP200": {
+        "oper_status": "up",
+        "lanes": "101,102,103,104",
+        "description": "ASIC4:Eth26-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP200",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth18-ASIC3"
+    },
+    "PORT_TABLE:Ethernet-BP204": {
+        "oper_status": "up",
+        "lanes": "105,106,107,108",
+        "description": "ASIC4:Eth27-ASIC4",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP204",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth19-ASIC3"
+    },
+    "LAG_MEMBER_TABLE:PortChannel1015:Ethernet200": {
+        "status": "disabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel1015:Ethernet208": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP192": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP196": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP200": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP204": {
+        "status": "enabled"
+    },
+    "LAG_TABLE:PortChannel1015": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "up"
+    },
+    "LAG_TABLE:PortChannel4001": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "up"
+    }
+}

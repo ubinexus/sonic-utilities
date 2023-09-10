@@ -4,7 +4,7 @@
 import syslog
 
 
-from swsssdk import  SonicV2Connector
+from swsssdk import  SonicV2Connector, SonicDBConfig
 from sonic_py_common import multi_asic
 
 class InternalLinkErrMontoring():
@@ -109,8 +109,8 @@ class PacketChassisInternalLinkMontoring():
     @property
     def namespaces(self):
         namespaces = []
-        all_namespaces = multi_asic.get_all_namespaces()
-        namespaces = all_namespaces['front_ns'] + all_namespaces['back_ns']
+        SonicDBConfig.load_sonic_global_db_config()
+        namespaces = multi_asic.get_namespace_list()
         return namespaces
         
     def config_db(self,namespace):

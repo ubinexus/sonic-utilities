@@ -47,30 +47,6 @@
         "speed": "40000",
         "asic_port_name": "Eth17-ASIC0"
     },
-    "PORT_TABLE:Ethernet-BP8": {
-        "oper_status": "up",
-        "lanes": "101,102,103,104",
-        "description": "ASIC1:Eth2-ASIC1",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet-BP8",
-        "admin_status": "up",
-        "role": "Int",
-        "speed": "40000",
-        "asic_port_name": "Eth18-ASIC0"
-    },
-    "PORT_TABLE:Ethernet-BP16": {
-        "oper_status": "up",
-        "lanes": "105,106,107,108",
-        "description": "ASIC1:Eth3-ASIC1",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet-BP16",
-        "admin_status": "up",
-        "role": "Int",
-        "speed": "40000",
-        "asic_port_name": "Eth19-ASIC0"
-    },
     "LAG_MEMBER_TABLE:PortChannel1002:Ethernet0": {
         "status": "disabled"
     },
@@ -81,12 +57,6 @@
         "status": "enabled"
     },
     "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP4": {
-        "status": "enabled"
-    },
-    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP8": {
-        "status": "enabled"
-    },
-    "LAG_MEMBER_TABLE:PortChannel4001:Ethernet-BP16": {
         "status": "enabled"
     },
     "LAG_TABLE:PortChannel1002": {
