@@ -1,7 +1,7 @@
 {
     "DEVICE_METADATA|localhost": {
-        "asic_id": "03.00.0",
-        "asic_name": "asic2",
+        "asic_id": "08:00.0",
+        "asic_name": "asic1",
         "bgp_asn": "65100",
         "cloudtype": "None",
         "default_bgp_status": "down",
@@ -10,90 +10,171 @@
         "docker_routing_config_mode": "separated",
         "hostname": "sonic",
         "hwsku": "multi_asic",
-        "mac": "02:42:f0:7f:01:55",
+        "mac": "02:42:f0:7f:01:06",
         "platform": "multi_asic",
         "region": "None",
-        "sub_role": "FrontEnd",
+        "sub_role": "BackEnd",
         "type": "LeafRouter"
     },
-    "PORT|Ethernet20": {
+    "PORT|Ethernet64": {
         "admin_status": "up",
-        "alias": "Ethernet1/6",
-        "asic_port_name": "Eth0-ASIC2",
-        "description": "ARISTA01T2:Ethernet3/3/1",
-        "lanes": "41,42,43,44",
+        "alias": "Ethernet1/17",
+        "asic_port_name": "Eth0-ASIC1",
+        "description": "ARISTA01T2:Ethernet3/1/1",
+        "lanes": "33,34,35,36",
         "mtu": "9100",
         "pfc_asym": "off",
         "role": "Ext",
         "speed": "40000"
     },
-    "PORT|Ethernet24": {
-        "lanes": "45,46,47,48",
-        "description": "ARISTA01T2:Ethernet3/4/1",
-        "pfc_asym": "off",
-        "mtu": "9100",
-        "alias": "Ethernet1/7",
+    "PORT|Ethernet-BP256": {
         "admin_status": "up",
-        "role": "Ext",
-        "speed": "40000",
-        "asic_port_name": "Eth1-ASIC2"
-    },
-    "PORT|Ethernet-BP20" : {
-        "lanes": "113,114,115,116",
-        "description": "ASIC1:Eth2-ASIC1",
-        "pfc_asym": "off",
+        "alias": "Ethernet-BP256",
+        "asic_port_name": "Eth0-ASIC1",
+        "description": "ASIC0:Eth16-ASIC0",
+        "lanes": "61,62,63,64",
         "mtu": "9100",
-        "alias": "Ethernet-BP20",
-        "admin_status": "up",
+        "pfc_asym": "off",
         "role": "Int",
-        "speed": "40000",
-        "asic_port_name": "Eth16-ASIC2"
+        "speed": "40000"
     },
-    "PORT|Ethernet-BP24" : {
-        "lanes": "117,118,119,120",
-        "description": "ASIC1:Eth3-ASIC1",
+    "PORT|Ethernet-BP260": {
+        "lanes": "57,58,59,60",
+        "description": "ASIC0:Eth17-ASIC0",
         "pfc_asym": "off",
         "mtu": "9100",
-        "alias": "Ethernet-BP24",
+        "alias": "Ethernet-BP260",
         "admin_status": "up",
-        "role": "Int",
         "speed": "40000",
-        "asic_port_name": "Eth17-ASIC2"
+        "role": "Int",
+        "asic_port_name": "Eth1-ASIC1"
     },
-    "PORTCHANNEL|PortChannel1015": {
+    "PORT|Ethernet-BP264": {
+        "lanes": "53,54,55,56",
+        "description": "ASIC0:Eth18-ASIC0",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP264",
         "admin_status": "up",
-        "members@": "Ethernet20",
-        "min_links": "1",
+        "speed": "40000",
+        "role": "Int",
+        "asic_port_name": "Eth2-ASIC1"
+    },
+    "PORTCHANNEL|PortChannel4009": {
+        "admin_status": "up",
+        "members": [
+            "Ethernet-BP256,Ethernet-BP260,Ethernet-BP264"
+        ],
+        "min_links": "2",
         "mtu": "9100"
     },
-    "PORTCHANNEL|PortChannel1016": {
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP256": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260" : {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP264" : {
+        "NULL": "NULL"
+    },
+    "PFC_WD|Ethernet-BP256": {
+        "action": "drop",
+        "detection_time": "200",
+        "restoration_time": "200"
+    },
+    "PFC_WD|Ethernet-BP260": {
+        "action": "drop",
+        "detection_time": "200",
+        "restoration_time": "200"
+    },
+    "PFC_WD|GLOBAL": {
+        "BIG_RED_SWITCH": "enable",
+        "POLL_INTERVAL": "199"
+    },
+    "CRM|Config": {
+        "acl_table_threshold_type": "percentage",
+        "nexthop_group_threshold_type": "percentage",
+        "fdb_entry_high_threshold": "85",
+        "acl_entry_threshold_type": "percentage",
+        "ipv6_neighbor_low_threshold": "70",
+        "nexthop_group_member_low_threshold": "70",
+        "acl_group_high_threshold": "85",
+        "ipv4_route_high_threshold": "85",
+        "acl_counter_high_threshold": "85",
+        "ipv4_route_low_threshold": "70",
+        "ipv4_route_threshold_type": "percentage",
+        "ipv4_neighbor_low_threshold": "70",
+        "acl_group_threshold_type": "percentage",
+        "ipv4_nexthop_high_threshold": "85",
+        "ipv6_route_threshold_type": "percentage",
+        "nexthop_group_low_threshold": "70",
+        "ipv4_neighbor_high_threshold": "85",
+        "ipv6_route_high_threshold": "85",
+        "ipv6_nexthop_threshold_type": "percentage",
+        "polling_interval": "300",
+        "ipv4_nexthop_threshold_type": "percentage",
+        "acl_group_low_threshold": "70",
+        "acl_entry_low_threshold": "70",
+        "nexthop_group_member_threshold_type": "percentage",
+        "ipv4_nexthop_low_threshold": "70",
+        "acl_counter_threshold_type": "percentage",
+        "ipv6_neighbor_high_threshold": "85",
+        "nexthop_group_member_high_threshold": "85",
+        "acl_table_low_threshold": "70",
+        "fdb_entry_threshold_type": "percentage",
+        "ipv6_neighbor_threshold_type": "percentage",
+        "acl_table_high_threshold": "85",
+        "ipv6_nexthop_low_threshold": "70",
+        "acl_counter_low_threshold": "70",
+        "ipv4_neighbor_threshold_type": "percentage",
+        "nexthop_group_high_threshold": "85",
+        "ipv6_route_low_threshold": "70",
+        "acl_entry_high_threshold": "85",
+        "fdb_entry_low_threshold": "70",
+        "ipv6_nexthop_high_threshold": "85"
+    },
+    "FEATURE|bgp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "BGP_INTERNAL_NEIGHBOR|10.1.0.1": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "10.1.0.0",
+        "nhopself": "0",
         "admin_status": "up",
-        "members@": "Ethernet24",
-        "min_links": "1",
-        "mtu": "9100"
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
     },
-    "PORTCHANNEL|PortChannel4011": {
+    "BGP_INTERNAL_NEIGHBOR|2603:10e2:400:1::2": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "2603:10e2:400:1::1",
+        "nhopself": "0",
         "admin_status": "up",
-        "members@": "Ethernet-BP20",
-        "min_links": "1",
-        "mtu": "9100"
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
     },
-    "PORTCHANNEL|PortChannel4012": {
+    "BGP_MONITORS|1.1.1.1": {
+        "rrclient": "0",
+        "name": "bgp_monitor",
+        "local_addr": "10.1.0.32",
+        "nhopself": "0",
         "admin_status": "up",
-        "members@": "Ethernet-BP24",
-        "min_links": "1",
-        "mtu": "9100"
+        "holdtime": "10",
+        "asn": "65100"
     },
-    "PORTCHANNEL_MEMBER|PortChannel1015|Ethernet20": {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel1016|Ethernet24": {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel4011|Ethernet-BP20": {
-        "NULL": "NULL"
-    },
-    "PORTCHANNEL_MEMBER|PortChannel4012|Ethernet-BP24": {
-        "NULL": "NULL"
+    "BGP_INTERNAL_NEIGHBOR|30.1.1.5": {
+        "rrclient": "0",
+        "name": "T0-Peer",
+        "local_addr": "30.1.1.1",
+        "nhopself": "0",
+        "admin_status": "up", 
+        "holdtime": "10", 
+        "asn": "65200", 
+        "keepalive": "3"
     }
 }
