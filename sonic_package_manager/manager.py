@@ -954,17 +954,6 @@ class PackageManager:
             for npu in range(self.num_npus):
                 run_command(['systemctl', action, f'{name}@{npu}'])
 
-    def _enable_feature(self, package: Package, block: bool = True):
-        """ Starts the feature and blocks till operation is finished if
-        block argument is set to True.
-
-        Args:
-            package: Package object of the feature that will be started.
-            block: Whether to block for operation completion.
-        """
-
-        self._set_feature_state(package, 'enabled', block)
-
     def _disable_feature(self, package: Package, block: bool = True):
         """ Stops the feature and blocks till operation is finished if
         block argument is set to True.
