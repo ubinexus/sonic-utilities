@@ -41,10 +41,10 @@ def run_command(command, stdout=subprocess.PIPE, env=None, shell=False):
         sys.exit(proc.returncode)
 
 # Run bash command and return output, raise if it fails
-def run_command_or_raise(argv, raise_exception=True, nocapture=False):
+def run_command_or_raise(argv, raise_exception=True, capture=True):
     click.echo(click.style("Command: ", fg='cyan') + click.style(' '.join(argv), fg='green'))
 
-    stdout = None if nocapture else subprocess.PIPE
+    stdout = subprocess.PIPE if capture else None
     proc = subprocess.Popen(argv, text=True, stdout=stdout)
     out, _ = proc.communicate()
 
