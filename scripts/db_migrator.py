@@ -91,7 +91,8 @@ class DBMigrator():
         self.asic_type = version_info.get('asic_type')
         if not self.asic_type:
             log.log_error("ASIC type information not obtained. DB migration will not be reliable")
-        self.hwsku = device_info.get_hwsku()
+
+        self.hwsku = device_info.get_localhost_info('hwsku', self.configDB)
         if not self.hwsku:
             log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
@@ -455,6 +456,39 @@ class DBMigrator():
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
+
+    def migrate_config_db_switchport_mode(self):
+        port_table = self.configDB.get_table('PORT')
+        portchannel_table = self.configDB.get_table('PORTCHANNEL')
+        vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
+
+        vlan_member_keys= []
+        for _,key in vlan_member_table:
+            vlan_member_keys.append(key) 
+
+        for p_key, p_value in port_table.items():
+            if 'mode' in p_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
+            else:
+                if p_key in vlan_member_keys:
+                    p_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+                else:
+                    p_value["mode"] = "routed"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+
+        for pc_key, pc_value in portchannel_table.items():
+            if 'mode' in pc_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORTCHANNEL", pc_key), 'mode', pc_value['mode'])
+            else:
+                if pc_key in vlan_member_keys:
+                    pc_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+                else:
+                    pc_value["mode"] = "routed"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+
+
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
             table_name, fields_list = pair
@@ -658,7 +692,7 @@ class DBMigrator():
         # overwrite the routing-config-mode as per minigraph parser
         # Criteria for update:
         # if config mode is missing in base OS or if base and target modes are not same
-        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated" 
+        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated"
         if ('docker_routing_config_mode' not in device_metadata_old and 'docker_routing_config_mode' in device_metadata_new) or \
         (device_metadata_old.get('docker_routing_config_mode') != device_metadata_new.get('docker_routing_config_mode')):
             device_metadata_old['docker_routing_config_mode'] = device_metadata_new.get('docker_routing_config_mode')
@@ -1000,12 +1034,14 @@ class DBMigrator():
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
         # FAST_REBOOT table exists only if fast-reboot was triggered.
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
-        if keys:
-            enable_state = 'true'
-        else:
-            enable_state = 'false'
-        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_RESTART_ENABLE_TABLE|system")
+        if not keys:
+            keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+            if keys:
+                enable_state = 'true'
+            else:
+                enable_state = 'false'
+            self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
 
@@ -1013,16 +1049,17 @@ class DBMigrator():
         """
         Version 4_0_1.
         """
+        log.log_info('Handling version_4_0_1')
+
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
-
+	
     def version_4_0_2(self):
         """
         Version 4_0_2.
         """
         log.log_info('Handling version_4_0_2')
-
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
 
@@ -1034,17 +1071,28 @@ class DBMigrator():
         Version 4_0_3.
         """
         log.log_info('Handling version_4_0_3')
+
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
         self.set_version('version_4_0_4')
         return 'version_4_0_4'
 
     def version_4_0_4(self):
         """
         Version 4_0_4.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_4')
-        # Updating DNS nameserver
-        self.migrate_dns_nameserver()
+		
+        self.migrate_config_db_switchport_mode()
+        self.set_version('version_4_0_4')
+        return 'version_4_0_5'
+	
+    def version_4_0_5(self):
+        """
+        Version 4_0_5.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_5')
         return None
 
     def get_version(self):
