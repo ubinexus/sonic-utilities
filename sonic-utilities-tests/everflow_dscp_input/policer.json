@@ -1,0 +1,11 @@
+{
+	"POLICER": {
+		"everflow_static_policer": {
+			"meter_type": "bytes",
+			"mode": "sr_tcm",
+			"cir": "12500000",
+			"cbs": "12500000",
+			"red_packet_action": "drop"
+		}
+	}
+}

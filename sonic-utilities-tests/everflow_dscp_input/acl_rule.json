@@ -1,0 +1,9 @@
+{
+	"ACL_RULE": {
+		"EVERFLOW_DSCP|RULE_1": {
+			"DSCP": "5",
+			"MIRROR_INGRESS_ACTION": "mirror_session_dscp",
+			"PRIORITY": "9999"
+		}
+	}
+}

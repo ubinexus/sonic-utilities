@@ -40,6 +40,12 @@ SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 DEFAULT_NAMESPACE = ''
 
+# Everflow always on
+TYPE_MIRROR_DSCP = "MIRROR_DSCP"
+DSCP_ACL_RULE_CONFIG_PATH = "/etc/sonic/everflow_dscp/acl_rule.json"
+DSCP_POLICER_CONFIG_PATH = "/etc/sonic/everflow_dscp/policer.json"
+DSCP_MIRROR_SESSION_CONFIG_PATH = "/etc/sonic/everflow_dscp/mirror_session.json"
+
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
@@ -971,6 +977,16 @@ def load_mgmt_config(filename):
         run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
+def is_mirror_dscp_present(config_db):
+    """Check if any ACL table is present with type MIRROR_DSCP
+    This is an indicatitor for whether we need to enable everflow-always-on 
+    """
+    acl_tables = config_db.get_table('ACL_TABLE')
+    for _, v in acl_tables.items():
+        if v.get('type', '') == TYPE_MIRROR_DSCP:
+            return True
+    return False
+
 @config.command("load_minigraph")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
@@ -1019,6 +1035,22 @@ def load_minigraph(no_service_restart):
         else:
             command = "{} -H -m --write-to-db {} ".format(SONIC_CFGGEN_PATH,cfggen_namespace_option)
         run_command(command, display_cmd=True)
+        # Load everflow-always-on config
+        everflow_dscp_commands = []
+        if is_mirror_dscp_present(config_db):
+            json_to_load = [DSCP_POLICER_CONFIG_PATH, DSCP_MIRROR_SESSION_CONFIG_PATH, DSCP_ACL_RULE_CONFIG_PATH]
+            for json in json_to_load:
+                if os.path.isfile(json):
+                    everflow_dscp_commands.append(
+                        "{} -j {} {} --write-to-db".format(SONIC_CFGGEN_PATH, json, cfggen_namespace_option)
+                        )
+                else:
+                    break
+            # Load config only if all config files are present
+            if len(everflow_dscp_commands) == len(json_to_load):
+                for cmd in everflow_dscp_commands:
+                    run_command(cmd, display_cmd=True)
+                    
         client.set(config_db.INIT_INDICATOR, 1)
 
     if device_type != 'MgmtToRRouter':

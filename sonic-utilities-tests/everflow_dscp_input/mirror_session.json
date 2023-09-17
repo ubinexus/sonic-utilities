@@ -1,0 +1,11 @@
+{
+	"MIRROR_SESSION": {
+		"mirror_session_dscp": {
+			"dscp": "5",
+			"dst_ip": "2.2.2.2",
+			"policer": "everflow_static_policer",
+			"src_ip": "1.1.1.1",
+			"ttl": "64"
+		}
+	}
+}
