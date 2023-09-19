@@ -1,7 +1,7 @@
 import sys
 import os
 from unittest import mock
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 from .mock_tables import dbconnector
 
