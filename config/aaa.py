@@ -11,7 +11,7 @@ ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
 RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
-TACACS_MAXSERVERS = 8
+TACACS_MAXSERVERS = 8 #Maximum of 8 Tacacs server hosts can be added
 
 def is_secret(secret):
     return bool(re.match('^' + '[^ #,]*' + '$', secret))
