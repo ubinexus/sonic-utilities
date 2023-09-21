@@ -108,6 +108,9 @@ class ConfigReplacer:
         self.logger.log_notice("Getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
+        old_config = switchport_mode_remove(old_config)
+        target_config = switchport_mode_remove(target_config)
+        
         self.logger.log_notice("Generating patch between target config and current config db.")
         patch = self.patch_wrapper.generate_patch(old_config, target_config)
         self.logger.log_debug(f"Generated patch: {patch}.") # debug since the patch will printed again in 'patch_applier.apply'
@@ -121,6 +124,12 @@ class ConfigReplacer:
             raise GenericConfigUpdaterError(f"After replacing config, there is still some parts not updated")
 
         self.logger.log_notice("Config replacement completed.")
+
+    def switchport_mode_remove(config):
+        if 'PORT' in config:
+            for port, port_data in config['PORT'].items():
+                if 'mode' in port_data:
+                    del config['PORT'][port]['mode']
 
 class FileSystemConfigRollbacker:
     def __init__(self,
