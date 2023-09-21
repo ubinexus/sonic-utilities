@@ -131,6 +131,7 @@ class ConfigReplacer:
             for port, port_data in config['PORT'].items():
                 if 'mode' in port_data:
                     del config['PORT'][port]['mode']
+        return config
 
 class FileSystemConfigRollbacker:
     def __init__(self,
