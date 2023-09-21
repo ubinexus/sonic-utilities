@@ -1015,11 +1015,19 @@ save_log_files() {
     done
 
     # Append the log folder to the main tarball
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
-        && $RM $V -rf $TARDIR/log
+    if [ -d "$log_dir_1" ]; then
+        ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
+            || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
+            && $RM $V -rf $TARDIR/log
+    fi
+    if [ -d "$log_dir_2" ]; then
+        # Append the log.tmpfs folder to the main tarball
+        ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log.tmpfs \
+            || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
+            && $RM $V -rf $TARDIR/log.tmpfs
+    fi
     end_t=$(date +%s%3N)
-    echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+    echo "[ TAR /var/log and /var/log.tmpfs Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
     enable_logrotate
 }
