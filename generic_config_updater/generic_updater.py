@@ -101,7 +101,7 @@ class ConfigReplacer:
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
-    (self, target_config):
+    def replace(self, target_config):
         self.logger.log_notice("Config replacement starting.")
         self.logger.log_notice(f"Target config length: {len(json.dumps(target_config))}.")
 
