@@ -108,8 +108,8 @@ class ConfigReplacer:
         self.logger.log_notice("Getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
-        old_config = switchport_mode_remove(old_config)
-        target_config = switchport_mode_remove(target_config)
+        old_config = self.switchport_mode_remove(old_config)
+        target_config = self.switchport_mode_remove(target_config)
         
         self.logger.log_notice("Generating patch between target config and current config db.")
         patch = self.patch_wrapper.generate_patch(old_config, target_config)
@@ -125,6 +125,7 @@ class ConfigReplacer:
 
         self.logger.log_notice("Config replacement completed.")
 
+    @staticmethod
     def switchport_mode_remove(config):
         if 'PORT' in config:
             for port, port_data in config['PORT'].items():
