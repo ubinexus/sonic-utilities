@@ -107,6 +107,7 @@ class ConfigReplacer:
 
         self.logger.log_notice(".")
         old_config = self.config_wrapper.get_config_db_as_json()
+        
         old_config = switchport_mode_remove(old_config)
         target_config = switchport_mode_remove(target_config)
      
@@ -125,12 +126,11 @@ class ConfigReplacer:
         self.logger.log_notice("Config replacement completed.")
     
     def switchport_mode_remove(config):
-    if 'PORT' in config:
-        for port, port_data in config['PORT'].items():
-            if 'mode' in port_data:
-                del config['PORT'][port]['mode']
+        if 'PORT' in config:
+            for port, port_data in config['PORT'].items():
+                if 'mode' in port_data:
+                    del config['PORT'][port]['mode']
                 
-    
 class FileSystemConfigRollbacker:
     def __init__(self,
                  checkpoints_dir=CHECKPOINTS_DIR,
