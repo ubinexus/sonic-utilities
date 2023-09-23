@@ -24,18 +24,18 @@ mode  dynamic
 type  ingress
 ----  -------
 
+Pool: ingress_lossy_pool
+----  -------
+mode  dynamic
+type  ingress
+----  -------
+
 Pool: ingress_lossless_pool_hbm
 ----  ---------
 mode  static
 size  139458240
 type  ingress
 ----  ---------
-
-Pool: ingress_lossy_pool
-----  -------
-mode  dynamic
-type  ingress
-----  -------
 
 Profile: ingress_lossy_profile
 ----------  ------------------
