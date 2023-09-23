@@ -246,6 +246,30 @@ class TestAutoNegMigrator(object):
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
+class TestSwitchPortMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_switchport_mode_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'switchport-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'switchport-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_1')
+
+        assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
+        assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
+        assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
+
 class TestInitConfigMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -514,6 +538,25 @@ class TestFastRebootTableModification(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+    def test_ignore_rename_fast_reboot_table(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade_from_202205')
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'empty-config-input')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade_from_202205')
+        expected_db = SonicV2Connector(host='127.0.0.1')
+        expected_db.connect(expected_db.STATE_DB)
+
+        resulting_table = dbmgtr.stateDB.get_all(dbmgtr.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+        expected_table = expected_db.get_all(expected_db.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
 class TestWarmUpgrade_to_2_0_2(object):
     @classmethod
     def setup_class(cls):
@@ -536,7 +579,13 @@ class TestWarmUpgrade_to_2_0_2(object):
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
-            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            if table == "RESTAPI":
+                # for RESTAPI - just make sure if the new fields are added, and ignore values match
+                # values are ignored as minigraph parser is expected to generate different
+                # results for cert names based on the project specific config.
+                diff = set(resulting_table.get("certs").keys()) != set(expected_table.get("certs").keys())
+            else:
+                diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 
         target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
