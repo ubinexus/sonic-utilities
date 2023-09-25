@@ -1366,11 +1366,6 @@
         "supported_fecs": "N/A",
         "link_training_status": "off"
     },
-    "PORT_TABLE|Ethernet124": {
-        "speed": "40000",
-        "supported_fecs": "rs,none,fc,auto",
-        "fec": "rs"
-    },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
         "correctable|BadTLP": "0",
