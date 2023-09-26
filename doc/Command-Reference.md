@@ -4457,19 +4457,19 @@ This command is to display the FEC status of the selected interfaces. If **inter
   show interfaces fec status [<interface_name>]
   ```
 
-- Example:
-  ```
-   admin@sonic:~$ show interfaces fec status
-   Interface    FEC Oper    FEC Admin
- -----------  ----------  -----------
-   Ethernet0         N/A           rs
-  Ethernet32         N/A           rs
-  Ethernet36         N/A          N/A
- Ethernet112         N/A           rs
- Ethernet116         N/A           rs
- Ethernet120         N/A           rs
- Ethernet124          rs         auto
-  ```
+- Example:  
+```
+  admin@sonic:~$ show interfaces fec status
+  Interface    FEC Oper    FEC Admin
+  -----------  ----------  -----------
+  Ethernet0         N/A           rs
+ Ethernet32         N/A           rs
+ Ethernet36         N/A          N/A
+Ethernet112         N/A           rs
+Ethernet116         N/A           rs
+Ethernet120         N/A           rs
+Ethernet124          rs         auto
+```
 
 **show interfaces link-training (Versions >= 202211)**
 
