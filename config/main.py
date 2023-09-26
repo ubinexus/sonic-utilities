@@ -5612,9 +5612,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
 def mmu(p, a, s):
     """mmuconfig configuration tasks"""
     log.log_info("'mmuconfig -p {}' executing...".format(p))
-    command = ['mmuconfig', '-p', str(p)]
-    if a is not None: command += ['-a', str(a)]
-    if s is not None: command += ['-s', str(s)]
+    command = "mmuconfig -p %s" % p
+    if a is not None: command += " -a %d" % a
+    if s is not None: command += " -s %d" % s
     clicommon.run_command(command)
 
 
