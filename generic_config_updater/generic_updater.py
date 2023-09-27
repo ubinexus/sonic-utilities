@@ -108,6 +108,7 @@ class ConfigReplacer:
         self.logger.log_notice("Getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
+        # mode from PORT table will be remove from both old_config & target_config to resolve rollback & replace issue
         old_config = self.switchport_mode_remove(old_config)
         target_config = self.switchport_mode_remove(target_config)
         
@@ -127,10 +128,17 @@ class ConfigReplacer:
 
     @staticmethod
     def switchport_mode_remove(config):
-        if 'PORT' in config:
-            for port, port_data in config['PORT'].items():
-                if 'mode' in port_data:
-                    del config['PORT'][port]['mode']
+        """ 
+        This method will check & remove mode attribute in PORT table. 
+        It is to resolve rollback check patch where it failed 
+        due to missing "mode"  in patch applier. 
+        """
+        current_mode  = 'mode'
+        exisitng_port = 'PORT'
+        if exisitng_port in config:
+            for port, port_data in config[exisitng_port].items():
+                if current_mode in port_data:
+                    del config[exisitng_port][port][current_mode]
         return config
 
 class FileSystemConfigRollbacker:
