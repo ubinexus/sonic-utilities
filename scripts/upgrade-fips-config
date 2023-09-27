@@ -2,6 +2,7 @@
 
 function set_fips_option()
 {
+    GOLDEN_CONFIG=/host/old_config/golden_config_db.json
     CUR_SONIC_IMAGE=$(sonic-installer list | grep "Current: " | cut -d ' ' -f 2)
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_NAME="image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
@@ -19,13 +20,13 @@ function set_fips_option()
         return
     fi
     # Check if config exists
-    if [ ! -f /etc/sonic/golden_config_db.json ]; then
-        echo "Skipped to set fips for the config file /etc/sonic/golden_config_db.json not found."
+    if [ ! -f $GOLDEN_CONFIG ]; then
+        echo "Skipped to set fips for the config file $GOLDEN_CONFIG not found."
         return
     fi
 
     # Check if FIPS
-    FIPS=$(cat /etc/sonic/golden_config_db.json | python -c 'import sys, json; print(json.load(sys.stdin)["FIPS"]["global"]["enforce"].lower())' 2>/dev/null)
+    FIPS=$(cat $GOLDEN_CONFIG | python -c 'import sys, json; print(json.load(sys.stdin)["FIPS"]["global"]["enforce"].lower())' 2>/dev/null)
     if [ -z "$FIPS" ]; then
         echo "Skipped to set fips for the fips not enabled"
         return
