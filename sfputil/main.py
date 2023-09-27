@@ -1333,6 +1333,8 @@ def download_firmware(port_name, filepath):
     with click.progressbar(length=file_size, label="Downloading ...") as bar:
         address = 0
         BLOCK_SIZE = MAX_LPL_FIRMWARE_BLOCK_SIZE if lplonly_flag else maxblocksize
+        if maxblocksize < BLOCK_SIZE:
+            BLOCK_SIZE = maxblocksize
         remaining = file_size - startLPLsize
         while remaining > 0:
             count = BLOCK_SIZE if remaining >= BLOCK_SIZE else remaining
