@@ -370,6 +370,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]["type"].upper() == "L3V6"
 
+    def is_table_l3v4v6(self, tname):
+        """
+        Check if ACL table type is L3V4V6
+        :param tname: ACL table name
+        :return: True if table type is L3V4V6 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() == "L3V4V6"
+
     def is_table_l3(self, tname):
         """
         Check if ACL table type is L3
