@@ -872,7 +872,7 @@ save_redis() {
 #  asic id
 #  IP version
 # Returns:
-#  route
+#  Status: 0 success, otherwise failure
 ###############################################################################
 get_route_table_size_by_asic_id_and_ipver() {
     local asic_id="$1"
@@ -953,9 +953,9 @@ save_saidump_by_route_size() {
             echo "Dump by using Redis SAVE."
 
             if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
-                save_cmd "saidump.sh" "saidump"
+                save_cmd "docker exec syncd saidump.sh" "saidump"
             else
-                save_cmd "saidump.sh $i" "saidump$i"
+                save_cmd "docker exec syncd$i saidump.sh" "saidump$i"
             fi
         else
             echo "Dump by using direct iteration of Redis DB."
