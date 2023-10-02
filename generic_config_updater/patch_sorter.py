@@ -553,6 +553,7 @@ class CreateOnlyFilter:
         self.path_addressing = path_addressing
         self.patterns = [
             ["PORT", "*", "lanes"],
+            ["PORT", "*", "index"],
             ["LOOPBACK_INTERFACE", "*", "vrf_name"],
             ["BGP_NEIGHBOR", "*", "holdtime"],
             ["BGP_NEIGHBOR", "*", "keepalive"],
