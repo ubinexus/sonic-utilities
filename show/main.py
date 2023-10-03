@@ -1515,8 +1515,13 @@ def ntp(verbose):
         data = ntp_file.readlines()
     for line in data:
         if line.startswith("server "):
-            ntp_server = line.split(" ")[1]
-            ntp_servers.append(ntp_server)
+            info = line.split(" ")
+            click.echo("ntp server: {} minpoll {} maxpoll {}".format(info[1], info[4], info[6]))
+            #ntp_server = line.split(" ")[1]
+            ntp_server = info[1]
+            minpoll = info[4]
+            maxpoll = info[6]
+            ntp_servers.append(ntp_server + " minpoll " + minpoll + " maxpoll " + maxpoll)
     ntp_dict['NTP Servers'] = ntp_servers
     print(tabulate(ntp_dict, headers=list(ntp_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
