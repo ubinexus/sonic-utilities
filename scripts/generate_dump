@@ -878,22 +878,27 @@ get_route_table_size_by_asic_id_and_ipver() {
     local asic_id="$1"
     local ip_ver="$2"
     local filepath="/tmp/route_summary.txt"
+    local ns=""
     RC=0
 
+    if [[ $NUM_ASICS -gt 1 ]] ; then
+        ns="-n ${asic_id}"
+    fi
+
     if [ $ip_ver = "ipv4" ]; then
-        cmd="vtysh  -n $asic_id  -c 'show ip route summary json'"
+        cmd="vtysh ${ns} -c 'show ip route summary json'"
     elif [ $ip_ver = "ipv6" ]; then
-        cmd="vtysh  -n $asic_id  -c 'show ipv6 route summary json'"
+        cmd="vtysh ${ns} -c 'show ipv6 route summary json'"
     else
         echo "Wrong argument $ip_ver."
         return 255
     fi
 
-
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local cmds="$cmd > '$filepath'"
 
     eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
+
     if [ $RC -eq $TIMEOUT_EXIT_CODE ]; then
         echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
         return $RC
@@ -906,7 +911,7 @@ get_route_table_size_by_asic_id_and_ipver() {
 import json
 with open('$filepath') as json_file:
     data = json.load(json_file)
-print(data['routesTotal'])")
+    print(data['routesTotal'])")
     rm $filepath
     echo "$route_tab_size"
 }
