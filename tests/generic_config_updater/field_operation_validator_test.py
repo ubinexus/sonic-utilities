@@ -22,7 +22,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/index", "op": "add", "value": "4"}
         assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
     
-    def test_port_config_update_validator_valid_speed_existing_state_db_nested(self):
+    def test_port_config_update_validator_invalid_index_3(self):
         patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"index": "4"}}}
         assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
     
