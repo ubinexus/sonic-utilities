@@ -1066,15 +1066,9 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
     def test_hard_coded_create_only_paths(self):
         config = {
             "PORT": {
-                "Ethernet0":{
-                    "lanes":"65",
-                    "index": "0"
-                },
+                "Ethernet0":{"lanes":"65"},
                 "Ethernet1":{},
-                "Ethernet2":{
-                    "lanes":"66,67",
-                    "index": "2"
-                }
+                "Ethernet2":{"lanes":"66,67"}
             },
             "LOOPBACK_INTERFACE": {
                 "Loopback0":{"vrf_name":"vrf0"},
@@ -1145,8 +1139,6 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
         expected = [
             "/PORT/Ethernet0/lanes",
             "/PORT/Ethernet2/lanes",
-            "/PORT/Ethernet0/index",
-            "/PORT/Ethernet2/index",
             "/LOOPBACK_INTERFACE/Loopback0/vrf_name",
             "/LOOPBACK_INTERFACE/Loopback2/vrf_name",
             "/BGP_NEIGHBOR/10.0.0.57/asn",

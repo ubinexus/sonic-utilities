@@ -159,6 +159,8 @@ def port_config_update_validator(patch_element):
             except ValueError:
                 return False
             return True
+        if field == "index":
+            return False
         return False
     
     def _parse_port_from_path(path):
@@ -175,7 +177,7 @@ def port_config_update_validator(patch_element):
     patch_element_str = json.dumps(patch_element)
     path = patch_element["path"]
     value = patch_element.get("value")
-    fields = ['fec', 'speed']
+    fields = ['fec', 'speed', 'index']
     for field in fields:
         if field in patch_element_str:
             if path.endswith(field):

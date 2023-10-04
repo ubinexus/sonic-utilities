@@ -14,6 +14,18 @@ from sonic_py_common.device_info import get_hwsku, get_sonic_version_info
 
 class TestValidateFieldOperation(unittest.TestCase):
 
+    def test_port_config_update_validator_invalid_index_1(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "replace", "value": {"index": "4"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    def test_port_config_update_validator_invalid_index_2(self):
+        patch_element = {"path": "/PORT/Ethernet3/index", "op": "add", "value": "4"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    def test_port_config_update_validator_valid_speed_existing_state_db_nested(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"index": "4"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value=""))
     def test_port_config_update_validator_valid_speed_no_state_db(self):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
