@@ -12842,7 +12842,10 @@ This sub-section explains the list of the configuration options available for PA
 
 ```
 admin@sonic:~$ config pac-config global auth-order-list -h
-Usage: 
+Usage: config pac-config global auth-order-list [OPTIONS] AUTH_ORDER_LIST
+
+  Order list of authentication mechanisms used by PAC. Must be 'remote' or
+  'local'.
 
 Options:
   -?, -h, --help  Show this message and exit.
@@ -12854,30 +12857,41 @@ Options:
 
 ```
 admin@sonic:~$ config mab-user-config add -h
-Usage: 
+Usage: config mab-user-config add [OPTIONS] MAC
+
+  Add object in MAB_USER_CONFIG.
 
 Options:
-  -h, -?, --help  Show this message and exit.
+  --access-type TEXT      Access type for the MAB client (allow or deny)
+  --vlan-id TEXT          VLAN ID associated with the authorized client
+  --session-timeout TEXT  Client session timeout in seconds
+  -h, -?, --help          Show this message and exit.
 ```
 
 - Delete MAB user specific configuration
 
 ```
-admin@sonic:~$ config mab-user-config del -h
-Usage: 
+Usage: config mab-user-config delete [OPTIONS] MAC
+
+  Delete object in MAB_USER_CONFIG.
 
 Options:
-  -h, -?, --help  Show this message and exit.
+  -?, -h, --help  Show this message and exit.
 ```
 
 - Update MAB user specific configuration
 
 ```
 admin@sonic:~$ config mab-user-config update -h
-Usage: 
+Usage: config mab-user-config update [OPTIONS] MAC
+
+  Add object in MAB_USER_CONFIG.
 
 Options:
-  -h, -?, --help  Show this message and exit.
+  --access-type TEXT      Access type for the MAB client (allow or deny)
+  --vlan-id TEXT          VLAN ID associated with the authorized client
+  --session-timeout TEXT  Client session timeout in seconds
+  -h, -?, --help          Show this message and exit.
 ```
 
 ## Hostapd Dot1_x User config commands
@@ -12886,17 +12900,25 @@ Options:
 
 ```
 admin@sonic:~$ config hostapd-user-config add -h
-Usage: 
+Usage: config hostapd-user-config add [OPTIONS] USERNAME
+
+  Add object in HOSTAPD_USER_CONFIG.
 
 Options:
-  -h, -?, --help  Show this message and exit.
+  --password TEXT         Password of the user
+  --auth-type TEXT
+  --vlan-id TEXT          VLAN ID associated with the authorized client
+  --session-timeout TEXT  Client session timeout in seconds
+  -?, -h, --help          Show this message and exit.
 ```
 
 - Delete Hostapd dot1_x user specific configuration
 
 ```
 admin@sonic:~$ config hostapd-user-config delete -h
-Usage: 
+Usage: config hostapd-user-config delete [OPTIONS] USERNAME
+
+  Delete object in HOSTAPD_USER_CONFIG.
 
 Options:
   -h, -?, --help  Show this message and exit.
@@ -12906,10 +12928,16 @@ Options:
 
 ```
 admin@sonic:~$ config hostapd-user-config update -h
-Usage: 
+Usage: config hostapd-user-config update [OPTIONS] USERNAME
+
+  Add object in HOSTAPD_USER_CONFIG.
 
 Options:
-  -h, -?, --help  Show this message and exit.
+  --password TEXT         Password of the user
+  --auth-type TEXT
+  --vlan-id TEXT          VLAN ID associated with the authorized client
+  --session-timeout TEXT  Client session timeout in seconds
+  -h, -?, --help          Show this message and exit.
 ```
 
 ## PAC show command
