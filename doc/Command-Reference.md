@@ -205,9 +205,12 @@
   * [Static DNS show command](#static-dns-show-command)
 * [PAC Commands](#pac-commands)
   * [pac config command](#pac-config-command)
+  * [MAB user config commands](#mab-user-config-commands)
+  * [Hostapd dot1_x user config commands](#hostapd-dot1_x-user-config-commands)
   * [pac show command](#pac-show-command)
-  * [hostapd config command](#hostapd-config-command)
-  * [hostapd show command](#hostapd-show-command)
+  * [MAB user show command](#mab-user-show-command)
+  * [Hostapd dot1_x user show command](#hostapd-dot1_x-user-show-command)
+
 ## Document History
 
 | Version | Modification Date | Details |
@@ -12845,9 +12848,9 @@ Options:
   -?, -h, --help  Show this message and exit.
 ```
 
-## MAB User/Client config commands
+## MAB User config commands
 
-- Add MAB Client specific configuration
+- Add MAB user specific configuration
 
 ```
 admin@sonic:~$ config mab-user-config add -h
@@ -12857,7 +12860,7 @@ Options:
   -h, -?, --help  Show this message and exit.
 ```
 
-- Delete MAB Client specific configuration
+- Delete MAB user specific configuration
 
 ```
 admin@sonic:~$ config mab-user-config del -h
@@ -12867,7 +12870,7 @@ Options:
   -h, -?, --help  Show this message and exit.
 ```
 
-- Update MAB Client specific configuration
+- Update MAB user specific configuration
 
 ```
 admin@sonic:~$ config mab-user-config update -h
@@ -12877,25 +12880,70 @@ Options:
   -h, -?, --help  Show this message and exit.
 ```
 
+## Hostapd Dot1_x User config commands
 
-## Static DNS  show command
-
-- Show static DNS configuration
+- Add Hostapd dot1_x user specific configuration
 
 ```
-admin@sonic:~$ show dns nameserver -h
-Usage: show dns nameserver [OPTIONS]
-
-  Show static DNS configuration
+admin@sonic:~$ config hostapd-user-config add -h
+Usage: 
 
 Options:
   -h, -?, --help  Show this message and exit.
 ```
-```
-admin@sonic:~$ show dns nameserver
-  Nameserver
-------------
-     1.1.1.1
-     8.8.8.8
+
+- Delete Hostapd dot1_x user specific configuration
 
 ```
+admin@sonic:~$ config hostapd-user-config delete -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+- Update Hostapd dot1_x Client specific configuration
+
+```
+admin@sonic:~$ config hostapd-user-config update -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+## PAC show command
+
+- Show PAC global configuration 
+
+```
+admin@sonic:~$ show pac-config global -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+
+
+## MAB User show command
+
+- Show MAB User configuration 
+
+```
+admin@sonic:~$ show mab-user-config -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+
+## Hostapd dot1_x User show command
+
+- Show Hostapd dot1_x User configuration 
+
+```
+admin@sonic:~$ how hostapd-user-config -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+
+
