@@ -203,11 +203,16 @@
 * [Static DNS Commands](#static-dns-commands)
   * [Static DNS config command](#static-dns-config-command)
   * [Static DNS show command](#static-dns-show-command)
-
+* [PAC Commands](#pac-commands)
+  * [pac config command](#pac-config-command)
+  * [pac show command](#pac-show-command)
+  * [hostapd config command](#hostapd-config-command)
+  * [hostapd show command](#hostapd-show-command)
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v8 | Sep-10-2023 | Add PAC show and config commands |
 | v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
@@ -12801,6 +12806,77 @@ Usage: config dns nameserver del [OPTIONS] <ip_address>
 Options:
   -h, -?, --help  Show this message and exit.
 ```
+
+## Static DNS  show command
+
+- Show static DNS configuration
+
+```
+admin@sonic:~$ show dns nameserver -h
+Usage: show dns nameserver [OPTIONS]
+
+  Show static DNS configuration
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+```
+admin@sonic:~$ show dns nameserver
+  Nameserver
+------------
+     1.1.1.1
+     8.8.8.8
+
+```
+
+# PAC (Port Access Control) Commands
+
+This sub-section explains the list of the configuration options available for PAC (Port Access Control) feature. In this context, PAC commands specific to dot1_x and MAB authentication functionality are provided.
+
+## PAC Global config command
+
+- Configure PAC authentication order in system
+
+```
+admin@sonic:~$ config pac-config global auth-order-list -h
+Usage: 
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+## MAB User/Client config commands
+
+- Add MAB Client specific configuration
+
+```
+admin@sonic:~$ config mab-user-config add -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+- Delete MAB Client specific configuration
+
+```
+admin@sonic:~$ config mab-user-config del -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+- Update MAB Client specific configuration
+
+```
+admin@sonic:~$ config mab-user-config update -h
+Usage: 
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
 
 ## Static DNS  show command
 
