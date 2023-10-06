@@ -981,4 +981,22 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "2"])
         assert result.output == 'Target Mode set to 2\n'
         assert result.exit_code == 0
+
+        mock_sfp.get_presence.return_value = False
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "2"])
+        assert result.output == 'Ethernet0: SFP EEPROM not detected\n\n'
+
+        mock_sfp.get_presence.return_value = True
+        mock_sfp.get_xcvr_api = MagicMock(side_effect=NotImplementedError)
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "2"])
+        assert result.output == 'Ethernet0: This functionality is currently not implemented for this module\n'
+        assert result.exit_code == ERROR_NOT_IMPLEMENTED
+
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_api.set_firmware_download_target_end.return_value = 0
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "1"])
+        assert result.output == 'Target Mode set failed!\n'
+        assert result.exit_code == EXIT_FAIL
+
         
