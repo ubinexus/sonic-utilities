@@ -967,3 +967,18 @@ Ethernet0  N/A
         mock_sfp.get_transceiver_info_firmware_versions.return_value = ['a.b.c', 'd.e.f']
 
         sfputil.update_firmware_info_to_state_db("Ethernet0")
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    def test_target_firmware(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.set_firmware_download_target_end.return_value = 1
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "2"])
+        assert result.output == 'Target Mode set to 2\n'
+        assert result.exit_code == 0
+        
