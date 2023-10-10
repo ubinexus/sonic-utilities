@@ -39,6 +39,16 @@ INNER_HASH_FIELD_LIST = [
     "INNER_L4_SRC_PORT"
 ]
 
+HASH_ALGORITHM = [
+    "CRC",
+    "XOR",
+    "RANDOM",
+    "CRC_32LO",
+    "CRC_32HI",
+    "CRC_CCITT",
+    "CRC_XOR"
+]
+
 SUCCESS = 0
 ERROR2 = 2
 
@@ -139,6 +149,59 @@ class TestHash:
         result = runner.invoke(
             config.config.commands["switch-hash"].commands["global"].
             commands[hash], args, obj=db
+        )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+
+        assert pattern in result.output
+        assert result.exit_code == ERROR2
+
+    @pytest.mark.parametrize(
+        "hash", [
+            "ecmp-hash-algorithm",
+            "lag-hash-algorithm"
+        ]
+    )
+    @pytest.mark.parametrize(
+        "arg", HASH_ALGORITHM
+    )
+    def test_config_hash_algorithm(self, hash, arg):
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config.config.commands["switch-hash"].commands["global"].
+            commands[hash], arg, obj=db
+        )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+
+        assert result.exit_code == SUCCESS
+
+    @pytest.mark.parametrize(
+        "hash", [
+            "ecmp-hash-algorithm",
+            "lag-hash-algorithm"
+        ]
+    )
+    @pytest.mark.parametrize(
+        "arg,pattern", [
+            pytest.param(
+                "CRC1",
+                "invalid choice: CRC1.",
+                id="INVALID"
+            )
+        ]
+    )
+    def test_config_hash_algorithm_neg(self, hash, arg, pattern):
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config.config.commands["switch-hash"].commands["global"].
+            commands[hash], arg, obj=db
         )
 
         logger.debug("\n" + result.output)

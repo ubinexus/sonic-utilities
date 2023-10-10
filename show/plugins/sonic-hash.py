@@ -10,8 +10,12 @@ from utilities_common.switch_hash import (
     CFG_SWITCH_HASH,
     STATE_SWITCH_CAPABILITY,
     SW_CAP_HASH_FIELD_LIST_KEY,
-    SW_CAP_ECMP_HASH_KEY,
-    SW_CAP_LAG_HASH_KEY,
+    SW_CAP_ECMP_HASH_ALGORITHM_KEY,
+    SW_CAP_LAG_HASH_ALGORITHM_KEY,
+    SW_CAP_ECMP_HASH_CAPABLE_KEY,
+    SW_CAP_LAG_HASH_CAPABLE_KEY,
+    SW_CAP_ECMP_HASH_ALGORITHM_CAPABLE_KEY,
+    SW_CAP_LAG_HASH_ALGORITHM_CAPABLE_KEY,
     SW_HASH_KEY,
     SW_CAP_KEY,
 )
@@ -57,20 +61,28 @@ def SWITCH_HASH():
 def SWITCH_HASH_GLOBAL(db):
     """ Show switch hash global configuration """
 
-    header = [
+    ecmp_header = [
         "ECMP HASH",
-        "LAG HASH",
+        "ECMP HASH ALGORITHM",
     ]
-    body = []
+    ecmp_body = []
+
+    lag_header = [
+        "LAG HASH",
+        "LAG HASH ALGORITHM",
+    ]
+    lag_body = []
 
     table = db.cfgdb.get_table(CFG_SWITCH_HASH)
     entry = table.get(SW_HASH_KEY, {})
 
     if not entry:
-        click.echo(tabulate.tabulate(body, header))
+        click.echo(tabulate.tabulate(ecmp_body, ecmp_header))
+        click.echo()
+        click.echo(tabulate.tabulate(lag_body, lag_header))
         return
 
-    row = [
+    ecmp_row = [
         format_attr_value(
             entry,
             {
@@ -81,14 +93,34 @@ def SWITCH_HASH_GLOBAL(db):
         format_attr_value(
             entry,
             {
+                'name': 'ecmp_hash_algorithm',
+                'is-leaf-list': False
+            }
+        ),
+    ]
+    ecmp_body.append(ecmp_row)
+
+    lag_row = [
+        format_attr_value(
+            entry,
+            {
                 'name': 'lag_hash',
                 'is-leaf-list': True
             }
         ),
+        format_attr_value(
+            entry,
+            {
+                'name': 'lag_hash_algorithm',
+                'is-leaf-list': False
+            }
+        ),
     ]
-    body.append(row)
+    lag_body.append(lag_row)
 
-    click.echo(tabulate.tabulate(body, header))
+    click.echo(tabulate.tabulate(ecmp_body, ecmp_header))
+    click.echo()
+    click.echo(tabulate.tabulate(lag_body, lag_header))
 
 
 @SWITCH_HASH.command(
@@ -98,46 +130,86 @@ def SWITCH_HASH_GLOBAL(db):
 def SWITCH_HASH_CAPABILITIES(db):
     """ Show switch hash capabilities """
 
-    header = [
+    ecmp_header = [
         "ECMP HASH",
-        "LAG HASH",
+        "ECMP HASH ALGORITHM",
     ]
-    body = []
+    ecmp_body = []
+
+    lag_header = [
+        "LAG HASH",
+        "LAG HASH ALGORITHM",
+    ]
+    lag_body = []
 
     entry = db.db.get_all(db.db.STATE_DB, "{}|{}".format(STATE_SWITCH_CAPABILITY, SW_CAP_KEY))
 
     if not entry:
-        click.echo(tabulate.tabulate(body, header))
+        click.echo(tabulate.tabulate(ecmp_body, ecmp_header))
+        click.echo()
+        click.echo(tabulate.tabulate(lag_body, lag_header))
         return
 
     entry.setdefault(SW_CAP_HASH_FIELD_LIST_KEY, 'N/A')
-    entry.setdefault(SW_CAP_ECMP_HASH_KEY, 'false')
-    entry.setdefault(SW_CAP_LAG_HASH_KEY, 'false')
+    entry.setdefault(SW_CAP_ECMP_HASH_ALGORITHM_KEY, 'N/A')
+    entry.setdefault(SW_CAP_LAG_HASH_ALGORITHM_KEY, 'N/A')
+    entry.setdefault(SW_CAP_ECMP_HASH_CAPABLE_KEY, 'false')
+    entry.setdefault(SW_CAP_LAG_HASH_CAPABLE_KEY, 'false')
+    entry.setdefault(SW_CAP_ECMP_HASH_ALGORITHM_CAPABLE_KEY, 'false')
+    entry.setdefault(SW_CAP_LAG_HASH_ALGORITHM_CAPABLE_KEY, 'false')
 
     if not entry[SW_CAP_HASH_FIELD_LIST_KEY]:
         entry[SW_CAP_HASH_FIELD_LIST_KEY] = "no capabilities"
 
+    if not entry[SW_CAP_ECMP_HASH_ALGORITHM_KEY]:
+        entry[SW_CAP_ECMP_HASH_ALGORITHM_KEY] = "no capabilities"
+
+    if not entry[SW_CAP_LAG_HASH_ALGORITHM_KEY]:
+        entry[SW_CAP_LAG_HASH_ALGORITHM_KEY] = "no capabilities"
+
     entry[SW_CAP_HASH_FIELD_LIST_KEY] = entry[SW_CAP_HASH_FIELD_LIST_KEY].split(',')
+    entry[SW_CAP_ECMP_HASH_ALGORITHM_KEY] = entry[SW_CAP_ECMP_HASH_ALGORITHM_KEY].split(',')
+    entry[SW_CAP_LAG_HASH_ALGORITHM_KEY] = entry[SW_CAP_LAG_HASH_ALGORITHM_KEY].split(',')
 
-    row = [
+    ecmp_row = [
         format_attr_value(
             entry,
             {
                 'name': SW_CAP_HASH_FIELD_LIST_KEY,
                 'is-leaf-list': True
             }
-        ) if entry[SW_CAP_ECMP_HASH_KEY] == 'true' else 'not supported',
+        ) if entry[SW_CAP_ECMP_HASH_CAPABLE_KEY] == 'true' else 'not supported',
         format_attr_value(
             entry,
             {
-                'name': SW_CAP_HASH_FIELD_LIST_KEY,
+                'name': SW_CAP_ECMP_HASH_ALGORITHM_KEY,
                 'is-leaf-list': True
             }
-        ) if entry[SW_CAP_LAG_HASH_KEY] == 'true' else 'not supported',
+        ) if entry[SW_CAP_ECMP_HASH_ALGORITHM_CAPABLE_KEY] == 'true' else 'not supported',
     ]
-    body.append(row)
+    ecmp_body.append(ecmp_row)
 
-    click.echo(tabulate.tabulate(body, header))
+    lag_row = [
+        format_attr_value(
+            entry,
+            {
+                'name': SW_CAP_HASH_FIELD_LIST_KEY,
+                'is-leaf-list': True
+            }
+        ) if entry[SW_CAP_LAG_HASH_CAPABLE_KEY] == 'true' else 'not supported',
+        format_attr_value(
+            entry,
+            {
+                'name': SW_CAP_LAG_HASH_ALGORITHM_KEY,
+                'is-leaf-list': True
+            }
+        ) if entry[SW_CAP_LAG_HASH_ALGORITHM_CAPABLE_KEY] == 'true' else 'not supported',
+    ]
+    lag_body.append(lag_row)
+
+    click.echo(tabulate.tabulate(ecmp_body, ecmp_header))
+    click.echo()
+    click.echo(tabulate.tabulate(lag_body, lag_header))
 
 
 def register(cli):
