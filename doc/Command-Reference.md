@@ -2806,7 +2806,7 @@ The sfputil command shows the current major and minor versions of active/inactiv
 
 - Example:
   ```
-  sfputil show fwversion Ethernet180
+  admin@sonic:~$ sfputil show fwversion Ethernet180
   Image A Version: 0.3.5
   Image B Version: 0.3.5
   Factory Image Version: 0.0.0
@@ -2831,14 +2831,14 @@ This command is used for downloading firmware tp upgrade the transciever module.
 
 - Example:
   ```
-  sfputil firmware download Ethernet180 AEC_Camano_YCable__0.3.6_20230905.bin
+  admin@sonic:~$ sfputil firmware download Ethernet180 AEC_Camano_YCable__0.3.6_20230905.bin
   CDB: Starting firmware download
   Downloading ...  [####################################]  100%
   CDB: firmware download complete
   Firmware download complete success
   Total download Time: 0:01:55.731397
 
-  sfputil show fwversion Ethernet180
+  admin@sonic:~$ sfputil show fwversion Ethernet180
   Image A Version: 0.3.5
   Image B Version: 0.3.6
   Factory Image Version: 0.0.0
@@ -2858,11 +2858,11 @@ This command is used to start and run a downloaded image. This command transfers
 
 - Example:
   ```
-  sfputil firmware run Ethernet180
+  admin@sonic:~$ sfputil firmware run Ethernet180
   Running firmware: Non-hitless Reset to Inactive Image
   Firmware run in mode=0 success
 
-  sfputil show fwversion Ethernet180
+  admin@sonic:~$ sfputil show fwversion Ethernet180
   Image A Version: 0.3.5
   Image B Version: 0.3.6
   Factory Image Version: 0.0.0
@@ -2883,10 +2883,10 @@ This command to commit the running image so that the module will boot from it on
 
 - Example:
   ```
-  sfputil firmware commit Ethernet180
+  admin@sonic:~$ sfputil firmware commit Ethernet180
   Firmware commit successful
 
-  sfputil show fwversion Ethernet180
+  admin@sonic:~$ sfputil show fwversion Ethernet180
   Image A Version: 0.3.5
   Image B Version: 0.3.6
   Factory Image Version: 0.0.0
@@ -2916,7 +2916,7 @@ This command is vendor-specific and supported on the modules to set the target m
 
 - Example:
   ```
-  sfputil firmware target Ethernet180 1
+  admin@sonic:~$ sfputil firmware target Ethernet180 1
   Target Mode set to 1
    ```
 
