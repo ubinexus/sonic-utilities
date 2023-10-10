@@ -39,6 +39,10 @@
   * [Console config commands](#console-config-commands)
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
+* [CMIS firmware upgrade](#cmis-firmware-upgrade)
+  * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
+  * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-cmmands)
+  * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
   * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
@@ -208,6 +212,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v8 | Oct-09-2023 | Add CMIS firmware upgrade commands |
 | v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
@@ -2786,6 +2791,134 @@ Optionally, you can clear with a remote device name by specifying the `-d` or `-
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
+## CMIS firmware upgrade
+
+### CMIS firmware version show commands
+
+The sfputil command shows the current active/inactive firmware, running Image details. The output may vary based on the single vs dual bank supported modules.
+
+**sfputil show fwversion**
+
+- Usage:
+  ```
+  sfputil show fwversion PORT_NAME
+  ```
+
+- Example:
+  ```
+  sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.5
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.5
+   ```
+
+### CMIS firmware upgrade commands
+
+The sfputil commands are used to download/upgrade firmware on transciver modules. The download/upgrade actually happens using set of CMIS CDB commands. The module may replace the exisiting image or copy into the inactive bank of the module. The host issues a download complete CDB command when the entire firmware image has been written to LPL or EPL pages. Each steps can be verified using the 'sfputil show fwversion PORT_NAME'
+
+**sfputil firmware download**
+
+This command is used for downloading firmware tp upgrade the transciever module.
+
+- Usage:
+  ```
+  sfputil firmware download PORT_NAME FILE_PATH
+  ```
+
+- Example:
+  ```
+  sfputil firmware download Ethernet180 AEC_Camano_YCable__0.3.6_20230905.bin
+  CDB: Starting firmware download
+  Downloading ...  [####################################]  100%
+  CDB: firmware download complete
+  Firmware download complete success
+  Total download Time: 0:01:55.731397
+
+  sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.6
+   ```
+**sfputil firmware run**
+
+This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware. 
+
+- Usage:
+  ```
+  sfputil firmware run PORT_NAME
+  ```
+
+- Example:
+  ```
+  sfputil firmware run Ethernet180
+  Running firmware: Non-hitless Reset to Inactive Image
+  Firmware run in mode=0 success
+
+  sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: A
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+   ```
+
+**sfputil firmware commit**
+
+This command to commit the running image so that the module will boot from it on future boots. 
+
+- Usage:
+  ```
+  sfputil firmware commit PORT_NAME
+  ```
+
+- Example:
+  ```
+  sfputil firmware commit Ethernet180
+  Firmware commit successful
+
+  sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: B
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+   ```
+
+### CMIS firmware target mode commands
+
+This command is vendor-specific and supported on the modules to set the target mode to perform remote firmware upgrades. The target modes can be set as 0 (local- E0), 1 (remote end E1), or 2 (remote end E2). Depending on the mode set, the remote or local end will respoond to CDB/I2C commands from host's E0 end. After setting the target mode, which we can use sfputil firmware upgrade commands, which will be executed on the module for whihc target mode is set.
+
+**sfputil firmware target**
+
+- Usage:
+  ```
+  sfputil firmware target [OPTIONS] PORT_NAME TARGET
+
+  Select target end for firmware download
+  0-(local)
+
+  1-(remote-A)
+
+  2-(remote-B)
+  ```
+
+- Example:
+  ```
+  sfputil firmware target Ethernet180 1
+  Target Mode set to 1
+   ```
 
 ## DHCP Relay
 
