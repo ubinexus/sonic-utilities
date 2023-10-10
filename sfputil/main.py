@@ -804,7 +804,7 @@ def convert_byte_to_valid_ascii_char(byte):
 def hexdump(indent, data, mem_address):
     size = len(data)
     offset = 0
-    lines = []
+    lines = ['']
     while size > 0:
         offset_str = "{}{:08x}".format(indent, mem_address)
         if size >= 16:
