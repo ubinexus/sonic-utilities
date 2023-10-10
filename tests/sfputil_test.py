@@ -975,7 +975,8 @@ Ethernet0  N/A
 
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '5', '2'])
         assert result.exit_code == 0
-        expected_output = """00000005 00 01                                            |..|
+        expected_output = """
+00000005 00 01                                            |..|
 """
         print(result.output)
         assert result.output == expected_output
