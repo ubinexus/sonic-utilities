@@ -1555,7 +1555,7 @@ def target(port_name, target):
     try:
         status = api.set_firmware_download_target_end(target)
     except AttributeError:
-        click.echo("{}: This functionality is currently not implemented for this module".format(port_name))
+        click.echo("{}: This functionality is not applicable for this module".format(port_name))
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
     if status:
