@@ -2795,7 +2795,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#consol
 
 ### CMIS firmware version show commands
 
-The sfputil command shows the current active/inactive firmware, running Image details. The output may vary based on the single vs dual bank supported modules.
+The sfputil command shows the current major and minor versions of active/inactive firmware, running Image details. The output may vary based on the single vs dual bank supported modules.
 
 **sfputil show fwversion**
 
