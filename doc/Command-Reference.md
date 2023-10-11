@@ -41,7 +41,7 @@
   * [Console clear commands](#console-clear-commands)
 * [CMIS firmware upgrade](#cmis-firmware-upgrade)
   * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
-  * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-cmmands)
+  * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-commands)
   * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
@@ -2814,7 +2814,7 @@ The sfputil command shows the current major and minor versions of active/inactiv
   Committed Image: A
   Active Firmware: 0.3.5
   Inactive Firmware: 0.3.5
-   ```
+  ```
 
 ### CMIS firmware upgrade commands
 
@@ -2846,7 +2846,7 @@ This command is used for downloading firmware tp upgrade the transciever module.
   Committed Image: A
   Active Firmware: 0.3.5
   Inactive Firmware: 0.3.6
-   ```
+  ```
 **sfputil firmware run**
 
 This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware. 
@@ -2870,7 +2870,7 @@ This command is used to start and run a downloaded image. This command transfers
   Committed Image: A
   Active Firmware: 0.3.6
   Inactive Firmware: 0.3.5
-   ```
+  ```
 
 **sfputil firmware commit**
 
@@ -2894,11 +2894,15 @@ This command to commit the running image so that the module will boot from it on
   Committed Image: B
   Active Firmware: 0.3.6
   Inactive Firmware: 0.3.5
-   ```
+  ```
 
 ### CMIS firmware target mode commands
 
-This command is vendor-specific and supported on the modules to set the target mode to perform remote firmware upgrades. The target modes can be set as 0 (local- E0), 1 (remote end E1), or 2 (remote end E2). Depending on the mode set, the remote or local end will respoond to CDB/I2C commands from host's E0 end. After setting the target mode, which we can use sfputil firmware upgrade commands, which will be executed on the module for whihc target mode is set.
+This command is vendor-specific and supported on the modules to set the target mode to perform remote firmware upgrades. The target modes can be set as 0 (local- E0), 1 (remote end E1), or 2 (remote end E2). Depending on the mode set, the remote or local end will respond to CDB/I2C commands from host's E0 end. After setting the target mode, we can use **sfputil** firmware upgrade commands, will be executed on the module for which target mode is set.
+
+Example of the module supporting target mode
+
+![RMT_UPGRD](https://github.com/AnoopKamath/sonic-utilities_remote_upgrade/assets/115578705/c3b0bb62-eb14-4b05-b0a8-96b8c082455a)
 
 **sfputil firmware target**
 
@@ -2918,7 +2922,7 @@ This command is vendor-specific and supported on the modules to set the target m
   ```
   admin@sonic:~$ sfputil firmware target Ethernet180 1
   Target Mode set to 1
-   ```
+  ```
 
 ## DHCP Relay
 
