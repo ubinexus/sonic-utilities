@@ -764,70 +764,36 @@ def link_training_status(interfacename, namespace, display, verbose):
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
-
-
 #
-# switchport group (show interfaces switchport ...)
+# fec group (show interfaces fec ...)
 #
-@interfaces.group(name='switchport', cls=clicommon.AliasedGroup)
-def switchport():
-    """Show interface switchport information"""
+@interfaces.group(name='fec', cls=clicommon.AliasedGroup)
+def fec():
+    """Show interface fec information"""
     pass
 
 
-@switchport.command(name="config")
-@clicommon.pass_db
-def switchport_mode_config(db):
-    """Show interface switchport config information"""
+# 'fec status' subcommand ("show interfaces fec status")
+@fec.command(name='status')
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fec_status(interfacename, namespace, display, verbose):
+    """Show interface fec status"""
 
-    port_data = list(db.cfgdb.get_table('PORT').keys())
-    portchannel_data = list(db.cfgdb.get_table('PORTCHANNEL').keys())
+    ctx = click.get_current_context()
 
-    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+    cmd = ['intfutil', '-c', 'fec']
 
-    for interface in port_data:
-        if clicommon.interface_is_in_portchannel(portchannel_member_table,interface):
-            port_data.remove(interface)
+    #ignore the display option when interface name is passed
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
+        cmd += ['-i', str(interfacename)]
+    else:
+        cmd += ['-d', str(display)]
 
-    keys = port_data + portchannel_data
+    if namespace is not None:
+        cmd += ['-n', str(namespace)]
 
-    def tablelize(keys):
-        table = []
-
-        for key in natsorted(keys):
-            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_switchport_mode(db,key), clicommon.get_interface_untagged_vlan_members(db,key), clicommon.get_interface_tagged_vlan_members(db,key)]
-            table.append(r)
-
-        return table
-    
-    header = ['Interface', 'Mode', 'Untagged', 'Tagged']
-    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
-
-@switchport.command(name="status")
-@clicommon.pass_db
-def switchport_mode_status(db):
-    """Show interface switchport status information"""
-
-    port_data = list(db.cfgdb.get_table('PORT').keys())
-    portchannel_data = list(db.cfgdb.get_table('PORTCHANNEL').keys())
-
-    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
-
-    for interface in port_data:
-        if clicommon.interface_is_in_portchannel(portchannel_member_table,interface):
-            port_data.remove(interface)
-
-    keys = port_data + portchannel_data
-        
-    def tablelize(keys):
-        table = []
-
-        for key in natsorted(keys):
-            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_switchport_mode(db,key)]
-            table.append(r)
-
-        return table
-    
-    header = ['Interface', 'Mode']
-    click.echo(tabulate(tablelize(keys), header,tablefmt="simple", stralign='left'))
+    clicommon.run_command(cmd, display_cmd=verbose)
