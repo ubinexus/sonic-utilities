@@ -1325,7 +1325,10 @@ def download_firmware(port_name, filepath):
         sys.exit(EXIT_FAIL)
 
     # Increase the optoe driver's write max to speed up firmware download
-    sfp.set_optoe_write_max(SMBUS_BLOCK_WRITE_SIZE)
+    try:
+        sfp.set_optoe_write_max(SMBUS_BLOCK_WRITE_SIZE)
+    except NotImplementedError:
+        click.echo("Platform doesn't implement optoe write max change. Skipping value increase.")
 
     with click.progressbar(length=file_size, label="Downloading ...") as bar:
         address = 0
@@ -1351,7 +1354,10 @@ def download_firmware(port_name, filepath):
             remaining -= count
 
     # Restore the optoe driver's write max to '1' (default value)
-    sfp.set_optoe_write_max(1)
+    try:
+        sfp.set_optoe_write_max(1)
+    except NotImplementedError:
+        click.echo("Platform doesn't implement optoe write max change. Skipping value restore!")
 
     status = api.cdb_firmware_download_complete()
     update_firmware_info_to_state_db(port_name)
@@ -1520,6 +1526,43 @@ def version():
     """Display version info"""
     click.echo("sfputil version {0}".format(VERSION))
 
+# 'target' subcommand
+@firmware.command()
+@click.argument('port_name', required=True, default=None)
+@click.argument('target', type=click.IntRange(0, 2), required=True, default=None)
+def target(port_name, target):
+    """Select target end for firmware download 0-(local) \n
+                                               1-(remote-A) \n
+                                               2-(remote-B)
+    """
+    physical_port = logical_port_to_physical_port_index(port_name)
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    if is_port_type_rj45(port_name):
+        click.echo("{}: This functionality is not applicable for RJ45 port".format(port_name))
+        sys.exit(EXIT_FAIL)
+
+    if not is_sfp_present(port_name):
+       click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+       sys.exit(EXIT_FAIL)
+
+    try:
+        api = sfp.get_xcvr_api()
+    except NotImplementedError:
+        click.echo("{}: This functionality is currently not implemented for this module".format(port_name))
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    try:
+        status = api.set_firmware_download_target_end(target)
+    except AttributeError:
+        click.echo("{}: This functionality is not applicable for this module".format(port_name))
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    if status:
+        click.echo("Target Mode set to {}". format(target))
+    else:
+        click.echo("Target Mode set failed!")
+        sys.exit(EXIT_FAIL)
 
 if __name__ == '__main__':
     cli()
