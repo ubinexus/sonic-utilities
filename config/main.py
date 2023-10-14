@@ -1894,14 +1894,24 @@ def override_config_table(db, input_config_db, dry_run):
         current_config = config_db.get_config()
         # Serialize to the same format as json input
         sonic_cfggen.FormatConverter.to_serialized(current_config)
-
-        if multi_asic.is_multi_asic():
+        ns_config_input = None
+        if multi_asic.is_multi_asic() and len(config_input):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
-                ns_config_input = config_input["localhost"]
+                if "localhost" in config_input.keys():
+                    ns_config_input = config_input["localhost"]
+                else:
+                    click.secho("Wrong config format! 'localhost' not found in host config! cannot override.. abort")
+                    sys.exit(1)
             else:
-                ns_config_input = config_input[ns]
-        else:
+                if ns in config_input.keys():
+                    ns_config_input = config_input[ns]
+                else:
+                    click.echo("Override config not present for {}".format(ns))
+                    continue
+        if not ns_config_input:
+            # if ns_config_input is not defined, define it
+            # it could be single-asic dut, or config_input is empty
             ns_config_input = config_input
         # Generate sysinfo if missing in ns_config_input
         generate_sysinfo(current_config, ns_config_input, ns)
@@ -5950,6 +5960,22 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
 
 
 #
+# 'mmu' command ('config mmu...')
+#
+@config.command()
+@click.option('-p', metavar='<profile_name>', type=str, required=True, help="Profile name")
+@click.option('-a', metavar='<alpha>', type=click.IntRange(-8,8), help="Set alpha for profile type dynamic")
+@click.option('-s', metavar='<staticth>', type=int, help="Set staticth for profile type static")
+def mmu(p, a, s):
+    """mmuconfig configuration tasks"""
+    log.log_info("'mmuconfig -p {}' executing...".format(p))
+    command = ['mmuconfig', '-p', str(p)]
+    if a is not None: command += ['-a', str(a)]
+    if s is not None: command += ['-s', str(s)]
+    clicommon.run_command(command)
+
+
+#
 # 'pfc' group ('config interface pfc ...')
 #
 
@@ -6635,6 +6661,41 @@ def polling_int(ctx, interval):
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
+def is_port_egress_sflow_supported():
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="SWITCH_CAPABILITY|switch"
+    supported = state_db.get(state_db.STATE_DB, entry_name,"PORT_EGRESS_SAMPLE_CAPABLE")
+    return supported
+
+#
+# 'sflow' command ('config sflow sample-direction ...')
+#
+@sflow.command('sample-direction')
+@click.argument('direction',  metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def global_sample_direction(ctx, direction):
+    """Set sampling direction """
+    if ADHOC_VALIDATION:
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if ((direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false')):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    sflow_tbl = config_db.get_table('SFLOW')
+
+    if not sflow_tbl:
+        sflow_tbl = {'global': {'admin_state': 'down'}}
+
+    sflow_tbl['global']['sample_direction'] = direction
+    try:
+        config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
 def is_valid_sample_rate(rate):
     return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
@@ -6743,6 +6804,40 @@ def sample_rate(ctx, ifname, rate):
                 config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
             except ValueError as e:
                 ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
+#
+# 'sflow' command ('config sflow interface sample-direction  ...')
+#
+@interface.command('sample-direction')
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.argument('direction', metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def interface_sample_direction(ctx, ifname, direction):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+            click.echo('Invalid interface name')
+            return
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if (direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false'):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    sess_dict = config_db.get_table('SFLOW_SESSION')
+
+    if sess_dict and ifname in sess_dict.keys():
+        sess_dict[ifname]['sample_direction'] = direction
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+    else:
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_direction': direction})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
@@ -7192,7 +7287,7 @@ def clock():
 
 
 def get_tzs(ctx, args, incomplete):
-    ret = clicommon.run_command('timedatectl list-timezones',
+    ret = clicommon.run_command(['timedatectl', 'list-timezones'],
                                 display_cmd=False, ignore_error=False,
                                 return_cmd=True)
     if len(ret) == 0:

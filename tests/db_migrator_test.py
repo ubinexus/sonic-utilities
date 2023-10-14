@@ -294,6 +294,37 @@ class TestLacpKeyMigrator(object):
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
+class TestDnsNameserverMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_dns_nameserver_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # Set minigraph_data to DNS_NAMESERVERS
+        dbmgtr.minigraph_data = {
+            'DNS_NAMESERVER': {
+                '1.1.1.1': {},
+                '2001:1001:110:1001::1': {}
+            }
+        }
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_4')
+        resulting_keys = dbmgtr.configDB.keys(dbmgtr.configDB.CONFIG_DB, 'DNS_NAMESERVER*')
+        expected_keys = expected_db.cfgdb.keys(expected_db.cfgdb.CONFIG_DB, 'DNS_NAMESERVER*')
+
+        diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
+        assert not diff
+
 class TestQosDBFieldValueReferenceRemoveMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -483,6 +514,25 @@ class TestFastRebootTableModification(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+    def test_ignore_rename_fast_reboot_table(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade_from_202205')
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'empty-config-input')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade_from_202205')
+        expected_db = SonicV2Connector(host='127.0.0.1')
+        expected_db.connect(expected_db.STATE_DB)
+
+        resulting_table = dbmgtr.stateDB.get_all(dbmgtr.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+        expected_table = expected_db.get_all(expected_db.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
 class TestWarmUpgrade_to_2_0_2(object):
     @classmethod
     def setup_class(cls):
@@ -505,8 +555,21 @@ class TestWarmUpgrade_to_2_0_2(object):
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
-            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            if table == "RESTAPI":
+                # for RESTAPI - just make sure if the new fields are added, and ignore values match
+                # values are ignored as minigraph parser is expected to generate different
+                # results for cert names based on the project specific config.
+                diff = set(resulting_table.get("certs").keys()) != set(expected_table.get("certs").keys())
+            else:
+                diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
+
+        target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        target_routing_mode_expected = expected_db.cfgdb.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert target_routing_mode_result == target_routing_mode_expected,\
+            "After migration: {}. Expected after migration: {}".format(
+                target_routing_mode_result, target_routing_mode_expected)
 
     def test_warm_upgrade__without_mg_to_2_0_2(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
@@ -674,5 +737,6 @@ class TestFastUpgrade_to_4_0_3(object):
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']

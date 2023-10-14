@@ -47,7 +47,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_3'
+        self.CURRENT_VERSION = 'version_4_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -91,7 +91,8 @@ class DBMigrator():
         self.asic_type = version_info.get('asic_type')
         if not self.asic_type:
             log.log_error("ASIC type information not obtained. DB migration will not be reliable")
-        self.hwsku = device_info.get_hwsku()
+
+        self.hwsku = device_info.get_localhost_info('hwsku', self.configDB)
         if not self.hwsku:
             log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
@@ -613,6 +614,7 @@ class DBMigrator():
                 config['delayed'] = state
                 config.pop('has_timer')
                 self.configDB.set_entry('FEATURE', feature, config)
+
     def migrate_route_table(self):
         """
         Handle route table migration. Migrations handled:
@@ -635,6 +637,33 @@ class DBMigrator():
 
             if 'protocol' not in route_attr:
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
+
+    def migrate_dns_nameserver(self):
+        """
+        Handle DNS_NAMESERVER table migration. Migrations handled:
+        If there's no DNS_NAMESERVER in config_DB, load DNS_NAMESERVER from minigraph
+        """
+        if not self.minigraph_data or 'DNS_NAMESERVER' not in self.minigraph_data:
+            return
+        dns_table = self.configDB.get_table('DNS_NAMESERVER')
+        if not dns_table:
+            for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
+                self.configDB.set_entry('DNS_NAMESERVER', addr, config)
+
+    def migrate_routing_config_mode(self):
+        # DEVICE_METADATA - synchronous_mode entry
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        device_metadata_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_new = self.minigraph_data['DEVICE_METADATA']['localhost']
+        # overwrite the routing-config-mode as per minigraph parser
+        # Criteria for update:
+        # if config mode is missing in base OS or if base and target modes are not same
+        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated"
+        if ('docker_routing_config_mode' not in device_metadata_old and 'docker_routing_config_mode' in device_metadata_new) or \
+        (device_metadata_old.get('docker_routing_config_mode') != device_metadata_new.get('docker_routing_config_mode')):
+            device_metadata_old['docker_routing_config_mode'] = device_metadata_new.get('docker_routing_config_mode')
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', device_metadata_old)
 
     def update_edgezone_aggregator_config(self):
         """
@@ -972,12 +1001,14 @@ class DBMigrator():
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
         # FAST_REBOOT table exists only if fast-reboot was triggered.
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
-        if keys:
-            enable_state = 'true'
-        else:
-            enable_state = 'false'
-        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_RESTART_ENABLE_TABLE|system")
+        if not keys:
+            keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+            if keys:
+                enable_state = 'true'
+            else:
+                enable_state = 'false'
+            self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
 
@@ -985,6 +1016,8 @@ class DBMigrator():
         """
         Version 4_0_1.
         """
+        log.log_info('Handling version_4_0_1')
+
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
@@ -994,7 +1027,6 @@ class DBMigrator():
         Version 4_0_2.
         """
         log.log_info('Handling version_4_0_2')
-
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
 
@@ -1004,9 +1036,20 @@ class DBMigrator():
     def version_4_0_3(self):
         """
         Version 4_0_3.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_3')
+
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
+        self.set_version('version_4_0_4')
+        return 'version_4_0_4'
+
+    def version_4_0_4(self):
+        """
+        Version 4_0_4.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_4')
         return None
 
     def get_version(self):
@@ -1057,6 +1100,8 @@ class DBMigrator():
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
+        # update FRR config mode based on minigraph parser on target image
+        self.migrate_routing_config_mode()
 
     def migrate(self):
         version = self.get_version()
