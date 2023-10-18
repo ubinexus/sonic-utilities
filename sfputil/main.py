@@ -50,6 +50,7 @@ PAGE_SIZE = 128
 PAGE_OFFSET = 128
 
 SFF8472_A0_SIZE = 256
+EEPROM_DUMP_INDENT = ' ' * 8
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DD_DATA_MAP = {
@@ -680,12 +681,17 @@ def eeprom(port, dump_dom, namespace):
 
 # 'eeprom-hexdump' subcommand
 @show.command()
-@click.option('-p', '--port', metavar='<port_name>', required=True, help="Display SFP EEPROM hexdump for port <port_name>")
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM hexdump for port <port_name>")
 @click.option('-n', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
 def eeprom_hexdump(port, page):
-    """Display EEPROM hexdump of SFP transceiver(s) for a given port name and page number"""
-    output = ""
+    """Display EEPROM hexdump of SFP transceiver(s)"""
+    if port:
+        dump_eeprom_for_single_port(port, page)
+    else:
+        dump_eeprom_for_all_ports(page)
 
+
+def dump_eeprom_for_single_port(port, page):
     if platform_sfputil.is_logical_port(port) == 0:
         click.echo("Error: invalid port {}".format(port))
         print_all_valid_port_values()
@@ -729,6 +735,120 @@ def eeprom_hexdump(port, page):
 
     click.echo(output)
 
+
+def dump_eeprom_for_all_ports(page):
+    lines = []
+
+    for index, sfp in enumerate(platform_chassis.get_all_sfps()):
+        try:
+            presence = sfp.get_presence()
+            if not presence:
+                lines.append(f'\nModule {index + 1} not present')
+            else:
+                lines.append(f'\nEEPROM hexdump for module {index + 1}')
+                eeprom_data = dump_sfp_eeprom(sfp, page)
+                if eeprom_data is None:
+                    lines.append(f'{EEPROM_DUMP_INDENT}N/A\n')
+                else:
+                    lines.append(eeprom_data)
+        except NotImplementedError:
+            lines.append(f'\nModule {index + 1} not supported')
+        except Exception as e:
+            lines.append(f'\nModule {index + 1} get EEPROM failed: {e}')
+
+    click.echo('\n'.join(lines))
+
+
+def dump_sfp_eeprom(sfp, page):
+    api = sfp.get_xcvr_api()
+    if api is None:
+        return f'{EEPROM_DUMP_INDENT}N/A\n'
+
+    from sonic_platform_base.sonic_xcvr.api.public import sff8636, sff8436, cmis, sff8472
+    from sonic_platform_base.sonic_xcvr.fields import consts
+    if isinstance(api, cmis.CmisApi):
+        if api.is_flat_memory():
+            valid_pages = [0]
+        else:
+            valid_pages = [0, 1, 2, 16, 17]
+            if api.is_coherent_module():
+                valid_pages.extend([0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x38, 0x39, 0x3a, 0x3b])
+            cdb_support = api.xcvr_eeprom.read(consts.CDB_SUPPORT)
+            if cdb_support != 0:
+                valid_pages.append(0x9f)
+        return dump_eeprom_pages(sfp, page, valid_pages)
+    elif isinstance(api, sff8636.Sff8636Api) or isinstance(api, sff8436.Sff8436Api):
+        if api.is_flat_memory():
+            valid_pages = [0]
+        else:
+            valid_pages = [0, 1, 2, 3]
+        return dump_eeprom_pages(sfp, page, valid_pages)
+    elif isinstance(api, sff8472.Sff8472Api):
+        is_active_cable = api.xcvr_eeprom.read(consts.SFP_CABLE_TECH_FIELD) == 'Active Cable'
+        if is_active_cable:
+            valid_pages = [0, 1, 2]
+        else:
+            valid_pages = [0]
+        return dump_eeprom_pages_sff8472(sfp, page, valid_pages, api.is_flat_memory())
+
+
+def dump_eeprom_pages(sfp, page, valid_pages):
+    if page and int(page) not in valid_pages:
+        return f'{EEPROM_DUMP_INDENT}Page not supported\n'
+    pages = valid_pages if page is None else [int(page)]
+    lines = []
+    first = True
+    for page in pages:
+        if first:
+            first = False
+        else:
+            lines.append('')
+        if page == 0:
+            lines.append(f'{EEPROM_DUMP_INDENT}Lower page 0h')
+            lines.append(dump_eeprom_single_page(sfp, 0, PAGE_SIZE, 0))
+            lines.append(f'\n{EEPROM_DUMP_INDENT}Upper page 0h')
+            lines.append(dump_eeprom_single_page(sfp, PAGE_OFFSET, PAGE_SIZE, PAGE_OFFSET))
+        else:
+            lines.append(f'{EEPROM_DUMP_INDENT}Page {page:x}h')
+            lines.append(dump_eeprom_single_page(sfp, 256 + (page - 1) * PAGE_SIZE, PAGE_SIZE, PAGE_OFFSET))
+    return '\n'.join(lines)
+
+
+def dump_eeprom_pages_sff8472(sfp, page, valid_pages, is_flat_memory):
+    if page and int(page) not in valid_pages:
+        return f'{EEPROM_DUMP_INDENT}Page not supported\n'
+    pages = valid_pages if page is None else [int(page)]
+    lines = []
+    first = True
+    for page in pages:
+        if first:
+            first = False
+        else:
+            lines.append('')
+        if page == 0:
+            if not is_flat_memory:
+                lines.append(f'{EEPROM_DUMP_INDENT}A0h dump')
+                lines.append(dump_eeprom_single_page(sfp, 0, SFF8472_A0_SIZE, 0))
+            else:
+                lines.append(f'{EEPROM_DUMP_INDENT}A0h dump')
+                lines.append(dump_eeprom_single_page(sfp, 0, PAGE_SIZE, 0))
+        elif page == 1:
+            lines.append(f'{EEPROM_DUMP_INDENT}A2h dump (lower 128 bytes)')
+            lines.append(dump_eeprom_single_page(sfp, SFF8472_A0_SIZE, PAGE_SIZE, 0))
+        elif page == 2:
+            lines.append(f'{EEPROM_DUMP_INDENT}A2h dump (upper 128 bytes)')
+            lines.append(dump_eeprom_single_page(sfp, SFF8472_A0_SIZE + PAGE_SIZE, PAGE_SIZE, 0))
+    return '\n'.join(lines)
+
+
+def dump_eeprom_single_page(sfp, overall_offset, size, page_offset):
+    page_data = sfp.read_eeprom(overall_offset, size)
+    if page_data:
+        return hexdump(EEPROM_DUMP_INDENT, page_data, page_offset, start_newline=False)
+    else:
+        return f'{EEPROM_DUMP_INDENT}Failed to read EEPROM'
+
+
 def eeprom_hexdump_sff8472(port, physical_port, page):
     try:
         output = ""
@@ -765,6 +885,7 @@ def eeprom_hexdump_sff8472(port, physical_port, page):
 
     return output
 
+
 def eeprom_hexdump_sff8636(port, physical_port, page):
     try:
         output = ""
@@ -793,59 +914,42 @@ def eeprom_hexdump_sff8636(port, physical_port, page):
 
     return output
 
+
 def convert_byte_to_valid_ascii_char(byte):
     if byte < 32 or 126 < byte:
         return '.'
     else:
         return chr(byte)
 
-def hexdump(indent, data, mem_address):
-    ascii_string = ''
-    result = ''
-    for byte in data:
-        ascii_string = ascii_string + convert_byte_to_valid_ascii_char(byte)
-        byte_string = "{:02x}".format(byte)
-        if mem_address % 16 == 0:
-            mem_address_string = "{:08x}".format(mem_address)
-            result += '\n{}{} '.format(indent, mem_address_string)
-            result += '{} '.format(byte_string)
-        elif mem_address % 16 == 15:
-            result += '{} '.format(byte_string)
-            result += '|{}|'.format(ascii_string)
-            ascii_string = ""
-        elif mem_address % 16 == 8:
-            result += ' {} '.format(byte_string)
+
+def hexdump(indent, data, mem_address, start_newline=True):
+    size = len(data)
+    offset = 0
+    lines = [''] if start_newline else []
+    while size > 0:
+        offset_str = "{}{:08x}".format(indent, mem_address)
+        if size >= 16:
+            first_half = ' '.join("{:02x}".format(x) for x in data[offset:offset + 8])
+            second_half = ' '.join("{:02x}".format(x) for x in data[offset + 8:offset + 16])
+            ascii_str = ''.join(convert_byte_to_valid_ascii_char(x) for x in data[offset:offset + 16])
+            lines.append(f'{offset_str} {first_half}  {second_half} |{ascii_str}|')
+        elif size > 8:
+            first_half = ' '.join("{:02x}".format(x) for x in data[offset:offset + 8])
+            second_half = ' '.join("{:02x}".format(x) for x in data[offset + 8:offset + size])
+            padding = '   ' * (16 - size)
+            ascii_str = ''.join(convert_byte_to_valid_ascii_char(x) for x in data[offset:offset + size])
+            lines.append(f'{offset_str} {first_half}  {second_half}{padding} |{ascii_str}|')
+            break
         else:
-            result += '{} '.format(byte_string)
-        mem_address += 1
-
-    return result
-
-
-# 'eeprom-hexdump-all' subcommand
-@show.command()
-def eeprom_hexdump_all():
-    """Display EEPROM hexdump of SFP transceiver(s) for all modules"""
-    lines = []
-
-    for index, sfp in enumerate(platform_chassis.get_all_sfps()):
-        try:
-            presence = sfp.get_presence()
-            if not presence:
-                lines.append(f'\nModule {index + 1} not present')
-            else:
-                lines.append(f'\nEEPROM hexdump for module {index + 1}')
-                eeprom_data = sfp.dump_eeprom()
-                if eeprom_data is None:
-                    lines.append('        N/A\n')
-                else:
-                    lines.append(eeprom_data)
-        except NotImplementedError:
-            lines.append(f'\nModule {index + 1} not supported')
-        except Exception as e:
-            lines.append(f'\nModule {index + 1} get EEPROM failed: {e}')
-
-    click.echo('\n'.join(lines))
+            hex_part = ' '.join("{:02x}".format(x) for x in data[offset:offset + size])
+            padding = '   ' * (16 - size)
+            ascii_str = ''.join(convert_byte_to_valid_ascii_char(x) for x in data[offset:offset + size])
+            lines.append(f'{offset_str} {hex_part} {padding} |{ascii_str}|')
+            break
+        size -= 16
+        offset += 16
+        mem_address += 16
+    return '\n'.join(lines)
 
 
 # 'presence' subcommand
