@@ -66,6 +66,13 @@ class TestConfigIP(object):
         assert result.exit_code == 0
         assert ('Eth36.10', '32.11.10.1/24') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
 
+        # config int ip add Ethernet0.10 10.11.20.1/24 as secondary
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet0.10", "10.11.20.1/24", "True"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Ethernet0.10', '10.11.20.1/24') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+        assert db.cfgdb.get_table('VLAN_SUB_INTERFACE')[('Ethernet0.10', '10.11.20.1/24')]['secondary'] == "true"
+
         # config int ip remove Ethernet64 10.10.10.1/24
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet64", "10.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)

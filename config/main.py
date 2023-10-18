@@ -4487,9 +4487,10 @@ def ip(ctx):
 @ip.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.argument('secondary', metavar='<is secondary interface>', required=False)
 @click.argument('gw', metavar='<default gateway IP address>', required=False)
 @click.pass_context
-def add(ctx, interface_name, ip_addr, gw):
+def add(ctx, interface_name, ip_addr, secondary, gw):
     """Add an IP address towards the interface"""
     # Get the config_db connector
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
@@ -4550,6 +4551,13 @@ def add(ctx, interface_name, ip_addr, gw):
         else:
             config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
     config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
+
+    if secondary:
+        # Only update if it is instance of boolean, if not ignore as this is optional field
+        if isinstance(secondary, bool):
+            config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
+        else:
+            click.echo("Field secondary should be of type boolean")
 
 #
 # 'del' subcommand
