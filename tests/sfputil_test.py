@@ -1021,6 +1021,16 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         assert result.exit_code == 0
 
+        # write verify success
+        mock_sfp.read_eeprom_by_page = MagicMock(return_value=bytearray([16]))
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10', '--verify'])
+        assert result.exit_code == 0
+
+        # write verify failed
+        mock_sfp.read_eeprom_by_page = MagicMock(return_value=bytearray([10]))
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '11', '--verify'])
+        assert result.exit_code != 0
+
         # Not implemented
         mock_sfp.write_eeprom_by_page.side_effect = NotImplementedError
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])

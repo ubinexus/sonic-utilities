@@ -1530,7 +1530,7 @@ def unlock(port_name, password):
 @click.argument('page', metavar='<page>', type=click.INT, required=True)
 @click.argument('offset', metavar='<offset>', type=click.INT, required=True)
 @click.argument('size', metavar='<size>', type=click.INT, required=True)
-@click.option('--no-format', type=click.INT, is_flag=True, help="Display non formatted data")
+@click.option('--no-format', is_flag=True, help="Display non formatted data")
 @click.option('--wire-addr', help="Wire address of sff8472")
 def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
     """Read SFP EEPROM data"""
@@ -1568,7 +1568,8 @@ def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
 @click.argument('offset', metavar='<offset>', type=click.INT, required=True)
 @click.argument('data', metavar='<data>', required=True)
 @click.option('--wire-addr', help="Wire address of sff8472")
-def write_eeprom(port_name, page, offset, data, wire_addr):
+@click.option('--verify', is_flag=True, help="Verify the data by reading back")
+def write_eeprom(port_name, page, offset, data, wire_addr, verify):
     """Write SFP EEPROM data"""
     if is_port_type_rj45(port_name):
         click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
@@ -1591,6 +1592,11 @@ def write_eeprom(port_name, page, offset, data, wire_addr):
         if not success:
             click.echo("Error: Failed to write EEPROM!")
             sys.exit(ERROR_NOT_IMPLEMENTED)
+        if verify:
+            read_data = sfp.read_eeprom_by_page(page, offset, len(bytes), wire_addr)
+            if read_data != bytes:
+                click.echo(f"Error: Write data failed! Write: {''.join('{:02x}'.format(x) for x in bytes)}, read: {''.join('{:02x}'.format(x) for x in read_data)}")
+                sys.exit(EXIT_FAIL)
     except NotImplementedError:
         click.echo("This functionality is currently not implemented for this platform")
         sys.exit(ERROR_NOT_IMPLEMENTED)
