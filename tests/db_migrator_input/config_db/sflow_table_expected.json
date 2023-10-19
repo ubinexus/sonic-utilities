@@ -1,0 +1,24 @@
+{
+    "VERSIONS|DATABASE": {
+        "VERSION": "version_4_0_5"
+    },
+    "SFLOW|global": {
+        "admin_state": "up",
+        "sample_direction": "rx"
+    },
+    "SFLOW_SESSION|Ethernet0": {
+        "admin_state": "up",
+        "sample_direction": "rx",
+        "sample_rate": "1000"
+    },
+    "SFLOW_SESSION|Ethernet2": {
+        "admin_state": "down",
+        "sample_direction": "rx",
+        "sample_rate": "2000"
+    },
+    "SFLOW_SESSION|Ethernet4": {
+        "admin_state": "up",
+        "sample_direction": "rx",
+        "sample_rate": "4000"
+    }
+}
