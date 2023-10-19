@@ -51,6 +51,7 @@ PAGE_SIZE = 128
 PAGE_OFFSET = 128
 
 SFF8472_A0_SIZE = 256
+
 EEPROM_DUMP_INDENT = ' ' * 8
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
@@ -680,6 +681,7 @@ def eeprom(port, dump_dom, namespace):
 
     click.echo(output)
 
+
 # 'eeprom-hexdump' subcommand
 @show.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM hexdump for port <port_name>")
@@ -900,7 +902,6 @@ def eeprom_hexdump_sff8472(port, physical_port, page):
 
     return output
 
-
 def eeprom_hexdump_sff8636(port, physical_port, page):
     try:
         output = ""
@@ -928,7 +929,6 @@ def eeprom_hexdump_sff8636(port, physical_port, page):
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
     return output
-
 
 def convert_byte_to_valid_ascii_char(byte):
     if byte < 32 or 126 < byte:
@@ -1399,10 +1399,10 @@ def is_fw_switch_done(port_name):
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
                 click.echo("FW images switch successful : ImageA is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
                 click.echo("FW images switch successful : ImageB is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             else:                                                   # No image is running, or running and committed image is same.
                 click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
