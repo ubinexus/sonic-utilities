@@ -39,6 +39,7 @@ ERROR_SFPUTILHELPER_LOAD = 3
 ERROR_PORT_CONFIG_LOAD = 4
 ERROR_NOT_IMPLEMENTED = 5
 ERROR_INVALID_PORT = 6
+ERROR_INVALID_PAGE = 7
 SMBUS_BLOCK_WRITE_SIZE = 32
 # Default host password as per CMIS spec:
 # http://www.qsfp-dd.com/wp-content/uploads/2021/05/CMIS5p0.pdf
@@ -739,6 +740,17 @@ def dump_eeprom_for_single_port(port, page):
 def dump_eeprom_for_all_ports(page):
     lines = []
 
+    if page is not None:
+        try:
+            page = int(page)
+            # Only do simple validation to a given page, user is responsible to make sure the page existence
+            if page < 0 or page > 255:
+                click.echo(f"Invalid page {page}")
+                sys.exit(ERROR_INVALID_PAGE)
+        except ValueError:
+            click.echo(f"Page {page} is not a valid number")
+            sys.exit(ERROR_INVALID_PAGE)
+
     for index, sfp in enumerate(platform_chassis.get_all_sfps()):
         try:
             presence = sfp.get_presence()
@@ -767,35 +779,41 @@ def dump_sfp_eeprom(sfp, page):
     from sonic_platform_base.sonic_xcvr.api.public import sff8636, sff8436, cmis, sff8472
     from sonic_platform_base.sonic_xcvr.fields import consts
     if isinstance(api, cmis.CmisApi):
-        if api.is_flat_memory():
-            valid_pages = [0]
+        if page is None:
+            if api.is_flat_memory():
+                pages = [0]
+            else:
+                pages = [0, 1, 2, 16, 17]
+                if api.is_coherent_module():
+                    pages.extend([0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x38, 0x39, 0x3a, 0x3b])
+                cdb_support = api.xcvr_eeprom.read(consts.CDB_SUPPORT)
+                if cdb_support != 0:
+                    pages.append(0x9f)
         else:
-            valid_pages = [0, 1, 2, 16, 17]
-            if api.is_coherent_module():
-                valid_pages.extend([0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x38, 0x39, 0x3a, 0x3b])
-            cdb_support = api.xcvr_eeprom.read(consts.CDB_SUPPORT)
-            if cdb_support != 0:
-                valid_pages.append(0x9f)
-        return dump_eeprom_pages(sfp, page, valid_pages)
+            pages = [page]
+        return dump_eeprom_pages(sfp, pages)
     elif isinstance(api, sff8636.Sff8636Api) or isinstance(api, sff8436.Sff8436Api):
-        if api.is_flat_memory():
-            valid_pages = [0]
+        if page is None:
+            if api.is_flat_memory():
+                pages = [0]
+            else:
+                pages = [0, 1, 2, 3]
         else:
-            valid_pages = [0, 1, 2, 3]
-        return dump_eeprom_pages(sfp, page, valid_pages)
+            pages = [page]
+        return dump_eeprom_pages(sfp, pages)
     elif isinstance(api, sff8472.Sff8472Api):
-        is_active_cable = api.xcvr_eeprom.read(consts.SFP_CABLE_TECH_FIELD) == 'Active Cable'
-        if is_active_cable:
-            valid_pages = [0, 1, 2]
+        if page is None:
+            is_active_cable = api.xcvr_eeprom.read(consts.SFP_CABLE_TECH_FIELD) == 'Active Cable'
+            if is_active_cable:
+                pages = [0, 1, 2]
+            else:
+                pages = [0]
         else:
-            valid_pages = [0]
-        return dump_eeprom_pages_sff8472(sfp, page, valid_pages, api.is_flat_memory())
+            pages = [page]
+        return dump_eeprom_pages_sff8472(sfp, pages, api.is_flat_memory())
 
 
-def dump_eeprom_pages(sfp, page, valid_pages):
-    if page and int(page) not in valid_pages:
-        return f'{EEPROM_DUMP_INDENT}Page not supported\n'
-    pages = valid_pages if page is None else [int(page)]
+def dump_eeprom_pages(sfp, pages):
     lines = []
     first = True
     for page in pages:
@@ -814,10 +832,7 @@ def dump_eeprom_pages(sfp, page, valid_pages):
     return '\n'.join(lines)
 
 
-def dump_eeprom_pages_sff8472(sfp, page, valid_pages, is_flat_memory):
-    if page and int(page) not in valid_pages:
-        return f'{EEPROM_DUMP_INDENT}Page not supported\n'
-    pages = valid_pages if page is None else [int(page)]
+def dump_eeprom_pages_sff8472(sfp, pages, is_flat_memory):
     lines = []
     first = True
     for page in pages:

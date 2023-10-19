@@ -811,6 +811,17 @@ EEPROM hexdump for module 5
         print(result.output)
         assert result.output == expected_output
 
+    def test_test_eeprom_hexdump_all_invalid_page(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ['--page', '-1'])
+        assert result.exit_code != 0
+
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ['--page', '256'])
+        assert result.exit_code != 0
+
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ['--page', 'invalid_number'])
+        assert result.exit_code != 0
+
     @patch('sfputil.main.isinstance')
     def test_dump_sfp_eeprom(self, mock_is_instance):
         mock_sfp = MagicMock()
@@ -825,9 +836,6 @@ EEPROM hexdump for module 5
         mock_api.xcvr_eeprom.read = MagicMock(return_value=1)
         mock_sfp.get_xcvr_api.return_value = mock_api
         mock_is_instance.return_value = True
-
-        output = sfputil.dump_sfp_eeprom(mock_sfp, -1)
-        assert 'Page not supported' in output
 
         expected_output_page0 = """        Lower page 0h
         00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
@@ -867,6 +875,7 @@ EEPROM hexdump for module 5
         mock_sfp.read_eeprom = MagicMock(return_value=bytearray([x for x in range(256)]))
         output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
         assert output == expected_output_page0
+
         expected_output_page1 = """        Page 1h
         00000080 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
         00000090 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
@@ -886,15 +895,16 @@ EEPROM hexdump for module 5
         00000170 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
         output = sfputil.dump_sfp_eeprom(mock_sfp, 1)
         assert output == expected_output_page1
+        sfputil.dump_sfp_eeprom(mock_sfp, None)
 
         mock_is_instance.side_effect = [False, True]
         output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
         assert output == expected_output_page0
 
+        mock_is_instance.side_effect = [False, True]
+        sfputil.dump_sfp_eeprom(mock_sfp, None)
+
         mock_api.xcvr_eeprom.read = MagicMock(return_value='Active Cable')
-        mock_is_instance.side_effect = [False, False, False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, -1)
-        assert 'Page not supported' in output
         mock_is_instance.side_effect = [False, False, False, True]
         output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
         expected_output_a0h = """        A0h dump
@@ -915,6 +925,7 @@ EEPROM hexdump for module 5
         000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
         000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
         assert output == expected_output_a0h
+
         mock_is_instance.side_effect = [False, False, False, True]
         output = sfputil.dump_sfp_eeprom(mock_sfp, 1)
         expected_output_a2h_lower = """        A2h dump (lower 128 bytes)
@@ -935,6 +946,7 @@ EEPROM hexdump for module 5
         000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
         000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
         assert output == expected_output_a2h_lower
+
         mock_is_instance.side_effect = [False, False, False, True]
         output = sfputil.dump_sfp_eeprom(mock_sfp, 2)
         expected_output_a2h_upper = """        A2h dump (upper 128 bytes)
@@ -955,10 +967,16 @@ EEPROM hexdump for module 5
         000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
         000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
         assert output == expected_output_a2h_upper
+
+        mock_is_instance.side_effect = [False, False, False, True]
+        sfputil.dump_sfp_eeprom(mock_sfp, None)
+
         mock_api.is_flat_memory.return_value = True
         mock_is_instance.side_effect = [False, False, False, True]
         output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
         assert output == expected_output_a0h
+        mock_is_instance.side_effect = [False, False, False, True]
+        sfputil.dump_sfp_eeprom(mock_sfp, None)
 
         mock_is_instance.side_effect = None
         mock_is_instance.return_value = True
