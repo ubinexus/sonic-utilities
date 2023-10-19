@@ -201,7 +201,7 @@
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
 * [SFP Utilities Commands](#sfp-utilities-commands)
-  * [SFP Utilities show commands](#sfp-utilities-show-commands)
+   * [SFP Utilities show commands](#sfp-utilities-show-commands)
 * [Static DNS Commands](#static-dns-commands)
   * [Static DNS config command](#static-dns-config-command)
   * [Static DNS show command](#static-dns-show-command)
@@ -555,7 +555,7 @@ This command displays the current date and time configured on the system
   ```
 
 **config clock date**
-
+	
 This command will set the date-time of the systetm, given strings with date-time format <YYYY-MM-DD> <HH:MM:SS>
 
 - Usage:
@@ -573,7 +573,7 @@ This command will set the date-time of the systetm, given strings with date-time
   ```
 
 **config clock timezone**
-
+	
 This command will set the timezone of the systetm, given a string of a valid timezone.
 
 - Usage:
@@ -583,13 +583,13 @@ This command will set the timezone of the systetm, given a string of a valid tim
 
 - Parameters:
   - _timezone_: valid timezone to be configured
-
-
+	
+	
 - Example:
   ```
   admin@sonic:~$ config clock timezone Africa/Accra
 
-
+	
 **show clock timezones**
 
 This command Will display list of all valid timezones to be configured.
@@ -2566,7 +2566,7 @@ Once enabled, BGP will not advertise routes which aren't yet offloaded.
   admin@sonic:~$ sudo config suppress-fib-pending enabled
   ```
   ```
-  admin@sonic:~$ sudo config suppress-fib-pending disabled
+  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -4672,11 +4672,11 @@ This command displays switchport modes status of the interfaces
 - Example (show interface switchport status of all interfaces):
   ```
   admin@sonic:~$ show interfaces switchport status
-  Interface     Mode
-  -----------  --------
-  Ethernet0     access
-  Ethernet4     trunk
-  Ethernet8     routed
+  Interface     Mode                   
+  -----------  --------          
+  Ethernet0     access                  
+  Ethernet4     trunk                 
+  Ethernet8     routed          
   <contiues to display all the interfaces>
   ```
 
@@ -4692,17 +4692,17 @@ This command displays switchport modes configuration of the interfaces
 - Example (show interface switchport config of all interfaces):
   ```
   admin@sonic:~$ show interfaces switchport config
-  Interface     Mode        Untagged   Tagged
-  -----------  --------     --------   -------
-  Ethernet0     access      2
-  Ethernet4     trunk       3          4,5,6
-  Ethernet8     routed
+  Interface     Mode        Untagged   Tagged              
+  -----------  --------     --------   -------     
+  Ethernet0     access      2             
+  Ethernet4     trunk       3          4,5,6      
+  Ethernet8     routed          
   <contiues to display all the interfaces>
   ```
 
 
 For details please refer [Switchport Mode HLD](https://github.com/sonic-net/SONiC/pull/912/files#diff-03597c34684d527192f76a6e975792fcfc83f54e20dde63f159399232d148397) to know more about this command.
-
+  
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -6734,7 +6734,7 @@ in order to detemine whether the health of the cable is Ok
 the following are checked
 - the vendor name is correct able to be read
 - the FW is correctly loaded for SerDes by reading the appropriate register val
-- the Counters for UART are displaying healthy status
+- the Counters for UART are displaying healthy status 
        i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
 
 
@@ -6790,7 +6790,7 @@ the result will be displayed like this, each item in the dictionary shows the he
            {
                "uart_stat1": "2",
                "uart_stat2": "1",
-
+                 
            }
     ```
 
@@ -12751,93 +12751,83 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
 
 # SFP Utilities Commands
+ This sub-section explains the list of commands available for SFP utilities feature.
+ ## SFP Utilities show commands
+ - Show SFP EEPROM hex dump
+ ```
+ admin@sonic:~$ sfputil show eeprom-hexdump --help
+ Usage: sfputil show eeprom-hexdump [OPTIONS]
+   Display EEPROM hexdump of SFP transceiver(s)
+ Options:
+   -p, --port <port_name>    Display SFP EEPROM hexdump for port <port_name>
+   -n, --page <page_number>  Display SFP EEEPROM hexdump for
+                             <page_number_in_hex>
+   --help                    Show this message and exit.
+ ```
+ ```
+ admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 0
+ EEPROM hexdump for port Ethernet0 page 0h
+         Lower page 0h
+         00000000 11 06 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000060 00 00 00 00 00 00 00 00  00 00 00 00 02 00 04 00 |................|
+         00000070 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         Upper page 0h
+         00000080 11 00 23 88 00 00 00 00  00 00 00 00 ff 00 00 00 |..#.............|
+         00000090 00 00 03 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+         000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 30 30 2d |    ....MCP1600-|
+         000000b0 43 30 30 33 20 20 20 20  41 32 06 08 0a 10 00 2e |C003    A2......|
+         000000c0 0b 00 00 00 4d 54 31 36  32 33 56 53 30 30 37 37 |....MT1623VS0077|
+         000000d0 39 20 20 20 31 36 30 36  30 34 20 20 00 00 67 60 |9   160604  ..g`|
+         000000e0 31 32 38 38 36 32 31 35  56 43 42 56 00 00 00 00 |12886215VCBV....|
+         000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+ admin@sonic:~$ sfputil show eeprom-hexdump
+ EEPROM hexdump for module 1
+         Lower page 0h
+         00000000 11 06 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000060 00 00 00 00 00 00 00 00  00 00 00 00 02 00 04 00 |................|
+         00000070 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         Upper page 0h
+         00000080 11 00 23 88 00 00 00 00  00 00 00 00 ff 00 00 00 |..#.............|
+         00000090 00 00 03 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+         000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 30 30 2d |    ....MCP1600-|
+         000000b0 43 30 30 33 20 20 20 20  41 32 06 08 0a 10 00 2e |C003    A2......|
+         000000c0 0b 00 00 00 4d 54 31 36  32 33 56 53 30 30 37 37 |....MT1623VS0077|
+         000000d0 39 20 20 20 31 36 30 36  30 34 20 20 00 00 67 60 |9   160604  ..g`|
+         000000e0 31 32 38 38 36 32 31 35  56 43 42 56 00 00 00 00 |12886215VCBV....|
+         000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+ EEPROM hexdump for module 2
+         Lower page 0h
+         00000000 11 07 02 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000010 00 00 00 00 00 00 2b d6  00 00 82 22 00 00 00 00 |......+...."....|
+         00000020 00 00 1c 00 1a ea 1a d0  19 64 0d 2f 0d 2f 0d 2f |.........d./././|
+         00000030 0d 2f 23 0c 24 c3 28 18  27 72 00 00 00 00 00 00 |./#.$.(.'r......|
+         00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00 |................|
+         00000060 00 00 ff 00 ff ff ff ff  ff 00 00 00 00 00 08 00 |................|
+         00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+         Upper page 0h
+         00000080 11 8c 23 80 00 00 00 00  00 00 00 05 ff 00 00 00 |..#.............|
+         00000090 00 00 03 00 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+         000000a0 20 20 20 20 00 00 02 c9  4d 46 41 31 41 30 30 2d |    ....MFA1A00-|
+         000000b0 43 30 30 33 20 20 20 20  42 32 42 68 0b b8 46 a2 |C003    B2Bh..F.|
+         000000c0 01 07 f5 9e 4d 54 31 39  30 37 46 54 30 38 30 38 |....MT1907FT0808|
+         000000d0 32 20 20 20 31 39 30 32  31 35 00 00 0c 10 67 be |2   190215....g.|
+         000000e0 39 30 32 46 4d 41 32 30  32 4a 36 34 31 31 20 20 |902FMA202J6411  |
+         000000f0 00 00 00 00 00 00 00 00  00 00 01 00 0e 00 00 00 |................|
+ ...
+ ```
 
-This sub-section explains the list of commands available for SFP utilities feature.
-
-## SFP Utilities show commands
-
-- Show SFP EEPROM hex dump
-
-```
-admin@sonic:~$ sfputil show eeprom-hexdump --help
-Usage: sfputil show eeprom-hexdump [OPTIONS]
-
-  Display EEPROM hexdump of SFP transceiver(s)
-
-Options:
-  -p, --port <port_name>    Display SFP EEPROM hexdump for port <port_name>
-  -n, --page <page_number>  Display SFP EEEPROM hexdump for
-                            <page_number_in_hex>
-  --help                    Show this message and exit.
-```
-
-```
-admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 0
-EEPROM hexdump for port Ethernet0 page 0h
-        Lower page 0h
-        00000000 11 06 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000060 00 00 00 00 00 00 00 00  00 00 00 00 02 00 04 00 |................|
-        00000070 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-
-        Upper page 0h
-        00000080 11 00 23 88 00 00 00 00  00 00 00 00 ff 00 00 00 |..#.............|
-        00000090 00 00 03 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
-        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 30 30 2d |    ....MCP1600-|
-        000000b0 43 30 30 33 20 20 20 20  41 32 06 08 0a 10 00 2e |C003    A2......|
-        000000c0 0b 00 00 00 4d 54 31 36  32 33 56 53 30 30 37 37 |....MT1623VS0077|
-        000000d0 39 20 20 20 31 36 30 36  30 34 20 20 00 00 67 60 |9   160604  ..g`|
-        000000e0 31 32 38 38 36 32 31 35  56 43 42 56 00 00 00 00 |12886215VCBV....|
-        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
-
-admin@sonic:~$ sfputil show eeprom-hexdump
-EEPROM hexdump for module 1
-        Lower page 0h
-        00000000 11 06 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000060 00 00 00 00 00 00 00 00  00 00 00 00 02 00 04 00 |................|
-        00000070 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-
-        Upper page 0h
-        00000080 11 00 23 88 00 00 00 00  00 00 00 00 ff 00 00 00 |..#.............|
-        00000090 00 00 03 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
-        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 30 30 2d |    ....MCP1600-|
-        000000b0 43 30 30 33 20 20 20 20  41 32 06 08 0a 10 00 2e |C003    A2......|
-        000000c0 0b 00 00 00 4d 54 31 36  32 33 56 53 30 30 37 37 |....MT1623VS0077|
-        000000d0 39 20 20 20 31 36 30 36  30 34 20 20 00 00 67 60 |9   160604  ..g`|
-        000000e0 31 32 38 38 36 32 31 35  56 43 42 56 00 00 00 00 |12886215VCBV....|
-        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
-
-EEPROM hexdump for module 2
-        Lower page 0h
-        00000000 11 07 02 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000010 00 00 00 00 00 00 2b d6  00 00 82 22 00 00 00 00 |......+...."....|
-        00000020 00 00 1c 00 1a ea 1a d0  19 64 0d 2f 0d 2f 0d 2f |.........d./././|
-        00000030 0d 2f 23 0c 24 c3 28 18  27 72 00 00 00 00 00 00 |./#.$.(.'r......|
-        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00 |................|
-        00000060 00 00 ff 00 ff ff ff ff  ff 00 00 00 00 00 08 00 |................|
-        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-
-        Upper page 0h
-        00000080 11 8c 23 80 00 00 00 00  00 00 00 05 ff 00 00 00 |..#.............|
-        00000090 00 00 03 00 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
-        000000a0 20 20 20 20 00 00 02 c9  4d 46 41 31 41 30 30 2d |    ....MFA1A00-|
-        000000b0 43 30 30 33 20 20 20 20  42 32 42 68 0b b8 46 a2 |C003    B2Bh..F.|
-        000000c0 01 07 f5 9e 4d 54 31 39  30 37 46 54 30 38 30 38 |....MT1907FT0808|
-        000000d0 32 20 20 20 31 39 30 32  31 35 00 00 0c 10 67 be |2   190215....g.|
-        000000e0 39 30 32 46 4d 41 32 30  32 4a 36 34 31 31 20 20 |902FMA202J6411  |
-        000000f0 00 00 00 00 00 00 00 00  00 00 01 00 0e 00 00 00 |................|
-...
-```
+ Go Back To [Beginning of the document](#) or [Beginning of this section](#sfp-utilities-commands)
 
 # Static DNS Commands
 
