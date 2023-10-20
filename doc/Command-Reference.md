@@ -39,6 +39,10 @@
   * [Console config commands](#console-config-commands)
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
+* [CMIS firmware upgrade](#cmis-firmware-upgrade)
+  * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
+  * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-commands)
+  * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
   * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
@@ -158,8 +162,6 @@
 * [Subinterfaces](#subinterfaces)
   * [Subinterfaces Show Commands](#subinterfaces-show-commands)
   * [Subinterfaces Config Commands](#subinterfaces-config-commands)
-* [Switchport Modes](#switchport-modes)
-  * [Switchport Mode config commands](#switchport modes-config-commands)
 * [Syslog](#syslog)
   * [Syslog show commands](#syslog-show-commands)
   * [Syslog config commands](#syslog-config-commands)
@@ -211,6 +213,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v8 | Oct-09-2023 | Add CMIS firmware upgrade commands |
 | v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
@@ -459,6 +462,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
   Commands:
     counters       Show interface counters
     description    Show interface status, protocol and...
+    fec            Show interface fec information
     link-training  Show interface link-training information
     naming_mode    Show interface naming_mode status
     neighbor       Show neighbor related information
@@ -2789,6 +2793,138 @@ Optionally, you can clear with a remote device name by specifying the `-d` or `-
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
+## CMIS firmware upgrade
+
+### CMIS firmware version show commands
+
+The sfputil command shows the current major and minor versions of active/inactive firmware, running Image details. The output may vary based on the single vs dual bank supported modules.
+
+**sfputil show fwversion**
+
+- Usage:
+  ```
+  sfputil show fwversion PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.5
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.5
+  ```
+
+### CMIS firmware upgrade commands
+
+The sfputil commands are used to download/upgrade firmware on transciver modules. The download/upgrade actually happens using set of CMIS CDB commands. The module may replace the exisiting image or copy into the inactive bank of the module. The host issues a download complete CDB command when the entire firmware image has been written to LPL or EPL pages. Each steps can be verified using the 'sfputil show fwversion PORT_NAME'
+
+**sfputil firmware download**
+
+This command is used for downloading firmware tp upgrade the transciever module.
+
+- Usage:
+  ```
+  sfputil firmware download PORT_NAME FILE_PATH
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware download Ethernet180 AEC_Camano_YCable__0.3.6_20230905.bin
+  CDB: Starting firmware download
+  Downloading ...  [####################################]  100%
+  CDB: firmware download complete
+  Firmware download complete success
+  Total download Time: 0:01:55.731397
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.6
+  ```
+**sfputil firmware run**
+
+This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware. 
+
+- Usage:
+  ```
+  sfputil firmware run PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware run Ethernet180
+  Running firmware: Non-hitless Reset to Inactive Image
+  Firmware run in mode=0 success
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: A
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+  ```
+
+**sfputil firmware commit**
+
+This command to commit the running image so that the module will boot from it on future boots. 
+
+- Usage:
+  ```
+  sfputil firmware commit PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware commit Ethernet180
+  Firmware commit successful
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: B
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+  ```
+
+### CMIS firmware target mode commands
+
+This command is vendor-specific and supported on the modules to set the target mode to perform remote firmware upgrades. The target modes can be set as 0 (local- E0), 1 (remote end E1), or 2 (remote end E2). Depending on the mode set, the remote or local end will respond to CDB/I2C commands from host's E0 end. After setting the target mode, we can use **sfputil** firmware upgrade commands, will be executed on the module for which target mode is set.
+
+Example of the module supporting target mode
+
+![RMT_UPGRD](https://github.com/AnoopKamath/sonic-utilities_remote_upgrade/assets/115578705/c3b0bb62-eb14-4b05-b0a8-96b8c082455a)
+
+**sfputil firmware target**
+
+- Usage:
+  ```
+  sfputil firmware target [OPTIONS] PORT_NAME TARGET
+
+  Select target end for firmware download
+  0-(local)
+
+  1-(remote-A)
+
+  2-(remote-B)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware target Ethernet180 1
+  Target Mode set to 1
+  ```
 
 ## DHCP Relay
 
@@ -2846,23 +2982,23 @@ This command is used to show ipv6 dhcp_relay counters.
 - Example:
   ```
   admin@sonic:~$ sudo sonic-clear dhcp_relay counters
-         Message Type    Vlan1000
-  -------------------  ----------
-              Unknown           0
-              Solicit           0
-            Advertise           0
-              Request           5
-              Confirm           0
-                Renew           0
-               Rebind           0
-                Reply           0
-              Release           0
-              Decline           0
-          Reconfigure           0
-  Information-Request           0
-        Relay-Forward           0
-          Relay-Reply           0
-            Malformed           0
+         Message Type    Vlan1000
+  -------------------  ----------
+              Unknown           0
+              Solicit           0
+            Advertise           0
+              Request           5
+              Confirm           0
+                Renew           0
+               Rebind           0
+                Reply           0
+              Release           0
+              Decline           0
+          Reconfigure           0
+  Information-Request           0
+        Relay-Forward           0
+          Relay-Reply           0
+            Malformed           0
   ```
 
 ### DHCP Relay clear commands
@@ -4217,7 +4353,6 @@ Subsequent pages explain each of these commands in detail.
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
   status       Show Interface status information
-  switchport   Show Interface switchport information
   tpid         Show Interface tpid information
   transceiver  Show SFP Transceiver information
   ```
@@ -4453,6 +4588,29 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces fec status (Versions >= 202311)**
+
+This command is to display the FEC status of the selected interfaces. If **interface_name** is not specicied, this command shows the FEC status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces fec status [<interface_name>]
+  ```
+
+- Example:  
+```
+  admin@sonic:~$ show interfaces fec status
+  Interface    FEC Oper    FEC Admin
+  -----------  ----------  -----------
+  Ethernet0         N/A           rs
+ Ethernet32         N/A           rs
+ Ethernet36         N/A          N/A
+Ethernet112         N/A           rs
+Ethernet116         N/A           rs
+Ethernet120         N/A           rs
+Ethernet124          rs         auto
+```
+
 **show interfaces link-training (Versions >= 202211)**
 
 This command is to display the link-training status of the selected interfaces. If **interface_name** is not specicied, this command shows the link-training status of all interfaces.
@@ -4660,50 +4818,6 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet180  105,106,107,108     100G    9100    hundredGigE46    down     down     N/A         N/A
   ```
 
-
-**show interface switchport status**
-
-This command displays switchport modes status of the interfaces
-
-- Usage:
-  ```
-  show interfaces switchport status
-  ```
-
-- Example (show interface switchport status of all interfaces):
-  ```
-  admin@sonic:~$ show interfaces switchport status
-  Interface     Mode                   
-  -----------  --------          
-  Ethernet0     access                  
-  Ethernet4     trunk                 
-  Ethernet8     routed          
-  <contiues to display all the interfaces>
-  ```
-
-**show interface switchport config**
-
-This command displays switchport modes configuration of the interfaces
-
-- Usage:
-  ```
-  show interfaces switchport config
-  ```
-
-- Example (show interface switchport config of all interfaces):
-  ```
-  admin@sonic:~$ show interfaces switchport config
-  Interface     Mode        Untagged   Tagged              
-  -----------  --------     --------   -------     
-  Ethernet0     access      2             
-  Ethernet4     trunk       3          4,5,6      
-  Ethernet8     routed          
-  <contiues to display all the interfaces>
-  ```
-
-
-For details please refer [Switchport Mode HLD](https://github.com/sonic-net/SONiC/pull/912/files#diff-03597c34684d527192f76a6e975792fcfc83f54e20dde63f159399232d148397) to know more about this command.
-  
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -9014,6 +9128,7 @@ This command displays the global sFlow configuration that includes the admin sta
   admin@sonic:~# show sflow
   sFlow Global Information:
   sFlow Admin State:          up
+  sFlow Sample Direction:     both
   sFlow Polling Interval:     default
   sFlow AgentID:              lo
 
@@ -9037,24 +9152,23 @@ This command displays the per-interface sflow admin status and the sampling rate
   admin@sonic:~# show sflow interface
 
   sFlow interface configurations
-  +-------------+---------------+-----------------+
-  | Interface   | Admin State   |   Sampling Rate |
-  +=============+===============+=================+
-  | Ethernet0   | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet1   | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Interface   | Admin State   |   Sampling Rate | Sampling Direction   |
+  +=============+===============+=================+======================+
+  | Ethernet0   | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------|
+  | Ethernet1   | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
   ...
-  +-------------+---------------+-----------------+
-  | Ethernet61  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet62  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet63  | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet61  | up            |            4000 | rx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet62  | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet63  | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------+
 
   ```
-
 ### sFlow Config commands
 
 **config sflow collector add**
@@ -9123,6 +9237,18 @@ Globally, sFlow is disabled by default. When sFlow is enabled globally, the sflo
   ```
   admin@sonic:~# sudo config sflow enable
   ```
+**config sflow sample-direction**
+
+This command takes global sflow sample direction. If not configured, default is "rx" for backward compatibility. Based on the direction, the sFlow is enabled at all the interface level at rx or tx or both.
+
+- Usage:
+  ```
+  config sflow sample-direction <rx|tx|both>
+  ```
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow sample-direction tx
+  ```
 **config sflow interface**
 
 Enable/disable sflow at an interface level. By default, sflow is enabled on all interfaces at the interface level. Use this command to explicitly disable sFlow for a specific interface. An interface is sampled if sflow is enabled globally as well as at the interface level. Note that this configuration deals only with sFlow flow samples and not counter samples.
@@ -9139,6 +9265,24 @@ Enable/disable sflow at an interface level. By default, sflow is enabled on all 
   ```
   admin@sonic:~# sudo config sflow interface disable Ethernet40
   ```
+
+**config sflow interface sample-direction**
+
+Set sample direction to determine ingress sampling or egress sampling or both. If not configured, default is "rx".
+
+- Usage:
+  ```
+  config sflow sample-direction <interface-name|all> <rx|tx|both>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface for which sFlow flow sample-direction has to be set. The “all” keyword is used as a convenience to set sflow sample-direction at the interface level for all the interfaces.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow interface sample-direction Ethernet40 tx
+  ```
+Note: The local configuration applied to an interface has higher precedence over the global configuration provided through the "all" keyword.
 
 **config sflow interface sample-rate**
 
@@ -9809,40 +9953,6 @@ This sub-section explains how to configure subinterfaces.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#subinterfaces)
-
-## Switchport Modes
-
-### Switchport Modes Config Commands
-
-This subsection explains how to configure switchport modes on Port/PortChannel.
-
-**config switchport**
-mode
-Usage:
-  ```
-  config switchport mode <access|trunk|routed> <member_portname/member_portchannel>
-  ```
-
-- Example (Config switchport mode access on "Ethernet0):
-  ```
-  admin@sonic:~$ sudo config switchport mode access Ethernet0
-  ```
-
-- Example (Config switchport mode trunk on "Ethernet4"):
-  ```
-  admin@sonic:~$ sudo config switchport mode trunk Ethernet4
-  ```
-
-- Example (Config switchport mode routed on "Ethernet12"):
-  ```
-  admin@sonic:~$ sudo config switchport mode routed Ethernet12
-  ```
-
-
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#switchport-modes)
-
-
 
 ## Syslog
 
@@ -10529,29 +10639,6 @@ This command is used to add or delete the vlan.
   admin@sonic:~$ sudo config vlan add 100
   ```
 
-**config vlan add/del -m**
-
-This command is used to add or delete multiple vlans via single command.
-
-- Usage:
-  ```
-  config vlan (add | del) -m <vlan_id>
-  ```
-
-- Example01 (Create the VLAN "Vlan100, Vlan101, Vlan102, Vlan103" if these does not already exist)
-
-  ```
-  admin@sonic:~$ sudo config vlan add -m 100-103
-  ```
-
-
-- Example02 (Create the VLAN "Vlan105, Vlan106, Vlan107, Vlan108" if these does not already exist):
-
-  ```
-  admin@sonic:~$ sudo config vlan add -m 105,106,107,108
-  ```
-
-
 **config vlan member add/del**
 
 This command is to add or delete a member port into the already created vlan.
@@ -10571,48 +10658,6 @@ This command is to add or delete a member port into the already created vlan.
 
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
-  ```
-
-
-**config vlan member add/del -m -e**
-
-This command is to add or delete a member port into multiple already created vlans.
-
-- Usage:
-  ```
-  config vlan member add/del [-m] [-e] <vlan_id> <member_portname>
-  ```
-
-*NOTE: -m flag multiple Vlans in range or comma separted list can be added as a member port.*
-
-
-*NOTE: -e is used as an except flag as explaied with examples below.*
-
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config vlan member add -m 100-103 Ethernet0
-  This command will add Ethernet0 as member of the vlan 100, vlan 101, vlan 102, vlan 103
-   ```
-
-   ```
-  admin@sonic:~$ sudo config vlan member add -m 100,101,102 Ethernet4
-  This command will add Ethernet4 as member of the vlan 100, vlan 101, vlan 102
-   ```
-
-   ```
-  admin@sonic:~$ sudo config vlan member add -e -m 104,105 Ethernet8
-  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet8 as member of  vlan 100, vlan 101, vlan 102, vlan 103
-  ```
-
-  ```
-  admin@sonic:~$ sudo config vlan member add -e 100 Ethernet12
-  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet12 as member of vlan 101, vlan 102, vlan 103, vlan 104, vlan 105
-  ```
-
-   ```
-  admin@sonic:~$ sudo config vlan member add all Ethernet20
-  Suppose vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105 are exisiting vlans. This command will add Ethernet20 as member of vlan 100, vlan 101, vlan 102, vlan 103, vlan 104, vlan 105
   ```
 
 **config proxy_arp enabled/disabled**
