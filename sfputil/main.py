@@ -1532,6 +1532,11 @@ def unlock(port_name, password):
 @click.option('--wire-addr', help="Wire address of sff8472")
 def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
     """Read SFP EEPROM data"""
+    if platform_sfputil.is_logical_port(port_name) == 0:
+        click.echo("Error: invalid port {}".format(port_name))
+        print_all_valid_port_values()
+        sys.exit(ERROR_INVALID_PORT)
+        
     if is_port_type_rj45(port_name):
         click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
@@ -1569,6 +1574,11 @@ def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
 @click.option('--verify', is_flag=True, help="Verify the data by reading back")
 def write_eeprom(port_name, page, offset, data, wire_addr, verify):
     """Write SFP EEPROM data"""
+    if platform_sfputil.is_logical_port(port_name) == 0:
+        click.echo("Error: invalid port {}".format(port_name))
+        print_all_valid_port_values()
+        sys.exit(ERROR_INVALID_PORT)
+
     if is_port_type_rj45(port_name):
         click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)

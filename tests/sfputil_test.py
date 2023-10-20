@@ -953,6 +953,7 @@ Ethernet0  N/A
 
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.platform_chassis')
     def test_read_eeprom(self, mock_chassis):
         mock_sfp = MagicMock()
@@ -991,6 +992,7 @@ Ethernet0  N/A
 
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.platform_chassis')
     def test_write_eeprom(self, mock_chassis):
         mock_sfp = MagicMock()
@@ -1041,13 +1043,27 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         assert result.exit_code == EXIT_FAIL
 
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=0)))
+    def test_read_eeprom_invalid_port(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '0', '1'])
+        assert result.exit_code == ERROR_INVALID_PORT
+
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=0)))
+    def test_write_eeprom_invalid_port(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '00'])
+        assert result.exit_code == ERROR_INVALID_PORT
+
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_read_eeprom_rj45(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '0', '1'])
         assert result.exit_code == EXIT_FAIL
 
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_write_eeprom_rj45(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '00'])
