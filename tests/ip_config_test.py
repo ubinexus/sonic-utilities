@@ -66,13 +66,6 @@ class TestConfigIP(object):
         assert result.exit_code == 0
         assert ('Eth36.10', '32.11.10.1/24') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
 
-        # config int ip add Ethernet0.10 10.11.20.1/24 as secondary
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet0.10", "10.11.20.1/24", "True"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-        assert ('Ethernet0.10', '10.11.20.1/24') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
-        assert db.cfgdb.get_table('VLAN_SUB_INTERFACE')[('Ethernet0.10', '10.11.20.1/24')]['secondary'] == "true"
-
         # config int ip remove Ethernet64 10.10.10.1/24
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet64", "10.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)
@@ -90,6 +83,18 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Eth36.10', '32.11.10.1/24') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+        # config int ip add Ethernet0.10 10.21.20.1/24 as secondary
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan100", "10.11.20.1/24", "--secondary"], obj=obj)
+        assert result.exit_code == 0
+        assert ('Vlan100', '10.11.20.1/24') in db.cfgdb.get_table('VLAN_INTERFACE')
+        assert db.cfgdb.get_table('VLAN_INTERFACE')[('Vlan100', '10.11.20.1/24')]['secondary'] == "true"
+
+        # config int ip add Ethernet0.10 10.21.20.1/24 as secondary
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan200", "10.21.20.1/24", "--secondary"], obj=obj)
+        assert result.exit_code == 0
+        assert ('Vlan200', '10.21.20.1/24') in db.cfgdb.get_table('VLAN_INTERFACE')
+        assert db.cfgdb.get_table('VLAN_INTERFACE')[('Vlan200', '10.21.20.1/24')]['secondary'] == "true"
 
     def test_add_interface_invalid_ipv4(self):
         db = Db()
