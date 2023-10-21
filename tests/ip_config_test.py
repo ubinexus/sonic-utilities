@@ -91,7 +91,7 @@ class TestConfigIP(object):
         assert db.cfgdb.get_table('VLAN_INTERFACE')[('Vlan100', '10.11.20.1/24')]['secondary'] == "true"
 
         # config int ip add Ethernet0.10 10.21.20.1/24 as secondary
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan200", "10.21.20.1/24", "--secondary"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan200", "10.21.20.1/24", "-s"], obj=obj)
         assert result.exit_code == 0
         assert ('Vlan200', '10.21.20.1/24') in db.cfgdb.get_table('VLAN_INTERFACE')
         assert db.cfgdb.get_table('VLAN_INTERFACE')[('Vlan200', '10.21.20.1/24')]['secondary'] == "true"
