@@ -285,7 +285,8 @@ Ethernet44:
     SOP ROC          krad/s  0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
     Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0            0            False
     Post-FEC BER     N/A     0         0         0         1.00E+03     1.00E+00     False         0            0            False
-    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A"""
+    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
+"""
 
 test_qsfp_dd_pm_hist_60s_win1_output = """\
 PM window: 60sec
@@ -309,7 +310,8 @@ Ethernet44:
     SOP ROC          krad/s  0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
     Pre-FEC BER      N/A     5.30E-04  5.49E-04  5.82E-04  1.25E-02     1.10E-02     False         0            0            False
     Post-FEC BER     N/A     0         0         0         1.00E+03     1.00E+00     False         0            0            False
-    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A"""
+    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
+"""
 
 test_qsfp_status_output = """\
 Ethernet4:
