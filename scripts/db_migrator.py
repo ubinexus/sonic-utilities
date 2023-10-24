@@ -1139,6 +1139,11 @@ class DBMigrator():
                         new_table[table_key] = table_val
                 if hit:
                     config[table_name] = new_table
+            # Run yang validation
+            yang_parser = sonic_yang.SonicYang(YANG_MODELS_DIR)
+            yang_parser.loadYangModel()
+            yang_parser.loadData(configdbJson=config)
+            yang_parser.validate_data_tree()
 
 
 def main():
