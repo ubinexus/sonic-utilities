@@ -1110,20 +1110,20 @@ This command displays information for all the interfaces for the transceiver req
                                                               High         High         Crossing      Low          Low          Crossing
                                                               Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
       ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
-      Tx Power         dBm     -8.19     -8.17     -8.15     -5.0         -6.0         False         -16.99       -16.003      False
-      Rx Total Power   dBm     -8.61     -8.56     -8.51     2.0          0.0          False         -21.0        -18.0        False
-      Rx Signal Power  dBm     -9.12     -9.09     -9.07     13.0         10.0         False         -18.0        -15.0        False
-      CD-short link    ps/nm   -2.0      -1.0      0.0       1000.0       500.0        False         -1000.0      -500.0       False
-      PDL              dB      0.3       0.3       0.4       4.0          4.0          False         0.0          0.0          False
-      OSNR             dB      36.4      36.4      36.4      99.0         99.0         False         0.0          0.0          False
-      eSNR             dB      17.9      18.0      18.2      99.0         99.0         False         0.0          0.0          False
-      CFO              MHz     -776.0    -659.0    -546.0    3800.0       3800.0       False         -3800.0      -3800.0      False
-      DGD              ps      2.0       2.0       2.0       7.0          7.0          False         0.0          0.0          False
-      SOPMD            ps^2    26.0      34.0      44.0      655.35       655.35       False         0.0          0.0          False
-      SOP ROC          krad/s  0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
-      Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0.0          0.0          False
-      Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
-      EVM              %       0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
+      Tx Power         dBm     -8.19     -8.17     -8.15     -5           -6           False         -16.99       -16.003      False
+      Rx Total Power   dBm     -8.61     -8.56     -8.51     2            0            False         -21          -18          False
+      Rx Signal Power  dBm     -9.12     -9.09     -9.07     13           10           False         -18          -15          False
+      CD-short link    ps/nm   -2        -1        0         1000         500          False         -1000        -500         False
+      PDL              dB      0.3       0.3       0.4       4            4            False         0            0            False
+      OSNR             dB      36.4      36.4      36.4      99           99           False         0            0            False
+      eSNR             dB      17.9      18        18.2      99           99           False         0            0            False
+      CFO              MHz     -776      -659      -546      3800         3800         False         -3800        -3800        False
+      DGD              ps      2         2         2         7            7            False         0            0            False
+      SOPMD            ps^2    26        34        44        655.35       655.35       False         0            0            False
+      SOP ROC          krad/s  0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
+      Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0            0            False
+      Post-FEC BER     N/A     0         0         0         1.00E+03     1.00E+00     False         0            0            False
+      EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
   ```
 
 - Example (Display status info of SFP transceiver connected to Ethernet100):

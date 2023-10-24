@@ -272,21 +272,20 @@ Ethernet44:
                                                            High         High         Crossing      Low          Low          Crossing
                                                            Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
     ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
-    Tx Power         dBm     -8.19     -8.17     -8.15     -5.0         -6.0         False         -16.99       -16.003      False
-    Rx Total Power   dBm     -8.61     -8.56     -8.51     2.0          0.0          False         -21.0        -18.0        False
-    Rx Signal Power  dBm     -9.12     -9.09     -9.07     13.0         10.0         False         -18.0        -15.0        False
-    CD-short link    ps/nm   -2.0      -1.0      0.0       1000.0       500.0        False         -1000.0      -500.0       False
-    PDL              dB      0.3       0.3       0.4       4.0          4.0          False         0.0          0.0          False
-    OSNR             dB      36.4      36.4      36.4      99.0         99.0         False         0.0          0.0          False
-    eSNR             dB      17.9      18.0      18.2      99.0         99.0         False         0.0          0.0          False
-    CFO              MHz     -776.0    -659.0    -546.0    3800.0       3800.0       False         -3800.0      -3800.0      False
-    DGD              ps      2.0       2.0       2.0       7.0          7.0          False         0.0          0.0          False
-    SOPMD            ps^2    26.0      34.0      44.0      655.35       655.35       False         0.0          0.0          False
-    SOP ROC          krad/s  0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
-    Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0.0          0.0          False
-    Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
-    EVM              %       0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
-"""
+    Tx Power         dBm     -8.19     -8.17     -8.15     -5           -6           False         -16.99       -16.003      False
+    Rx Total Power   dBm     -8.61     -8.56     -8.51     2            0            False         -21          -18          False
+    Rx Signal Power  dBm     -9.12     -9.09     -9.07     13           10           False         -18          -15          False
+    CD-short link    ps/nm   -2        -1        0         1000         500          False         -1000        -500         False
+    PDL              dB      0.3       0.3       0.4       4            4            False         0            0            False
+    OSNR             dB      36.4      36.4      36.4      99           99           False         0            0            False
+    eSNR             dB      17.9      18        18.2      99           99           False         0            0            False
+    CFO              MHz     -776      -659      -546      3800         3800         False         -3800        -3800        False
+    DGD              ps      2         2         2         7            7            False         0            0            False
+    SOPMD            ps^2    26        34        44        655.35       655.35       False         0            0            False
+    SOP ROC          krad/s  0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
+    Pre-FEC BER      N/A     5.37E-04  5.55E-04  5.80E-04  1.25E-02     1.10E-02     False         0            0            False
+    Post-FEC BER     N/A     0         0         0         1.00E+03     1.00E+00     False         0            0            False
+    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A"""
 
 test_qsfp_dd_pm_hist_60s_win1_output = """\
 PM window: 60sec
@@ -297,21 +296,20 @@ Ethernet44:
                                                            High         High         Crossing      Low          Low          Crossing
                                                            Alarm        Warning      Alert-High    Alarm        Warning      Alert-Low
     ---------------  ------  --------  --------  --------  -----------  -----------  ------------  -----------  -----------  -----------
-    Tx Power         dBm     -8.17     -8.16     -8.15     -5.0         -6.0         False         -16.99       -16.003      False
-    Rx Total Power   dBm     -8.66     -8.6      -8.53     2.0          0.0          False         -21.0        -18.0        False
-    Rx Signal Power  dBm     -9.15     -9.12     -9.07     13.0         10.0         False         -18.0        -15.0        False
-    CD-short link    ps/nm   -2.0      0.0       2.0       1000.0       500.0        False         -1000.0      -500.0       False
-    PDL              dB      0.3       0.3       0.4       4.0          4.0          False         0.0          0.0          False
-    OSNR             dB      36.4      36.4      36.4      99.0         99.0         False         0.0          0.0          False
-    eSNR             dB      17.9      18.1      18.2      99.0         99.0         False         0.0          0.0          False
-    CFO              MHz     -768.0    -660.0    -561.0    3800.0       3800.0       False         -3800.0      -3800.0      False
-    DGD              ps      2.0       2.0       2.0       7.0          7.0          False         0.0          0.0          False
-    SOPMD            ps^2    26.0      34.0      42.0      655.35       655.35       False         0.0          0.0          False
-    SOP ROC          krad/s  0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
-    Pre-FEC BER      N/A     5.30E-04  5.49E-04  5.82E-04  1.25E-02     1.10E-02     False         0.0          0.0          False
-    Post-FEC BER     N/A     0.0       0.0       0.0       1000.0       1.0          False         0.0          0.0          False
-    EVM              %       0.0       0.0       0.0       N/A          N/A          N/A           N/A          N/A          N/A
-"""
+    Tx Power         dBm     -8.17     -8.16     -8.15     -5           -6           False         -16.99       -16.003      False
+    Rx Total Power   dBm     -8.66     -8.6      -8.53     2            0            False         -21          -18          False
+    Rx Signal Power  dBm     -9.15     -9.12     -9.07     13           10           False         -18          -15          False
+    CD-short link    ps/nm   -2        0         2         1000         500          False         -1000        -500         False
+    PDL              dB      0.3       0.3       0.4       4            4            False         0            0            False
+    OSNR             dB      36.4      36.4      36.4      99           99           False         0            0            False
+    eSNR             dB      17.9      18.1      18.2      99           99           False         0            0            False
+    CFO              MHz     -768      -660      -561      3800         3800         False         -3800        -3800        False
+    DGD              ps      2         2         2         7            7            False         0            0            False
+    SOPMD            ps^2    26        34        42        655.35       655.35       False         0            0            False
+    SOP ROC          krad/s  0         0         0         N/A          N/A          N/A           N/A          N/A          N/A
+    Pre-FEC BER      N/A     5.30E-04  5.49E-04  5.82E-04  1.25E-02     1.10E-02     False         0            0            False
+    Post-FEC BER     N/A     0         0         0         1.00E+03     1.00E+00     False         0            0            False
+    EVM              %       0         0         0         N/A          N/A          N/A           N/A          N/A          N/A"""
 
 test_qsfp_status_output = """\
 Ethernet4:

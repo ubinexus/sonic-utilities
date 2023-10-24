@@ -499,11 +499,50 @@ class SFPShow(object):
         else:
             return pm_prefix.replace('_', '')
 
+    def beautify_number_with_max_decimal_places(self, number, max_num_decimal_places):
+        '''
+        Format a number to have no more than the specified number of decimal places.
+
+        Args:
+        - number: A float or integer to be formatted.
+        - max_num_decimal_places: An integer representing the maximum number of decimal places allowed.
+
+        Returns:
+        - A string representation of the formatted number.
+
+        Example:
+        - beautify_number_with_max_decimal_places(3.14159, 3) returns "3.142"
+        '''
+        # Convert the number to a string and split it into whole and decimal
+        # parts
+        str_number = str(number).split('.')
+
+        # Check if the number has a decimal part
+        if len(str_number) == 1:
+            # If no decimal part, return the number as-is
+            return str_number
+
+        decimal_part = str_number[1]
+        if decimal_part == '0':
+            # If the decimal part is zero, return the whole part only
+            return str_number[0]
+
+        # Determine the number of decimal places to use based on the length of
+        # the decimal part
+        actual_num_decimal_places = len(decimal_part)
+        num_decimal_places = min(actual_num_decimal_places, max_num_decimal_places)
+
+        # Apply the formatting
+        format_specifier = "{:." + str(num_decimal_places) + "f}"
+        return format_specifier.format(number)
+
     def beautify_pm_field(self, prefix, field):
         if field is None:
             return 'N/A'
-        elif prefix in {'prefec_ber'} and isinstance(field, float):
-            return "{:.2E}".format(field) if field != 0 else '0.0'
+        elif prefix in {'prefec_ber', 'uncorr_frames'} and isinstance(field, float):
+            return "{:.2E}".format(field) if field != 0 else '0'
+        elif isinstance(field, float):
+            return self.beautify_number_with_max_decimal_places(field, 3)
         else:
             return str(field)
 
