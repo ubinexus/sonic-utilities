@@ -43,7 +43,6 @@ def get_salt():
 
 def encrypt_passkey(secret):
     salt = get_salt()
-    print("from aaa.py ", salt)
     cmd = [ 'openssl', 'enc', '-aes-128-cbc', '-A',  '-a', '-salt', '-pbkdf2', '-pass', 'pass:' + salt ]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     outsecret, errs = p.communicate(input=secret)
