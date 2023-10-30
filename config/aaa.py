@@ -17,14 +17,14 @@ TACACS_SECRET_SALT = "2e6593364d369fba925092e0c1c51466c276faa127f20d18cc5ed8ae52
 
 def get_salt():
     file_path = "/etc/shadow"
-    target_username = "admin"
+    target_username = "admin" + ":"
     salt = None
 
     # Read the file and search for the "admin" username
     try:
         with open(file_path, 'r') as file:
             for line in file:
-                if "admin:" in line:
+                if target_username in line:
                     # Format: username:$id$salt$hashed user pass
                     parts = line.split('$')
                     if len(parts) == 4:
