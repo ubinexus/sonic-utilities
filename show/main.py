@@ -66,6 +66,7 @@ from . import warm_restart
 from . import plugins
 from . import syslog
 from . import dns
+from . import nac
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -302,6 +303,7 @@ cli.add_command(dns.dns)
 
 # syslog module
 cli.add_command(syslog.syslog)
+cli.add_command(nac.nac)
 
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():
