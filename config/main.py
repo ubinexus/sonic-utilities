@@ -57,6 +57,7 @@ from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
 from . import dns
+from . import system
 
 # mock masic APIs for unit test
 try:

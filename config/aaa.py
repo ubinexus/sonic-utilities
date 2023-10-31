@@ -6,11 +6,60 @@ from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 import utilities_common.cli as clicommon
+import subprocess
+import shlex
+import base64
+import os
 
 ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
 RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
+
+def is_enc_master_key():
+    key_file_path = '/etc/sonic/enc_master_key'
+
+    if not os.path.isfile(key_file_path):
+        # The encryption key file does not exist.
+        return False
+
+    with open(key_file_path, 'r') as key_file:
+        key = key_file.read().strip()
+
+    if key == "":
+        # The encryption key file exists but is empty.
+        return False
+
+    # The encryption key file exists and contains a key.
+    return True
+
+
+
+def encrypt_text(clear_text):
+    enc_key_file = "/etc/sonic/enc_master_key"
+    with open(enc_key_file, "r") as key_file:
+        encryption_key = key_file.read().strip()
+    openssl_command = f"echo -n {shlex.quote(clear_text)} | openssl enc -aes-256-cbc -pbkdf2 -pass file:{enc_key_file} -base64 -A"
+    # print(f"OpenSSL command: {openssl_command}")
+    # print(f"Clear text: {clear_text}")
+    process = subprocess.Popen(openssl_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    encrypted_output, error = process.communicate()
+    if process.returncode != 0:
+        print(f"Encryption failed: {error.decode()}")
+        return None
+    encrypted_text = encrypted_output.strip().decode("utf-8")
+    return encrypted_text
+
+def is_valid_key(key):
+    # Define a list of unsupported characters
+    unsupported_characters = [' ', '#', ',']
+    
+    # Check if the key contains any unsupported characters
+    for char in unsupported_characters:
+        if char in key:
+            return False
+    return True
+
 
 def is_secret(secret):
     return bool(re.match('^' + '[^ #,]*' + '$', secret))
@@ -234,15 +283,45 @@ default.add_command(authtype)
 
 @click.command()
 @click.argument('secret', metavar='<secret_string>', required=False)
+@click.option('-e', '--enc', help="Encrypt the provided clear key", is_flag=True)
+@click.option('-x', '--enckey', help="Encrypted secret_string provided", is_flag=True)
 @click.pass_context
-def passkey(ctx, secret):
-    """Specify TACACS+ server global passkey <STRING>"""
+def passkey(ctx, secret, enc, enckey):
+    """Specify TACACS+ server global passkey <STRING> or <ENCRYPTED_STRING>"""
     if ctx.obj == 'default':
         del_table_key('TACPLUS', 'global', 'passkey')
+        del_table_key('TACPLUS', 'global', 'is_key_encrypted')
+    elif enc and enckey:
+        click.echo('error: can`t encrypt already encrepted secret',err=True)
+        return
+    elif secret and enckey:
+        if is_enc_master_key():
+            add_table_kv('TACPLUS', 'global', 'passkey', secret)
+            add_table_kv('TACPLUS', 'global', 'is_key_encrypted', True)
+        else:
+            click.echo('error: issue with encryption key')
+            click.echo('please use command "config system key" to add encryption key')
+            click.echo('no change applied')
+            return
     elif secret:
-        add_table_kv('TACPLUS', 'global', 'passkey', secret)
+        if enc:
+            if is_enc_master_key():
+                if not is_valid_key(secret):
+                    ctx.fail("ERROR: The key contains unsupported characters. Remove spaces, #, and , from the key.")
+                encrypted_key = encrypt_text(secret)  # Encrypt the key using your chosen encryption algorithm
+                add_table_kv('TACPLUS', 'global', 'passkey', encrypted_key)
+                add_table_kv('TACPLUS', 'global', 'is_key_encrypted', True)
+            else:
+                click.echo('error: issue with encryption key')
+                click.echo('please use command "config system key" to add encryption key')
+                click.echo('no change applied')
+                return
+        else:
+            add_table_kv('TACPLUS', 'global', 'passkey', secret)
+            add_table_kv('TACPLUS', 'global', 'is_key_encrypted', False)
     else:
-        click.echo('Argument "secret" is required')
+        click.echo('Argument "secret" or "encsecret" is required')
+
 tacacs.add_command(passkey)
 default.add_command(passkey)
 
@@ -252,40 +331,66 @@ default.add_command(passkey)
 @click.argument('address', metavar='<ip_address>')
 @click.option('-t', '--timeout', help='Transmission timeout interval, default 5', type=int)
 @click.option('-k', '--key', help='Shared secret')
+@click.option('-x', '--enckey', help='Shared encrypted secret')
 @click.option('-a', '--auth_type', help='Authentication type, default pap', type=click.Choice(["chap", "pap", "mschap", "login"]))
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
 @click.option('-p', '--pri', help="Priority, default 1", type=click.IntRange(1, 64), default=1)
-@click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
-def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
+@click.option('-m', '--use-mgmt-vrf', help="Management VRF, default is no VRF", is_flag=True)
+@click.option('-e', '--enc', help="Encrypt the provided key", is_flag=True)
+def add(address, timeout, key, enckey, auth_type, port, pri, use_mgmt_vrf, enc):
     """Specify a TACACS+ server"""
-    if ADHOC_VALIDATION:
-        if not clicommon.is_ipaddress(address):
-            click.echo('Invalid ip address') # TODO: MISSING CONSTRAINT IN YANG MODEL
-            return
+    if not clicommon.is_ipaddress(address):
+        click.echo('Invalid IP address')
+        return
 
-    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
+    config_db = ConfigDBConnector()
     config_db.connect()
     old_data = config_db.get_entry('TACPLUS_SERVER', address)
-    if old_data != {}:
-        click.echo('server %s already exists' % address)
+    if old_data:
+        click.echo('Server %s already exists' % address)
     else:
         data = {
             'tcp_port': str(port),
             'priority': pri
         }
+        if key and enckey:
+            click.echo('error: cannot combine key and enckey, check help for correct usage')
+            return
+        if enckey and enc:
+            click.echo('error: cannot encrypt an encrypted string, check help for correct usage')
+            return
         if auth_type is not None:
             data['auth_type'] = auth_type
         if timeout is not None:
             data['timeout'] = str(timeout)
         if key is not None:
-            data['passkey'] = key
-        if use_mgmt_vrf :
+            if enc:
+                if is_enc_master_key():
+                    if not is_valid_key(key):
+                        click.fail("ERROR: The key contains unsupported characters. Remove spaces, #, and , from the key.", err=True)
+                    encrypted_key = encrypt_text(key)  # Encrypt the key using your chosen encryption algorithm
+                    data['passkey'] = encrypted_key
+                    data['is_key_encrypted'] = True
+                else:
+                    click.echo('error: issue with encryption key')
+                    click.echo('please use command "config system key" to add an encryption key')
+                    click.echo('no change applied')
+                    return
+            else:
+                data['passkey'] = key
+                data['is_key_encrypted'] = False
+        if enckey is not None:
+            if is_enc_master_key():
+                data['passkey'] = enckey
+                data['is_key_encrypted'] = True
+            else:
+                click.echo('error: issue with encryption key')
+                click.echo('please use command "config system key" to add an encryption key')
+                click.echo('no change applied')
+                return
+        if use_mgmt_vrf:
             data['vrf'] = "mgmt"
-        try:
-            config_db.set_entry('TACPLUS_SERVER', address, data)
-        except ValueError as e:
-            ctx = click.get_current_context()
-            ctx.fail("Invalid ip address. Error: {}".format(e))
+        config_db.set_entry('TACPLUS_SERVER', address, data)
 tacacs.add_command(add)
 
 
