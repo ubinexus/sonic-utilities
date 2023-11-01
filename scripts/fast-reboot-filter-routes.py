@@ -76,7 +76,7 @@ if __name__ == '__main__':
         res = 1
     except Exception as e:
         print(e)
-        syslog.syslog(syslog.LOG_ERR, "Got an exception: {}: Traceback: {}".format(e, traceback.format_exc()))
+        syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
         res = 2
     finally:
         syslog.closelog()
