@@ -165,6 +165,8 @@
 * [Syslog](#syslog)
   * [Syslog show commands](#syslog-show-commands)
   * [Syslog config commands](#syslog-config-commands)
+* [system](#System)
+  * [key](#key-config-Commands)
 * [System State](#system-state)
   * [Processes](#processes)
   * [Services & Memory](#services--memory)
@@ -1571,7 +1573,7 @@ When this command is executed, the configured tacacs+ server addresses are updat
 
 - Usage:
   ```
-  config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf]
+  config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf] [-e|--enc] [-x|--enckey]
   ```
 
   - Parameters:
@@ -1582,11 +1584,15 @@ When this command is executed, the configured tacacs+ server addresses are updat
     - port: TCP port range is 1 to 65535, default 49
     - pri: Priority, priority range 1 to 64, default 1.
     - use-mgmt-vrf: This means that the server is part of Management vrf, default is "no vrf"
+    - enc: Encrypt TACACS key in db and configuration files[nss, PAM]
+    - enckey: used if the admin have an encrypted key and add it as it is "in case of configuration backup restore", but the same master key should be used
 
 
 - Example:
   ```
   admin@sonic:~$ sudo config tacacs add 10.11.12.13 -t 10 -k testing789 -a mschap -o 50 -p 9
+
+  admin@sonic:~$ sudo config tacacs add 10.11.12.13 -t 10 -k testing789 -a mschap -o 50 -p 9 -e
   ```
 
   - Example Server Configuration in /etc/pam.d/common-auth-sonic configuration file:
@@ -1598,9 +1604,12 @@ When this command is executed, the configured tacacs+ server addresses are updat
     auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.8:49 secret= login=mschap timeout=5  try_first_pass
     auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.13:50 secret=testing789 login=mschap timeout=10  try_first_pass
     auth    [success=1 default=ignore]      pam_unix.so nullok try_first_pass
+    
+    auth	[success=done new_authtok_reqd=done default=ignore auth_err=die]	pam_tacplus.so server=10.11.12.13:49 enc_secret=U2FsdGVkX1+WN1bG7+CYdRv3/BtNyLI9pjj94S5IpLyDBUMjOwV6eKuc94HqTdJUhgMdUvUvDsCU4om1Uvcn63IBh5kpg1OzSe619204CTPQn0EU5fVLFrMYjq87De8g login=pap timeout=5   try_first_pass
     ```
 
     *NOTE: In the above example, the servers are stored (sorted) based on the priority value configured for the server.*
+    *NOTE: In the above last example, when using passkey encryption feature.*
 
 **config tacacs delete**
 
@@ -1653,8 +1662,11 @@ When user has not configured server specific passkey, this global value shall be
 
 - Usage:
   ```
-  config tacacs passkey <pass_key>
+  config tacacs passkey <pass_key> [-e|--enc] [-x|--enckey]
   ```
+  - Parameters:
+    - enc: Encrypt TACACS key in db and configuration files[nss, PAM]
+    - enckey: used if the admin have an encrypted key and add it as it is "in case of configuration backup restore", but the same master key should be used
 
 - Example:
   ```
@@ -10107,6 +10119,14 @@ This command is used to configure syslog rate limit for containers.
 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
+
+## System
+
+### key config Commands
+
+This command is used to configure system encryption key used with TACACS+ server passkey encryption in DB and configration files [nss, pam]
+
+this command generate a file in [/etc/sonic/enc_master_key] to be used as Passphrase source when encrypting TACACS passkey
 
 ## System State
 
