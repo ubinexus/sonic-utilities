@@ -402,7 +402,10 @@ def check_neighbor_consistency(neighbors, mux_states, hw_mux_states, mac_to_port
         check_result["NEIGHBOR_IN_ASIC"] = neighbor_ip in asic_neighs
         check_result["TUNNERL_IN_ASIC"] = neighbor_ip in asic_route_destinations
         if is_zero_mac:
-            check_result["HWSTATUS"] = ((not check_result["NEIGHBOR_IN_ASIC"]) and check_result["TUNNERL_IN_ASIC"])
+            # NOTE: for zero-mac neighbors, two situations:
+            # 1. new neighbor just learnt, no neighbor entry in ASIC, tunnel route present in ASIC.
+            # 2. neighbor expired, neighbor entry still present in ASIC, no tunnel route in ASIC.
+            check_result["HWSTATUS"] = check_result["NEIGHBOR_IN_ASIC"] or check_result["TUNNERL_IN_ASIC"]
         else:
             port_name = mac_to_port_name_map[mac]
             # NOTE: mux server ips are always fixed to the mux port
