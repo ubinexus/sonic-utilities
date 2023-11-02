@@ -339,15 +339,16 @@ default.add_command(passkey)
 @click.option('-e', '--enc', help="Encrypt the provided key", is_flag=True)
 def add(address, timeout, key, enckey, auth_type, port, pri, use_mgmt_vrf, enc):
     """Specify a TACACS+ server"""
-    if not clicommon.is_ipaddress(address):
-        click.echo('Invalid IP address')
-        return
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(address):
+            click.echo('Invalid ip address') # TODO: MISSING CONSTRAINT IN YANG MODEL
+            return
 
     config_db = ConfigDBConnector()
     config_db.connect()
     old_data = config_db.get_entry('TACPLUS_SERVER', address)
     if old_data:
-        click.echo('Server %s already exists' % address)
+        click.echo('server %s already exists' % address)
     else:
         data = {
             'tcp_port': str(port),
