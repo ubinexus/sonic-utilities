@@ -389,9 +389,13 @@ def add(address, timeout, key, enckey, auth_type, port, pri, use_mgmt_vrf, enc):
                 click.echo('please use command "config system key" to add an encryption key')
                 click.echo('no change applied')
                 return
-        if use_mgmt_vrf:
+        if use_mgmt_vrf :
             data['vrf'] = "mgmt"
-        config_db.set_entry('TACPLUS_SERVER', address, data)
+        try:
+            config_db.set_entry('TACPLUS_SERVER', address, data)
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ip address. Error: {}".format(e))
 tacacs.add_command(add)
 
 
