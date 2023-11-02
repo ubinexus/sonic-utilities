@@ -344,7 +344,7 @@ def add(address, timeout, key, enckey, auth_type, port, pri, use_mgmt_vrf, enc):
             click.echo('Invalid ip address') # TODO: MISSING CONSTRAINT IN YANG MODEL
             return
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     old_data = config_db.get_entry('TACPLUS_SERVER', address)
     if old_data:
