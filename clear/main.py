@@ -550,6 +550,14 @@ def route(prefix, vrf, namespace):
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)
 
+# ("sonic-clear asic-sdk-health-event")
+@cli.command()
+@clicommon.pass_db
+def asic_sdk_health_event(db):
+    keys = db.db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE*")
+    for key in keys:
+        db.db.delete(db.db.STATE_DB, key);
+
 
 if __name__ == '__main__':
     cli()

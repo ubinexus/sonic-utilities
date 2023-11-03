@@ -7374,5 +7374,83 @@ def date(date, time):
     clicommon.run_command(['timedatectl', 'set-time', date_time])
 
 
+#
+# 'asic-sdk-health-event' group ('config asic-sdk-health-event ...')
+#
+@config.group()
+@click.pass_context
+def asic_sdk_health_event(ctx):
+    """Configuring asic-sdk-health-event"""
+    pass
+
+
+@asic_sdk_health_event.group()
+@clicommon.pass_db
+def suppress(db):
+    """Suppress ASIC/SDK health event"""
+    pass
+
+
+def handle_asic_sdk_health_suppress_category_list(db, severity, category_list):
+    ctx = click.get_current_context()
+
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="SWITCH_CAPABILITY|switch"
+    if "true" != state_db.get(state_db.STATE_DB, entry_name, "ASIC_SDK_HEALTH_EVENT"):
+        ctx.fail("ASIC/SDK health event is not supported on the platform")
+
+    severityCapabilities = {
+        "fatal": "REG_FATAL_ASIC_SDK_HEALTH_CATEGORY",
+        "warning": "REG_WARNING_ASIC_SDK_HEALTH_CATEGORY",
+        "notice": "REG_NOTICE_ASIC_SDK_HEALTH_CATEGORY"
+    }
+    if "true" != state_db.get(state_db.STATE_DB, entry_name, severityCapabilities[severity]):
+        ctx.fail("Suppressing ASIC/SDK health {} event is not supported on the platform".format(severity))
+
+    categories = {"software", "firmware", "cpu_hw", "asic_hw"}
+
+    if category_list == 'none':
+        suppressedCategoriesList = []
+    elif category_list == 'all':
+        suppressedCategoriesList = list(categories)
+    else:
+        suppressedCategoriesList = category_list.split(',')
+
+    unsupportCategories = set(suppressedCategoriesList) - categories
+    if unsupportCategories:
+        ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
+
+    cfgdb_clients = db.cfgdb_clients
+
+    for ns, config_db in cfgdb_clients.items():
+
+        if suppressedCategoriesList:
+            config_db.mod_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, {"categories": suppressedCategoriesList})
+        else:
+            config_db.mod_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, None)
+
+
+@suppress.command()
+@click.argument('category-list', required=True)
+@clicommon.pass_db
+def fatal(db, category_list):
+    handle_asic_sdk_health_suppress_category_list(db, 'fatal', category_list)
+
+
+@suppress.command()
+@click.argument('category-list', required=True)
+@clicommon.pass_db
+def warning(db, category_list):
+    handle_asic_sdk_health_suppress_category_list(db, 'warning', category_list)
+
+
+@suppress.command()
+@click.argument('category-list', required=True)
+@clicommon.pass_db
+def notice(db, category_list):
+    handle_asic_sdk_health_suppress_category_list(db, 'notice', category_list)
+
+
 if __name__ == '__main__':
     config()

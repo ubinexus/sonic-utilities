@@ -2139,6 +2139,52 @@ def suppress_pending_fib(db):
     click.echo(state)
 
 
+# asic-sdk-health-event subcommand ("show asic-sdk-health-event")
+@cli.group(cls=clicommon.AliasedGroup)
+def asic_sdk_health_event():
+    """"""
+    pass
+
+
+@asic_sdk_health_event.command()
+@clicommon.pass_db
+def suppressed_category_list(db):
+    """"""
+    if "true" != db.db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
+        ctx = click.get_current_context()
+        ctx.fail("ASIC/SDK health event is not supported on the platform")
+
+    suppressSeverities = db.cfgdb.get_table('SUPPRESS_ASIC_SDK_HEALTH_EVENT')
+    header = ['Severity', 'Suppressed category-list']
+    body = []
+
+    for severity in natsorted(suppressSeverities):
+        body.append([severity, ','.join(suppressSeverities[severity]['categories'])])
+
+    click.echo(tabulate(body, header))
+
+
+@asic_sdk_health_event.command()
+@clicommon.pass_db
+def received(db):
+    """"""
+    if "true" != db.db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
+        ctx = click.get_current_context()
+        ctx.fail("ASIC/SDK health event is not supported on the platform")
+
+    event_keys = db.db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE|*")
+    delimiter = db.db.get_db_separator(db.db.STATE_DB)
+
+    header = ['Date', 'ASICID', 'Severity', 'Category', 'Description']
+    body = []
+
+    for key in natsorted(event_keys):
+        event = db.db.get_all(db.db.STATE_DB, key)
+        body.append([key.split('|')[1], event.get('asic_id'), event.get('severity'), event.get('category'), event.get('description')])
+
+    click.echo(tabulate(body, header))
+
+
 # Load plugins and register them
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)

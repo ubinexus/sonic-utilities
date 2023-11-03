@@ -1,0 +1,8 @@
+{
+    "SUPPRESS_ASIC_SDK_HEALTH_EVENT|fatal": {
+        "categories@": "software"
+    },
+    "SUPPRESS_ASIC_SDK_HEALTH_EVENT|warning": {
+        "categories@": "firmware,asic_hw"
+    }
+}
