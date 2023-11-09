@@ -805,8 +805,7 @@ def dump_sfp_eeprom(sfp, page):
         return dump_eeprom_pages(sfp, pages)
     elif isinstance(api, sff8472.Sff8472Api):
         if page is None:
-            is_active_cable = api.xcvr_eeprom.read(consts.SFP_CABLE_TECH_FIELD) == 'Active Cable'
-            if is_active_cable:
+            if not api.is_copper():
                 pages = [0, 1, 2]
             else:
                 pages = [0]
