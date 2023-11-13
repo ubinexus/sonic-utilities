@@ -288,7 +288,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'Unplugged'],
                            ['Ethernet28', 'Unplugged'],
                            ['Ethernet36', 'Unknown'],
-                           ['Ethernet40', 'Unplugged']]
+                           ['Ethernet40', 'Unplugged'],
+                           ['Ethernet44', 'OK']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -306,7 +307,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'N/A'],
                            ['Ethernet28', 'N/A'],
                            ['Ethernet36', 'N/A'],
-                           ['Ethernet40', 'N/A']]
+                           ['Ethernet40', 'N/A'],
+                           ['Ethernet44', 'N/A']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -317,14 +319,14 @@ class TestSfputil(object):
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
-    @patch('subprocess.check_output', MagicMock(return_value="['0:OK']"))
+    @patch('subprocess.check_output', MagicMock(return_value="['OK']"))
     def test_fetch_error_status_from_platform_api(self):
         output = sfputil.fetch_error_status_from_platform_api('Ethernet0')
-        assert output == [['Ethernet0', None]]
+        assert output == [['Ethernet0', 'OK']]
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
-    @patch('subprocess.check_output', MagicMock(return_value="['0:OK']"))
+    @patch('subprocess.check_output', MagicMock(return_value="['OK']"))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
     def test_fetch_error_status_from_platform_api_RJ45(self):
         output = sfputil.fetch_error_status_from_platform_api('Ethernet0')
@@ -393,6 +395,7 @@ Ethernet16  Unplugged
 Ethernet28  Unplugged
 Ethernet36  Unknown
 Ethernet40  Unplugged
+Ethernet44  OK
 """
         assert result.output == expected_output
 
@@ -693,6 +696,23 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['show'].commands['fwversion'], ["Ethernet0"])
         assert result.output == 'Show firmware version is not applicable for RJ45 port Ethernet0.\n'
         assert result.exit_code == EXIT_FAIL
+
+    @patch('builtins.open')
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
+    def test_download_firmware(self, mock_chassis, mock_file):
+        mock_file.return_value.tell.return_value = 0
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.get_module_fw_mgmt_feature.return_value = {'status': True, 'feature': (0, 0, False, False, 0)}
+        mock_api.cdb_start_firmware_download.return_value = 1
+        mock_api.cdb_firmware_download_complete.return_value = 1
+        mock_sfp.set_optoe_write_max = MagicMock(side_effect=NotImplementedError)
+        status = sfputil.download_firmware("Ethernet0", "test.bin")
+        assert status == 1
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
