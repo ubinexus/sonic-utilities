@@ -2315,7 +2315,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["testsw|Ethernet0", "--voq", "--nonzero"]
+            ["Ethernet0", "--voq", "--nonzero"]
         )
         print(result.output)
         assert result.exit_code == 0
