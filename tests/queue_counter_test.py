@@ -1854,7 +1854,6 @@ show_queue_voq_counters = """\
      Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
 ---------  -----  --------------  ---------------  -----------  ------------
 Ethernet0   VOQ0               0                0            0             0
-Ethernet0   VOQ0              68               30           56            74
 Ethernet0   VOQ1              60               43           39             1
 Ethernet0   VOQ2              82                7           39            21
 Ethernet0   VOQ3              11               59           12            94
@@ -1890,7 +1889,6 @@ Ethernet8   VOQ7              83               15           75            92
 show_queue_voq_counters_nz = """\
      Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
 ---------  -----  --------------  ---------------  -----------  ------------
-Ethernet0   VOQ0              68               30           56            74
 Ethernet0   VOQ1              60               43           39             1
 Ethernet0   VOQ2              82                7           39            21
 Ethernet0   VOQ3              11               59           12            94
@@ -1927,7 +1925,6 @@ show_queue_port_voq_counters = """\
      Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
 ---------  -----  --------------  ---------------  -----------  ------------
 Ethernet0   VOQ0               0                0            0             0
-Ethernet0   VOQ0              68               30           56            74
 Ethernet0   VOQ1              60               43           39             1
 Ethernet0   VOQ2              82                7           39            21
 Ethernet0   VOQ3              11               59           12            94
