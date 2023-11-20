@@ -4590,6 +4590,26 @@ def add(ctx, interface_name, ip_addr, gw):
         else:
             config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
     config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
+    feature_table = config_db.get_table('FEATURE')
+    if feature_table is not None and 'dhcp_relay' in feature_table:
+        dhcp_relay_state = feature_table['dhcp_relay']['state']
+    if interface_name.startswith("Vlan") and dhcp_relay_state == "enabled" :
+        restart_dhcp_relay_on_condition(interface_name,config_db)
+
+def restart_dhcp_relay_on_condition(interface_name,config_db):
+    vlan_table_entry = config_db.get_entry('VLAN', interface_name)
+    dhcp_relay_table_entry = config_db.get_entry('DHCP_RELAY',interface_name)
+    dhcp_v4_servers = []
+    dhcp_v6_servers = []
+    if vlan_table_entry:
+        dhcp_v4_servers = vlan_table_entry.get('dhcp_servers',[])
+    if dhcp_relay_table_entry:
+        dhcp_v6_servers = dhcp_relay_table_entry.get('dhcpv6_servers',[])
+    if (len(dhcp_v4_servers) > 0) or (len(dhcp_v6_servers) > 0) :
+        click.echo("Restarting DHCP relay service...")
+        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
 
 #
 # 'del' subcommand
@@ -4650,7 +4670,11 @@ def remove(ctx, interface_name, ip_addr):
     else:
         command = ['ip', 'neigh', 'flush', 'dev', str(interface_name), str(ip_address)]
     clicommon.run_command(command)
-
+    feature_table = config_db.get_table('FEATURE')
+    if feature_table is not None and 'dhcp_relay' in feature_table:
+        dhcp_relay_state = feature_table['dhcp_relay']['state']
+    if interface_name.startswith("Vlan") and dhcp_relay_state == "enabled" :
+        restart_dhcp_relay_on_condition(interface_name,config_db)
 #
 # 'loopback-action' subcommand
 #
