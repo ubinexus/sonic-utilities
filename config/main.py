@@ -4550,12 +4550,24 @@ def add(ctx, interface_name, ip_addr, gw, secondary):
             config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
         else:
             config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
-    config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
 
     if secondary:
         # We update the secondary flag only in case of VLAN Interface.
         if table_name == "VLAN_INTERFACE":
-            config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
+            vlan_interface_table = config_db.get_table(table_name)
+            contains_primary = False
+            for key, value in vlan_interface_table.items():
+                if not isinstance(key, tuple):
+                    continue
+                name, prefix = key
+                if name == interface_name and "secondary" not in value:
+                    contains_primary = True
+            if contains_primary == True:
+                config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
+            else:
+                ctx.fail("Primary for the interface {} is not set, so skipping adding the interface".format(interface_name))
+    else:
+        config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
 
 #
 # 'del' subcommand
