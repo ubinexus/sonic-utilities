@@ -1936,8 +1936,8 @@ Ethernet0   VOQ7              40               71           95            33
 """
 
 show_queue_port_voq_counters_nz = """\
-            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
-----------------  -----  --------------  ---------------  -----------  ------------
+     Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+---------  -----  --------------  ---------------  -----------  ------------
 Ethernet0   VOQ1              60               43           39             1
 Ethernet0   VOQ2              82                7           39            21
 Ethernet0   VOQ3              11               59           12            94
