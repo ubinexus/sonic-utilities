@@ -256,7 +256,7 @@ class TestSfputil(object):
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
 '''
-        ), 
+        ),
         (
             'QSFP-DD Double Density 8X Pluggable Transceiver',
             {
@@ -650,7 +650,7 @@ Ethernet0  N/A
         mock_sfp = MagicMock()
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
         mock_sfp.get_presence.return_value = True
-        mock_sfp.read_eeprom = MagicMock(return_value=None)
+        mock_sfp.get_xcvr_api = MagicMock(return_value=None)
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet16"])
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
@@ -661,6 +661,7 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.isinstance', MagicMock(return_value=True))
     def test_show_eeprom_hexdump_read_eeprom_not_implemented(self, mock_chassis):
         mock_sfp = MagicMock()
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
@@ -676,6 +677,7 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.isinstance', MagicMock(return_value=True))
     def test_show_eeprom_hexdump_sff8636_page(self, mock_chassis):
         lower_page_bytearray = bytearray([13, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         upper_page0_bytearray = bytearray([13, 0, 35, 8, 0, 0, 0, 65, 128, 128, 245, 0, 0, 0, 0, 0, 0, 0, 1, 160, 77, 111, 108, 101, 120, 32, 73, 110, 99, 46, 32, 32, 32, 32, 32, 32, 7, 0, 9, 58, 49, 49, 49, 48, 52, 48, 49, 48, 53, 52, 32, 32, 32, 32, 32, 32, 32, 32, 3, 4, 0, 0, 70, 196, 0, 0, 0, 0, 54, 49, 49, 48, 51, 48, 57, 50, 57, 32, 32, 32, 32, 32, 32, 32, 49, 54, 48, 52, 49, 57, 32, 32, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -719,6 +721,7 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.isinstance', MagicMock(side_effect=[False, False, False, True]))
     def test_show_eeprom_hexdump_sff8472_page(self, mock_chassis):
         a0h_bytearray = bytearray([3, 4, 7, 16, 0, 0, 0, 0, 0, 0, 0, 6, 103, 0, 0, 0, 8, 3, 0, 30, 70, 73, 78, 73, 83, 65, 82, 32, 67, 79, 82, 80, 46, 32, 32, 32, 0, 0, 144, 101, 70, 84, 76, 88, 56, 53, 55, 49, 68, 51, 66, 67, 76, 32, 32, 32, 65, 32, 32, 32, 3, 82, 0, 72, 0, 26, 0, 0, 65, 85, 74, 48, 82, 67, 74, 32, 32, 32, 32, 32, 32, 32, 32, 32, 49, 53, 49, 48, 50, 57, 32, 32, 104, 240, 3, 246, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         a2h_lower_bytearray = bytearray([78, 0, 243, 0, 73, 0, 248, 0, 144, 136, 113, 72, 140, 160, 117, 48, 25, 200, 7, 208, 24, 156, 9, 196, 39, 16, 9, 208, 31, 7, 12, 90, 39, 16, 0, 100, 31, 7, 0, 158, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 128, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 27, 20, 2, 129, 177, 13, 90, 23, 165, 21, 135, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 1])
@@ -775,41 +778,88 @@ Ethernet0  N/A
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
         mock_sfp.get_presence.return_value = True
         mock_sfp.read_eeprom = MagicMock(side_effect=side_effect)
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_api.is_copper = MagicMock(return_value=False)
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet256", "-n", "0"])
         assert result.exit_code == 0
         assert result.output == expected_output
 
     @patch('sfputil.main.platform_chassis')
-    @patch('sfputil.main.dump_sfp_eeprom')
-    def test_eeprom_hexdump_all(self, mock_dump_eeprom, mock_chassis):
-        sfp_list = [MagicMock() for x in range(5)]
-        mock_dump_eeprom.side_effect = [None, '        Hello']
-        sfp_list[0].get_presence = MagicMock(return_value=False)
-        sfp_list[1].get_presence = MagicMock(side_effect=NotImplementedError)
-        sfp_list[2].get_presence = MagicMock(side_effect=RuntimeError('error'))
-        sfp_list[3].get_presence = MagicMock(return_value=True)
-        sfp_list[4].get_presence = MagicMock(return_value=True)
-        mock_chassis.get_all_sfps.return_value = sfp_list
+    @patch('sfputil.main.platform_sfputil')
+    @patch('sfputil.main.isinstance', MagicMock(side_effect=[True, False, False, False, True]))
+    def test_eeprom_hexdump_all_falure(self, mock_sfputil, mock_chassis):
+        mock_sfputil.logical = ['Ethernet4', 'Ethernet0']
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_presence.return_value = True
+        mock_sfp.read_eeprom = MagicMock(return_value=None)
+
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'])
         assert result.exit_code == 0
-        expected_output = """
-Module 1 not present
+        expected_output = """EEPROM hexdump for port Ethernet0
+        Error: Failed to read EEPROM for page 0h, overall_offset 0, page_offset 0, size 128!
 
-Module 2 not supported
+EEPROM hexdump for port Ethernet4
+        Error: Failed to read EEPROM for A0h!
 
-Module 3 get EEPROM failed: error
-
-EEPROM hexdump for module 4
-        N/A
-
-
-EEPROM hexdump for module 5
-        Hello
 """
-        print(result.output)
         assert result.output == expected_output
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.platform_sfputil')
+    @patch('sfputil.main.isinstance', MagicMock(side_effect=[True, False, False, False, True]))
+    def test_eeprom_hexdump_all_falure(self, mock_sfputil, mock_chassis):
+        mock_sfputil.logical = ['Ethernet4', 'Ethernet0']
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_presence.return_value = True
+        mock_sfp.read_eeprom = MagicMock(return_value=None)
+
+        def mock_read_eeprom(offset, num_bytes):
+            return bytearray([x for x in range(num_bytes)])
+
+        mock_sfp.read_eeprom.side_effect = mock_read_eeprom
+
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'])
+        assert result.exit_code == 0
+        expected_output = """EEPROM hexdump for port Ethernet0
+        Lower page 0h
+        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
+        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
+        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
+        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
+        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
+        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
+        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
+        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
+
+        Upper page 0h
+        00000080 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
+        00000090 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
+        000000a0 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
+        000000b0 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
+        000000c0 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
+        000000d0 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
+        000000e0 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
+        000000f0 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
+
+EEPROM hexdump for port Ethernet4
+        A0h dump
+        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
+        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
+        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
+        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
+        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
+        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
+        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
+        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
+
+"""
+        assert expected_output == result.output
 
     def test_test_eeprom_hexdump_all_invalid_page(self):
         runner = CliRunner()
@@ -821,168 +871,6 @@ EEPROM hexdump for module 5
 
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ['--page', 'invalid_number'])
         assert result.exit_code != 0
-
-    @patch('sfputil.main.isinstance')
-    def test_dump_sfp_eeprom(self, mock_is_instance):
-        mock_sfp = MagicMock()
-        mock_sfp.get_xcvr_api = MagicMock(return_value=None)
-        output = sfputil.dump_sfp_eeprom(mock_sfp, None)
-        assert 'N/A' in output
-
-        mock_api = MagicMock()
-        mock_api.is_flat_memory = MagicMock(return_value=False)
-        mock_api.is_coherent_module = MagicMock(return_value=True)
-        mock_api.xcvr_eeprom = MagicMock()
-        mock_api.xcvr_eeprom.read = MagicMock(return_value=1)
-        mock_sfp.get_xcvr_api.return_value = mock_api
-        mock_is_instance.return_value = True
-
-        expected_output_page0 = """        Lower page 0h
-        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000080 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000090 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        000000a0 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        000000b0 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        000000c0 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        000000d0 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|
-
-        Upper page 0h
-        00000080 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000090 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        000000a0 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        000000b0 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        000000c0 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        000000d0 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        000000e0 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        000000f0 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000100 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000110 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        00000120 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        00000130 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        00000140 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        00000150 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        00000160 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        00000170 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
-        mock_sfp.read_eeprom = MagicMock(return_value=bytearray([x for x in range(256)]))
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
-        assert output == expected_output_page0
-
-        expected_output_page1 = """        Page 1h
-        00000080 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000090 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        000000a0 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        000000b0 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        000000c0 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        000000d0 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        000000e0 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        000000f0 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000100 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000110 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        00000120 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        00000130 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        00000140 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        00000150 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        00000160 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        00000170 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 1)
-        assert output == expected_output_page1
-        sfputil.dump_sfp_eeprom(mock_sfp, None)
-
-        mock_is_instance.side_effect = [False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
-        assert output == expected_output_page0
-
-        mock_is_instance.side_effect = [False, True]
-        sfputil.dump_sfp_eeprom(mock_sfp, None)
-
-        mock_api.xcvr_eeprom.read = MagicMock(return_value='Active Cable')
-        mock_is_instance.side_effect = [False, False, False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
-        expected_output_a0h = """        A0h dump
-        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000080 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000090 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        000000a0 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        000000b0 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        000000c0 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        000000d0 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
-        assert output == expected_output_a0h
-
-        mock_is_instance.side_effect = [False, False, False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 1)
-        expected_output_a2h_lower = """        A2h dump (lower 128 bytes)
-        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000080 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000090 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        000000a0 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        000000b0 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        000000c0 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        000000d0 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
-        assert output == expected_output_a2h_lower
-
-        mock_is_instance.side_effect = [False, False, False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 2)
-        expected_output_a2h_upper = """        A2h dump (upper 128 bytes)
-        00000000 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f |................|
-        00000010 10 11 12 13 14 15 16 17  18 19 1a 1b 1c 1d 1e 1f |................|
-        00000020 20 21 22 23 24 25 26 27  28 29 2a 2b 2c 2d 2e 2f | !"#$%&'()*+,-./|
-        00000030 30 31 32 33 34 35 36 37  38 39 3a 3b 3c 3d 3e 3f |0123456789:;<=>?|
-        00000040 40 41 42 43 44 45 46 47  48 49 4a 4b 4c 4d 4e 4f |@ABCDEFGHIJKLMNO|
-        00000050 50 51 52 53 54 55 56 57  58 59 5a 5b 5c 5d 5e 5f |PQRSTUVWXYZ[\]^_|
-        00000060 60 61 62 63 64 65 66 67  68 69 6a 6b 6c 6d 6e 6f |`abcdefghijklmno|
-        00000070 70 71 72 73 74 75 76 77  78 79 7a 7b 7c 7d 7e 7f |pqrstuvwxyz{|}~.|
-        00000080 80 81 82 83 84 85 86 87  88 89 8a 8b 8c 8d 8e 8f |................|
-        00000090 90 91 92 93 94 95 96 97  98 99 9a 9b 9c 9d 9e 9f |................|
-        000000a0 a0 a1 a2 a3 a4 a5 a6 a7  a8 a9 aa ab ac ad ae af |................|
-        000000b0 b0 b1 b2 b3 b4 b5 b6 b7  b8 b9 ba bb bc bd be bf |................|
-        000000c0 c0 c1 c2 c3 c4 c5 c6 c7  c8 c9 ca cb cc cd ce cf |................|
-        000000d0 d0 d1 d2 d3 d4 d5 d6 d7  d8 d9 da db dc dd de df |................|
-        000000e0 e0 e1 e2 e3 e4 e5 e6 e7  e8 e9 ea eb ec ed ee ef |................|
-        000000f0 f0 f1 f2 f3 f4 f5 f6 f7  f8 f9 fa fb fc fd fe ff |................|"""
-        assert output == expected_output_a2h_upper
-
-        mock_is_instance.side_effect = [False, False, False, True]
-        sfputil.dump_sfp_eeprom(mock_sfp, None)
-
-        mock_api.is_flat_memory.return_value = True
-        mock_is_instance.side_effect = [False, False, False, True]
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
-        assert output == expected_output_a0h
-        mock_is_instance.side_effect = [False, False, False, True]
-        sfputil.dump_sfp_eeprom(mock_sfp, None)
-
-        mock_is_instance.side_effect = None
-        mock_is_instance.return_value = True
-        mock_sfp.read_eeprom.return_value = None
-        output = sfputil.dump_sfp_eeprom(mock_sfp, 0)
-        assert 'Failed to read EEPROM' in output
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=1))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
