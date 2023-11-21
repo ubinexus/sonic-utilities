@@ -88,7 +88,7 @@ setup(
         'utilities_common',
         'watchdogutil',
         'sonic_cli_gen',
-        'wol'
+        'wol',
     ],
     package_data={
         'generic_config_updater': ['gcu_services_validator.conf.json', 'gcu_field_operation_validators.conf.json'],

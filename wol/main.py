@@ -50,20 +50,43 @@ ETHER_TYPE_WOL = b'\x08\x42'
 
 
 class MacAddress(object):
-    def __init__(self, mac):
-        self.mac = mac
+    """
+    Class to handle MAC addresses and perform operations on them.
+
+    Attributes:
+    - address: bytes
+    """
+
+    def __init__(self, address: str):
+        """
+        Constructor to instantiate the MacAddress class.
+
+        Parameters:
+        - address: str
+            The MAC address in the format '01:23:45:67:89:AB' or '01-23-45-67-89-AB'.
+
+        Raises:
+        - ValueError:
+            Throws an error if the provided address is not in the correct format.
+        """
+        try:
+            self.address = binascii.unhexlify(address.replace(':', '').replace('-', ''))
+        except binascii.Error:
+            raise ValueError("invalid MAC address")
+        if len(self.address) != 6:
+            raise ValueError("invalid MAC address")
 
     def __str__(self):
-        return "%x:%x:%x:%x:%x:%x" % (self.mac[0], self.mac[1], self.mac[2], self.mac[3], self.mac[4], self.mac[5])
+        return ":".join(["%02x" % v for v in self.address])
 
     def __eq__(self, other):
-        return self.mac == other.mac
+        return self.address == other.address
 
     def to_bytes(self):
-        return copy.copy(self.mac)
+        return copy.copy(self.address)
 
 
-BROADCAST_MAC = MacAddress(b'\xff\xff\xff\xff\xff\xff')
+BROADCAST_MAC = MacAddress('ff:ff:ff:ff:ff:ff')
 
 
 def is_root():
@@ -76,8 +99,7 @@ def get_interface_operstate(interface):
 
 
 def get_interface_mac(interface):
-    mac = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0].get('addr')
-    return MacAddress(binascii.unhexlify(mac.replace(':', '').replace('-', '')))
+    return MacAddress(netifaces.ifaddresses(interface)[netifaces.AF_LINK][0].get('addr'))
 
 
 def build_magic_packet(interface, target_mac, broadcast, password):
@@ -87,8 +109,7 @@ def build_magic_packet(interface, target_mac, broadcast, password):
         + b'\xff' * 6 + target_mac.to_bytes() * 16 + password
 
 
-def send_magic_packet(interface, pkt, count, interval, verbose):
-    target_mac = MacAddress(pkt[20:26])
+def send_magic_packet(interface, target_mac, pkt, count, interval, verbose):
     if verbose:
         print("Sending {} magic packet to {} via interface {}".format(count, target_mac, interface))
     sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
@@ -110,20 +131,17 @@ def validate_interface(ctx, param, value):
     return value
 
 
-def validate_target_mac(ctx, param, value):
+def parse_target_mac(ctx, param, value):
     mac_list = []
-    for mac_s in value.split(','):
+    for mac in value.split(','):
         try:
-            mac_b = binascii.unhexlify(mac_s.replace(':', '').replace('-', ''))
-        except binascii.Error:
-            raise click.BadParameter("invalid MAC address {}".format(mac_s))
-        if len(mac_b) != 6:
-            raise click.BadParameter("invalid MAC address {}".format(mac_s))
-        mac_list.append(MacAddress(mac_b))
+            mac_list.append(MacAddress(mac))
+        except ValueError:
+            raise click.BadParameter("invalid MAC address {}".format(mac))
     return mac_list
 
 
-def validate_password(ctx, param, value):
+def parse_password(ctx, param, value):
     if len(value) == 0:
         return b''  # Empty password is valid.
     elif len(value) <= 15:  # The length of a valid IPv4 address is less or equal to 15.
@@ -133,8 +151,8 @@ def validate_password(ctx, param, value):
             raise click.BadParameter("invalid password format")
     else:  # The length of a valid MAC address is 17.
         try:
-            password = binascii.unhexlify(value.replace(':', '').replace('-', ''))
-        except binascii.Error:
+            password = MacAddress(value).to_bytes()
+        except ValueError:
             raise click.BadParameter("invalid password format")
     if len(password) not in [4, 6]:
         raise click.BadParameter("password must be 4 or 6 bytes")
@@ -152,10 +170,10 @@ def validate_count_interval(count, interval):
 
 @click.command(context_settings=CONTEXT_SETTINGS, epilog=EPILOG)
 @click.argument('interface', type=click.STRING, callback=validate_interface)
-@click.argument('target_mac', type=click.STRING, callback=validate_target_mac)
+@click.argument('target_mac', type=click.STRING, callback=parse_target_mac)
 @click.option('-b', 'broadcast', is_flag=True, show_default=True, default=False,
               help="Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header.")
-@click.option('-p', 'password', type=click.STRING, show_default=True, default='', callback=validate_password, metavar='password',
+@click.option('-p', 'password', type=click.STRING, show_default=True, default='', callback=parse_password, metavar='password',
               help='An optional 4 or 6 byte password, in ethernet hex format or quad-dotted decimal')
 @click.option('-c', 'count', type=click.IntRange(1, 5), metavar='count', show_default=True,  # default=1,
               help='For each target MAC address, the count of magic packets to send. count must between 1 and 5. This param must use with -i.')
@@ -175,7 +193,7 @@ def wol(interface, target_mac, broadcast, password, count, interval, verbose):
     for mac in target_mac:
         pkt = build_magic_packet(interface, mac, broadcast, password)
         try:
-            send_magic_packet(interface, pkt, count, interval, verbose)
+            send_magic_packet(interface, mac, pkt, count, interval, verbose)
         except Exception as e:
             raise click.ClickException(f'Exception: {e}')
 
