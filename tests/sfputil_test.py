@@ -811,7 +811,7 @@ EEPROM hexdump for port Ethernet4
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.platform_sfputil')
     @patch('sfputil.main.isinstance', MagicMock(side_effect=[True, False, False, False, True]))
-    def test_eeprom_hexdump_all_falure(self, mock_sfputil, mock_chassis):
+    def test_eeprom_hexdump_all(self, mock_sfputil, mock_chassis):
         mock_sfputil.logical = ['Ethernet4', 'Ethernet0']
         mock_sfp = MagicMock()
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
@@ -871,6 +871,60 @@ EEPROM hexdump for port Ethernet4
 
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ['--page', 'invalid_number'])
         assert result.exit_code != 0
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    @patch('sfputil.main.eeprom_hexdump_pages_general')
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.isinstance')
+    def test_eeprom_hexdump_single_port(self, mock_isinstance, mock_dump, mock_chassis):
+        mock_isinstance.return_value = True
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_presence.return_value = True
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api.return_value = mock_api
+        sfputil.eeprom_hexdump_single_port('Ethernet0', 0)
+        mock_dump.assert_called_with('Ethernet0', [0], 0)
+
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', 1)
+        mock_dump.assert_called_with('Ethernet0', [0, 1], 1)
+
+        mock_api.is_flat_memory.return_value = False
+        mock_api.is_coherent_module.return_value = False
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', None)
+        mock_dump.assert_called_with('Ethernet0', [0, 1, 2, 16, 17, 159], None)
+
+        mock_api.is_coherent_module.return_value = True
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', None)
+        mock_dump.assert_called_with('Ethernet0', [0, 1, 2, 16, 17, 48, 49, 50, 51, 52, 53, 56, 57, 58, 59, 159], None)
+
+        mock_api.is_flat_memory.return_value = True
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', None)
+        mock_dump.assert_called_with('Ethernet0', [0], None)
+
+        mock_isinstance.side_effect = [False, True]
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', None)
+        mock_dump.assert_called_with('Ethernet0', [0], None)
+
+        mock_api.is_flat_memory.return_value = False
+        mock_isinstance.side_effect = [False, True]
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', None)
+        mock_dump.assert_called_with('Ethernet0', [0, 1, 2, 3], None)
+
+        mock_isinstance.side_effect = [False, True]
+        mock_dump.reset_mock()
+        sfputil.eeprom_hexdump_single_port('Ethernet0', 3)
+        mock_dump.assert_called_with('Ethernet0', [0, 3], 3)
+
+
 
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=1))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=True))
