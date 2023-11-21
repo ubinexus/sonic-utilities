@@ -256,7 +256,7 @@ class TestSfputil(object):
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
 '''
-        ), 
+        ),
         (
             'QSFP-DD Double Density 8X Pluggable Transceiver',
             {
@@ -982,28 +982,27 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
         mock_sfp.get_presence.return_value = True
-        mock_sfp.read_eeprom_by_page = MagicMock(return_value=None)
+        mock_sfp.read_eeprom = MagicMock(return_value=None)
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '0', '1'])
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
-        mock_sfp.read_eeprom_by_page.return_value = bytearray([0x00, 0x01])
+        mock_sfp.read_eeprom.return_value = bytearray([0x00, 0x01])
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '0', '2', '--no-format'])
         assert result.exit_code == 0
         assert result.output == '0001\n'
 
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '5', '2'])
         assert result.exit_code == 0
-        expected_output = """
-00000005 00 01                                            |..|
+        expected_output = """        00000005 00 01                                            |..|
 """
         print(result.output)
         assert result.output == expected_output
 
-        mock_sfp.read_eeprom_by_page.side_effect = NotImplementedError
+        mock_sfp.read_eeprom.side_effect = NotImplementedError
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '5', '2'])
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
-        mock_sfp.read_eeprom_by_page.side_effect = ValueError
+        mock_sfp.read_eeprom.side_effect = ValueError
         result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '0', '5', '2'])
         assert result.exit_code == EXIT_FAIL
 
@@ -1030,33 +1029,33 @@ Ethernet0  N/A
         assert result.exit_code == EXIT_FAIL
 
         # write failed
-        mock_sfp.write_eeprom_by_page = MagicMock(return_value=False)
+        mock_sfp.write_eeprom = MagicMock(return_value=False)
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         print(result.output)
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
         # write success
-        mock_sfp.write_eeprom_by_page.return_value = True
+        mock_sfp.write_eeprom.return_value = True
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         assert result.exit_code == 0
 
         # write verify success
-        mock_sfp.read_eeprom_by_page = MagicMock(return_value=bytearray([16]))
+        mock_sfp.read_eeprom = MagicMock(return_value=bytearray([16]))
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10', '--verify'])
         assert result.exit_code == 0
 
         # write verify failed
-        mock_sfp.read_eeprom_by_page = MagicMock(return_value=bytearray([10]))
+        mock_sfp.read_eeprom = MagicMock(return_value=bytearray([10]))
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '11', '--verify'])
         assert result.exit_code != 0
 
         # Not implemented
-        mock_sfp.write_eeprom_by_page.side_effect = NotImplementedError
+        mock_sfp.write_eeprom.side_effect = NotImplementedError
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
         # Value error
-        mock_sfp.write_eeprom_by_page.side_effect = ValueError
+        mock_sfp.write_eeprom.side_effect = ValueError
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '10'])
         assert result.exit_code == EXIT_FAIL
 
@@ -1085,6 +1084,80 @@ Ethernet0  N/A
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '00'])
         assert result.exit_code == EXIT_FAIL
+
+    def test_get_overall_offset_general(self):
+        api = MagicMock()
+        api.is_flat_memory = MagicMock(return_value=False)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, -1, 0, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 256, 0, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 0, -1, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 0, 256, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 1, 127, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 1, 256, 1)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 0, 0, 0)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_general(api, 0, 0, 257)
+
+        assert sfputil.get_overall_offset_general(api, 0, 1, 1) == 1
+
+    def test_get_overall_offset_sff8472(self):
+        api = MagicMock()
+        api.is_copper = MagicMock(return_value=False)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 1, None)
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 1, wire_addr='invalid')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 1, 0, 1, wire_addr='a0h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, -1, 1, wire_addr='A0h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 256, 1, wire_addr='A0h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 0, wire_addr='A0h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 257, wire_addr='A0h')
+
+        assert sfputil.get_overall_offset_sff8472(api, 0, 2, 2, wire_addr='A0h') == 2
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, -1, 0, 1, wire_addr='a2h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 256, 0, 1, wire_addr='a2h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, -1, 1, wire_addr='a2h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 0, wire_addr='A2h')
+
+        with pytest.raises(ValueError):
+            sfputil.get_overall_offset_sff8472(api, 0, 0, 257, wire_addr='A2h')
+
+        assert sfputil.get_overall_offset_sff8472(api, 0, 2, 2, wire_addr='A2h') == 258
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))

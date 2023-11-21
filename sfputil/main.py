@@ -48,8 +48,17 @@ MAX_LPL_FIRMWARE_BLOCK_SIZE = 116 #Bytes
 
 PAGE_SIZE = 128
 PAGE_OFFSET = 128
-
 SFF8472_A0_SIZE = 256
+MAX_EEPROM_PAGE = 255
+MAX_EEPROM_OFFSET = 255
+MIN_OFFSET_FOR_PAGE0 = 0
+MIN_OFFSET_FOR_OTHER_PAGE = 128
+MAX_OFFSET_FOR_A0H_UPPER_PAGE = 255
+MAX_OFFSET_FOR_A0H_LOWER_PAGE = 127
+MAX_OFFSET_FOR_A2H = 255
+PAGE_SIZE_FOR_A0H = 256
+
+EEPROM_DUMP_INDENT = ' ' * 8
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DD_DATA_MAP = {
@@ -793,6 +802,28 @@ def eeprom_hexdump_sff8636(port, physical_port, page):
 
     return output
 
+
+def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
+    """
+    Dump module EEPROM for given pages in hex format. This function is designed for SFF8472 only.
+    Args:
+        logical_port_name: logical port name
+        pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
+               user
+        target_page: user input page number, optional. target_page is only for display purpose
+    Returns:
+        tuple(0, dump string) if success else tuple(error_code, error_message)
+    """
+    sfp = platform_chassis.get_sfp(physical_port)
+    page_dump = sfp.read_eeprom(overall_offset, size)
+    if page_dump is None:
+        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, overall_offset {overall_offset}, page_offset {page_offset}, size {size}!'
+    if not no_format:
+        return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
+    else:
+        return 0, ''.join('{:02x}'.format(x) for x in page_dump)
+
+
 def convert_byte_to_valid_ascii_char(byte):
     if byte < 32 or 126 < byte:
         return '.'
@@ -1260,10 +1291,10 @@ def is_fw_switch_done(port_name):
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
                 click.echo("FW images switch successful : ImageA is running")
-                status = 1  # run_firmware is done. 
+                status = 1  # run_firmware is done.
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
                 click.echo("FW images switch successful : ImageB is running")
-                status = 1  # run_firmware is done. 
+                status = 1  # run_firmware is done.
             else:                                                   # No image is running, or running and committed image is same.
                 click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
@@ -1527,98 +1558,6 @@ def unlock(port_name, password):
     else:
         click.echo("CDB: Host password NOT accepted! status = {}".format(status))
 
-
-# 'read-eeprom' subcommand
-@cli.command()
-@click.argument('port_name', metavar='<port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.INT, required=True)
-@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
-@click.argument('size', metavar='<size>', type=click.INT, required=True)
-@click.option('--no-format', is_flag=True, help="Display non formatted data")
-@click.option('--wire-addr', help="Wire address of sff8472")
-def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
-    """Read SFP EEPROM data"""
-    if platform_sfputil.is_logical_port(port_name) == 0:
-        click.echo("Error: invalid port {}".format(port_name))
-        print_all_valid_port_values()
-        sys.exit(ERROR_INVALID_PORT)
-        
-    if is_port_type_rj45(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
-
-    physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
-    if not sfp.get_presence():
-        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
-        sys.exit(EXIT_FAIL)
-
-    try:
-        data = sfp.read_eeprom_by_page(page, offset, size, wire_addr)
-        if data is None:
-            click.echo("Error: Failed to read EEPROM!")
-            sys.exit(ERROR_NOT_IMPLEMENTED)
-        if no_format:
-            click.echo(''.join('{:02x}'.format(x) for x in data))
-        else:
-            click.echo(hexdump('', data, offset))
-    except NotImplementedError:
-        click.echo("This functionality is currently not implemented for this platform")
-        sys.exit(ERROR_NOT_IMPLEMENTED)
-    except ValueError as e:
-        click.echo("Error: {}".format(e))
-        sys.exit(EXIT_FAIL)
-
-
-# 'write-eeprom' subcommand
-@cli.command()
-@click.argument('port_name', metavar='<port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.INT, required=True)
-@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
-@click.argument('data', metavar='<data>', required=True)
-@click.option('--wire-addr', help="Wire address of sff8472")
-@click.option('--verify', is_flag=True, help="Verify the data by reading back")
-def write_eeprom(port_name, page, offset, data, wire_addr, verify):
-    """Write SFP EEPROM data"""
-    if platform_sfputil.is_logical_port(port_name) == 0:
-        click.echo("Error: invalid port {}".format(port_name))
-        print_all_valid_port_values()
-        sys.exit(ERROR_INVALID_PORT)
-
-    if is_port_type_rj45(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
-
-    physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
-    if not sfp.get_presence():
-        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
-        sys.exit(EXIT_FAIL)
-
-    try:
-        bytes = bytearray.fromhex(data)
-    except ValueError:
-        click.echo("Error: Data must be a hex string of even length!")
-        sys.exit(EXIT_FAIL)
-
-    try:
-        success = sfp.write_eeprom_by_page(page, offset, bytes, wire_addr)
-        if not success:
-            click.echo("Error: Failed to write EEPROM!")
-            sys.exit(ERROR_NOT_IMPLEMENTED)
-        if verify:
-            read_data = sfp.read_eeprom_by_page(page, offset, len(bytes), wire_addr)
-            if read_data != bytes:
-                click.echo(f"Error: Write data failed! Write: {''.join('{:02x}'.format(x) for x in bytes)}, read: {''.join('{:02x}'.format(x) for x in read_data)}")
-                sys.exit(EXIT_FAIL)
-    except NotImplementedError:
-        click.echo("This functionality is currently not implemented for this platform")
-        sys.exit(ERROR_NOT_IMPLEMENTED)
-    except ValueError as e:
-        click.echo("Error: {}".format(e))
-        sys.exit(EXIT_FAIL)
-
-
 # 'version' subcommand
 @cli.command()
 def version():
@@ -1662,6 +1601,187 @@ def target(port_name, target):
     else:
         click.echo("Target Mode set failed!")
         sys.exit(EXIT_FAIL)
+
+
+# 'read-eeprom' subcommand
+@cli.command()
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('page', metavar='<page>', type=click.INT, required=True)
+@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
+@click.argument('size', metavar='<size>', type=click.INT, required=True)
+@click.option('--no-format', is_flag=True, help="Display non formatted data")
+@click.option('--wire-addr', help="Wire address of sff8472")
+def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
+    """Read SFP EEPROM data"""
+    try:
+        if platform_sfputil.is_logical_port(port_name) == 0:
+            click.echo("Error: invalid port {}".format(port_name))
+            print_all_valid_port_values()
+            sys.exit(ERROR_INVALID_PORT)
+
+        if is_port_type_rj45(port_name):
+            click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
+            sys.exit(EXIT_FAIL)
+
+        physical_port = logical_port_to_physical_port_index(port_name)
+        sfp = platform_chassis.get_sfp(physical_port)
+        if not sfp.get_presence():
+            click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+            sys.exit(EXIT_FAIL)
+
+        from sonic_platform_base.sonic_xcvr.api.public import sff8472
+        api = sfp.get_xcvr_api()
+        if api is None:
+            click.echo('Error: SFP EEPROM not detected!')
+        if not isinstance(api, sff8472.Sff8472Api):
+            overall_offset = get_overall_offset_general(api, page, offset, size)
+        else:
+            overall_offset = get_overall_offset_sff8472(api, page, offset, size, wire_addr)
+        return_code, output = eeprom_dump_general(physical_port, page, overall_offset, size, offset, no_format)
+        if return_code != 0:
+            click.echo("Error: Failed to read EEPROM!")
+            sys.exit(return_code)
+        click.echo(output)
+    except NotImplementedError:
+        click.echo("This functionality is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+    except ValueError as e:
+        click.echo(f"Error: {e}")
+        sys.exit(EXIT_FAIL)
+
+
+# 'write-eeprom' subcommand
+@cli.command()
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('page', metavar='<page>', type=click.INT, required=True)
+@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
+@click.argument('data', metavar='<data>', required=True)
+@click.option('--wire-addr', help="Wire address of sff8472")
+@click.option('--verify', is_flag=True, help="Verify the data by reading back")
+def write_eeprom(port_name, page, offset, data, wire_addr, verify):
+    """Write SFP EEPROM data"""
+    try:
+        if platform_sfputil.is_logical_port(port_name) == 0:
+            click.echo("Error: invalid port {}".format(port_name))
+            print_all_valid_port_values()
+            sys.exit(ERROR_INVALID_PORT)
+
+        if is_port_type_rj45(port_name):
+            click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
+            sys.exit(EXIT_FAIL)
+
+        physical_port = logical_port_to_physical_port_index(port_name)
+        sfp = platform_chassis.get_sfp(physical_port)
+        if not sfp.get_presence():
+            click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+            sys.exit(EXIT_FAIL)
+
+        try:
+            bytes = bytearray.fromhex(data)
+        except ValueError:
+            click.echo("Error: Data must be a hex string of even length!")
+            sys.exit(EXIT_FAIL)
+
+        from sonic_platform_base.sonic_xcvr.api.public import sff8472
+        api = sfp.get_xcvr_api()
+        if api is None:
+            click.echo('Error: SFP EEPROM not detected!')
+            sys.exit(EXIT_FAIL)
+
+        if not isinstance(api, sff8472.Sff8472Api):
+            overall_offset = get_overall_offset_general(api, page, offset, len(bytes))
+        else:
+            overall_offset = get_overall_offset_sff8472(api, page, offset, len(bytes), wire_addr)
+        success = sfp.write_eeprom(overall_offset, len(bytes), bytes)
+        if not success:
+            click.echo("Error: Failed to write EEPROM!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+        if verify:
+            read_data = sfp.read_eeprom(overall_offset, len(bytes))
+            if read_data != bytes:
+                click.echo(f"Error: Write data failed! Write: {''.join('{:02x}'.format(x) for x in bytes)}, read: {''.join('{:02x}'.format(x) for x in read_data)}")
+                sys.exit(EXIT_FAIL)
+    except NotImplementedError:
+        click.echo("This functionality is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+    except ValueError as e:
+        click.echo("Error: {}".format(e))
+        sys.exit(EXIT_FAIL)
+
+
+def get_overall_offset_general(api, page, offset, size):
+    """
+    Validate input parameter page, offset, size and translate them to overall offset
+    Args:
+        api: cable API object
+        page: module EEPROM page number.
+        offset: module EEPROM page offset.
+        size: number bytes of the data to be read/write
+
+    Returns:
+        The overall offset
+    """
+    max_page = 0 if api.is_flat_memory() else MAX_EEPROM_PAGE
+    if max_page == 0 and page != 0:
+        raise ValueError(f'Invalid page number {page}, only page 0 is supported')
+
+    if page < 0 or page > max_page:
+        raise ValueError(f'Invalid page number {page}, valid range: [0, {max_page}]')
+
+    if page == 0:
+        if offset < MIN_OFFSET_FOR_PAGE0 or offset > MAX_EEPROM_OFFSET:
+            raise ValueError(f'Invalid offset {offset} for page 0, valid range: [0, 255]')
+    else:
+        if offset < MIN_OFFSET_FOR_OTHER_PAGE or offset > MAX_EEPROM_OFFSET:
+            raise ValueError(f'Invalid offset {offset} for page {page}, valid range: [128, 255]')
+
+    if size <= 0 or size + offset - 1 > MAX_EEPROM_OFFSET:
+        raise ValueError(f'Invalid size {size}, valid range: [1, {255 - offset + 1}]')
+
+    return page * PAGE_SIZE + offset
+
+
+def get_overall_offset_sff8472(api, page, offset, size, wire_addr):
+    """
+        Validate input parameter page, offset, size, wire_addr and translate them to overall offset
+        Args:
+            api: cable API object
+            page: module EEPROM page number.
+            offset: module EEPROM page offset.
+            size: number bytes of the data to be read/write
+            wire_addr: case-insensitive wire address string. Only valid for sff8472, a0h or a2h.
+
+        Returns:
+            The overall offset
+        """
+    if not wire_addr:
+        raise ValueError("Invalid wire address for sff8472, must a0h or a2h")
+
+    is_active_cable = not api.is_copper()
+    valid_wire_address = ('a0h', 'a2h') if is_active_cable else ('a0h',)
+    wire_addr = wire_addr.lower()
+    if wire_addr not in valid_wire_address:
+        raise ValueError(f"Invalid wire address {wire_addr} for sff8472, must be {' or '.join(valid_wire_address)}")
+
+    if wire_addr == 'a0h':
+        if page != 0:
+            raise ValueError(f'Invalid page number {page} for wire address {wire_addr}, only page 0 is supported')
+        max_offset = MAX_OFFSET_FOR_A0H_UPPER_PAGE if is_active_cable else MAX_OFFSET_FOR_A0H_LOWER_PAGE
+        if offset < 0 or offset > max_offset:
+            raise ValueError(f'Invalid offset {offset} for wire address {wire_addr}, valid range: [0, {max_offset}]')
+        if size <= 0 or size + offset - 1 > max_offset:
+            raise ValueError(
+                f'Invalid size {size} for wire address {wire_addr}, valid range: [1, {max_offset - offset + 1}]')
+        return offset
+    else:
+        if page < 0 or page > MAX_EEPROM_PAGE:
+            raise ValueError(f'Invalid page number {page} for wire address {wire_addr}, valid range: [0, 255]')
+        if offset < 0 or offset > MAX_OFFSET_FOR_A2H:
+            raise ValueError(f'Invalid offset {offset} for wire address {wire_addr}, valid range: [0, 255]')
+        if size <= 0 or size + offset - 1 > MAX_OFFSET_FOR_A2H:
+            raise ValueError(f'Invalid size {size} for wire address {wire_addr}, valid range: [1, {255 - offset + 1}]')
+        return page * PAGE_SIZE + offset + PAGE_SIZE_FOR_A0H
+
 
 if __name__ == '__main__':
     cli()
