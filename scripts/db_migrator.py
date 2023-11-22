@@ -50,7 +50,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_4'
+        self.CURRENT_VERSION = 'version_6_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -1042,26 +1042,35 @@ class DBMigrator():
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
 
-        self.set_version('version_4_0_3')
-        return 'version_4_0_3'
+        self.set_version('version_5_0_1')
+        return 'version_5_0_1'
 
-    def version_4_0_3(self):
+    def version_5_0_1(self):
         """
-        Version 4_0_3.
+        Version 5_0_1.
+        This is the latest version for 202305 branch
         """
-        log.log_info('Handling version_4_0_3')
+        log.log_info('Handling version_5_0_1')
+        self.set_version('version_6_0_1')
+        return 'version_6_0_1'
+
+    def version_6_0_1(self):
+        """
+        Version 6_0_1.
+        """
+        log.log_info('Handling version_6_0_1')
 
         # Updating DNS nameserver
         self.migrate_dns_nameserver()
-        self.set_version('version_4_0_4')
-        return 'version_4_0_4'
+        self.set_version('version_6_0_2')
+        return 'version_6_0_2'
 
-    def version_4_0_4(self):
+    def version_6_0_2(self):
         """
-        Version 4_0_4.
+        Version 6_0_2.
         This is the latest version for master branch
         """
-        log.log_info('Handling version_4_0_4')
+        log.log_info('Handling version_6_0_2')
         return None
 
     def get_version(self):
