@@ -155,7 +155,7 @@ def parse_password(ctx, param, value):
         except ValueError:
             raise click.BadParameter("invalid password format")
     if len(password) not in [4, 6]:
-        raise click.BadParameter("password must be 4 or 6 bytes")
+        raise click.BadParameter("password must be 4 or 6 bytes or empty")
     return password
 
 
