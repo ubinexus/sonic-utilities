@@ -727,6 +727,19 @@ class DBMigrator():
         """
         Migrate "SFLOW_TABLE" and "SFLOW_SESSION_TABLE" to update default sample_direction
         """
+
+        sflow_tbl = self.configDB.get_table('SFLOW')
+        for k, v in sflow_tbl.items():
+            if 'sample_direction' not in v:
+                v['sample_direction'] = 'rx'
+                self.configDB.set_entry('SFLOW', k, v)
+
+        sflow_sess_tbl = self.configDB.get_table('SFLOW_SESSION')
+        for k, v in sflow_sess_tbl.items():
+            if 'sample_direction' not in v:
+                v['sample_direction'] = 'rx'
+                self.configDB.set_entry('SFLOW_SESSION', k, v)
+
         sflow_table = self.appDB.get_table("SFLOW_TABLE")
         for key, value in sflow_table.items():
             if 'sample_direction' not in value:
@@ -1074,18 +1087,6 @@ class DBMigrator():
         Version 4_0_4.
         """
         log.log_info('Handling version_4_0_4')
-
-        sflow_tbl = self.configDB.get_table('SFLOW')
-        for k, v in sflow_tbl.items():
-            if 'sample_direction' not in v:
-                v['sample_direction'] = 'rx'
-                self.configDB.set_entry('SFLOW', k, v)
-
-        sflow_sess_tbl = self.configDB.get_table('SFLOW_SESSION')
-        for k, v in sflow_sess_tbl.items():
-            if 'sample_direction' not in v:
-                v['sample_direction'] = 'rx'
-                self.configDB.set_entry('SFLOW_SESSION', k, v)
 
         self.migrate_sflow_table()
         self.set_version('version_4_0_5')
