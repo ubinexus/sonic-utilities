@@ -7,44 +7,15 @@ from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 import utilities_common.cli as clicommon
+from sonic_py_common.security_cipher import security_cipher
 
 ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
 RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
 TACACS_PASSKEY_MAX_LEN = 65
-TACACS_SECRET_SALT = "2e6593364d369fba925092e0c1c51466c276faa127f20d18cc5ed8ae52bedbcd"
 
-def get_salt():
-    file_path = "/etc/shadow"
-    target_username = "admin" + ":"
-    salt = TACACS_SECRET_SALT
-
-    # Read the file and search for the "admin" username
-    try:
-        with open(file_path, 'r') as file:
-            for line in file:
-                if target_username in line:
-                    # Format: username:$id$salt$hashed
-                    parts = line.split('$')
-                    if len(parts) == 4:
-                        salt = parts[2]
-                        break
-
-    except FileNotFoundError:
-        syslog.syslog(syslog.LOG_ERR, "File not found: {}".format(file_path))
-    except Exception as e:
-        syslog.syslog(syslog.LOG_ERR, "output: {}".format(str(e)))
-    return salt
-
-
-def encrypt_passkey(secret):
-    salt = get_salt()
-    cmd = [ 'openssl', 'enc', '-aes-128-cbc', '-A',  '-a', '-salt', '-pbkdf2', '-pass', 'pass:' + salt ]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    outsecret, errs = p.communicate(input=secret)
-    return outsecret,errs
-
+secure_cipher = security_cipher()
 
 def is_secret(secret):
     return bool(re.match('^' + '[^ #,]*' + '$', secret))
@@ -280,14 +251,16 @@ def passkey(ctx, secret):
         elif not is_secret(secret):
             click.echo(VALID_CHARS_MSG)
             return
-        config_db = ConfigDBConnector()
-        config_db.connect()
-        outsecret, errs = encrypt_passkey(secret)
-        if not errs: 
-            add_table_kv('TACPLUS', 'global', 'passkey', outsecret)
+        if secure_cipher.is_key_encrypt_enabled('TACPLUS', 'global'):
+            passwd = getpass.getpass()
+            outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', secret, passwd)
+            if not errs:
+                add_table_kv('TACPLUS', 'global', 'passkey', outsecret)
+            else:
+                click.echo('Passkey configuration failed' % errs)
+                return
         else:
-            click.echo('Passkey configuration failed' % errs)
-            return
+            add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
         click.echo('Argument "secret" is required')
 tacacs.add_command(passkey)
@@ -325,12 +298,16 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         if timeout is not None:
             data['timeout'] = str(timeout)
         if key is not None:
-            outsecret, errs = encrypt_passkey(key)
-            if not errs: 
-                data['passkey'] = outsecret
+            if secure_cipher.is_key_encrypt_enabled('TACPLUS_SERVER', address):
+                passwd = getpass.getpass()
+                outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', key, passwd)
+                if not errs:
+                    data['passkey'] = outsecret
+                else:
+                    click.echo('Passkey configuration failed' % errs)
+                    return
             else:
-                click.echo('Passkey configuration failed' % errs)
-                return
+                data['passkey'] = key 
         if use_mgmt_vrf :
             data['vrf'] = "mgmt"
         try:
