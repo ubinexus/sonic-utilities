@@ -53,13 +53,9 @@ def configPfcPrio(status, interface, priority):
     configdb = ConfigDBConnector()
     configdb.connect()
 
-    if interface not in configdb.get_keys('PORT_QOS_MAP'):
-        click.echo('Cannot find interface {0}'.format(interface))
-        return 
-
     """Current lossless priorities on the interface""" 
     entry = configdb.get_entry('PORT_QOS_MAP', interface)
-    enable_prio = entry.get('pfc_enable').split(',')
+    enable_prio = entry.get('pfc_enable', '').split(',')
     
     """Avoid '' in enable_prio"""
     enable_prio = [x.strip() for x in enable_prio if x.strip()]
