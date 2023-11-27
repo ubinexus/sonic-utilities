@@ -740,3 +740,59 @@ class TestFastUpgrade_to_4_0_3(object):
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
+
+
+class TestGNMIMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_dns_nameserver_migrator_minigraph(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'gnmi-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # Set minigraph_data
+        dbmgtr.minigraph_data = {
+            'GNMI': {
+                'gnmi': {
+                    "client_auth": "true", 
+                    "log_level": "2", 
+                    "port": "50052"
+                }, 
+                'certs': {
+                    "server_key": "/etc/sonic/telemetry/streamingtelemetryserver.key", 
+                    "ca_crt": "/etc/sonic/telemetry/dsmsroot.cer", 
+                    "server_crt": "/etc/sonic/telemetry/streamingtelemetryserver.cer"
+                }
+            }
+        }
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'gnmi-minigraph-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_5')
+        resulting_table = dbmgtr.configDB.get_table("GNMI")
+        expected_table = expected_db.cfgdb.get_table("GNMI")
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+    def test_dns_nameserver_migrator_configdb(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'gnmi-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # Set minigraph_data
+        dbmgtr.minigraph_data = {}
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'gnmi-configdb-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_5')
+        resulting_table = dbmgtr.configDB.get_table("GNMI")
+        expected_table = expected_db.cfgdb.get_table("GNMI")
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff

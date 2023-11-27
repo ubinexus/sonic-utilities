@@ -50,7 +50,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_4'
+        self.CURRENT_VERSION = 'version_4_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -567,6 +567,25 @@ class DBMigrator():
         if not certs:
             self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
+    def migrate_gnmi(self):
+        # GNMI - add missing key
+        if not self.minigraph_data or 'GNMI' not in self.minigraph_data:
+            # If there's no GNMI in minigraph, copy configuration from CONFIG_DB TELEMETRY table
+            gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
+            if gnmi:
+                self.configDB.set_entry("GNMI", "gnmi", gnmi)
+            certs = self.configDB.get_entry('TELEMETRY', 'certs')
+            if certs:
+                self.configDB.set_entry("GNMI", "certs", certs)
+        else:
+            # If there's GNMI in minigraph, copy configuration from minigraph
+            gnmi_data = self.minigraph_data['GNMI']
+            log.log_notice('Migrate GNMI configuration')
+            if 'gnmi' in gnmi_data:
+                self.configDB.set_entry("GNMI", "gnmi", gnmi_data.get('gnmi'))
+            if 'certs' in gnmi_data:
+                self.configDB.set_entry("GNMI", "certs", gnmi_data.get('certs'))
+
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
         if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
@@ -1059,9 +1078,19 @@ class DBMigrator():
     def version_4_0_4(self):
         """
         Version 4_0_4.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_4')
+        # Updating GNMI table
+        self.migrate_gnmi()
+        self.set_version('version_4_0_5')
+        return 'version_4_0_5'
+
+    def version_4_0_5(self):
+        """
+        Version 4_0_5.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_5')
         return None
 
     def get_version(self):
