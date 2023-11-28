@@ -560,7 +560,7 @@ This command displays the current date and time configured on the system
   ```
 
 **config clock date**
-
+	
 This command will set the date-time of the systetm, given strings with date-time format <YYYY-MM-DD> <HH:MM:SS>
 
 - Usage:
@@ -578,7 +578,7 @@ This command will set the date-time of the systetm, given strings with date-time
   ```
 
 **config clock timezone**
-
+	
 This command will set the timezone of the systetm, given a string of a valid timezone.
 
 - Usage:
@@ -588,13 +588,13 @@ This command will set the timezone of the systetm, given a string of a valid tim
 
 - Parameters:
   - _timezone_: valid timezone to be configured
-
-
+	
+	
 - Example:
   ```
   admin@sonic:~$ config clock timezone Africa/Accra
 
-
+	
 **show clock timezones**
 
 This command Will display list of all valid timezones to be configured.
@@ -2571,7 +2571,7 @@ Once enabled, BGP will not advertise routes which aren't yet offloaded.
   admin@sonic:~$ sudo config suppress-fib-pending enabled
   ```
   ```
-  admin@sonic:~$ sudo config suppress-fib-pending disabled
+  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -2851,7 +2851,7 @@ This command is used for downloading firmware tp upgrade the transciever module.
   ```
 **sfputil firmware run**
 
-This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware.
+This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware. 
 
 - Usage:
   ```
@@ -2876,7 +2876,7 @@ This command is used to start and run a downloaded image. This command transfers
 
 **sfputil firmware commit**
 
-This command to commit the running image so that the module will boot from it on future boots.
+This command to commit the running image so that the module will boot from it on future boots. 
 
 - Usage:
   ```
@@ -4597,7 +4597,7 @@ This command is to display the FEC status of the selected interfaces. If **inter
   show interfaces fec status [<interface_name>]
   ```
 
-- Example:
+- Example:  
 ```
   admin@sonic:~$ show interfaces fec status
   Interface    FEC Oper    FEC Admin
@@ -6849,7 +6849,7 @@ in order to detemine whether the health of the cable is Ok
 the following are checked
 - the vendor name is correct able to be read
 - the FW is correctly loaded for SerDes by reading the appropriate register val
-- the Counters for UART are displaying healthy status
+- the Counters for UART are displaying healthy status 
        i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
 
 
@@ -6905,7 +6905,7 @@ the result will be displayed like this, each item in the dictionary shows the he
            {
                "uart_stat1": "2",
                "uart_stat2": "1",
-
+                 
            }
     ```
 

@@ -256,7 +256,7 @@ class TestSfputil(object):
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
 '''
-        ),
+        ), 
         (
             'QSFP-DD Double Density 8X Pluggable Transceiver',
             {

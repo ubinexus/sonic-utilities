@@ -48,6 +48,7 @@ MAX_LPL_FIRMWARE_BLOCK_SIZE = 116 #Bytes
 
 PAGE_SIZE = 128
 PAGE_OFFSET = 128
+
 SFF8472_A0_SIZE = 256
 MAX_EEPROM_PAGE = 255
 MAX_EEPROM_OFFSET = 255
@@ -1291,10 +1292,10 @@ def is_fw_switch_done(port_name):
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
                 click.echo("FW images switch successful : ImageA is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
                 click.echo("FW images switch successful : ImageB is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             else:                                                   # No image is running, or running and committed image is same.
                 click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
