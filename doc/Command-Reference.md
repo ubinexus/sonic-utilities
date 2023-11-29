@@ -12845,6 +12845,10 @@ Options:
 ```
 admin@sonic:~$ sfputil write-eeprom Ethernet0 0 100 4a44
 
+# Write success
+admin@sonic:~$ sfputil write-eeprom Etherent0 0 100 0000 --verify
+
+# Write fail
 admin@sonic:~$ sfputil write-eeprom Etherent0 0 100 4a44 --verify
 Error: Write data failed! Write: 4a44, read: 0000.
 ```
