@@ -53,7 +53,7 @@ SFF8472_A0_SIZE = 256
 MAX_EEPROM_PAGE = 255
 MAX_EEPROM_OFFSET = 255
 MIN_OFFSET_FOR_PAGE0 = 0
-MIN_OFFSET_FOR_OTHER_PAGE = 128
+MIN_OFFSET_FOR_NON_PAGE0  = 128
 MAX_OFFSET_FOR_A0H_UPPER_PAGE = 255
 MAX_OFFSET_FOR_A0H_LOWER_PAGE = 127
 MAX_OFFSET_FOR_A2H = 255
@@ -806,7 +806,7 @@ def eeprom_hexdump_sff8636(port, physical_port, page):
 
 def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
     """
-    Dump module EEPROM for given pages in hex format. This function is designed for SFF8472 only.
+    Dump module EEPROM for given pages in hex format. This function is designed for non-SFF8472.
     Args:
         logical_port_name: logical port name
         pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
@@ -1733,7 +1733,7 @@ def get_overall_offset_general(api, page, offset, size):
         if offset < MIN_OFFSET_FOR_PAGE0 or offset > MAX_EEPROM_OFFSET:
             raise ValueError(f'Invalid offset {offset} for page 0, valid range: [0, 255]')
     else:
-        if offset < MIN_OFFSET_FOR_OTHER_PAGE or offset > MAX_EEPROM_OFFSET:
+        if offset < MIN_OFFSET_FOR_NON_PAGE0 or offset > MAX_EEPROM_OFFSET:
             raise ValueError(f'Invalid offset {offset} for page {page}, valid range: [128, 255]')
 
     if size <= 0 or size + offset - 1 > MAX_EEPROM_OFFSET:
