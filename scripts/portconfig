@@ -25,15 +25,20 @@ import argparse
 import swsssdk
 
 PORT_TABLE_NAME = "PORT"
+PORTCHANNEL_TABLE_NAME = "PORTCHANNEL"
+PORT_PREFIX_ETHERNET = "Ethernet"
+PORT_PREFIX_PORTCHANNEL = "PortChannel"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
 PORT_MTU_CONFIG_FIELD_NAME = "mtu"
 
+
 class portconfig(object):
     """
-    Process aclstat
+    Process portconfig
     """
-    def __init__(self, verbose, port, namespace):
+
+    def __init__(self, verbose, table_name, port, namespace):
         self.verbose = verbose
 
         # Set up db connections
@@ -44,59 +49,67 @@ class portconfig(object):
         self.db.connect()
 
         # check whether table for this port exists
-        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        port_tables = self.db.get_table(table_name)
         if not port_tables.has_key(port):
             raise Exception("Invalid port specified")
 
-    def list_params(self, port):
+    def list_params(self, table_name, port):
         # chack whether table for this port exists
-        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        port_tables = self.db.get_table(table_name)
         if port_tables.has_key(port):
             print(port_tables[port])
 
-    def set_speed(self, port, speed):
+    def set_speed(self, table_name, port, speed):
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+        self.db.mod_entry(table_name, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
-    def set_fec(self, port, fec):
+    def set_fec(self, table_name, port, fec):
         if self.verbose:
             print("Setting fec %s on port %s" % (fec, port))
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
+        self.db.mod_entry(table_name, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
-    def set_mtu(self, port, mtu):
+    def set_mtu(self, table_name, port, mtu):
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
+        self.db.mod_entry(table_name, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
+
 
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
-                         version='1.0.0',
-                         formatter_class=argparse.RawTextHelpFormatter)
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
-    parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
+    parser.add_argument('-l', '--list', action='store_true', help='list port parameters', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
-    parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
-                        help = 'The asic namespace whose DB instance we need to connect', default=None)
+    parser.add_argument('-n', '--namespace', metavar='namespace details', type=str, required=False,
+                        help='The asic namespace whose DB instance we need to connect', default=None)
     args = parser.parse_args()
 
     if args.namespace is not None:
         swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
     try:
-        port = portconfig(args.verbose, args.port, args.namespace)
+        if args.port.startswith(PORT_PREFIX_ETHERNET):
+            port_table_name = PORT_TABLE_NAME
+        elif args.port.startswith(PORT_PREFIX_PORTCHANNEL):
+            port_table_name = PORTCHANNEL_TABLE_NAME
+        else:
+            raise Exception("Invalid port type specified")
+
+        port = portconfig(args.verbose, port_table_name, args.port, args.namespace)
         if args.list:
-            port.list_params(args.port)
+            port.list_params(port_table_name, args.port)
         elif args.speed or args.fec or args.mtu:
             if args.speed:
-                port.set_speed(args.port, args.speed)
+                port.set_speed(port_table_name, args.port, args.speed)
             if args.fec:
-                port.set_fec(args.port, args.fec)
+                port.set_fec(port_table_name, args.port, args.fec)
             if args.mtu:
-                port.set_mtu(args.port, args.mtu)
+                port.set_mtu(port_table_name, args.port, args.mtu)
         else:
             parser.print_help()
             sys.exit(1)
@@ -104,6 +117,7 @@ def main():
     except Exception as e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
