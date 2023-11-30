@@ -806,7 +806,7 @@ def eeprom_hexdump_sff8636(port, physical_port, page):
 
 def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
     """
-    Dump module EEPROM for given pages in hex format. This function is designed for non-SFF8472.
+    Dump module EEPROM for given pages in hex format.
     Args:
         logical_port_name: logical port name
         pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
