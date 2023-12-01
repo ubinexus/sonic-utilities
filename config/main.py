@@ -1515,6 +1515,18 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
+    #Validate config_db.json file
+    if file_format == 'config_db':
+        if os.path.exists(DEFAULT_CONFIG_DB_FILE):
+            command = [str(SONIC_CFGGEN_PATH), '-j', str(DEFAULT_CONFIG_DB_FILE)]
+            clicommon.run_command(command, display_cmd=True)
+        if  num_cfg_file > 1:
+            for inst in range(0, num_cfg_file-1):
+                file = "/etc/sonic/config_db{}.json".format(inst)
+                if os.path.exists(file) :
+                    command = [str(SONIC_CFGGEN_PATH), '-j', str(file)]
+                    clicommon.run_command(command, display_cmd=True)
+    
     #Stop services before config push
     if not no_service_restart:
         log.log_notice("'reload' stopping services...")
