@@ -1085,78 +1085,112 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '0', '0', '00'])
         assert result.exit_code == EXIT_FAIL
 
-    def test_get_overall_offset_general(self):
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    @patch('sfputil.main.platform_chassis')
+    def test_get_overall_offset_general(self, mock_chassis):
         api = MagicMock()
         api.is_flat_memory = MagicMock(return_value=False)
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, -1, 0, 1)
+        mock_sfp.get_presence = MagicMock(return_value=True)
+        mock_sfp.get_xcvr_api = MagicMock(return_value=api)
+        
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '-1', '0', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '256', '0', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '0', '-1', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '0', '256', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '1', '127', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '1', '256', '01'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--', '0', '0', '0'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--', '0', '0', '257'])
+        assert result.exit_code != 0
+        
+        result = runner.invoke(sfputil.cli.commands['write-eeprom'], ["Ethernet0", '--', '0', '1', '01'])
+        assert result.exit_code == 0
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 256, 0, 1)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 0, -1, 1)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 0, 256, 1)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 1, 127, 1)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 1, 256, 1)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 0, 0, 0)
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_general(api, 0, 0, 257)
-
-        assert sfputil.get_overall_offset_general(api, 0, 1, 1) == 1
-
-    def test_get_overall_offset_sff8472(self):
+    @patch('sfputil.main.isinstance', MagicMock(return_value=True))
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    @patch('sfputil.main.platform_chassis')
+    def test_get_overall_offset_sff8472(self, mock_chassis):
         api = MagicMock()
         api.is_copper = MagicMock(return_value=False)
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 1, None)
+        mock_sfp.get_presence = MagicMock(return_value=True)
+        mock_sfp.get_xcvr_api = MagicMock(return_value=api)
+        
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--', '0', '0', '1'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'invalid', '0', '0', '1'])
+        assert result.exit_code != 0
+        print(result.output)
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 1, wire_addr='invalid')
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a0h', '1', '0', '1'])
+        assert result.exit_code != 0
+        print(result.output)
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 1, 0, 1, wire_addr='a0h')
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'A0h', '--', '0', '-1', '1'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'A0h', '--', '0', '256', '1'])
+        assert result.exit_code != 0
+        print(result.output)
 
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, -1, 1, wire_addr='A0h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 256, 1, wire_addr='A0h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 0, wire_addr='A0h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 257, wire_addr='A0h')
-
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'A0h', '--', '0', '0', '0'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'A0h', '--', '0', '0', '257'])
+        assert result.exit_code != 0
+        print(result.output)
+        
         assert sfputil.get_overall_offset_sff8472(api, 0, 2, 2, wire_addr='A0h') == 2
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, -1, 0, 1, wire_addr='a2h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 256, 0, 1, wire_addr='a2h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, -1, 1, wire_addr='a2h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 0, wire_addr='A2h')
-
-        with pytest.raises(ValueError):
-            sfputil.get_overall_offset_sff8472(api, 0, 0, 257, wire_addr='A2h')
-
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a2h', '--', '-1', '0', '1'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a2h', '--', '256', '0', '1'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a2h', '--', '0', '-1', '1'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a2h', '--', '0', '0', '0'])
+        assert result.exit_code != 0
+        print(result.output)
+        
+        result = runner.invoke(sfputil.cli.commands['read-eeprom'], ["Ethernet0", '--wire-addr', 'a2h', '--', '0', '0', '257'])
+        assert result.exit_code != 0
+        print(result.output)
+        
         assert sfputil.get_overall_offset_sff8472(api, 0, 2, 2, wire_addr='A2h') == 258
 
     @patch('sfputil.main.platform_chassis')

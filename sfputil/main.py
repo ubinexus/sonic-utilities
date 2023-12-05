@@ -52,7 +52,6 @@ PAGE_OFFSET = 128
 SFF8472_A0_SIZE = 256
 MAX_EEPROM_PAGE = 255
 MAX_EEPROM_OFFSET = 255
-MIN_OFFSET_FOR_PAGE0 = 0
 MIN_OFFSET_FOR_NON_PAGE0  = 128
 MAX_OFFSET_FOR_A0H_UPPER_PAGE = 255
 MAX_OFFSET_FOR_A0H_LOWER_PAGE = 127
@@ -1606,14 +1605,16 @@ def target(port_name, target):
 
 # 'read-eeprom' subcommand
 @cli.command()
-@click.argument('port_name', metavar='<port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.INT, required=True)
-@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
-@click.argument('size', metavar='<size>', type=click.INT, required=True)
+@click.argument('port_name', metavar='<logical_port_name>', required=True)
+@click.argument('page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), required=True)
+@click.argument('offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), required=True)
+@click.argument('size', metavar='<size>', type=click.IntRange(1, MAX_EEPROM_OFFSET + 1), required=True)
 @click.option('--no-format', is_flag=True, help="Display non formatted data")
 @click.option('--wire-addr', help="Wire address of sff8472")
 def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
-    """Read SFP EEPROM data"""
+    """Read SFP EEPROM data
+       <port_name>: 
+    """
     try:
         if platform_sfputil.is_logical_port(port_name) == 0:
             click.echo("Error: invalid port {}".format(port_name))
@@ -1653,9 +1654,9 @@ def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
 
 # 'write-eeprom' subcommand
 @cli.command()
-@click.argument('port_name', metavar='<port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.INT, required=True)
-@click.argument('offset', metavar='<offset>', type=click.INT, required=True)
+@click.argument('port_name', metavar='<logical_port_name>', required=True)
+@click.argument('page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), required=True)
+@click.argument('offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), required=True)
 @click.argument('data', metavar='<data>', required=True)
 @click.option('--wire-addr', help="Wire address of sff8472")
 @click.option('--verify', is_flag=True, help="Verify the data by reading back")
@@ -1722,21 +1723,15 @@ def get_overall_offset_general(api, page, offset, size):
     Returns:
         The overall offset
     """
-    max_page = 0 if api.is_flat_memory() else MAX_EEPROM_PAGE
-    if max_page == 0 and page != 0:
-        raise ValueError(f'Invalid page number {page}, only page 0 is supported')
+    if api.is_flat_memory():
+        if page != 0:
+            raise ValueError(f'Invalid page number {page}, only page 0 is supported')
 
-    if page < 0 or page > max_page:
-        raise ValueError(f'Invalid page number {page}, valid range: [0, {max_page}]')
-
-    if page == 0:
-        if offset < MIN_OFFSET_FOR_PAGE0 or offset > MAX_EEPROM_OFFSET:
-            raise ValueError(f'Invalid offset {offset} for page 0, valid range: [0, 255]')
-    else:
-        if offset < MIN_OFFSET_FOR_NON_PAGE0 or offset > MAX_EEPROM_OFFSET:
+    if page != 0:
+        if offset < MIN_OFFSET_FOR_NON_PAGE0:
             raise ValueError(f'Invalid offset {offset} for page {page}, valid range: [128, 255]')
 
-    if size <= 0 or size + offset - 1 > MAX_EEPROM_OFFSET:
+    if size + offset - 1 > MAX_EEPROM_OFFSET:
         raise ValueError(f'Invalid size {size}, valid range: [1, {255 - offset + 1}]')
 
     return page * PAGE_SIZE + offset
@@ -1768,18 +1763,14 @@ def get_overall_offset_sff8472(api, page, offset, size, wire_addr):
         if page != 0:
             raise ValueError(f'Invalid page number {page} for wire address {wire_addr}, only page 0 is supported')
         max_offset = MAX_OFFSET_FOR_A0H_UPPER_PAGE if is_active_cable else MAX_OFFSET_FOR_A0H_LOWER_PAGE
-        if offset < 0 or offset > max_offset:
+        if offset > max_offset:
             raise ValueError(f'Invalid offset {offset} for wire address {wire_addr}, valid range: [0, {max_offset}]')
-        if size <= 0 or size + offset - 1 > max_offset:
+        if size + offset - 1 > max_offset:
             raise ValueError(
                 f'Invalid size {size} for wire address {wire_addr}, valid range: [1, {max_offset - offset + 1}]')
         return offset
     else:
-        if page < 0 or page > MAX_EEPROM_PAGE:
-            raise ValueError(f'Invalid page number {page} for wire address {wire_addr}, valid range: [0, 255]')
-        if offset < 0 or offset > MAX_OFFSET_FOR_A2H:
-            raise ValueError(f'Invalid offset {offset} for wire address {wire_addr}, valid range: [0, 255]')
-        if size <= 0 or size + offset - 1 > MAX_OFFSET_FOR_A2H:
+        if size + offset - 1 > MAX_OFFSET_FOR_A2H:
             raise ValueError(f'Invalid size {size} for wire address {wire_addr}, valid range: [1, {255 - offset + 1}]')
         return page * PAGE_SIZE + offset + PAGE_SIZE_FOR_A0H
 
