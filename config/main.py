@@ -1517,8 +1517,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
     #Validate config_db.json file
     if file_format == 'config_db':
-        if os.path.exists(DEFAULT_CONFIG_DB_FILE):
-            command = [SONIC_CFGGEN_PATH, '-j', DEFAULT_CONFIG_DB_FILE]
+        file = DEFAULT_CONFIG_DB_FILE
+        if os.path.exists(file):
+            command = [SONIC_CFGGEN_PATH, '-j', file]
             clicommon.run_command(command)
         for inst in range(0, num_cfg_file-1):
             file = "/etc/sonic/config_db{}.json".format(inst)
