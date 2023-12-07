@@ -1078,7 +1078,7 @@ Ethernet0  N/A
     def test_read_eeprom_invalid_port(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['read-eeprom'],
-                               ['-p', "Ethernet0", '-n', '0', '-o', '0', '-d', '1'])
+                               ['-p', "Ethernet0", '-n', '0', '-o', '0', '-s', '1'])
         assert result.exit_code == ERROR_INVALID_PORT
 
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=0)))
