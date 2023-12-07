@@ -178,7 +178,7 @@ class GrubBootloader(OnieInstallerBootloader):
             return 0
         verification_result = subprocess.run(['bash', '-c', check_if_verification_is_enabled_and_supported_code], capture_output=True)
         click.echo(verification_result.stdout.decode())
-        return verification_result.returncode == 0 
+        return verification_result.returncode == 0
 
     def verify_image_sign(self, image_path):
         click.echo('Verifying image signature')
