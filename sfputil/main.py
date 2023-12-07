@@ -1605,30 +1605,29 @@ def target(port_name, target):
 
 # 'read-eeprom' subcommand
 @cli.command()
-@click.argument('port_name', metavar='<logical_port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), required=True)
-@click.argument('offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), required=True)
-@click.argument('size', metavar='<size>', type=click.IntRange(1, MAX_EEPROM_OFFSET + 1), required=True)
+@click.option('-p', '--port', metavar='<logical_port_name>', help="Logical port name", required=True)
+@click.option('-n', '--page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="EEPROM page number", required=True)
+@click.option('-o', '--offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), help="EEPROM offset within the page", required=True)
+@click.option('-s', '--size', metavar='<size>', type=click.IntRange(1, MAX_EEPROM_OFFSET + 1), help="Size of byte to be read", required=True)
 @click.option('--no-format', is_flag=True, help="Display non formatted data")
 @click.option('--wire-addr', help="Wire address of sff8472")
-def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
+def read_eeprom(port, page, offset, size, no_format, wire_addr):
     """Read SFP EEPROM data
-       <port_name>: 
     """
     try:
-        if platform_sfputil.is_logical_port(port_name) == 0:
-            click.echo("Error: invalid port {}".format(port_name))
+        if platform_sfputil.is_logical_port(port) == 0:
+            click.echo("Error: invalid port {}".format(port))
             print_all_valid_port_values()
             sys.exit(ERROR_INVALID_PORT)
 
-        if is_port_type_rj45(port_name):
-            click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
+        if is_port_type_rj45(port):
+            click.echo("This functionality is not applicable for RJ45 port {}.".format(port))
             sys.exit(EXIT_FAIL)
 
-        physical_port = logical_port_to_physical_port_index(port_name)
+        physical_port = logical_port_to_physical_port_index(port)
         sfp = platform_chassis.get_sfp(physical_port)
         if not sfp.get_presence():
-            click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+            click.echo("{}: SFP EEPROM not detected\n".format(port))
             sys.exit(EXIT_FAIL)
 
         from sonic_platform_base.sonic_xcvr.api.public import sff8472
@@ -1654,28 +1653,28 @@ def read_eeprom(port_name, page, offset, size, no_format, wire_addr):
 
 # 'write-eeprom' subcommand
 @cli.command()
-@click.argument('port_name', metavar='<logical_port_name>', required=True)
-@click.argument('page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), required=True)
-@click.argument('offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), required=True)
-@click.argument('data', metavar='<data>', required=True)
+@click.option('-p', '--port', metavar='<logical_port_name>', help="Logical port name", required=True)
+@click.option('-n', '--page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="EEPROM page number", required=True)
+@click.option('-o', '--offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), help="EEPROM offset within the page", required=True)
+@click.option('-d', '--data', metavar='<data>', help="Hex string EEPROM data", required=True)
 @click.option('--wire-addr', help="Wire address of sff8472")
 @click.option('--verify', is_flag=True, help="Verify the data by reading back")
-def write_eeprom(port_name, page, offset, data, wire_addr, verify):
+def write_eeprom(port, page, offset, data, wire_addr, verify):
     """Write SFP EEPROM data"""
     try:
-        if platform_sfputil.is_logical_port(port_name) == 0:
-            click.echo("Error: invalid port {}".format(port_name))
+        if platform_sfputil.is_logical_port(port) == 0:
+            click.echo("Error: invalid port {}".format(port))
             print_all_valid_port_values()
             sys.exit(ERROR_INVALID_PORT)
 
-        if is_port_type_rj45(port_name):
-            click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
+        if is_port_type_rj45(port):
+            click.echo("This functionality is not applicable for RJ45 port {}.".format(port))
             sys.exit(EXIT_FAIL)
 
-        physical_port = logical_port_to_physical_port_index(port_name)
+        physical_port = logical_port_to_physical_port_index(port)
         sfp = platform_chassis.get_sfp(physical_port)
         if not sfp.get_presence():
-            click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+            click.echo("{}: SFP EEPROM not detected\n".format(port))
             sys.exit(EXIT_FAIL)
 
         try:

@@ -12806,23 +12806,29 @@ This sub-section explains the list of commands available for SFP utilities featu
 
 ```
 admin@sonic:~$ sfputil read-eeprom --help
-Usage: sfputil read-eeprom [OPTIONS] <port_name> <page> <offset> <size>
+Usage: sfputil read-eeprom [OPTIONS]
+
   Read SFP EEPROM data
+
 Options:
-  --no-format             Display non formatted data.
-  --wire-addr             Wire address of sff8472.
-  --help                  Show this
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -s, --size <size>               Size of byte to be read  [required]
+  --no-format                     Display non formatted data
+  --wire-addr TEXT                Wire address of sff8472
+  --help                          Show this message and exit.
 ```
 
 ```
-admin@sonic:~$ sfputil read-eeprom Ethernet0 0 100 2
+admin@sonic:~$ sfputil read-eeprom -p Ethernet0 -n 0 -o 100 -s 2
         00000064 4a 44                                            |..|
 
-admin@sonic:~$ sfputil read-eeprom Ethernet0 0 0 32
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 0 --size 32
         00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
         00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
 
-admin@sonic:~$ sfputil read-eeprom Ethernet0 0 100 2 --no-format
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 100 --size 2 --no-format
 4a44
 ```
 
@@ -12832,27 +12838,31 @@ admin@sonic:~$ sfputil read-eeprom Ethernet0 0 100 2 --no-format
 
 ```
 admin@sonic:~$ sfputil write-eeprom --help
-Usage: sfputil write-eeprom [OPTIONS] <port> <page> <offset> <data>
+Usage: sfputil write-eeprom [OPTIONS]
 
   Write SFP EEPROM data
 
 Options:
-  --wire-addr             Wire address of sff8472.
-  --verify                Verify the data by reading back.
-  --help                  Show this message and exit.
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -d, --data <data>               Hex string EEPROM data  [required]
+  --wire-addr TEXT                Wire address of sff8472
+  --verify                        Verify the data by reading back
+  --help                          Show this message and exit.
 ```
 
 - Write success
 ```
-admin@sonic:~$ sfputil write-eeprom Ethernet0 0 100 4a44
+admin@sonic:~$ sfputil write-eeprom -p Ethernet0 -n 0 -o 100 -d 4a44
 
-admin@sonic:~$ sfputil write-eeprom Etherent0 0 100 0000 --verify
+admin@sonic:~$ sfputil write-eeprom --port Etherent0 --page 0 --offset 100 --data 0000 --verify
 
 ```
 
 - Write fail
 ```
-admin@sonic:~$ sfputil write-eeprom Etherent0 0 100 4a44 --verify
+admin@sonic:~$ sfputil write-eeprom -p Etherent0 -n 0 -o 100 -d 4a44 --verify
 Error: Write data failed! Write: 4a44, read: 0000.
 ```
 
