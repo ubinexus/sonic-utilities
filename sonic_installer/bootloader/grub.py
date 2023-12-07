@@ -173,7 +173,7 @@ class GrubBootloader(OnieInstallerBootloader):
         fi
         exit 0
         '''
-        asic_type = subprocess.run(['sonic-cfggen', '-y', '/etc/sonic/sonic_version.yml', '-v', 'asic_type'], capture_output=True);
+        asic_type = subprocess.run(['sonic-cfggen', '-y', '/etc/sonic/sonic_version.yml', '-v', 'asic_type'], capture_output=True)
         if("cisco-8000" in asic_type.stdout.decode()):
             return 0
         verification_result = subprocess.run(['bash', '-c', check_if_verification_is_enabled_and_supported_code], capture_output=True)
