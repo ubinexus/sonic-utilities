@@ -71,6 +71,7 @@ from . import dns
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
+DEFAULT_NAMESPACE = ''
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -2148,41 +2149,91 @@ def asic_sdk_health_event():
 
 @asic_sdk_health_event.command()
 @clicommon.pass_db
-def suppressed_category_list(db):
-    """"""
-    if "true" != db.db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
-        ctx = click.get_current_context()
-        ctx.fail("ASIC/SDK health event is not supported on the platform")
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+def suppressed_category_list(db, namespace):
+    """ Show the suppressed category list """
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+        masic = True
+    else:
+        namespace_list = [DEFAULT_NAMESPACE]
+        masic = False
 
-    suppressSeverities = db.cfgdb.get_table('SUPPRESS_ASIC_SDK_HEALTH_EVENT')
     header = ['Severity', 'Suppressed category-list']
     body = []
 
-    for severity in natsorted(suppressSeverities):
-        body.append([severity, ','.join(suppressSeverities[severity]['categories'])])
+    supported = False
 
-    click.echo(tabulate(body, header))
+    for ns in namespace_list:
+        if namespace and namespace != ns:
+            continue
+
+        state_db = db.db_clients[ns]
+        if "true" != state_db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
+            continue
+
+        supported = True
+
+        if masic:
+            click.echo("{}:".format(ns));
+
+        config_db = db.cfgdb_clients[ns]
+        suppressSeverities = config_db.get_table('SUPPRESS_ASIC_SDK_HEALTH_EVENT')
+
+        for severity in natsorted(suppressSeverities):
+            body.append([severity, ','.join(suppressSeverities[severity]['categories'])])
+
+    if supported:
+        click.echo(tabulate(body, header))
+    else:
+        ctx = click.get_current_context()
+        ctx.fail("ASIC/SDK health event is not supported on the platform")
 
 
 @asic_sdk_health_event.command()
 @clicommon.pass_db
-def received(db):
-    """"""
-    if "true" != db.db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
-        ctx = click.get_current_context()
-        ctx.fail("ASIC/SDK health event is not supported on the platform")
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+def received(db, namespace):
+    """ Show the received ASIC/SDK health event """
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+        masic = True
+    else:
+        namespace_list = [DEFAULT_NAMESPACE]
+        masic = False
 
-    event_keys = db.db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE|*")
-    delimiter = db.db.get_db_separator(db.db.STATE_DB)
-
-    header = ['Date', 'ASICID', 'Severity', 'Category', 'Description']
+    header = ['Date', 'Severity', 'Category', 'Description']
     body = []
 
-    for key in natsorted(event_keys):
-        event = db.db.get_all(db.db.STATE_DB, key)
-        body.append([key.split('|')[1], event.get('asic_id'), event.get('severity'), event.get('category'), event.get('description')])
+    supported = False
 
-    click.echo(tabulate(body, header))
+    for ns in namespace_list:
+        if namespace and namespace != ns:
+            continue
+
+        state_db = db.db_clients[ns]
+        if "true" != state_db.get(db.db.STATE_DB, "SWITCH_CAPABILITY|switch", "ASIC_SDK_HEALTH_EVENT"):
+            continue
+
+        supported = True
+
+        if masic:
+            click.echo("{}:".format(ns));
+
+        event_keys = state_db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE|*")
+        delimiter = state_db.get_db_separator(db.db.STATE_DB)
+
+        for key in natsorted(event_keys):
+            event = state_db.get_all(state_db.STATE_DB, key)
+            body.append([key.split('|')[1], event.get('severity'), event.get('category'), event.get('description')])
+
+    if supported:
+        click.echo(tabulate(body, header))
+    else:
+        ctx = click.get_current_context()
+        ctx.fail("ASIC/SDK health event is not supported on the platform")
 
 
 # Load plugins and register them

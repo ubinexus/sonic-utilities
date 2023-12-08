@@ -7391,22 +7391,19 @@ def suppress(db):
     pass
 
 
-def handle_asic_sdk_health_suppress_category_list(db, severity, category_list):
+def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, namespace):
     ctx = click.get_current_context()
 
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    entry_name="SWITCH_CAPABILITY|switch"
-    if "true" != state_db.get(state_db.STATE_DB, entry_name, "ASIC_SDK_HEALTH_EVENT"):
-        ctx.fail("ASIC/SDK health event is not supported on the platform")
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+    else:
+        namespace_list = [DEFAULT_NAMESPACE]
 
     severityCapabilities = {
         "fatal": "REG_FATAL_ASIC_SDK_HEALTH_CATEGORY",
         "warning": "REG_WARNING_ASIC_SDK_HEALTH_CATEGORY",
         "notice": "REG_NOTICE_ASIC_SDK_HEALTH_CATEGORY"
     }
-    if "true" != state_db.get(state_db.STATE_DB, entry_name, severityCapabilities[severity]):
-        ctx.fail("Suppressing ASIC/SDK health {} event is not supported on the platform".format(severity))
 
     categories = {"software", "firmware", "cpu_hw", "asic_hw"}
 
@@ -7421,9 +7418,19 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list):
     if unsupportCategories:
         ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
 
-    cfgdb_clients = db.cfgdb_clients
+    for ns in namespace_list:
+        if namespace and namespace != ns:
+            continue
 
-    for ns, config_db in cfgdb_clients.items():
+        config_db = db.cfgdb_clients[ns]
+        state_db = db.db_clients[ns]
+
+        entry_name="SWITCH_CAPABILITY|switch"
+        if "true" != state_db.get(state_db.STATE_DB, entry_name, "ASIC_SDK_HEALTH_EVENT"):
+            ctx.fail("ASIC/SDK health event is not supported on the platform")
+
+        if "true" != state_db.get(state_db.STATE_DB, entry_name, severityCapabilities[severity]):
+            ctx.fail("Suppressing ASIC/SDK health {} event is not supported on the platform".format(severity))
 
         if suppressedCategoriesList:
             config_db.mod_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, {"categories": suppressedCategoriesList})
@@ -7433,23 +7440,32 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list):
 
 @suppress.command()
 @click.argument('category-list', required=True)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 @clicommon.pass_db
-def fatal(db, category_list):
-    handle_asic_sdk_health_suppress_category_list(db, 'fatal', category_list)
+def fatal(db, category_list, namespace):
+    handle_asic_sdk_health_suppress_category_list(db, 'fatal', category_list, namespace)
 
 
 @suppress.command()
 @click.argument('category-list', required=True)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 @clicommon.pass_db
-def warning(db, category_list):
-    handle_asic_sdk_health_suppress_category_list(db, 'warning', category_list)
+def warning(db, category_list, namespace):
+    handle_asic_sdk_health_suppress_category_list(db, 'warning', category_list, namespace)
 
 
 @suppress.command()
 @click.argument('category-list', required=True)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 @clicommon.pass_db
-def notice(db, category_list):
-    handle_asic_sdk_health_suppress_category_list(db, 'notice', category_list)
+def notice(db, category_list, namespace):
+    handle_asic_sdk_health_suppress_category_list(db, 'notice', category_list, namespace)
 
 
 if __name__ == '__main__':

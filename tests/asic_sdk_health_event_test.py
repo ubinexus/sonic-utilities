@@ -96,9 +96,9 @@ class TestAsicSdkHealthEvent(object):
 
     def test_show_asic_sdk_health_event_received(self):
         expected_output = \
-        "Date                   ASICID  Severity    Category    Description\n"
-        "-------------------  --------  ----------  ----------  ---------------------\n"
-        "2023-11-22 09:18:12         0  fatal       firmware    ASIC SDK health event\n"
+        "Date                 Severity    Category    Description\n"
+        "-------------------  ----------  ----------  ---------------------\n"
+        "2023-11-22 09:18:12  fatal       firmware    ASIC SDK health event\n"
         dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
 
         runner = CliRunner()
@@ -110,10 +110,10 @@ class TestAsicSdkHealthEvent(object):
 
     def test_show_asic_sdk_health_event_suppressed_category_list(self):
         expected_output = \
-        'Severity    Suppressed category-list\n'
-        '----------  --------------------------\n'
-        'fatal       software\n'
-        'warning     firmware,asic_hw\n'
+        "Severity    Suppressed category-list\n"
+        "----------  --------------------------\n"
+        "fatal       software\n"
+        "warning     firmware,asic_hw\n"
         dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db')
 
