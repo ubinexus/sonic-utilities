@@ -51,6 +51,10 @@ PAGE_SIZE = 128
 PAGE_OFFSET = 128
 
 SFF8472_A0_SIZE = 256
+SFF8636_MODULE_PAGES = [0, 1, 2, 3]
+SFF8472_MODULE_PAGES = [0, 1, 2]
+CMIS_MODULE_PAGES = [0, 1, 2, 16, 17]
+CMIS_COHERENT_MODULE_PAGES = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x38, 0x39, 0x3a, 0x3b]
 
 EEPROM_DUMP_INDENT = ' ' * 8
 
@@ -770,9 +774,9 @@ def eeprom_hexdump_single_port(logical_port_name, page):
                 if api.is_flat_memory():
                     pages = [0]
                 else:
-                    pages = [0, 1, 2, 16, 17]
+                    pages = CMIS_MODULE_PAGES
                     if api.is_coherent_module():
-                        pages.extend([0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x38, 0x39, 0x3a, 0x3b])
+                        pages.extend(CMIS_COHERENT_MODULE_PAGES)
                     cdb_support = api.xcvr_eeprom.read(consts.CDB_SUPPORT)
                     if cdb_support != 0:
                         pages.append(0x9f)
@@ -786,7 +790,7 @@ def eeprom_hexdump_single_port(logical_port_name, page):
                 if api.is_flat_memory():
                     pages = [0]
                 else:
-                    pages = [0, 1, 2, 3]
+                    pages = SFF8636_MODULE_PAGES
             else:
                 pages = [0]
                 if page not in pages:
@@ -795,11 +799,11 @@ def eeprom_hexdump_single_port(logical_port_name, page):
         elif isinstance(api, sff8472.Sff8472Api):
             if page is None:
                 if not api.is_copper():
-                    pages = [0, 1, 2]
+                    pages = SFF8472_MODULE_PAGES
                 else:
                     pages = [0]
             else:
-                pages = [0, 1, 2] if not api.is_copper() else [0]
+                pages = SFF8472_MODULE_PAGES if not api.is_copper() else [0]
                 if page not in pages:
                     pages.append(page)
             return eeprom_hexdump_pages_sff8472(logical_port_name, pages, page)
@@ -896,13 +900,13 @@ def eeprom_hexdump_pages_sff8472(logical_port_name, pages, target_page):
     return 0, '\n'.join(lines)
 
 
-def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
+def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_format=False):
     """
     Dump module EEPROM.
     Args:
         physical_port: physical port index
         page: module EEPROM page number
-        overall_offset: overall offset in flat memory
+        flat_offset: overall offset in flat memory
         size: size of bytes to be dumped
         page_offset: offset within a page, only for print purpose
         no_format: False if dump with hex format else dump with flat hex string. Default False.
@@ -911,9 +915,9 @@ def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, 
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     sfp = platform_chassis.get_sfp(physical_port)
-    page_dump = sfp.read_eeprom(overall_offset, size)
+    page_dump = sfp.read_eeprom(flat_offset, size)
     if page_dump is None:
-        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, overall_offset {overall_offset}, page_offset {page_offset}, size {size}!'
+        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, flat_offset {flat_offset}, page_offset {page_offset}, size {size}!'
     if not no_format:
         return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
     else:
