@@ -12999,8 +12999,6 @@ EEPROM hexdump for port Ethernet8
         000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
 ```
 
-This sub-section explains the list of commands available for SFP utilities feature.
-
 # SFP Utilities read command
 
 - Read SFP EEPROM data
