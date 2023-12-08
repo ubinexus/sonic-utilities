@@ -26,6 +26,8 @@ class TestAsicSdkHealthEvent(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
     @pytest.mark.parametrize("severity,categories", [
         ("fatal", "cpu_hw"),
