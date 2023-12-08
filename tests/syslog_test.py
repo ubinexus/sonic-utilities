@@ -410,7 +410,7 @@ class TestSyslog:
 
         mock_run.return_value = ('something', 0)
         result = runner.invoke(
-            config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"]
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"], obj=db
         )
         assert result.exit_code == SUCCESS
         
@@ -424,6 +424,6 @@ class TestSyslog:
 
         mock_run.return_value = ('something', 0)
         result = runner.invoke(
-            config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"]
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"], obj=db
         )
         assert result.exit_code == SUCCESS
