@@ -47,7 +47,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_4'
+        self.CURRENT_VERSION = 'version_4_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -91,7 +91,8 @@ class DBMigrator():
         self.asic_type = version_info.get('asic_type')
         if not self.asic_type:
             log.log_error("ASIC type information not obtained. DB migration will not be reliable")
-        self.hwsku = device_info.get_hwsku()
+
+        self.hwsku = device_info.get_localhost_info('hwsku', self.configDB)
         if not self.hwsku:
             log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
@@ -455,39 +456,6 @@ class DBMigrator():
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
-
-    def migrate_config_db_switchport_mode(self):
-        port_table = self.configDB.get_table('PORT')
-        portchannel_table = self.configDB.get_table('PORTCHANNEL')
-        vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
-
-        vlan_member_keys= []
-        for _,key in vlan_member_table:
-            vlan_member_keys.append(key) 
-
-        for p_key, p_value in port_table.items():
-            if 'mode' in p_value:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
-            else:
-                if p_key in vlan_member_keys:
-                    p_value["mode"] = "trunk"
-                    self.configDB.set_entry("PORT", p_key, p_value)
-                else:
-                    p_value["mode"] = "routed"
-                    self.configDB.set_entry("PORT", p_key, p_value)
-
-        for pc_key, pc_value in portchannel_table.items():
-            if 'mode' in pc_value:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORTCHANNEL", pc_key), 'mode', pc_value['mode'])
-            else:
-                if pc_key in vlan_member_keys:
-                    pc_value["mode"] = "trunk"
-                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
-                else:
-                    pc_value["mode"] = "routed"
-                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
-
-
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
             table_name, fields_list = pair
@@ -755,6 +723,35 @@ class DBMigrator():
                 flex_counter['FLEX_COUNTER_DELAY_STATUS'] = 'true'
                 self.configDB.mod_entry('FLEX_COUNTER_TABLE', obj, flex_counter)
 
+    def migrate_sflow_table(self):
+        """
+        Migrate "SFLOW_TABLE" and "SFLOW_SESSION_TABLE" to update default sample_direction
+        """
+
+        sflow_tbl = self.configDB.get_table('SFLOW')
+        for k, v in sflow_tbl.items():
+            if 'sample_direction' not in v:
+                v['sample_direction'] = 'rx'
+                self.configDB.set_entry('SFLOW', k, v)
+
+        sflow_sess_tbl = self.configDB.get_table('SFLOW_SESSION')
+        for k, v in sflow_sess_tbl.items():
+            if 'sample_direction' not in v:
+                v['sample_direction'] = 'rx'
+                self.configDB.set_entry('SFLOW_SESSION', k, v)
+
+        sflow_table = self.appDB.get_table("SFLOW_TABLE")
+        for key, value in sflow_table.items():
+            if 'sample_direction' not in value:
+                sflow_key = "SFLOW_TABLE:{}".format(key)
+                self.appDB.set(self.appDB.APPL_DB, sflow_key, 'sample_direction','rx')
+
+        sflow_sess_table = self.appDB.get_table("SFLOW_SESSION_TABLE")
+        for key, value in sflow_sess_table.items():
+            if 'sample_direction' not in value:
+                sflow_key = "SFLOW_SESSION_TABLE:{}".format(key)
+                self.appDB.set(self.appDB.APPL_DB, sflow_key, 'sample_direction','rx')
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -1016,10 +1013,19 @@ class DBMigrator():
     def version_3_0_6(self):
         """
         Version 3_0_6
-        This is the latest version for 202211 branch
         """
 
         log.log_info('Handling version_3_0_6')
+        self.set_version('version_3_0_7')
+        return 'version_3_0_7'
+
+    def version_3_0_7(self):
+        """
+        Version 3_0_7
+        This is the latest version for 202205 branch
+        """
+
+        log.log_info('Handling version_3_0_7')
         self.set_version('version_4_0_0')
         return 'version_4_0_0'
 
@@ -1053,7 +1059,7 @@ class DBMigrator():
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
-	
+
     def version_4_0_2(self):
         """
         Version 4_0_2.
@@ -1081,11 +1087,11 @@ class DBMigrator():
         Version 4_0_4.
         """
         log.log_info('Handling version_4_0_4')
-		
-        self.migrate_config_db_switchport_mode()
-        self.set_version('version_4_0_4')
+
+        self.migrate_sflow_table()
+        self.set_version('version_4_0_5')
         return 'version_4_0_5'
-	
+
     def version_4_0_5(self):
         """
         Version 4_0_5.
