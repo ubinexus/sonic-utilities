@@ -408,7 +408,7 @@ class TestSyslog:
 
         runner = CliRunner()
 
-        mock_run.return_value = ('', 0)
+        mock_run.return_value = ('something', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"]
         )
@@ -422,7 +422,7 @@ class TestSyslog:
 
         runner = CliRunner()
 
-        mock_run.return_value = ('', 0)
+        mock_run.return_value = ('something', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"]
         )
