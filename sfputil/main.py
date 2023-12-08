@@ -5,6 +5,7 @@
 # Command-line utility for interacting with SFP transceivers within SONiC
 #
 
+import copy
 import os
 import sys
 import natsort
@@ -774,7 +775,7 @@ def eeprom_hexdump_single_port(logical_port_name, page):
                 if api.is_flat_memory():
                     pages = [0]
                 else:
-                    pages = CMIS_MODULE_PAGES
+                    pages = copy.deepcopy(CMIS_MODULE_PAGES)
                     if api.is_coherent_module():
                         pages.extend(CMIS_COHERENT_MODULE_PAGES)
                     cdb_support = api.xcvr_eeprom.read(consts.CDB_SUPPORT)
@@ -790,7 +791,7 @@ def eeprom_hexdump_single_port(logical_port_name, page):
                 if api.is_flat_memory():
                     pages = [0]
                 else:
-                    pages = SFF8636_MODULE_PAGES
+                    pages = copy.deepcopy(SFF8636_MODULE_PAGES)
             else:
                 pages = [0]
                 if page not in pages:
@@ -799,11 +800,11 @@ def eeprom_hexdump_single_port(logical_port_name, page):
         elif isinstance(api, sff8472.Sff8472Api):
             if page is None:
                 if not api.is_copper():
-                    pages = SFF8472_MODULE_PAGES
+                    pages = copy.deepcopy(SFF8472_MODULE_PAGES)
                 else:
                     pages = [0]
             else:
-                pages = SFF8472_MODULE_PAGES if not api.is_copper() else [0]
+                pages = copy.deepcopy(SFF8472_MODULE_PAGES) if not api.is_copper() else [0]
                 if page not in pages:
                     pages.append(page)
             return eeprom_hexdump_pages_sff8472(logical_port_name, pages, page)
