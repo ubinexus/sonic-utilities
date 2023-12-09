@@ -933,7 +933,7 @@ def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_
 
 
 
-def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
+def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_format=False):
     """
     Dump module EEPROM for given pages in hex format.
     Args:
@@ -945,9 +945,9 @@ def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, 
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     sfp = platform_chassis.get_sfp(physical_port)
-    page_dump = sfp.read_eeprom(overall_offset, size)
+    page_dump = sfp.read_eeprom(flat_offset, size)
     if page_dump is None:
-        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, overall_offset {overall_offset}, page_offset {page_offset}, size {size}!'
+        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, flat_offset {flat_offset}, page_offset {page_offset}, size {size}!'
     if not no_format:
         return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
     else:
