@@ -414,6 +414,35 @@ class TestSyslog:
         )
         assert result.exit_code == SUCCESS
         
+        # container not run
+        mock_run.return_value = ('', 0)
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
+        # process already running
+        mock_run.return_value = ('something', 0)
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
+        # one command fail
+        def side_effect(*args, **kwargs):
+            side_effect.call_count += 1
+            if side_effect.call_count <= 2:
+                return 'no such process', 0
+            else:
+                return '', -1
+        side_effect.call_count = 0
+        mock_run.side_effect = side_effect
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
+        
     @mock.patch('config.syslog.clicommon.run_command')
     def test_disable_syslog_rate_limit_feature(self, mock_run):
         db = Db()
@@ -427,3 +456,32 @@ class TestSyslog:
             config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"], obj=db
         )
         assert result.exit_code == SUCCESS
+        
+        # container not run
+        mock_run.return_value = ('', 0)
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
+        # process already stopped
+        mock_run.return_value = ('no such process', 0)
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
+        # one command fail
+        def side_effect(*args, **kwargs):
+            side_effect.call_count += 1
+            if side_effect.call_count <= 2:
+                return 'something', 0
+            else:
+                return '', -1
+        side_effect.call_count = 0
+        mock_run.side_effect = side_effect
+        result = runner.invoke(
+            config.config.commands["syslog"].commands["rate-limit-feature"].commands["disable"], obj=db
+        )
+        assert result.exit_code == SUCCESS
+        
