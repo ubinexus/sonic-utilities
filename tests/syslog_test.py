@@ -408,7 +408,7 @@ class TestSyslog:
 
         runner = CliRunner()
 
-        mock_run.return_value = ('something', 0)
+        mock_run.return_value = ('no such process', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["rate-limit-feature"].commands["enable"], obj=db
         )
