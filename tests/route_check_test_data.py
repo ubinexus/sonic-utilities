@@ -17,6 +17,7 @@ ROUTE_TABLE = 'ROUTE_TABLE'
 VNET_ROUTE_TABLE = 'VNET_ROUTE_TABLE'
 INTF_TABLE = 'INTF_TABLE'
 RT_ENTRY_TABLE = 'ASIC_STATE'
+FEATURE_TABLE = 'FEATURE'
 SEPARATOR = ":"
 DEVICE_METADATA = "DEVICE_METADATA"
 MUX_CABLE = "MUX_CABLE"
@@ -26,7 +27,17 @@ LOCALHOST = "localhost"
 RT_ENTRY_KEY_PREFIX = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:{\"dest":\"'
 RT_ENTRY_KEY_SUFFIX = '\",\"switch_id\":\"oid:0x21000000000000\",\"vr\":\"oid:0x3000000000023\"}'
 
-DEFAULT_CONFIG_DB = {DEVICE_METADATA: {LOCALHOST: {}}}
+DEFAULT_CONFIG_DB = {
+    DEVICE_METADATA: {
+        LOCALHOST: {
+            }
+        },
+    FEATURE_TABLE: {
+        "bgp": {
+            "state": "enabled"
+            }
+        }
+    }
 
 TEST_DATA = {
     "0": {
@@ -464,7 +475,7 @@ TEST_DATA = {
         },
         RET: -1,
     },
-    "10": {
+    "12": {
         DESCR: "basic good one with IPv6 address",
         ARGS: "route_check -m INFO -i 1000",
         PRE: {
@@ -482,7 +493,7 @@ TEST_DATA = {
             }
         }
     },
-    "11": {
+    "13": {
         DESCR: "dualtor ignore vlan neighbor route miss case",
         ARGS: "route_check -i 15",
         RET: -1,
@@ -535,5 +546,41 @@ TEST_DATA = {
                 "20.10.196.24/32",
             ]
         }
+    },
+    "14": {
+        DESCR: "basic route check, good one, bgp disabled",
+        ARGS: "route_check -m INFO -i 1000",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            },
+            CONFIG_DB: {
+                DEVICE_METADATA: {
+                    LOCALHOST: {
+                    }
+                },
+                FEATURE_TABLE: {
+                    "bgp": {
+                        "state": "disabled"
+                    }
+                }
+            },
+        },
     },
 }
