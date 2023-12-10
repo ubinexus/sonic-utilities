@@ -522,6 +522,19 @@ def filter_out_standalone_tunnel_routes(routes):
 
     return updated_routes
 
+def is_feature_bgp_enabled():
+    """
+    Check if bgp feature is enabled or disabled.
+    Return True if enabled else False.
+    """
+    config_db = swsscommon.ConfigDBConnector()
+    config_db.connect()
+    feature_table = config_db.get_table("FEATURE")
+    bgp_enabled = False
+    if 'bgp' in feature_table:
+        if feature_table['bgp']["state"] == "enabled":
+            bgp_enabled = True
+    return bgp_enabled
 
 def check_frr_pending_routes():
     """
@@ -742,10 +755,12 @@ def check_routes():
     if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
-    rt_frr_miss = check_frr_pending_routes()
+    if is_feature_bgp_enabled():
+        # Feature bgp is enabled. Check for pending frr routes.
+        rt_frr_miss = check_frr_pending_routes()
 
-    if rt_frr_miss:
-        results["missed_FRR_routes"] = rt_frr_miss
+        if rt_frr_miss:
+            results["missed_FRR_routes"] = rt_frr_miss
 
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
