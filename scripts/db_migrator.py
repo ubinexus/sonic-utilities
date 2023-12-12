@@ -69,7 +69,7 @@ class DBMigrator():
                         self.minigraph_data = golden_data
                     else:
                         self.minigraph_data = golden_data[namespace]
-            else if os.path.isfile(MINIGRAPH_FILE):
+            elif os.path.isfile(MINIGRAPH_FILE):
                 self.minigraph_data = parse_xml(MINIGRAPH_FILE)
         except Exception as e:
             log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
