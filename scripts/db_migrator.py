@@ -13,6 +13,7 @@ from minigraph import parse_xml
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
+GOLDEN_CFG_FILE = '/etc/sonic/golden_config_db.json'
 
 # mock the redis for unit test purposes #
 try:
@@ -24,6 +25,7 @@ try:
         sys.path.insert(0, tests_path)
         INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
         MINIGRAPH_FILE = os.path.join(mocked_db_path, "minigraph.xml")
+        GOLDEN_CFG_FILE = os.path.join(mocked_db_path, "golden_config_db.json")
 except KeyError:
     pass
 
@@ -53,11 +55,21 @@ class DBMigrator():
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
 
+        # when there is golden_config_db.json
+        # load config data from golden_config_db.json
+        # when there is no golden_config_db.json
         # load config data from minigraph to get the default/hardcoded values from minigraph.py
         # this is to avoid duplicating the hardcoded these values in db_migrator
         self.minigraph_data = None
         try:
-            if os.path.isfile(MINIGRAPH_FILE):
+            if os.path.isfile(GOLDEN_CFG_FILE):
+                with open(GOLDEN_CFG_FILE) as f:
+                    golden_data = json.load(f)
+                    if namespace is None:
+                        self.minigraph_data = golden_data
+                    else:
+                        self.minigraph_data = golden_data[namespace]
+            else if os.path.isfile(MINIGRAPH_FILE):
                 self.minigraph_data = parse_xml(MINIGRAPH_FILE)
         except Exception as e:
             log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
