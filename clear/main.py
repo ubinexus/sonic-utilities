@@ -13,8 +13,6 @@ from show.plugins.pbh import read_pbh_counters
 from config.plugins.pbh import serialize_pbh_counters
 from . import plugins
 
-DEFAULT_NAMESPACE = ''
-
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
 class Config(object):
@@ -559,19 +557,20 @@ helper.load_and_register_plugins(plugins, cli)
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
 def asic_sdk_health_event(db, namespace):
+    """Clear received ASIC/SDK health events"""
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
     else:
-        namespace_list = [DEFAULT_NAMESPACE]
+        namespace_list = [multi_asic.DEFAULT_NAMESPACE]
 
     for ns in namespace_list:
         if namespace and namespace != ns:
             continue
 
-    state_db = db.db_clients[ns]
-    keys = state_db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE*")
-    for key in keys:
-        state_db.delete(state_db.STATE_DB, key);
+        state_db = db.db_clients[ns]
+        keys = state_db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE*")
+        for key in keys:
+            state_db.delete(state_db.STATE_DB, key);
 
 
 if __name__ == '__main__':

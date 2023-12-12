@@ -7378,15 +7378,13 @@ def date(date, time):
 # 'asic-sdk-health-event' group ('config asic-sdk-health-event ...')
 #
 @config.group()
-@click.pass_context
-def asic_sdk_health_event(ctx):
+def asic_sdk_health_event():
     """Configuring asic-sdk-health-event"""
     pass
 
 
 @asic_sdk_health_event.group()
-@clicommon.pass_db
-def suppress(db):
+def suppress():
     """Suppress ASIC/SDK health event"""
     pass
 
@@ -7425,7 +7423,7 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, n
         config_db = db.cfgdb_clients[ns]
         state_db = db.db_clients[ns]
 
-        entry_name="SWITCH_CAPABILITY|switch"
+        entry_name = "SWITCH_CAPABILITY|switch"
         if "true" != state_db.get(state_db.STATE_DB, entry_name, "ASIC_SDK_HEALTH_EVENT"):
             ctx.fail("ASIC/SDK health event is not supported on the platform")
 

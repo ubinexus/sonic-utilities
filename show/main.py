@@ -71,7 +71,6 @@ from . import dns
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
-DEFAULT_NAMESPACE = ''
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -2157,7 +2156,7 @@ def suppressed_category_list(db, namespace):
         namespace_list = multi_asic.get_namespaces_from_linux()
         masic = True
     else:
-        namespace_list = [DEFAULT_NAMESPACE]
+        namespace_list = [multi_asic.DEFAULT_NAMESPACE]
         masic = False
 
     header = ['Severity', 'Suppressed category-list']
@@ -2201,7 +2200,7 @@ def received(db, namespace):
         namespace_list = multi_asic.get_namespaces_from_linux()
         masic = True
     else:
-        namespace_list = [DEFAULT_NAMESPACE]
+        namespace_list = [multi_asic.DEFAULT_NAMESPACE]
         masic = False
 
     header = ['Date', 'Severity', 'Category', 'Description']
@@ -2223,7 +2222,6 @@ def received(db, namespace):
             click.echo("{}:".format(ns));
 
         event_keys = state_db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE|*")
-        delimiter = state_db.get_db_separator(db.db.STATE_DB)
 
         for key in natsorted(event_keys):
             event = state_db.get_all(state_db.STATE_DB, key)
