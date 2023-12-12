@@ -5,6 +5,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+from sonic_py_common import multi_asic
 from sonic_py_common.general import getstatusoutput_noshell_pipe
 from flow_counter_util.route import exit_if_route_flow_counter_not_support
 from utilities_common import util_base
@@ -12,6 +13,7 @@ from show.plugins.pbh import read_pbh_counters
 from config.plugins.pbh import serialize_pbh_counters
 from . import plugins
 
+DEFAULT_NAMESPACE = ''
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -552,11 +554,24 @@ helper.load_and_register_plugins(plugins, cli)
 
 # ("sonic-clear asic-sdk-health-event")
 @cli.command()
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
-def asic_sdk_health_event(db):
-    keys = db.db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE*")
+def asic_sdk_health_event(db, namespace):
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+    else:
+        namespace_list = [DEFAULT_NAMESPACE]
+
+    for ns in namespace_list:
+        if namespace and namespace != ns:
+            continue
+
+    state_db = db.db_clients[ns]
+    keys = state_db.keys(db.db.STATE_DB, "ASIC_SDK_HEALTH_EVENT_TABLE*")
     for key in keys:
-        db.db.delete(db.db.STATE_DB, key);
+        state_db.delete(state_db.STATE_DB, key);
 
 
 if __name__ == '__main__':

@@ -7440,9 +7440,9 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, n
 
 @suppress.command()
 @click.argument('category-list', required=True)
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
 def fatal(db, category_list, namespace):
     handle_asic_sdk_health_suppress_category_list(db, 'fatal', category_list, namespace)
@@ -7450,9 +7450,9 @@ def fatal(db, category_list, namespace):
 
 @suppress.command()
 @click.argument('category-list', required=True)
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
 def warning(db, category_list, namespace):
     handle_asic_sdk_health_suppress_category_list(db, 'warning', category_list, namespace)
@@ -7460,9 +7460,9 @@ def warning(db, category_list, namespace):
 
 @suppress.command()
 @click.argument('category-list', required=True)
-@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
 def notice(db, category_list, namespace):
     handle_asic_sdk_health_suppress_category_list(db, 'notice', category_list, namespace)
