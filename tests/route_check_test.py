@@ -190,9 +190,10 @@ def set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db):
 class TestRouteCheck(object):
     @staticmethod
     def extract_namespace_from_args(args):
-        for arg in args.split():
-            if arg.startswith("-n"):
-                return arg[2:]
+        # args: ['show', 'ip', 'route', '-n', 'asic0', 'json'],
+        for i, arg in enumerate(args):
+            if arg == "-n" and i + 1 < len(args):
+                return args[i + 1]
         return DEFAULTNS
 
     def setup(self):
@@ -247,7 +248,7 @@ class TestRouteCheck(object):
             self.assert_results(ct_data, ret, res)
 
     def mock_check_output(self, ct_data, *args, **kwargs):
-        ns = self.extract_namespace_from_args(args[0])
+        ns = self.extract_namespace_from_args(args)
         routes = ct_data.get(FRR_ROUTES, {}).get(ns, {})
         return json.dumps(routes)
 

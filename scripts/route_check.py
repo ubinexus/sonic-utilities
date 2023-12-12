@@ -343,15 +343,15 @@ def get_frr_routes(namespace):
     :return frr routes dictionary
     """
     if namespace == multi_asic.DEFAULT_NAMESPACE:
-        v4_route_cmd = 'show ip route json'
-        v6_route_cmd = 'show ipv6 route json'
+        v4_route_cmd = ['show', 'ip', 'route', 'json']
+        v6_route_cmd = ['show', 'ipv6', 'route', 'json']
     else:
-        v4_route_cmd = 'show ip route -n {} json'.format(namespace)
-        v6_route_cmd = 'show ipv6 route -n {} json'.format(namespace)
+        v4_route_cmd = ['show', 'ip', 'route', '-n', namespace, 'json']
+        v6_route_cmd = ['show', 'ipv6', 'route', '-n', namespace, 'json']
 
-    output = subprocess.check_output(v4_route_cmd, shell=True)
+    output = subprocess.check_output(v4_route_cmd, text=True)
     routes = json.loads(output)
-    output = subprocess.check_output(v6_route_cmd, shell=True)
+    output = subprocess.check_output(v6_route_cmd, text=True)
     routes.update(json.loads(output))
     print_message(syslog.LOG_DEBUG, "FRR Routes: namespace={}, routes={}".format(namespace, routes))
     return routes
