@@ -326,12 +326,11 @@ def get_asicdb_routes(namespace):
     return (selector, subs, sorted(rt))
 
 
-def is_suppress_fib_pending_enabled():
+def is_suppress_fib_pending_enabled(namespace):
     """
     Returns True if FIB suppression is enabled, False otherwise
     """
-    cfg_db = swsscommon.ConfigDBConnector()
-    cfg_db.connect()
+    cfg_db = multi_asic.connect_config_db_for_ns(namespace)
     state = cfg_db.get_entry('DEVICE_METADATA', 'localhost').get('suppress-fib-pending')
 
     return state == 'enabled'
@@ -774,8 +773,8 @@ def check_routes(namespace):
         if results:
             if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
                 print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR{} but all routes in APPL_DB and ASIC_DB are in sync".format(namespace))
-                if is_suppress_fib_pending_enabled():
-                    mitigate_installed_not_offloaded_frr_routes(rt_frr_miss, rt_appl)
+                if is_suppress_fib_pending_enabled(namespace):
+                    mitigate_installed_not_offloaded_frr_routes(namespace, rt_frr_miss, rt_appl)
 
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")

@@ -4,6 +4,10 @@
 #
 
 CONFIG_FILE="/etc/sonic/config_db.json"
+if [ ! -e "$CONFIG_FILE" ]; then
+    echo "File $CONFIG_FILE not found. returning.."
+    exit 1
+fi
 
 # Extract platform and hwsku from DEVICE_METADATA using awk
 platform=$(awk -F'"' '/"DEVICE_METADATA":/,/\}/{if(/"platform":/) print $4}' "$CONFIG_FILE")
@@ -11,7 +15,13 @@ platform=$(awk -F'"' '/"DEVICE_METADATA":/,/\}/{if(/"platform":/) print $4}' "$C
 # Print the values
 echo "Platform: $platform"
 
-ASIC_CONF_FILE="/usr/share/sonic/device/$platform/asic.conf"
+PLATFORM_DIR="/usr/share/sonic/device/$platform"
+if [ ! -d "$PLATFORM_DIR" ]; then
+    echo "Directory $PLATFORM_DIR not found. returning.."
+    exit 1
+fi
+
+ASIC_CONF_FILE="$PLATFORM_DIR/asic.conf"
 echo "$ASIC_CONF_FILE"
 num_asic=1
 
