@@ -179,6 +179,9 @@ class ConfigDB:
     def get_table(self, table):
         return self.db.get(table, {})
 
+    def get_entry(self, table, key):
+        return self.get_table(table).get(key, {})
+
 def set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db):
     mock_conn.side_effect = conn_side_effect
     mock_table.side_effect = table_side_effect
