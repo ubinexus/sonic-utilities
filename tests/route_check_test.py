@@ -20,15 +20,13 @@ sys.path.append("scripts")
 import route_check
 
 current_test_data = None
-tables_returned = {}
 selector_returned = None
 subscribers_returned = {}
 db_conns = {}
 
 def set_test_case_data(ctdata):
-    global current_test_data, db_conns, tables_returned, selector_returned, subscribers_returned
+    global current_test_data, db_conns, selector_returned, subscribers_returned
     current_test_data = ctdata
-    tables_returned = {}
     selector_returned = None
     subscribers_returned = {}
 
@@ -84,6 +82,7 @@ def init_db_conns(namespaces):
         db_conns[ns] = {
             "APPL_DB": {"namespace": ns, "name": APPL_DB},
             "ASIC_DB": {"namespace": ns, "name": ASIC_DB},
+            "CONFIG_DB": ConfigDB(ns)
             }
 
 def table_side_effect(db, tbl):
@@ -168,24 +167,24 @@ def select_side_effect():
         selector_returned = MockSelector()
     return selector_returned
 
+def config_db_side_effect(namespace):
+    return db_conns[namespace]["CONFIG_DB"]
 
-def config_db_side_effect(table):
-    if CONFIG_DB not in current_test_data[PRE]:
-        return DEFAULT_CONFIG_DB[table]
-    if not CONFIG_DB in tables_returned:
-        tables_returned[CONFIG_DB] = {}
-    if not table in tables_returned[CONFIG_DB]:
-        tables_returned[CONFIG_DB][table] = current_test_data[PRE][CONFIG_DB].get(table, {})
-    return tables_returned[CONFIG_DB][table]
+class ConfigDB:
+    def __init__(self, namespace):
+        self.namespace = namespace
+        self.name = CONFIG_DB
+        self.db = current_test_data[PRE].get(namespace, {}).get(CONFIG_DB, DEFAULT_CONFIG_DB)
 
+    def get_table(self, table):
+        return self.db.get(table, {})
 
 def set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db):
     mock_conn.side_effect = conn_side_effect
     mock_table.side_effect = table_side_effect
     mock_sel.side_effect = select_side_effect
     mock_subs.side_effect = subscriber_side_effect
-    mock_config_db.get_table = MagicMock(side_effect=config_db_side_effect)
-
+    mock_config_db.side_effect = config_db_side_effect
 
 class TestRouteCheck(object):
     @staticmethod
@@ -216,12 +215,11 @@ class TestRouteCheck(object):
 
     @pytest.fixture
     def mock_dbs(self):
-        mock_config_db = MagicMock()
         with patch("route_check.swsscommon.DBConnector") as mock_conn, \
              patch("route_check.swsscommon.Table") as mock_table, \
              patch("route_check.swsscommon.Select") as mock_sel, \
              patch("route_check.swsscommon.SubscriberStateTable") as mock_subs, \
-             patch("sonic_py_common.multi_asic.connect_config_db_for_ns", return_value=mock_config_db), \
+             patch("sonic_py_common.multi_asic.connect_config_db_for_ns") as mock_config_db, \
              patch("route_check.swsscommon.NotificationProducer"):
             device_info.get_platform = MagicMock(return_value='unittest')
             set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db)
@@ -248,7 +246,7 @@ class TestRouteCheck(object):
             self.assert_results(ct_data, ret, res)
 
     def mock_check_output(self, ct_data, *args, **kwargs):
-        ns = self.extract_namespace_from_args(args)
+        ns = self.extract_namespace_from_args(args[0])
         routes = ct_data.get(FRR_ROUTES, {}).get(ns, {})
         return json.dumps(routes)
 

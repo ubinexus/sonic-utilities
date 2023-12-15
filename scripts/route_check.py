@@ -388,7 +388,7 @@ def filter_out_local_interfaces(namespace, keys):
     :return keys filtered out of local
     """
     rt = []
-    local_if_lst = {'eth0', 'docker0'}
+    local_if_lst = {'eth0', 'eth1', 'docker0'}  #eth1 is added to skip route installed in AAPL_DB on packet-chassis
     local_if_lo = [r'tun0', r'lo', r'Loopback\d+']
 
     chassis_local_intfs = chassis.get_chassis_local_interfaces()
@@ -421,7 +421,7 @@ def filter_out_voq_neigh_routes(namespace, keys):
     writing route entries in asic db for these. We filter
     out reporting error on all the host routes written on
     inband interface prefixed with "Ethernte-IB"
-    :param keys: APPL-DB:ROUTE_TABLE Routes to check.
+    :param namespace: Asic namespace, keys: APPL-DB:ROUTE_TABLE Routes to check.
     :return keys filtered out for voq neigh routes
     """
     rt = []

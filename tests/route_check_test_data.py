@@ -325,12 +325,12 @@ TEST_DATA = {
         NAMESPACE: [''],
         ARGS: "route_check",
         PRE: {
-            CONFIG_DB: {
-                DEVICE_METADATA: {
-                LOCALHOST: {"subtype": "DualToR"}
-                }
-            },
             DEFAULTNS: {
+                CONFIG_DB: {
+                    DEVICE_METADATA: {
+                        LOCALHOST: {"subtype": "DualToR"}
+                    }
+                },
                 APPL_DB: {
                     NEIGH_TABLE: {
                         "Vlan1000:fc02:1000::99": { "neigh": "00:00:00:00:00:00", "family": "IPv6"}
@@ -381,22 +381,22 @@ TEST_DATA = {
         NAMESPACE: [''],
         ARGS: "route_check",
         PRE: {
-            CONFIG_DB: {
-                DEVICE_METADATA: {
-                    LOCALHOST: {"subtype": "DualToR"}
-                },
-                MUX_CABLE: {
-                    "Ethernet4": {
-                        "cable_type": "active-active",
-                        "server_ipv4": "192.168.0.2/32",
-                        "server_ipv6": "fc02:1000::2/128",
-                        "soc_ipv4": "192.168.0.3/32",
-                        "soc_ipv6": "fc02:1000::3/128",
-                        "state": "auto"
-                    },
-                }
-            },
             DEFAULTNS: {
+                CONFIG_DB: {
+                    DEVICE_METADATA: {
+                        LOCALHOST: {"subtype": "DualToR"}
+                    },
+                    MUX_CABLE: {
+                        "Ethernet4": {
+                            "cable_type": "active-active",
+                            "server_ipv4": "192.168.0.2/32",
+                            "server_ipv6": "fc02:1000::2/128",
+                            "soc_ipv4": "192.168.0.3/32",
+                            "soc_ipv6": "fc02:1000::3/128",
+                            "state": "auto"
+                        },
+                    }
+                },
                 APPL_DB: {
                     ROUTE_TABLE: {
                         "192.168.0.2/32": {"ifname": "tun0"},
@@ -558,12 +558,12 @@ TEST_DATA = {
         ARGS: "route_check -i 15",
         RET: -1,
         PRE: {
-            CONFIG_DB: {
-                DEVICE_METADATA: {
-                    LOCALHOST: {"subtype": "DualToR"}
-                }
-            },
             DEFAULTNS: {
+                CONFIG_DB: {
+                    DEVICE_METADATA: {
+                        LOCALHOST: {"subtype": "DualToR"}
+                    }
+                },
                 APPL_DB: {
                     ROUTE_TABLE: {
                         "10.10.196.12/31" : { "ifname": "portchannel0" },
@@ -819,4 +819,66 @@ TEST_DATA = {
         ARGS: "route_check -n random -m INFO -i 1000",
         RET: -1,
     },
+    "20": {
+        DESCR: "multi-asic failure test case, missing FRR routes",
+        MULTI_ASIC: True,
+        NAMESPACE: ['asic0', 'asic1'],
+        ARGS: "route_check -n asic1 -m INFO -i 1000",
+        PRE: {
+            ASIC1: {
+                APPL_DB: {
+                    ROUTE_TABLE: {
+                        "0.0.0.0/0" : { "ifname": "portchannel0" },
+                        "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    },
+                    INTF_TABLE: {
+                        "PortChannel1013:10.10.196.24/31": {},
+                        "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                        "PortChannel1024": {}
+                    }
+                },
+                ASIC_DB: {
+                    RT_ENTRY_TABLE: {
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                    }
+                },
+            },
+        },
+        FRR_ROUTES: {
+            ASIC1: {
+                "0.0.0.0/0": [
+                    {
+                        "prefix": "0.0.0.0/0",
+                        "vrfName": "default",
+                        "protocol": "bgp",
+                        "offloaded": "true",
+                    },
+                ],
+                "10.10.196.12/31": [
+                    {
+                        "prefix": "10.10.196.12/31",
+                        "vrfName": "default",
+                        "protocol": "bgp",
+                    },
+                ],
+                "10.10.196.24/31": [
+                    {
+                        "protocol": "connected",
+                    },
+                ],
+            },
+        },
+        RESULT: {
+            ASIC1: {
+                "missed_FRR_routes": [
+                    {"prefix": "10.10.196.12/31", "vrfName": "default", "protocol": "bgp"}
+                ],
+            },
+        },
+        RET: -1,
+    },
+
 }
