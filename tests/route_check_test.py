@@ -176,7 +176,7 @@ class ConfigDB:
     def __init__(self, namespace):
         self.namespace = namespace
         self.name = CONFIG_DB
-        self.db = current_test_data[PRE].get(namespace, {}).get(CONFIG_DB, DEFAULT_CONFIG_DB)
+        self.db = current_test_data.get(PRE, {}).get(namespace, {}).get(CONFIG_DB, DEFAULT_CONFIG_DB) if current_test_data is not None else DEFAULT_CONFIG_DB
 
     def get_table(self, table):
         return self.db.get(table, {})
@@ -296,9 +296,11 @@ class TestRouteCheck(object):
         assert len(msg) == 5
 
     def test_mitigate_routes(self, mock_dbs):
+        namespace = DEFAULTNS
         missed_frr_rt = [ { 'prefix': '192.168.0.1', 'protocol': 'bgp' } ]
         rt_appl = [ '192.168.0.1' ]
+        init_db_conns([namespace])
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-           route_check.mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl)
+            route_check.mitigate_installed_not_offloaded_frr_routes(namespace, missed_frr_rt, rt_appl)
         # Verify that the stdout are suppressed in this function
         assert not mock_stdout.getvalue()
