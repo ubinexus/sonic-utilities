@@ -2,6 +2,7 @@
 
 import os
 import argparse
+import copy
 import json
 import sys
 import traceback
@@ -36,6 +37,14 @@ SYSLOG_IDENTIFIER = 'db_migrator'
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
+def update_config(current_config, config_input):
+    updated_config = copy.deepcopy(current_config)
+    # Override current config with golden config
+    for table in config_input:
+        updated_config[table] = config_input[table]
+    return updated_config
+
+
 class DBMigrator():
     def __init__(self, namespace, socket=None):
         """
@@ -55,25 +64,37 @@ class DBMigrator():
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
 
-        # when there is golden_config_db.json
         # load config data from golden_config_db.json
-        # when there is no golden_config_db.json
-        # load config data from minigraph to get the default/hardcoded values from minigraph.py
-        # this is to avoid duplicating the hardcoded these values in db_migrator
-        self.minigraph_data = None
+        self.__golden_config_data = None
         try:
             if os.path.isfile(GOLDEN_CFG_FILE):
                 with open(GOLDEN_CFG_FILE) as f:
                     golden_data = json.load(f)
                     if namespace is None:
-                        self.minigraph_data = golden_data
+                        self.__golden_config_data = golden_data
                     else:
-                        self.minigraph_data = golden_data[namespace]
-            elif os.path.isfile(MINIGRAPH_FILE):
-                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+                        self.__golden_config_data = golden_data[namespace]
+        except Exception as e:
+            log.log_error('Caught exception while trying to load golden config: ' + str(e))
+            pass
+        # load config data from minigraph to get the default/hardcoded values from minigraph.py
+        self.__minigraph_data = None
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                self.__minigraph_data = parse_xml(MINIGRAPH_FILE)
         except Exception as e:
             log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
             pass
+        # When both golden config and minigraph exists, override minigraph config with golden config
+        # config_src_data is the source of truth for config data
+        # this is to avoid duplicating the hardcoded these values in db_migrator
+        self.config_src_data = None
+        if self.__minigraph_data:
+            self.config_src_data = self.__minigraph_data
+            if self.__golden_config_data:
+                self.config_src_data = update_config(self.__minigraph_data, self.__golden_config_data)
+        elif self.__golden_config_data:
+            self.config_src_data = self.__golden_config_data
 
         db_kwargs = {}
         if socket:
@@ -552,9 +573,9 @@ class DBMigrator():
 
     def migrate_restapi(self):
         # RESTAPI - add missing key
-        if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
+        if not self.config_src_data or 'RESTAPI' not in self.config_src_data:
             return
-        restapi_data = self.minigraph_data['RESTAPI']
+        restapi_data = self.config_src_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
         config = self.configDB.get_entry('RESTAPI', 'config')
         if not config:
@@ -565,9 +586,9 @@ class DBMigrator():
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
-        if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
+        if not self.config_src_data or 'TELEMETRY' not in self.config_src_data:
             return
-        telemetry_data = self.minigraph_data['TELEMETRY']
+        telemetry_data = self.config_src_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
         gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
         if not gnmi:
@@ -578,9 +599,9 @@ class DBMigrator():
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
-        if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
+        if not self.config_src_data or 'CONSOLE_SWITCH' not in self.config_src_data:
             return
-        console_switch_data = self.minigraph_data['CONSOLE_SWITCH']
+        console_switch_data = self.config_src_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
         console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
         if not console_mgmt:
@@ -589,11 +610,11 @@ class DBMigrator():
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
-        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+        if not self.config_src_data or 'DEVICE_METADATA' not in self.config_src_data:
             return
         log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        device_metadata_data = self.minigraph_data["DEVICE_METADATA"]["localhost"]
+        device_metadata_data = self.config_src_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
             metadata['synchronous_mode'] = device_metadata_data.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
@@ -655,19 +676,19 @@ class DBMigrator():
         Handle DNS_NAMESERVER table migration. Migrations handled:
         If there's no DNS_NAMESERVER in config_DB, load DNS_NAMESERVER from minigraph
         """
-        if not self.minigraph_data or 'DNS_NAMESERVER' not in self.minigraph_data:
+        if not self.config_src_data or 'DNS_NAMESERVER' not in self.config_src_data:
             return
         dns_table = self.configDB.get_table('DNS_NAMESERVER')
         if not dns_table:
-            for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
+            for addr, config in self.config_src_data['DNS_NAMESERVER'].items():
                 self.configDB.set_entry('DNS_NAMESERVER', addr, config)
 
     def migrate_routing_config_mode(self):
         # DEVICE_METADATA - synchronous_mode entry
-        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+        if not self.config_src_data or 'DEVICE_METADATA' not in self.config_src_data:
             return
         device_metadata_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        device_metadata_new = self.minigraph_data['DEVICE_METADATA']['localhost']
+        device_metadata_new = self.config_src_data['DEVICE_METADATA']['localhost']
         # overwrite the routing-config-mode as per minigraph parser
         # Criteria for update:
         # if config mode is missing in base OS or if base and target modes are not same
