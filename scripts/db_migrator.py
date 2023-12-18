@@ -2,7 +2,6 @@
 
 import os
 import argparse
-import copy
 import json
 import sys
 import traceback
