@@ -802,13 +802,11 @@ class TestSflowSampleDirectionMigrator(object):
 class TestGoldenConfig(object):
     @classmethod
     def setup_class(cls):
-        os.system("cp %s %s" % (mock_db_path + '/golden_config_db.json.test', mock_db_path + '/golden_config_db.json'))
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        os.system("rm %s" % (mock_db_path + '/golden_config_db.json'))
 
     def test_golden_config_hostname(self):
         import db_migrator

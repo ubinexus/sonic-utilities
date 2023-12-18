@@ -1,6 +1,7 @@
 from dump.match_infra import MatchEngine, MatchRequest, ConnectionPool
 from dump.match_helper import get_matched_keys
 from .db import Db
+import copy
 
 def get_port_acl_binding(db_wrap, port, ns):
     """
