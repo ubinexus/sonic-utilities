@@ -308,8 +308,8 @@ class TestDnsNameserverMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
-        # Set minigraph_data to DNS_NAMESERVERS
-        dbmgtr.minigraph_data = {
+        # Set config_src_data to DNS_NAMESERVERS
+        dbmgtr.config_src_data = {
             'DNS_NAMESERVER': {
                 '1.1.1.1': {},
                 '2001:1001:110:1001::1': {}
@@ -575,8 +575,8 @@ class TestWarmUpgrade_to_2_0_2(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
-        # set minigraph_data to None to mimic the missing minigraph.xml scenario
-        dbmgtr.minigraph_data = None
+        # set config_src_data to None to mimic the missing minigraph.xml scenario
+        dbmgtr.config_src_data = None
         dbmgtr.migrate()
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_without_mg_2_0_2_expected.json')
         expected_db = Db()
@@ -813,7 +813,7 @@ class TestGoldenConfig(object):
     def test_golden_config_hostname(self):
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
-        config = dbmgtr.minigraph_data
+        config = dbmgtr.config_src_data
         device_metadata = config.get('DEVICE_METADATA', {})
         assert device_metadata != {}
         host = device_metadata.get('localhost', {})
