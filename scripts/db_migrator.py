@@ -11,6 +11,7 @@ import re
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from minigraph import parse_xml
+from utilities_common.helper import update_config
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
@@ -35,14 +36,6 @@ SYSLOG_IDENTIFIER = 'db_migrator'
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
-
-
-def update_config(current_config, config_input):
-    updated_config = copy.deepcopy(current_config)
-    # Override current config with golden config
-    for table in config_input:
-        updated_config[table] = config_input[table]
-    return updated_config
 
 
 class DBMigrator():

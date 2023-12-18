@@ -64,3 +64,21 @@ def get_port_pbh_binding(db_wrap, port, ns):
     ret = m_engine.fetch(req)
     pbh_tables, _ = get_matched_keys(ret)
     return pbh_tables
+
+
+def update_config(current_config, config_input):
+    """
+    Override current config with golden config
+
+    Args:
+        current_config: current config
+        config_input: input golden config
+
+    Returns:
+        Final config after overriding
+    """
+    updated_config = copy.deepcopy(current_config)
+    # Override current config with golden config
+    for table in config_input:
+        updated_config[table] = config_input[table]
+    return updated_config

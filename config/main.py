@@ -34,7 +34,7 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
-from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
+from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding, update_config
 from utilities_common.general import load_db_config, load_module_from_source
 from .validated_config_db_connector import ValidatedConfigDBConnector
 import utilities_common.multi_asic as multi_asic_util
@@ -1983,14 +1983,6 @@ def validate_config_by_cm(cm, config_json, jname):
     except Exception as ex:
         click.secho("Failed to validate {}. Error: {}".format(jname, ex), fg="magenta")
         sys.exit(1)
-
-
-def update_config(current_config, config_input):
-    updated_config = copy.deepcopy(current_config)
-    # Override current config with golden config
-    for table in config_input:
-        updated_config[table] = config_input[table]
-    return updated_config
 
 
 def override_config_db(config_db, config_input):
