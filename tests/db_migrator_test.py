@@ -798,3 +798,25 @@ class TestSflowSampleDirectionMigrator(object):
             expected_keys = expected_appl_db.get_all(expected_appl_db.APPL_DB, key)
             diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
             assert not diff
+
+class TestGoldenConfig(object):
+    @classmethod
+    def setup_class(cls):
+        os.system("cp %s %s", mock_db_path + '/golden_config_db.json.test', mock_db_path + '/golden_config_db.json')
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.system("rm %s", mock_db_path + '/golden_config_db.json')
+
+    def test_golden_config_hostname(self):
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        config = dbmgtr.minigraph_data
+        device_metadata = config.get('DEVICE_METADATA', {})
+        assert device_metadata != {}
+        host = device_metadata.get('localhost', {})
+        assert host != {}
+        hostname = host.get('hostname', '')
+        assert hostname == 'SONiC-Golden-Config'
