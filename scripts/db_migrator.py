@@ -31,6 +31,7 @@ except KeyError:
     pass
 
 SYSLOG_IDENTIFIER = 'db_migrator'
+DEFAULT_NAMESPACE = ''
 
 
 # Global logger instance
@@ -65,6 +66,8 @@ class DBMigrator():
                     if namespace is None:
                         self.__golden_config_data = golden_data
                     else:
+                        if namespace == DEFAULT_NAMESPACE:
+                            namespace = "localhost"
                         self.__golden_config_data = golden_data[namespace]
         except Exception as e:
             log.log_error('Caught exception while trying to load golden config: ' + str(e))
