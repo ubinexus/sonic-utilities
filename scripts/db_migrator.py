@@ -67,8 +67,10 @@ class DBMigrator():
                         self.__golden_config_data = golden_data
                     else:
                         if namespace == DEFAULT_NAMESPACE:
-                            namespace = "localhost"
-                        self.__golden_config_data = golden_data[namespace]
+                            config_namespace = "localhost"
+                        else:
+                            config_namespace = namespace
+                        self.__golden_config_data = golden_data[config_namespace]
         except Exception as e:
             log.log_error('Caught exception while trying to load golden config: ' + str(e))
             pass
