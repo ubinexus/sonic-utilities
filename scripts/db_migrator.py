@@ -6,7 +6,6 @@ import json
 import sys
 import traceback
 import re
-import copy
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
@@ -88,11 +87,15 @@ class DBMigrator():
         # this is to avoid duplicating the hardcoded these values in db_migrator
         self.config_src_data = None
         if self.minigraph_data:
-            self.config_src_data = copy.deepcopy(self.minigraph_data)
+            # Shallow copy for better performance
+            # Do not modify minigraph_data afterwards
+            self.config_src_data = self.minigraph_data
             if self.golden_config_data:
                 self.config_src_data = update_config(self.minigraph_data, self.golden_config_data)
         elif self.golden_config_data:
-            self.config_src_data = copy.deepcopy(self.golden_config_data)
+            # Shallow copy for better performance
+            # Do not modify golden_config_data afterwards
+            self.config_src_data = self.golden_config_data
 
         db_kwargs = {}
         if socket:

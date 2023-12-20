@@ -1,7 +1,6 @@
 from dump.match_infra import MatchEngine, MatchRequest, ConnectionPool
 from dump.match_helper import get_matched_keys
 from .db import Db
-import copy
 
 def get_port_acl_binding(db_wrap, port, ns):
     """
@@ -78,7 +77,9 @@ def update_config(current_config, config_input):
     Returns:
         Final config after overriding
     """
-    updated_config = copy.deepcopy(current_config)
+    # Shallow copy for better performance
+    # Do not modify current_config and config_input afterwards
+    updated_config = current_config
     # Override current config with golden config
     for table in config_input:
         updated_config[table] = config_input[table]
