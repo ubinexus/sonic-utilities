@@ -819,4 +819,28 @@ class TestGoldenConfig(object):
         host = device_metadata.get('localhost', {})
         assert host != {}
         hostname = host.get('hostname', '')
+        # hostname is from golden_config_db.json
         assert hostname == 'SONiC-Golden-Config'
+
+class TestGoldenConfigInvalid(object):
+    @classmethod
+    def setup_class(cls):
+        os.system("cp %s %s" % (mock_db_path + '/golden_config_db.json.invalid', mock_db_path + '/golden_config_db.json'))
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.system("rm %s" % (mock_db_path + '/golden_config_db.json'))
+
+    def test_golden_config_hostname(self):
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        config = dbmgtr.config_src_data
+        device_metadata = config.get('DEVICE_METADATA', {})
+        assert device_metadata != {}
+        host = device_metadata.get('localhost', {})
+        assert host != {}
+        hostname = host.get('hostname', '')
+        # hostname is from minigraph.xml
+        assert hostname == 'SONiC-Dummy'
