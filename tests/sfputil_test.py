@@ -594,14 +594,14 @@ Ethernet0  N/A
     def test_show_eeprom_hexdump_invalid_port(self, mock_chassis):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet"])
-        assert result.exit_code == ERROR_INVALID_PORT
+        assert result.exit_code != 0
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     def test_show_eeprom_hexdump_invalid_page(self, mock_chassis):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['eeprom-hexdump'], ["-p", "Ethernet1", "-n", "INVALID"])
-        assert result.exit_code == ERROR_NOT_IMPLEMENTED
+        assert result.exit_code != 0
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))

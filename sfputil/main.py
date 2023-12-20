@@ -697,20 +697,16 @@ def eeprom(port, dump_dom, namespace):
 # 'eeprom-hexdump' subcommand
 @show.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM hexdump for port <port_name>")
-@click.option('-n', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
+@click.option('-n', '--page', metavar='<page_number>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
 def eeprom_hexdump(port, page):
     """Display EEPROM hexdump of SFP transceiver(s)"""
     if port:
         if page is None:
             page = 0
-        else:
-            page = validate_eeprom_page(page)
         return_code, output = eeprom_hexdump_single_port(port, page)
         click.echo(output)
         sys.exit(return_code)
     else:
-        if page is not None:
-            page = validate_eeprom_page(page)
         logical_port_list = natsorted(platform_sfputil.logical)
         lines = []
         for logical_port_name in logical_port_list:
