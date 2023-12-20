@@ -893,26 +893,122 @@ TEST_DATA = {
         RET: -1,
     },
     "21": {
-        DESCR: "basic route check, good one, bgp disabled",
+        DESCR: "basic good one on single asic, bgp disabled",            
+        MULTI_ASIC: False,
+        NAMESPACE: [''],              
         ARGS: "route_check -m INFO -i 1000",
         PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
+            DEFAULTNS: {
+                APPL_DB: {
+                    ROUTE_TABLE: {
+                        "0.0.0.0/0" : { "ifname": "portchannel0" },
+                        "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    },                                                   
+                    INTF_TABLE: {                             
+                        "PortChannel1013:10.10.196.24/31": {},
+                        "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                        "PortChannel1024": {}                 
+                    }                                                   
+                },                           
+                ASIC_DB: {
+                    RT_ENTRY_TABLE: {
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}       
+                    }                                                                     
+                },                                                                                  
+                CONFIG_DB: {                                                       
+                    DEVICE_METADATA: {
+                       LOCALHOST: {
+                       }
+                   },
+                   FEATURE_TABLE: {
+                       "bgp": {
+                           "state": "disabled"
+                       }
+                   }
+               },
+            },
+            FRR_ROUTES: {
+                DEFAULTNS: {
+                    "0.0.0.0/0": [
+                        {
+                            "prefix": "0.0.0.0/0",
+                            "vrfName": "default",
+                            "protocol": "bgp",
+                            "offloaded": "true",
+                        },
+                    ],
+                    "10.10.196.12/31": [
+                        {
+                            "prefix": "10.10.196.12/31",
+                            "vrfName": "default",
+                            "protocol": "bgp",
+                            "offloaded": "true",
+                        },
+                    ],
+                    "10.10.196.24/31": [
+                        {
+                            "protocol": "connected",
+                        },
+                    ],
                 }
             },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+        },
+    },
+    "22": {
+        DESCR: "basic good one on multi-asic on all asics, bgp disabled",
+        MULTI_ASIC: True,
+        NAMESPACE: ['asic0', 'asic1'],
+        ARGS: "route_check -m INFO -i 1000",
+        PRE: {
+            ASIC0: {
+                APPL_DB: {
+                    ROUTE_TABLE: {
+                        "0.0.0.0/0" : { "ifname": "portchannel0" },
+                        "10.10.196.12/31" : { "ifname": "portchannel0" },
+                        "10.10.196.20/31" : { "ifname": "portchannel0" },
+                        "10.10.196.30/31" : { "ifname": "lo" }
+                    },
+                    INTF_TABLE: {
+                        "PortChannel1013:10.10.196.24/31": {},
+                        "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                        "PortChannel1024": {}
+                    }
+                },
+                ASIC_DB: {
+                    RT_ENTRY_TABLE: {
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                    }
+                }
+            },
+            ASIC1: {
+                APPL_DB: {
+                    ROUTE_TABLE: {
+                        "0.0.0.0/0" : { "ifname": "portchannel0" },
+                        "10.10.196.12/31" : { "ifname": "portchannel0" },
+                        "10.10.196.20/31" : { "ifname": "portchannel0" },
+                        "10.10.196.30/31" : { "ifname": "lo" }
+                    },
+                    INTF_TABLE: {
+                        "PortChannel1013:10.10.196.24/31": {},
+                        "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                        "PortChannel1024": {}
+                    }
+                },
+                ASIC_DB: {
+                    RT_ENTRY_TABLE: {
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                        RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                    }
                 }
             },
             CONFIG_DB: {
@@ -925,6 +1021,30 @@ TEST_DATA = {
                         "state": "disabled"
                     }
                 }
+            },
+            FRR_ROUTES: {
+                ASIC1: {
+                    "0.0.0.0/0": [
+                        {
+                            "prefix": "0.0.0.0/0",
+                            "vrfName": "default",
+                            "protocol": "bgp",
+                            "offloaded": "true",
+                        },
+                    ],
+                    "10.10.196.12/31": [
+                        {
+                            "prefix": "10.10.196.12/31",
+                            "vrfName": "default",
+                            "protocol": "bgp",
+                        },
+                    ],
+                    "10.10.196.24/31": [
+                        {
+                            "protocol": "connected",
+                        },
+                    ],
+                },
             },
         },
     },
