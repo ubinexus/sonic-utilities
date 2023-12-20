@@ -6,6 +6,7 @@ import json
 import sys
 import traceback
 import re
+import copy
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
@@ -58,27 +59,27 @@ class DBMigrator():
         self.TABLE_FIELD     = 'VERSION'
 
         # load config data from golden_config_db.json
-        self.__golden_config_data = None
+        self.golden_config_data = None
         try:
             if os.path.isfile(GOLDEN_CFG_FILE):
                 with open(GOLDEN_CFG_FILE) as f:
                     golden_data = json.load(f)
                     if namespace is None:
-                        self.__golden_config_data = golden_data
+                        self.golden_config_data = golden_data
                     else:
                         if namespace == DEFAULT_NAMESPACE:
                             config_namespace = "localhost"
                         else:
                             config_namespace = namespace
-                        self.__golden_config_data = golden_data[config_namespace]
+                        self.golden_config_data = golden_data[config_namespace]
         except Exception as e:
             log.log_error('Caught exception while trying to load golden config: ' + str(e))
             pass
         # load config data from minigraph to get the default/hardcoded values from minigraph.py
-        self.__minigraph_data = None
+        self.minigraph_data = None
         try:
             if os.path.isfile(MINIGRAPH_FILE):
-                self.__minigraph_data = parse_xml(MINIGRAPH_FILE)
+                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
         except Exception as e:
             log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
             pass
@@ -86,12 +87,12 @@ class DBMigrator():
         # config_src_data is the source of truth for config data
         # this is to avoid duplicating the hardcoded these values in db_migrator
         self.config_src_data = None
-        if self.__minigraph_data:
-            self.config_src_data = self.__minigraph_data
-            if self.__golden_config_data:
-                self.config_src_data = update_config(self.__minigraph_data, self.__golden_config_data)
-        elif self.__golden_config_data:
-            self.config_src_data = self.__golden_config_data
+        if self.minigraph_data:
+            self.config_src_data = copy.deepcopy(self.minigraph_data)
+            if self.golden_config_data:
+                self.config_src_data = update_config(self.minigraph_data, self.golden_config_data)
+        elif self.golden_config_data:
+            self.config_src_data = copy.deepcopy(self.golden_config_data)
 
         db_kwargs = {}
         if socket:
