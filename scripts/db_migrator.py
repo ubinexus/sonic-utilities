@@ -88,14 +88,16 @@ class DBMigrator():
         self.config_src_data = None
         if self.minigraph_data:
             # Shallow copy for better performance
-            # Do not modify minigraph_data afterwards
             self.config_src_data = self.minigraph_data
             if self.golden_config_data:
                 self.config_src_data = update_config(self.minigraph_data, self.golden_config_data)
         elif self.golden_config_data:
             # Shallow copy for better performance
-            # Do not modify golden_config_data afterwards
             self.config_src_data = self.golden_config_data
+        # We use shallow copy to generate config_src_data
+        # Set golden_config_data and minigraph_data to None to prevent them from being modified
+        self.golden_config_data = None
+        self.minigraph_data = None
 
         db_kwargs = {}
         if socket:

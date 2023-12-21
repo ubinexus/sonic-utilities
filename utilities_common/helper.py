@@ -69,6 +69,9 @@ def get_port_pbh_binding(db_wrap, port, ns):
 def update_config(current_config, config_input):
     """
     Override current config with golden config
+    Use shallow copy for better performance
+    If we modify current_config and config_input afterwards
+    update_config will be affected as well
 
     Args:
         current_config: current config
@@ -78,7 +81,6 @@ def update_config(current_config, config_input):
         Final config after overriding
     """
     # Shallow copy for better performance
-    # Do not modify current_config and config_input afterwards
     updated_config = current_config
     # Override current config with golden config
     for table in config_input:
