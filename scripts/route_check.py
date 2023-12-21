@@ -533,14 +533,13 @@ def filter_out_standalone_tunnel_routes(namespace, routes):
 
     return updated_routes
 
-def is_feature_bgp_enabled():
+def is_feature_bgp_enabled(namespace):
     """
     Check if bgp feature is enabled or disabled.
     Return True if enabled else False.
     """
-    config_db = swsscommon.ConfigDBConnector()
-    config_db.connect()
-    feature_table = config_db.get_table("FEATURE")
+    cfg_db = multi_asic.connect_config_db_for_ns(namespace)
+    feature_table = cfg_db.get_table("FEATURE")
     bgp_enabled = False
     if 'bgp' in feature_table:
         if feature_table['bgp']["state"] == "enabled":
@@ -778,7 +777,7 @@ def check_routes(namespace):
                 results[namespace] = {}
             results[namespace]["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
-        if is_feature_bgp_enabled():
+        if is_feature_bgp_enabled(namespace):
             rt_frr_miss = check_frr_pending_routes(namespace)
 
             if rt_frr_miss:
