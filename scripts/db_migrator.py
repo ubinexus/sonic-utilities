@@ -57,48 +57,8 @@ class DBMigrator():
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
 
-        # load config data from golden_config_db.json
-        self.golden_config_data = None
-        try:
-            if os.path.isfile(GOLDEN_CFG_FILE):
-                with open(GOLDEN_CFG_FILE) as f:
-                    golden_data = json.load(f)
-                    if namespace is None:
-                        self.golden_config_data = golden_data
-                    else:
-                        if namespace == DEFAULT_NAMESPACE:
-                            config_namespace = "localhost"
-                        else:
-                            config_namespace = namespace
-                        self.golden_config_data = golden_data[config_namespace]
-        except Exception as e:
-            log.log_error('Caught exception while trying to load golden config: ' + str(e))
-            pass
-        # load config data from minigraph to get the default/hardcoded values from minigraph.py
-        self.minigraph_data = None
-        try:
-            if os.path.isfile(MINIGRAPH_FILE):
-                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
-        except Exception as e:
-            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
-            pass
-        # When both golden config and minigraph exists, override minigraph config with golden config
-        # config_src_data is the source of truth for config data
-        # this is to avoid duplicating the hardcoded these values in db_migrator
-        self.config_src_data = None
-        if self.minigraph_data:
-            # Shallow copy for better performance
-            self.config_src_data = self.minigraph_data
-            if self.golden_config_data:
-                # Shallow copy for better performance
-                self.config_src_data = update_config(self.minigraph_data, self.golden_config_data, False)
-        elif self.golden_config_data:
-            # Shallow copy for better performance
-            self.config_src_data = self.golden_config_data
-        # We use shallow copy to generate config_src_data
-        # Set golden_config_data and minigraph_data to None to prevent them from being modified
-        self.golden_config_data = None
-        self.minigraph_data = None
+        # Generate config_src_data from minigraph and golden config
+        self.generate_config_src(namespace)
 
         db_kwargs = {}
         if socket:
@@ -136,6 +96,55 @@ class DBMigrator():
         if self.asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
             self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
+
+    def generate_config_src(self, ns):
+        '''
+        Generate config_src_data from minigraph and golden config
+        This method uses golden_config_data and minigraph_data as local variables,
+        which means they are not accessible or modifiable from outside this method.
+        This way, this method ensures that these variables are not changed unintentionally.
+        Args:
+            ns: namespace
+        Returns:
+        '''
+        # load config data from golden_config_db.json
+        golden_config_data = None
+        try:
+            if os.path.isfile(GOLDEN_CFG_FILE):
+                with open(GOLDEN_CFG_FILE) as f:
+                    golden_data = json.load(f)
+                    if ns is None:
+                        golden_config_data = golden_data
+                    else:
+                        if ns == DEFAULT_NAMESPACE:
+                            config_namespace = "localhost"
+                        else:
+                            config_namespace = ns
+                        golden_config_data = golden_data[config_namespace]
+        except Exception as e:
+            log.log_error('Caught exception while trying to load golden config: ' + str(e))
+            pass
+        # load config data from minigraph to get the default/hardcoded values from minigraph.py
+        minigraph_data = None
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                minigraph_data = parse_xml(MINIGRAPH_FILE)
+        except Exception as e:
+            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
+            pass
+        # When both golden config and minigraph exists, override minigraph config with golden config
+        # config_src_data is the source of truth for config data
+        # this is to avoid duplicating the hardcoded these values in db_migrator
+        self.config_src_data = None
+        if minigraph_data:
+            # Shallow copy for better performance
+            self.config_src_data = minigraph_data
+            if golden_config_data:
+                # Shallow copy for better performance
+                self.config_src_data = update_config(minigraph_data, golden_config_data, False)
+        elif golden_config_data:
+            # Shallow copy for better performance
+            self.config_src_data = golden_config_data
 
     def migrate_pfc_wd_table(self):
         '''
