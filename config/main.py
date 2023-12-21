@@ -1950,9 +1950,8 @@ def override_config_table(db, input_config_db, dry_run):
             ns_config_input = config_input
         # Generate sysinfo if missing in ns_config_input
         generate_sysinfo(current_config, ns_config_input, ns)
+        # Use deepcopy by default to avoid modifying input config
         updated_config = update_config(current_config, ns_config_input)
-        # update_config uses shallow copy, so we need to deepcopy it
-        update_config = copy.deepcopy(updated_config)
 
         yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
         if yang_enabled:

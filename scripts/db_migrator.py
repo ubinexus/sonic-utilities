@@ -90,7 +90,8 @@ class DBMigrator():
             # Shallow copy for better performance
             self.config_src_data = self.minigraph_data
             if self.golden_config_data:
-                self.config_src_data = update_config(self.minigraph_data, self.golden_config_data)
+                # Shallow copy for better performance
+                self.config_src_data = update_config(self.minigraph_data, self.golden_config_data, False)
         elif self.golden_config_data:
             # Shallow copy for better performance
             self.config_src_data = self.golden_config_data
