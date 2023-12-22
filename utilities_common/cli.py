@@ -10,6 +10,7 @@ import click
 import json
 import lazy_object_proxy
 import netaddr
+import ipaddress
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
@@ -216,6 +217,11 @@ def ipaddress_type(val):
         return None
 
     return ip_version.version
+
+def is_ipv6addr_multicast(ipaddr):
+    if ipaddress.ip_network("FF00::/8").overlaps(ipaddress.ip_network(ipaddr, False)):
+        return True
+    return False
 
 def is_ip_prefix_in_key(key):
     '''
