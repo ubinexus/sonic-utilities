@@ -341,6 +341,11 @@ TEST_DATA = {
                 CONFIG_DB: {
                     DEVICE_METADATA: {
                         LOCALHOST: {"subtype": "DualToR"}
+                    },
+                    FEATURE_TABLE: {
+                        "bgp": {
+                            "state": "enabled"
+                        }
                     }
                 },
                 APPL_DB: {
@@ -407,6 +412,11 @@ TEST_DATA = {
                             "soc_ipv6": "fc02:1000::3/128",
                             "state": "auto"
                         },
+                    },
+                    FEATURE_TABLE: {
+                        "bgp": {
+                            "state": "enabled"
+                        }
                     }
                 },
                 APPL_DB: {
@@ -574,6 +584,11 @@ TEST_DATA = {
                 CONFIG_DB: {
                     DEVICE_METADATA: {
                         LOCALHOST: {"subtype": "DualToR"}
+                    },
+                    FEATURE_TABLE: {
+                        "bgp": {
+                            "state": "enabled"
+                        }
                     }
                 },
                 APPL_DB: {

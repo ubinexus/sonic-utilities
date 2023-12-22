@@ -777,13 +777,12 @@ def check_routes(namespace):
                 results[namespace] = {}
             results[namespace]["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
-        if is_feature_bgp_enabled(namespace):
-            rt_frr_miss = check_frr_pending_routes(namespace)
+        rt_frr_miss = check_frr_pending_routes(namespace)
 
-            if rt_frr_miss:
-                if namespace not in results:
-                    results[namespace] = {}
-                results[namespace]["missed_FRR_routes"] = rt_frr_miss
+        if rt_frr_miss:
+            if namespace not in results:
+                results[namespace] = {}
+            results[namespace]["missed_FRR_routes"] = rt_frr_miss
 
         if results:
             if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
@@ -839,6 +838,10 @@ def main():
 
     signal.signal(signal.SIGALRM, handler)
     load_db_config()
+
+    if not is_feature_bgp_enabled(namespace):
+        print_message(syslog.LOG_INFO, "BGP feature is disabled, exiting without checking routes!!")
+        return 0, None
 
     while True:
         signal.alarm(TIMEOUT_SECONDS)
