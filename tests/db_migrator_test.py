@@ -881,15 +881,13 @@ class TestMain(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
 
     @mock.patch('argparse.ArgumentParser.parse_args')
-    @mock.patch('db_migrator.SonicDBConfig.load_sonic_global_db_config')
-    def test_init(self, mock_init, mock_args):
+    def test_init(self, mock_args):
         mock_args.return_value=argparse.Namespace(namespace=None, operation='get_version', socket=None)
         import db_migrator
         db_migrator.main()
 
     @mock.patch('argparse.ArgumentParser.parse_args')
-    @mock.patch('db_migrator.SonicDBConfig.initialize')
-    def test_global_init(self, mock_init, mock_args):
+    def test_global_init(self, mock_args):
         mock_args.return_value=argparse.Namespace(namespace='', operation='get_version', socket=None)
         import db_migrator
         db_migrator.main()
