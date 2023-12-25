@@ -1242,9 +1242,11 @@ def main():
         namespace = args.namespace
 
         if args.namespace is not None:
-            SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+            if not SonicDBConfig.isGlobalInit():
+                SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
         else:
-            SonicDBConfig.initialize()
+            if not SonicDBConfig.isInit():
+                SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
