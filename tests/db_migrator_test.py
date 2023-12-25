@@ -883,13 +883,5 @@ class TestMain(object):
     @mock.patch('argparse.ArgumentParser.parse_args')
     def test_init(self, mock_args):
         mock_args.return_value=argparse.Namespace(namespace=None, operation='get_version', socket=None)
-        SonicDBConfig.reset()
-        import db_migrator
-        db_migrator.main()
-
-    @mock.patch('argparse.ArgumentParser.parse_args')
-    def test_global_init(self, mock_args):
-        mock_args.return_value=argparse.Namespace(namespace='', operation='get_version', socket=None)
-        SonicDBConfig.reset()
         import db_migrator
         db_migrator.main()

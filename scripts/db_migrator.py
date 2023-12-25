@@ -11,6 +11,7 @@ from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from minigraph import parse_xml
 from utilities_common.helper import update_config
+from utilities_common.general import load_db_config
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
@@ -1241,12 +1242,7 @@ def main():
         socket_path = args.socket
         namespace = args.namespace
 
-        if args.namespace is not None:
-            if not SonicDBConfig.isGlobalInit():
-                SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
-        else:
-            if not SonicDBConfig.isInit():
-                SonicDBConfig.initialize()
+        load_db_config()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
