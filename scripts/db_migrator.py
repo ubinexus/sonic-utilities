@@ -8,7 +8,7 @@ import traceback
 import re
 
 from sonic_py_common import device_info, logger
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from minigraph import parse_xml
 from utilities_common.helper import update_config
 from utilities_common.general import load_db_config
