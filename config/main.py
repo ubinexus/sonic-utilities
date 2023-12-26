@@ -58,6 +58,7 @@ from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
 from . import dns
+from . import system
 
 # mock masic APIs for unit test
 try:
@@ -1210,6 +1211,9 @@ config.add_command(syslog.syslog)
 
 # DNS module
 config.add_command(dns.dns)
+
+# system module
+config.add_command(system.system)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
