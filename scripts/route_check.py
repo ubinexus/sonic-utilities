@@ -110,11 +110,12 @@ def set_level(lvl, log_to_syslog):
         report_level = syslog.LOG_DEBUG
 
 
-def print_message(lvl, *args):
+def print_message(lvl, *args, write_to_stdout=True):
     """
     print and log the message for given level.
     :param lvl: Log level for this message as ERR/INFO/DEBUG
     :param args: message as list of strings or convertible to string
+    :param write_to_stdout: print the message to stdout if set to true
     :return None
     """
     msg = ""
@@ -125,7 +126,8 @@ def print_message(lvl, *args):
                 break
             msg += str(arg)[0:rem_len]
 
-        print(msg)
+        if write_to_stdout:
+            print(msg)
         if write_to_syslog:
             syslog.syslog(lvl, msg)
 

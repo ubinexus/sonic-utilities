@@ -1,4 +1,5 @@
 import copy
+from io import StringIO
 import json
 import os
 import logging
@@ -7,7 +8,7 @@ import syslog
 import time
 from sonic_py_common import device_info
 from unittest.mock import MagicMock, patch
-from tests.route_check_test_data import APPL_DB, ARGS, ASIC_DB, CONFIG_DB, DEFAULT_CONFIG_DB, DESCR, OP_DEL, OP_SET, PRE, RESULT, RET, TEST_DATA, UPD
+from tests.route_check_test_data import APPL_DB, ARGS, ASIC_DB, CONFIG_DB, DEFAULT_CONFIG_DB, APPL_STATE_DB, DESCR, OP_DEL, OP_SET, PRE, RESULT, RET, TEST_DATA, UPD
 
 import pytest
 
@@ -89,7 +90,7 @@ class Table:
         return True, ret
 
 
-db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB}
+db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB, "APPL_STATE_DB": APPL_STATE_DB }
 def conn_side_effect(arg, _):
     return db_conns[arg]
 
@@ -181,7 +182,7 @@ class mock_subscriber:
 
         print("state={} k={} op={} v={}".format(self.state, k, op, str(v)))
         return (k, op, v)
-   
+
 
     def getDbConnector(self):
         return self.dbconn
