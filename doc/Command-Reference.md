@@ -202,6 +202,10 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
+* [SFP Utilities Commands](#sfp-utilities-commands)
+  * [SFP Utilities show commands](#sfp-utilities-show-commands)
+  * [SFP Utilities read command](#sfp-utilities-read-command)
+  * [SFP Utilities write command](#sfp-utilities-write-command)
 * [Static DNS Commands](#static-dns-commands)
   * [Static DNS config command](#static-dns-config-command)
   * [Static DNS show command](#static-dns-show-command)
@@ -4248,34 +4252,130 @@ This command displays switch hash global configuration.
   show switch-hash global
   ```
 
+- Options:
+  - _-j,--json_: display in JSON format
+
 - Example:
   ```bash
   admin@sonic:~$ show switch-hash global
-  ECMP HASH          LAG HASH
-  -----------------  -----------------
-  DST_MAC            DST_MAC
-  SRC_MAC            SRC_MAC
-  ETHERTYPE          ETHERTYPE
-  IP_PROTOCOL        IP_PROTOCOL
-  DST_IP             DST_IP
-  SRC_IP             SRC_IP
-  L4_DST_PORT        L4_DST_PORT
-  L4_SRC_PORT        L4_SRC_PORT
-  INNER_DST_MAC      INNER_DST_MAC
-  INNER_SRC_MAC      INNER_SRC_MAC
-  INNER_ETHERTYPE    INNER_ETHERTYPE
-  INNER_IP_PROTOCOL  INNER_IP_PROTOCOL
-  INNER_DST_IP       INNER_DST_IP
-  INNER_SRC_IP       INNER_SRC_IP
-  INNER_L4_DST_PORT  INNER_L4_DST_PORT
-  INNER_L4_SRC_PORT  INNER_L4_SRC_PORT
+  +--------+-------------------------------------+
+  | Hash   | Configuration                       |
+  +========+=====================================+
+  | ECMP   | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | DST_MAC           | CRC         | |
+  |        | | SRC_MAC           |             | |
+  |        | | ETHERTYPE         |             | |
+  |        | | IP_PROTOCOL       |             | |
+  |        | | DST_IP            |             | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  | LAG    | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | DST_MAC           | CRC         | |
+  |        | | SRC_MAC           |             | |
+  |        | | ETHERTYPE         |             | |
+  |        | | IP_PROTOCOL       |             | |
+  |        | | DST_IP            |             | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  ```
+
+**show switch-hash capabilities**
+
+This command displays switch hash capabilities.
+
+- Usage:
+  ```bash
+  show switch-hash capabilities
+  ```
+
+- Options:
+  - _-j,--json_: display in JSON format
+
+- Example:
+  ```bash
+  admin@sonic:~$ show switch-hash capabilities
+  +--------+-------------------------------------+
+  | Hash   | Capabilities                        |
+  +========+=====================================+
+  | ECMP   | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | IN_PORT           | CRC         | |
+  |        | | DST_MAC           | XOR         | |
+  |        | | SRC_MAC           | RANDOM      | |
+  |        | | ETHERTYPE         | CRC_32LO    | |
+  |        | | VLAN_ID           | CRC_32HI    | |
+  |        | | IP_PROTOCOL       | CRC_CCITT   | |
+  |        | | DST_IP            | CRC_XOR     | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  | LAG    | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | IN_PORT           | CRC         | |
+  |        | | DST_MAC           | XOR         | |
+  |        | | SRC_MAC           | RANDOM      | |
+  |        | | ETHERTYPE         | CRC_32LO    | |
+  |        | | VLAN_ID           | CRC_32HI    | |
+  |        | | IP_PROTOCOL       | CRC_CCITT   | |
+  |        | | DST_IP            | CRC_XOR     | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
   ```
 
 ### Hash Config Commands
 
 This subsection explains how to configure switch hash.
 
-**config switch-hash global**
+**config switch-hash global ecmp/lag hash**
 
 This command is used to manage switch hash global configuration.
 
@@ -4324,6 +4424,25 @@ This command is used to manage switch hash global configuration.
   'INNER_SRC_IP' \
   'INNER_L4_DST_PORT' \
   'INNER_L4_SRC_PORT'
+  ```
+
+**config switch-hash global ecmp/lag hash algorithm**
+
+This command is used to manage switch hash algorithm global configuration.
+
+- Usage:
+  ```bash
+  config switch-hash global ecmp-hash-algorithm <hash_algorithm>
+  config switch-hash global lag-hash-algorithm <hash_algorithm>
+  ```
+
+- Parameters:
+  - _hash_algorithm_: hash algorithm for hashing packets going through ECMP/LAG
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config switch-hash global ecmp-hash-algorithm 'CRC'
+  admin@sonic:~$ config switch-hash global lag-hash-algorithm 'CRC'
   ```
 
 ## Interfaces
@@ -10107,6 +10226,33 @@ This command is used to configure syslog rate limit for containers.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
   ```
 
+**config syslog rate-limit-feature enable**
+
+This command is used to enable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature enable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature enable
+  ```
+
+**config syslog rate-limit-feature disable**
+
+This command is used to disable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature disable
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
@@ -12794,6 +12940,181 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
+
+# SFP Utilities Commands
+ This sub-section explains the list of commands available for SFP utilities feature.
+
+## SFP Utilities show commands
+ 
+- Show SFP EEPROM hex dump
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --help
+Usage: sfputil show eeprom-hexdump [OPTIONS]
+  Display EEPROM hexdump of SFP transceiver(s)
+Options:
+  -p, --port <port_name>    Display SFP EEPROM hexdump for port <port_name>
+  -n, --page <page_number>  Display SFP EEEPROM hexdump for
+                            <page_number_in_hex>
+  --help                    Show this message and exit.
+```
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 0
+EEPROM hexdump for port Ethernet0 page 0h
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 1
+EEPROM hexdump for port Ethernet0 page 1h
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 1h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+admin@sonic:~$ sfputil show eeprom-hexdump
+EEPROM hexdump for port Ethernet0
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+EEPROM hexdump for port Ethernet8
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+```
+
+# SFP Utilities read command
+
+- Read SFP EEPROM data
+
+```
+admin@sonic:~$ sfputil read-eeprom --help
+Usage: sfputil read-eeprom [OPTIONS]
+
+  Read SFP EEPROM data
+
+Options:
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -s, --size <size>               Size of byte to be read  [required]
+  --no-format                     Display non formatted data
+  --wire-addr TEXT                Wire address of sff8472
+  --help                          Show this message and exit.
+```
+
+```
+admin@sonic:~$ sfputil read-eeprom -p Ethernet0 -n 0 -o 100 -s 2
+        00000064 4a 44                                            |..|
+
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 0 --size 32
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 100 --size 2 --no-format
+4a44
+```
+
+# SFP Utilities write command
+
+- Write SFP EEPROM data
+
+```
+admin@sonic:~$ sfputil write-eeprom --help
+Usage: sfputil write-eeprom [OPTIONS]
+
+  Write SFP EEPROM data
+
+Options:
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -d, --data <data>               Hex string EEPROM data  [required]
+  --wire-addr TEXT                Wire address of sff8472
+  --verify                        Verify the data by reading back
+  --help                          Show this message and exit.
+```
+
+- Write success
+```
+admin@sonic:~$ sfputil write-eeprom -p Ethernet0 -n 0 -o 100 -d 4a44
+
+admin@sonic:~$ sfputil write-eeprom --port Etherent0 --page 0 --offset 100 --data 0000 --verify
+
+```
+
+- Write fail
+```
+admin@sonic:~$ sfputil write-eeprom -p Etherent0 -n 0 -o 100 -d 4a44 --verify
+Error: Write data failed! Write: 4a44, read: 0000.
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#sfp-utilities-commands)
 
 # Static DNS Commands
 
