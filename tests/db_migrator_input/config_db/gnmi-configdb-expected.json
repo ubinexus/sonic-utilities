@@ -10,6 +10,6 @@
         "server_crt": "/etc/sonic/telemetry/streamingtelemetryserver.cer"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_4_0_5"
+        "VERSION": "version_202405_01"
     }
 }
