@@ -424,21 +424,31 @@ class ConfigMgmtDPB(ConfigMgmt):
             delPorts (list): ports to be deleted.
             portJson (dict): Config DB json Part of all Ports, generated from
                 platform.json.
-            force (bool): if false return dependecies, else delete dependencies.
+            force (bool): if false return dependencies, else delete dependencies.
             loadDefConfig: If loadDefConfig, add default config for ports as well.
 
         Returns:
-            (deps, ret) (tuple)[list, bool]: dependecies and success/failure.
+            (deps, ret) (tuple)[list, bool]: dependencies and success/failure.
         '''
         MAX_WAIT = 60
         try:
-            # delete Port and get the Config diff, deps and True/False
-            delConfigToLoad, deps, ret = self._deletePorts(ports=delPorts, \
+            # delete dependencies and get the Config diff, deps and True/False
+            delConfigDepToLoad, deps, ret = self._deletePorts_dep(ports=delPorts, \
                 force=force)
-            # return dependencies if delete port fails
+            # return dependencies if delete dependencies fails
             if ret == False:
                 return deps, ret
+			
+            # update self.configdbJsonOut which removed dependencies to self.configdbJsonIn 
+            self.configdbJsonIn = self.configdbJsonOut
 
+            # delete port and get the Config diff, deps, and True/False
+            delConfigToLoad, deps, ret = self._deletePorts(ports=delPorts)
+
+            # return if delete ports fails
+            if ret == False:
+                return None, ret  
+				
             # add Ports and get the config diff and True/False
             addConfigtoLoad, ret = self._addPorts(portJson=portJson, \
                 loadDefConfig=loadDefConfig)
@@ -453,10 +463,14 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             # If we are here, then get ready to update the Config DB as below:
             # -- shutdown the ports,
+            # -- Update deletion of dependencies in Config DB,
+            # -- Wait 1 sec to complete the deletion of dependencies,             
             # -- Update deletion of ports in Config DB,
             # -- verify Asic DB for port deletion,
             # -- then update addition of ports in config DB.
             self._shutdownIntf(delPorts)
+            self.writeConfigDB(delConfigDepToLoad)
+            tsleep(1)
             self.writeConfigDB(delConfigToLoad)
             # Verify in Asic DB,
             self._verifyAsicDB(db=dataBase, ports=delPorts, portMap=if_name_map, \
@@ -469,17 +483,17 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return None, True
 
-    def _deletePorts(self, ports=list(), force=False):
+    def _deletePorts_dep(self, ports=list(), force=False):
         '''
-        Delete ports and dependecies from data tree, validate and return resultant
+        Delete dependencies from data tree, validate and return resultant
         config.
 
         Parameters:
             ports (list): list of ports
-            force (bool): if false return dependecies, else delete dependencies.
+            force (bool): if false return dependencies, else delete dependencies.
 
         Returns:
-            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependecies
+            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependencies
             and success/fail.
         '''
         configToLoad = None; deps = None
@@ -489,10 +503,10 @@ class ConfigMgmtDPB(ConfigMgmt):
             self.sysLog(doPrint=True, msg='Start Port Deletion')
             deps = list()
 
-            # Get all dependecies for ports
+            # Get all dependencies for ports
             for port in ports:
                 xPathPort = self.sy.findXpathPortLeaf(port)
-                self.sysLog(doPrint=True, msg='Find dependecies for port {}'.\
+                self.sysLog(doPrint=True, msg='Find dependencies for port {}'.\
                     format(port))
                 dep = self.sy.find_data_dependencies(str(xPathPort))
                 if dep:
@@ -511,6 +525,38 @@ class ConfigMgmtDPB(ConfigMgmt):
             # mark deps as None now,
             deps = None
 
+            # Let`s Validate the tree now
+            if not self.validateConfigData():
+                return configToLoad, deps, False
+
+            # All great if we are here, Lets get the diff
+            self.configdbJsonOut = self.sy.getData()
+            # Update configToLoad
+            configToLoad = self._updateDiffConfigDB()
+
+        except Exception as e:
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Dependecies Deletion Failed")
+            return configToLoad, deps, False
+
+        return configToLoad, deps, True
+
+    def _deletePorts(self, ports=list()):
+        '''
+        Delete ports from data tree, validate and return resultant
+        config.
+
+        Parameters:
+            ports (list): list of ports
+
+        Returns:
+            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependencies
+            and success/fail.
+        '''
+        configToLoad = None; deps = None
+        try:
+            
             # all deps are deleted now, delete all ports now
             for port in ports:
                 xPathPort = self.sy.findXpathPort(port)
