@@ -619,6 +619,11 @@ class DBMigrator():
             self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
     def migrate_gnmi(self):
+        # If there's GNMI table in CONFIG_DB, no need to migrate
+        gnmi = self.configDB.get_entry('GNMI', 'gnmi')
+        certs = self.configDB.get_entry('GNMI', 'certs')
+        if gnmi and certs:
+            return
         if self.config_src_data:
             if 'GNMI' in self.config_src_data:
                 # If there's GNMI in minigraph or golden config, copy configuration from config_src_data
