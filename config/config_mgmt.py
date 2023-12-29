@@ -424,31 +424,21 @@ class ConfigMgmtDPB(ConfigMgmt):
             delPorts (list): ports to be deleted.
             portJson (dict): Config DB json Part of all Ports, generated from
                 platform.json.
-            force (bool): if false return dependencies, else delete dependencies.
+            force (bool): if false return dependecies, else delete dependencies.
             loadDefConfig: If loadDefConfig, add default config for ports as well.
 
         Returns:
-            (deps, ret) (tuple)[list, bool]: dependencies and success/failure.
+            (deps, ret) (tuple)[list, bool]: dependecies and success/failure.
         '''
         MAX_WAIT = 60
         try:
-            # delete dependencies and get the Config diff, deps and True/False
-            delConfigDepToLoad, deps, ret = self._deletePorts_dep(ports=delPorts, \
+            # delete Port and get the Config diff for delete port, delete dependencies, deps and True/False
+            delConfigToLoad, delConfigDepToLoad, deps, ret = self._deletePorts(ports=delPorts, \
                 force=force)
-            # return dependencies if delete dependencies fails
+            # return dependencies if delete port fails
             if ret == False:
                 return deps, ret
-			
-            # update self.configdbJsonOut which removed dependencies to self.configdbJsonIn 
-            self.configdbJsonIn = self.configdbJsonOut
 
-            # delete port and get the Config diff, deps, and True/False
-            delConfigToLoad, deps, ret = self._deletePorts(ports=delPorts)
-
-            # return if delete ports fails
-            if ret == False:
-                return None, ret  
-				
             # add Ports and get the config diff and True/False
             addConfigtoLoad, ret = self._addPorts(portJson=portJson, \
                 loadDefConfig=loadDefConfig)
@@ -483,30 +473,30 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return None, True
 
-    def _deletePorts_dep(self, ports=list(), force=False):
+    def _deletePorts(self, ports=list(), force=False):
         '''
-        Delete dependencies from data tree, validate and return resultant
+        Delete ports and dependecies from data tree, validate and return resultant
         config.
 
         Parameters:
             ports (list): list of ports
-            force (bool): if false return dependencies, else delete dependencies.
+            force (bool): if false return dependecies, else delete dependencies.
 
         Returns:
-            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependencies
+            (configToLoad, configDepToLoad, deps, ret) (tuple)[dict, list, bool]: config, config, dependecies
             and success/fail.
         '''
-        configToLoad = None; deps = None
+        configToLoad = None; configDepToLoad = None; deps = None
         try:
             self.sysLog(msg="delPorts ports:{} force:{}".format(ports, force))
 
             self.sysLog(doPrint=True, msg='Start Port Deletion')
             deps = list()
 
-            # Get all dependencies for ports
+            # Get all dependecies for ports
             for port in ports:
                 xPathPort = self.sy.findXpathPortLeaf(port)
-                self.sysLog(doPrint=True, msg='Find dependencies for port {}'.\
+                self.sysLog(doPrint=True, msg='Find dependecies for port {}'.\
                     format(port))
                 dep = self.sy.find_data_dependencies(str(xPathPort))
                 if dep:
@@ -514,7 +504,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             # No further action with no force and deps exist
             if not force and deps:
-                return configToLoad, deps, False
+                return configToLoad, configDepToLoad, deps, False
 
             # delets all deps, No topological sort is needed as of now, if deletion
             # of deps fails, return immediately
@@ -524,39 +514,19 @@ class ConfigMgmtDPB(ConfigMgmt):
                     self.sy.deleteNode(str(dep))
             # mark deps as None now,
             deps = None
-
-            # Let`s Validate the tree now
+              
             if not self.validateConfigData():
-                return configToLoad, deps, False
+                return configToLoad, configDepToLoad, deps, False
 
-            # All great if we are here, Lets get the diff
+            # Dependencies are deleted, Lets get the diff
             self.configdbJsonOut = self.sy.getData()
-            # Update configToLoad
-            configToLoad = self._updateDiffConfigDB()
-
-        except Exception as e:
-            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
-                msg="Dependecies Deletion Failed")
-            return configToLoad, deps, False
-
-        return configToLoad, deps, True
-
-    def _deletePorts(self, ports=list()):
-        '''
-        Delete ports from data tree, validate and return resultant
-        config.
-
-        Parameters:
-            ports (list): list of ports
-
-        Returns:
-            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependencies
-            and success/fail.
-        '''
-        configToLoad = None; deps = None
-        try:
             
+            # Update configToLoad
+            configDepToLoad = self._updateDiffConfigDB()
+
+ 			# Update self.configdbJsonOut which removed dependencies to self.configdbJsonIn
+            self.configdbJsonIn = self.configdbJsonOut           
+
             # all deps are deleted now, delete all ports now
             for port in ports:
                 xPathPort = self.sy.findXpathPort(port)
@@ -565,7 +535,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             # Let`s Validate the tree now
             if not self.validateConfigData():
-                return configToLoad, deps, False
+                return configToLoad, configDepToLoad, deps, False
 
             # All great if we are here, Lets get the diff
             self.configdbJsonOut = self.sy.getData()
@@ -576,9 +546,9 @@ class ConfigMgmtDPB(ConfigMgmt):
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
                 msg="Port Deletion Failed")
-            return configToLoad, deps, False
+            return configToLoad, configDepToLoad, deps, False
 
-        return configToLoad, deps, True
+        return configToLoad, configDepToLoad, deps, True
 
     def _addPorts(self, portJson=dict(), loadDefConfig=True):
         '''
