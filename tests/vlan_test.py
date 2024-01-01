@@ -403,7 +403,7 @@ class TestVlan(object):
         assert "Error: Vlan1001 does not exist" in result.output
 
 
-     def test_config_vlan_add_vlan_with_multiple_vlanids(self, mock_restart_dhcp_relay_service):
+    def test_config_vlan_add_vlan_with_multiple_vlanids(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["10,20,30,40", "--multiple"])
         print(result.exit_code)
