@@ -36,7 +36,7 @@ def is_dhcp_relay_running():
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @clicommon.pass_db
 def add_vlan(db, vid, multiple):
-     """Add VLAN"""
+    """Add VLAN"""
 
     ctx = click.get_current_context()
 
