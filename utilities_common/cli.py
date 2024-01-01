@@ -293,8 +293,8 @@ def interface_is_tagged_member(db, interface_name):
     return False
 
     def get_vlan_id(vlan):
-    vlan_prefix, vid = vlan.split('Vlan')
-    return vid
+        vlan_prefix, vid = vlan.split('Vlan')
+        return vid
 
 def get_interface_name_for_display(db ,interface):
     interface_naming_mode = get_interface_naming_mode()
