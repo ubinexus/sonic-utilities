@@ -509,6 +509,39 @@ class DBMigrator():
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'adv_speeds', value['speed'])
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
+    
+
+    def migrate_config_db_switchport_mode(self):
+        port_table = self.configDB.get_table('PORT')
+        portchannel_table = self.configDB.get_table('PORTCHANNEL')
+        vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
+
+        vlan_member_keys= []
+        for _,key in vlan_member_table:
+            vlan_member_keys.append(key) 
+
+        for p_key, p_value in port_table.items():
+            if 'mode' in p_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
+            else:
+                if p_key in vlan_member_keys:
+                    p_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+                else:
+                    p_value["mode"] = "routed"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+
+        for pc_key, pc_value in portchannel_table.items():
+            if 'mode' in pc_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORTCHANNEL", pc_key), 'mode', pc_value['mode'])
+            else:
+                if pc_key in vlan_member_keys:
+                    pc_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+                else:
+                    pc_value["mode"] = "routed"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
