@@ -230,7 +230,7 @@ def vlan_member():
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('port', metavar='port', required=True)
 @click.option('-u', '--untagged', is_flag=True, help="Untagged status")
-@click.option('-m', '--multiple', is_flag==def add_vlan_member(db, vid, port, untagged, multiple, except_flag):True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
+@click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @click.option('-e', '--except_flag', is_flag=True, help="Skips the given vlans and adds all other existing vlans")
 @clicommon.pass_db
 def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
