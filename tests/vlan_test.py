@@ -1142,9 +1142,6 @@ class TestVlan(object):
         assert result.output == test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output
 
 
-
-
-
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
         runner = CliRunner()
@@ -1155,8 +1152,7 @@ class TestVlan(object):
             result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", mode], obj=db)
 
             print(result.exit_code)
-            print(result.out
-            put)
+            print(result.output)
 
             assert result.exit_code != 0
             assert "Interface Vlan1000 does not exist" in result.output
