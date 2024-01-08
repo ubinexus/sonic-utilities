@@ -1141,9 +1141,18 @@ class DBMigrator():
         Version 4_0_3.
         """
         log.log_info('Handling version_4_0_3')
+        self.migrate_config_db_switchport_mode()
+        self.set_version('version_4_0_4')
+        return 'version_4_0_4'
 
-        self.set_version('version_202305_01')
-        return 'version_202305_01'
+    def version_4_0_4(self):
+        """
+        Version 4_0_4.
+        """
+        log.log_info('Handling version_4_0_4')
+        
+        self.set_version('version_202405_01')
+        return 'version_202405_01'
 
     def version_202305_01(self):
         """

@@ -31,7 +31,7 @@
         "alias": "fortyGigE0/12",
         "index": "3",
         "lanes": "37,38,39,40",
-        "mode": "trunk",
+        "mode": "access",
         "mtu": "9100",
         "speed": "40000"
     },
@@ -139,6 +139,6 @@
     },
 
     "VERSIONS|DATABASE": {
-        "VERSION": "version_4_0_1"
+        "VERSION": "version_4_0_4"
     }
 }

@@ -32,7 +32,7 @@ def is_dhcp_relay_running():
 
 
 @vlan.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('vid', metavar='<vid>', required=True)
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @clicommon.pass_db
 def add_vlan(db, vid, multiple):
@@ -98,13 +98,13 @@ def delete_db_entry(entry_name, db_connector, db_name):
 
 
 @vlan.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('vid', metavar='<vid>', required=True)
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @click.option('--no_restart_dhcp_relay', is_flag=True, type=click.BOOL, required=False, default=False,
               help="If no_restart_dhcp_relay is True, do not restart dhcp_relay while del vlan and \
                   require dhcpv6 relay of this is empty")
 @clicommon.pass_db
-def del_vlan(db, vid, no_restart_dhcp_relay):
+def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
     """Delete VLAN"""
 
     log.log_info("'vlan del {}' executing...".format(vid))
@@ -227,7 +227,7 @@ def vlan_member():
     pass
 
 @vlan_member.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='port', required=True)
 @click.option('-u', '--untagged', is_flag=True, help="Untagged status")
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
@@ -332,7 +332,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
 
 @vlan_member.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='<port>', required=True)
 @click.option('-m', '--multiple', is_flag=True, help="Add Multiple Vlan(s) in Range or in Comma separated list")
 @click.option('-e', '--except_flag', is_flag=True, help="Skips the given vlans and adds all other existing vlans")

@@ -160,8 +160,8 @@ Ethernet36       routed
 Ethernet40       routed
 Ethernet44       routed
 Ethernet48       routed
-Ethernet52       access
-Ethernet56       access
+Ethernet52       routed
+Ethernet56       routed
 Ethernet60       routed
 Ethernet64       routed
 Ethernet68       routed
@@ -199,8 +199,8 @@ Ethernet36       routed
 Ethernet40       routed
 Ethernet44       routed
 Ethernet48       routed
-Ethernet52       access
-Ethernet56       access
+Ethernet52       routed
+Ethernet56       routed
 Ethernet60       routed
 Ethernet64       routed
 Ethernet68       routed
