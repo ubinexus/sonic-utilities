@@ -535,6 +535,13 @@ TEST_DATA = {
                         "protocol": "bgp",
                     },
                 ],
+                "1.1.1.0/24": [
+                    {
+                        "prefix": "1.1.1.0/24",
+                        "vrfName": "default",
+                        "protocol": "static",
+                    },
+                ],
                 "10.10.196.24/31": [
                     {
                         "protocol": "connected",
@@ -546,6 +553,7 @@ TEST_DATA = {
             DEFAULTNS: {
                 "missed_FRR_routes": [
                     {"prefix": "10.10.196.12/31", "vrfName": "default", "protocol": "bgp"}
+                    {"prefix": "1.1.1.0/24", "vrfName": "default", "protocol": "static"},
                 ],
             },
         },
