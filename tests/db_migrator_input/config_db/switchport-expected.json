@@ -110,7 +110,7 @@
         "fast_rate": "false",
         "lacp_key": "auto",
         "min_links": "1",
-        "mode": "trunk",
+        "mode": "access",
         "mtu": "9100"
     },
     "PORTCHANNEL|PortChannel0002": {
