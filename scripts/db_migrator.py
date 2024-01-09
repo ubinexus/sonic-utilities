@@ -990,6 +990,7 @@ class DBMigrator():
         """
         log.log_info('Handling version_3_0_0')
         self.migrate_config_db_port_table_for_auto_neg()
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_3_0_1')
         return 'version_3_0_1'
 
