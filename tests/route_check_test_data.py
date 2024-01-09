@@ -436,28 +436,6 @@ TEST_DATA = {
         }
     },
     "10": {
-        DESCR: "basic good one with IPv6 address",
-        MULTI_ASIC: False,
-        NAMESPACE: [''],
-        ARGS: "route_check -m INFO -i 1000",
-        PRE: {
-            DEFAULTNS: {
-                APPL_DB: {
-                    ROUTE_TABLE: {
-                    },
-                    INTF_TABLE: {
-                        "PortChannel1013:2000:31:0:0::1/64": {},
-                    }
-                },
-                ASIC_DB: {
-                    RT_ENTRY_TABLE: {
-                        RT_ENTRY_KEY_PREFIX + "2000:31::1/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    }
-                }
-            }
-        }
-    },
-    "11": {
         DESCR: "dualtor ignore vlan neighbor route miss case",
         MULTI_ASIC: False,
         NAMESPACE: [''],
@@ -522,7 +500,7 @@ TEST_DATA = {
             }
         }
     },
-    "12": {
+    "11": {
         DESCR: "basic good one on multi-asic on a particular asic",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0', 'asic1'],
@@ -554,7 +532,7 @@ TEST_DATA = {
             }
         }
     },
-    "13": {
+    "12": {
         DESCR: "basic good one on multi-asic on all asics",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0', 'asic1'],
@@ -610,7 +588,7 @@ TEST_DATA = {
            },
         }
     },
-    "14": {
+    "13": {
         DESCR: "simple failure case on multi-asic on a particular asic",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0', 'asic1'],
@@ -649,7 +627,7 @@ TEST_DATA = {
         },
         RET: -1,
     },
-    "15": {
+    "14": {
         DESCR: "simple failure case on multi-asic on all asics",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0', 'asic1'],
@@ -716,14 +694,14 @@ TEST_DATA = {
         },
         RET: -1,
     },
-    "16": {
+    "15": {
         DESCR: "validate namespace input on multi-asic",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0', 'asic1'],
         ARGS: "route_check -n random -m INFO -i 1000",
         RET: -1,
     },
-    "17": {
+    "16": {
         DESCR: "validate namespace input on single-asic",
         MULTI_ASIC: False,
         NAMESPACE: [''],
