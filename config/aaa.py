@@ -239,8 +239,9 @@ default.add_command(authtype)
 
 @click.command()
 @click.argument('secret', metavar='<secret_string>', required=False)
+@click.option('-e', '--encrypt', help='Enable passkey encryption feature', is_flag=True)
 @click.pass_context
-def passkey(ctx, secret):
+def passkey(ctx, secret, encrypt):
     """Specify TACACS+ server global passkey <STRING>"""
     if ctx.obj == 'default':
         del_table_key('TACPLUS', 'global', 'passkey')
@@ -251,7 +252,9 @@ def passkey(ctx, secret):
         elif not is_secret(secret):
             click.echo(VALID_CHARS_MSG)
             return
-        if secure_cipher.is_key_encrypt_enabled('TACPLUS', 'global'):
+
+        if encrypt: 
+            add_table_kv('TACPLUS', 'global', 'key_encrypt', True)
             passwd = getpass.getpass()
             outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', secret, passwd)
             if not errs:
@@ -260,6 +263,7 @@ def passkey(ctx, secret):
                 click.echo('Passkey configuration failed' % errs)
                 return
         else:
+            add_table_kv('TACPLUS', 'global', 'key_encrypt', False)
             add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
         click.echo('Argument "secret" is required')
@@ -276,7 +280,8 @@ default.add_command(passkey)
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
 @click.option('-p', '--pri', help="Priority, default 1", type=click.IntRange(1, 64), default=1)
 @click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
-def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
+@click.option('-e', '--encrypt', help='Enable passkey encryption feature', is_flag=True)
+def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf, encrypt):
     """Specify a TACACS+ server"""
     if ADHOC_VALIDATION:
         if not clicommon.is_ipaddress(address):
@@ -298,7 +303,8 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         if timeout is not None:
             data['timeout'] = str(timeout)
         if key is not None:
-            if secure_cipher.is_key_encrypt_enabled('TACPLUS_SERVER', address):
+            if encrypt:
+                add_table_kv('TACPLUS', 'global', 'key_encrypt', True)
                 passwd = getpass.getpass()
                 outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', key, passwd)
                 if not errs:
@@ -307,6 +313,7 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
                     click.echo('Passkey configuration failed' % errs)
                     return
             else:
+                add_table_kv('TACPLUS', 'global', 'key_encrypt', False)
                 data['passkey'] = key 
         if use_mgmt_vrf :
             data['vrf'] = "mgmt"
