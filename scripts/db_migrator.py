@@ -1006,7 +1006,9 @@ class DBMigrator():
             for name, data in portchannel_table.items():
                 data['lacp_key'] = 'auto'
                 self.configDB.set_entry('PORTCHANNEL', name, data)
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_3_0_2')
+
         return 'version_3_0_2'
 
     def version_3_0_2(self):
