@@ -188,6 +188,88 @@ class InterfaceAliasConverter(object):
 # Lazy global class instance for SONiC interface name to alias conversion
 iface_alias_converter = lazy_object_proxy.Proxy(lambda: InterfaceAliasConverter())
 
+def get_interface_naming_mode():
+    mode = os.getenv('SONIC_CLI_IFACE_MODE')
+    if mode is None:
+        mode = "default"
+    return mode
+
+def is_ipaddress(val):
+    """ Validate if an entry is a valid IP """
+    import netaddr
+    if not val:
+        return False
+    try:
+        netaddr.IPAddress(str(val))
+    except netaddr.core.AddrFormatError:
+        return False
+    return True
+
+def ipaddress_type(val):
+    """ Return the IP address type """
+    if not val:
+        return None
+
+    try:
+        ip_version = netaddr.IPAddress(str(val))
+    except netaddr.core.AddrFormatError:
+        return None
+
+    return ip_version.version
+
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
+
+def is_valid_port(config_db, port):
+    """Check if port is in PORT table"""
+
+    port_table = config_db.get_table('PORT')
+    if port in port_table:
+        return True
+
+    return False
+
+def is_valid_portchannel(config_db, port):
+    """Check if port is in PORT_CHANNEL table"""
+
+    pc_table = config_db.get_table('PORTCHANNEL')
+    if port in pc_table:
+        return True
+
+    return False
+
+def is_vlanid_in_range(vid):
+    """Check if vlan id is valid or not"""
+
+    if vid >= 1 and vid <= 4094:
+        return True
+
+    return False
+
+def check_if_vlanid_exist(config_db, vlan, table_name='VLAN'):
+    """Check if vlan id exits in the config db or ot"""
+
+    if len(config_db.get_entry(table_name, vlan)) != 0:
+        return True
+
+    return False
+
+def is_port_vlan_member(config_db, port, vlan):
+    """Check if port is a member of vlan"""
+
+    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
+    for key in vlan_ports_data:
+        if key[0] == vlan and key[1] == port:
+            return True
+
+    return False
+
+ 
 def vlan_range_list(ctx, vid_range: str) -> list:
 
     vid1, vid2 = map(int, vid_range.split("-"))
@@ -292,9 +374,49 @@ def interface_is_tagged_member(db, interface_name):
                 return True
     return False
 
-    def get_vlan_id(vlan):
-        vlan_prefix, vid = vlan.split('Vlan')
-        return vid
+def interface_is_in_vlan(vlan_member_table, interface_name):
+    """ Check if an interface is in a vlan """
+    for _,intf in vlan_member_table:
+        if intf == interface_name:
+            return True
+
+    return False
+
+def is_valid_vlan_interface(config_db, interface):
+    """ Check an interface is a valid VLAN interface """
+    return interface in config_db.get_table("VLAN_INTERFACE")
+
+def interface_is_in_portchannel(portchannel_member_table, interface_name):
+    """ Check if an interface is part of portchannel """
+    for _,intf in portchannel_member_table:
+        if intf == interface_name:
+            return True
+
+    return False
+
+def is_port_router_interface(config_db, port):
+    """Check if port is a router interface"""
+
+    interface_table = config_db.get_table('INTERFACE')
+    for intf in interface_table:
+        if port == intf:
+            return True
+
+    return False
+
+def is_pc_router_interface(config_db, pc):
+    """Check if portchannel is a router interface"""
+
+    pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
+    for intf in pc_interface_table:
+        if pc == intf:
+            return True
+
+    return False
+
+def get_vlan_id(vlan):
+    vlan_prefix, vid = vlan.split('Vlan')
+    return vid
 
 def get_interface_name_for_display(db ,interface):
     interface_naming_mode = get_interface_naming_mode()
@@ -340,127 +462,6 @@ def get_interface_switchport_mode(db, interface):
     elif "mode" in portchannel:
         switchport_mode = portchannel['mode']
     return switchport_mode
-
-def get_interface_naming_mode():
-    mode = os.getenv('SONIC_CLI_IFACE_MODE')
-    if mode is None:
-        mode = "default"
-    return mode
-
-def is_ipaddress(val):
-    """ Validate if an entry is a valid IP """
-    import netaddr
-    if not val:
-        return False
-    try:
-        netaddr.IPAddress(str(val))
-    except netaddr.core.AddrFormatError:
-        return False
-    return True
-
-def ipaddress_type(val):
-    """ Return the IP address type """
-    if not val:
-        return None
-
-    try:
-        ip_version = netaddr.IPAddress(str(val))
-    except netaddr.core.AddrFormatError:
-        return None
-
-    return ip_version.version
-
-def is_ip_prefix_in_key(key):
-    '''
-    Function to check if IP address is present in the key. If it
-    is present, then the key would be a tuple or else, it shall be
-    be string
-    '''
-    return (isinstance(key, tuple))
-
-def is_valid_port(config_db, port):
-    """Check if port is in PORT table"""
-
-    port_table = config_db.get_table('PORT')
-    if port in port_table:
-        return True
-
-    return False
-
-def is_valid_portchannel(config_db, port):
-    """Check if port is in PORT_CHANNEL table"""
-
-    pc_table = config_db.get_table('PORTCHANNEL')
-    if port in pc_table:
-        return True
-
-    return False
-
-def is_vlanid_in_range(vid):
-    """Check if vlan id is valid or not"""
-
-    if vid >= 1 and vid <= 4094:
-        return True
-
-    return False
-
-def check_if_vlanid_exist(config_db, vlan, table_name='VLAN'):
-    """Check if vlan id exits in the config db or ot"""
-
-    if len(config_db.get_entry(table_name, vlan)) != 0:
-        return True
-
-    return False
-
-def is_port_vlan_member(config_db, port, vlan):
-    """Check if port is a member of vlan"""
-
-    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-    for key in vlan_ports_data:
-        if key[0] == vlan and key[1] == port:
-            return True
-
-    return False
-
-def interface_is_in_vlan(vlan_member_table, interface_name):
-    """ Check if an interface is in a vlan """
-    for _,intf in vlan_member_table:
-        if intf == interface_name:
-            return True
-
-    return False
-
-def is_valid_vlan_interface(config_db, interface):
-    """ Check an interface is a valid VLAN interface """
-    return interface in config_db.get_table("VLAN_INTERFACE")
-
-def interface_is_in_portchannel(portchannel_member_table, interface_name):
-    """ Check if an interface is part of portchannel """
-    for _,intf in portchannel_member_table:
-        if intf == interface_name:
-            return True
-
-    return False
-
-def is_port_router_interface(config_db, port):
-    """Check if port is a router interface"""
-
-    interface_table = config_db.get_table('INTERFACE')
-    for intf in interface_table:
-        if port == intf:
-            return True
-
-    return False
-
-def is_pc_router_interface(config_db, pc):
-    """Check if portchannel is a router interface"""
-
-    pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
-    for intf in pc_interface_table:
-        if pc == intf:
-            return True
-
-    return False
 
 def is_port_mirror_dst_port(config_db, port):
     """Check if port is already configured as mirror destination port """
