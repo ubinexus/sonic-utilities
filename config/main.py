@@ -7389,7 +7389,7 @@ def suppress():
     pass
 
 
-def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, namespace):
+def handle_asic_sdk_health_suppress(db, severity, category_list, max_events, namespace):
     ctx = click.get_current_context()
 
     if multi_asic.get_num_asics() > 1:
@@ -7403,18 +7403,27 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, n
         "notice": "REG_NOTICE_ASIC_SDK_HEALTH_CATEGORY"
     }
 
-    categories = {"software", "firmware", "cpu_hw", "asic_hw"}
+    if category_list:
+        categories = {"software", "firmware", "cpu_hw", "asic_hw"}
 
-    if category_list == 'none':
-        suppressedCategoriesList = []
-    elif category_list == 'all':
-        suppressedCategoriesList = list(categories)
-    else:
-        suppressedCategoriesList = category_list.split(',')
+        if category_list == 'none':
+            suppressedCategoriesList = []
+        elif category_list == 'all':
+            suppressedCategoriesList = list(categories)
+        else:
+            suppressedCategoriesList = category_list.split(',')
 
-    unsupportCategories = set(suppressedCategoriesList) - categories
-    if unsupportCategories:
-        ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
+        unsupportCategories = set(suppressedCategoriesList) - categories
+        if unsupportCategories:
+            ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
+
+    if max_events:
+        try:
+            max_events_number = int(max_events)
+            if max_events_number < 0:
+                ctx.fail("Invalid max-events: {}".format(max_events))
+        except ValueError as e:
+            ctx.fail("Invalid max-events: {}".format(max_events))
 
     for ns in namespace_list:
         if namespace and namespace != ns:
@@ -7430,40 +7439,60 @@ def handle_asic_sdk_health_suppress_category_list(db, severity, category_list, n
         if "true" != state_db.get(state_db.STATE_DB, entry_name, severityCapabilities[severity]):
             ctx.fail("Suppressing ASIC/SDK health {} event is not supported on the platform".format(severity))
 
-        if suppressedCategoriesList:
-            config_db.mod_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, {"categories": suppressedCategoriesList})
-        else:
-            config_db.mod_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, None)
+        entry = config_db.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity)
+        need_remove = False
+
+        if category_list:
+            if suppressedCategoriesList:
+                entry["categories"] = suppressedCategoriesList
+            elif entry.get("categories"):
+                entry.pop("categories")
+                need_remove = True
+
+        if max_events is not None:
+            if max_events > 0:
+                entry["max_events"] = max_events
+            elif entry.get("max_events"):
+                entry.pop("max_events")
+                need_remove = True
+
+        if entry:
+            config_db.set_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, entry)
+        elif need_remove:
+            config_db.set_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, None)
 
 
 @suppress.command()
-@click.argument('category-list', required=True)
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
 @click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
-def fatal(db, category_list, namespace):
-    handle_asic_sdk_health_suppress_category_list(db, 'fatal', category_list, namespace)
+def fatal(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'fatal', category_list, max_events, namespace)
 
 
 @suppress.command()
-@click.argument('category-list', required=True)
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
 @click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
-def warning(db, category_list, namespace):
-    handle_asic_sdk_health_suppress_category_list(db, 'warning', category_list, namespace)
+def warning(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'warning', category_list, max_events, namespace)
 
 
 @suppress.command()
-@click.argument('category-list', required=True)
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
 @click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
               help='Option needed for multi-asic only: provide namespace name',
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
 @clicommon.pass_db
-def notice(db, category_list, namespace):
-    handle_asic_sdk_health_suppress_category_list(db, 'notice', category_list, namespace)
+def notice(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'notice', category_list, max_events, namespace)
 
 
 if __name__ == '__main__':

@@ -2150,8 +2150,8 @@ def asic_sdk_health_event():
 @clicommon.pass_db
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
-def suppressed_category_list(db, namespace):
-    """ Show the suppressed category list """
+def suppress_configuration(db, namespace):
+    """ Show the suppress configuration """
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
         masic = True
@@ -2159,7 +2159,7 @@ def suppressed_category_list(db, namespace):
         namespace_list = [multi_asic.DEFAULT_NAMESPACE]
         masic = False
 
-    header = ['Severity', 'Suppressed category-list']
+    header = ['Severity', 'Suppressed category-list', "Max events"]
     body = []
 
     supported = False
@@ -2181,7 +2181,9 @@ def suppressed_category_list(db, namespace):
         suppressSeverities = config_db.get_table('SUPPRESS_ASIC_SDK_HEALTH_EVENT')
 
         for severity in natsorted(suppressSeverities):
-            body.append([severity, ','.join(suppressSeverities[severity]['categories'])])
+            body.append([severity,
+                         ','.join(suppressSeverities[severity].get('categories', ['none'])),
+                         suppressSeverities[severity].get('max_events', 'unlimited')])
 
     if supported:
         click.echo(tabulate(body, header))

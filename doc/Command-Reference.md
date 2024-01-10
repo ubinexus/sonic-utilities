@@ -1942,21 +1942,23 @@ This command is for a customer to configure the categories that he/she wants to 
 
 - Usage:
   ```
-  config config asic-sdk-health-event suppress <severity> <category-list>|<none>|<all>
+  config config asic-sdk-health-event suppress <severity> [--category-list <category-list>|<none>|<all>] [--max-events <max-events>]
   ```
 
   - Parameters:
     - severity: Specify the severity whose ASIC/SDK health events to be suppressed. It can be one of `fatal`, `warning`, and `notice`.
     - category-list: Specify the categories from which the ASIC/SDK health events to be suppressed. It is a list whose element is one of `software`, `firmware`, `cpu_hw`, `asic_hw` separated by a comma.
-      If the category-list is `none`, none category is suppressed and all the categories will be notified for `severity`.
+      If the category-list is `none`, none category is suppressed and all the categories will be notified for `severity`. In this case, it will not be stored in the CONFIG_DB.
       If the category-list is `all`, all the categories are suppressed and none category will be notified for `severity`.
+    - max-events: Specify the maximum number of events of the severity to be stored in the STATE_DB.
+      There is no limitation if the max-events is 0. In this case, it will not be stored in the CONFIG_DB.
 
 - Examples:
   ```
-  admin@sonic:~$ sudo config asic-sdk-health-event suppress fatal cpu_hw,software
+  admin@sonic:~$ sudo config asic-sdk-health-event suppress fatal --category-list cpu_hw,software --max-events 10240
   ```
 
-  This command will suppress ASIC/SDK health events whose severity is fatal and cagetory is cpu_hw or software.
+  This command will suppress ASIC/SDK health events whose severity is fatal and cagetory is cpu_hw or software. Maximum number of such events in the STATE_DB is 10240.
 
 ### ASIC SDK health event show commands
 
@@ -2011,9 +2013,9 @@ Optionally, you can specify the asic name in order to display the ASIC/SDK healt
   2023-10-20 05:07:34  fatal        firmware   Command timeout
   ```
 
-**show asic-sdk-health-event suppressed-category-list**
+**show asic-sdk-health-event suppress-configuration**
 
-This command displays the suppressed category list of ASIC/SDK health events.
+This command displays the suppressed category list and maximum number of events of ASIC/SDK health events.
 
 - Usage:
   ```
@@ -2021,40 +2023,43 @@ This command displays the suppressed category list of ASIC/SDK health events.
   ```
 
 - Details:
-  - show asic-sdk-health-event suppressed-category-list: Display the ASIC/SDK health event suppress category list on all ASICs
-  - show asic-sdk-health-event suppressed-category-list -n asic0: Display all the ASIC/SDK health event suppress category list on asic0
+  - show asic-sdk-health-event suppress-configuration: Display the ASIC/SDK health event suppress category list and maximum number of events on all ASICs
+  - show asic-sdk-health-event suppress-configuration -n asic0: Display all the ASIC/SDK health event suppress category list and maximum number of events on asic0
 
 
 - Example:
   ```
-  admin@sonic:~$ show asic-sdk-health-event suppressed-category-list
-  Severity    Suppressed category-list
-  ----------  --------------------------
-  notice      asic_hw,cpu_hw
+  admin@sonic:~$ show asic-sdk-health-event suppress-configuration
+  Severity    Suppressed category-list    Max events
+  ----------  --------------------------  ------------
+  fatal       software                    unlimited
+  notice      none                        1024
+  warning     firmware,asic_hw            10240
   ```
 
 - Example on a multi ASIC system:
   ```
-  admin@sonic:~$ show asic-sdk-health-event suppressed-category-list
+  admin@sonic:~$ show asic-sdk-health-event suppress-configuration
   asic0:
-  Severity    Suppressed category-list
-  ----------  --------------------------
-  notice      asic_hw
+  Severity    Suppressed category-list    Max events
+  ----------  --------------------------  ------------
+  notice      none                        1024
+  warning     firmware,asic_hw            10240
   asic1:
-  Severity    Suppressed category-list
-  ----------  --------------------------
-  notice      cpu_hw
+  Severity    Suppressed category-list    Max events
+  ----------  --------------------------  ------------
+  fatal       software                    unlimited
   ```
 
 Optionally, you can specify the asic name in order to display the ASIC/SDK health event suppress category list on that particular ASIC on a multi ASIC system
 
 - Example:
   ```
-  admin@sonic:~$ show asic-sdk-health-event suppressed-category-list -n asic1
+  admin@sonic:~$ show asic-sdk-health-event suppress-configuration -n asic1
   asic1:
-  Severity    Suppressed category-list
-  ----------  --------------------------
-  notice      cpu_hw
+  Severity    Suppressed category-list    Max events
+  ----------  --------------------------  ------------
+  fatal       software                    unlimited
   ```
 
 ### ASIC SDK health event clear commands
