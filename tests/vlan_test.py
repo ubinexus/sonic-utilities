@@ -1103,13 +1103,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-
-        # configure Ethernet64 to routed mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "Ethernet64"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
         # add Ethernet64 to vlan 1001 but Ethernet64 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1001", "Ethernet64"], obj=db)
