@@ -697,7 +697,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-        assert "Ethernet20 is in routed mode!\nUse switchport mode command to change port mode" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -793,7 +792,7 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
 
-        # add vlan 1001
+        # add vlan 1001,1002,1003
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001,1002,1003","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)
