@@ -807,7 +807,7 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Ethernet20 is in routed mode!\nUse switchport mode command to change port mode" in result.output
 
-        # configure Ethernet20 from routed to access mode
+        # configure Ethernet20 from routed to trunk mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet20"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -851,7 +851,7 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
 
-        # add vlan 1001
+        # add vlan 1001,1002
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001,1002","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -866,14 +866,14 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Ethernet20 is in routed mode!\nUse switchport mode command to change port mode" in result.output
 
-        # configure Ethernet20 from routed to access mode
+        # configure Ethernet20 from routed to trunk mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet20"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert "Ethernet20 switched from routed to trunk mode" in result.output
 
-        # add Ethernet20 to vlan 1001
+        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1000,4000", "Ethernet20", "--multiple", "--except_flag"], obj=db)
         print(result.exit_code)
@@ -907,7 +907,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add del 1001
+        # del 1001,1002
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001-1002","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)

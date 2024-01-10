@@ -294,7 +294,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             else:
                 ctx.fail("{} does not exist".format(port))
             
-            if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \ 
+            if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
                 (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is a router interface!".format(port))
 
