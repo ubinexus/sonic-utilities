@@ -296,7 +296,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             
             if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
                 (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
-                ctx.fail("{} is a router interface!".format(port))
+                ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
 
             portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
