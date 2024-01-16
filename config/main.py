@@ -7413,17 +7413,9 @@ def handle_asic_sdk_health_suppress(db, severity, category_list, max_events, nam
         else:
             suppressedCategoriesList = category_list.split(',')
 
-        unsupportCategories = set(suppressedCategoriesList) - categories
-        if unsupportCategories:
-            ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
-
-    if max_events:
-        try:
-            max_events_number = int(max_events)
-            if max_events_number < 0:
-                ctx.fail("Invalid max-events: {}".format(max_events))
-        except ValueError as e:
-            ctx.fail("Invalid max-events: {}".format(max_events))
+            unsupportCategories = set(suppressedCategoriesList) - categories
+            if unsupportCategories:
+                ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
 
     for ns in namespace_list:
         if namespace and namespace != ns:

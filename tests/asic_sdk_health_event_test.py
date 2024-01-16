@@ -115,6 +115,22 @@ class TestAsicSdkHealthEvent(object):
         assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('categories')
         assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('max_events')
 
+        result = runner.invoke(
+            config.config.commands["asic-sdk-health-event"].commands["suppress"],
+            [severity, "--max-events", "-50"], obj=db)
+        assert result.exit_code != 0
+        assert "-50 is smaller than the minimum valid value 0" in result.output
+        assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('categories')
+        assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('max_events')
+
+        result = runner.invoke(
+            config.config.commands["asic-sdk-health-event"].commands["suppress"],
+            [severity, "--max-events", "NaN"], obj=db)
+        assert result.exit_code != 0
+        assert "NaN is not a valid integer" in result.output
+        assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('categories')
+        assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('max_events')
+
 
     @pytest.mark.parametrize("severity", ["fatal", "warning", "notice"])
     def test_config_suppress_asic_sdk_health_event_unsupported_severity(self, severity):
