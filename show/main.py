@@ -2185,9 +2185,9 @@ def suppress_configuration(db, namespace):
                          ','.join(suppressSeverities[severity].get('categories', ['none'])),
                          suppressSeverities[severity].get('max_events', 'unlimited')])
 
-    if supported:
         click.echo(tabulate(body, header))
-    else:
+
+    if not supported:
         ctx = click.get_current_context()
         ctx.fail("ASIC/SDK health event is not supported on the platform")
 
@@ -2229,9 +2229,9 @@ def received(db, namespace):
             event = state_db.get_all(state_db.STATE_DB, key)
             body.append([key.split('|')[1], event.get('severity'), event.get('category'), event.get('description')])
 
-    if supported:
         click.echo(tabulate(body, header))
-    else:
+
+    if not supported:
         ctx = click.get_current_context()
         ctx.fail("ASIC/SDK health event is not supported on the platform")
 
