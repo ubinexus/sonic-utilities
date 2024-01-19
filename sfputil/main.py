@@ -908,27 +908,6 @@ def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_
         return 0, ''.join('{:02x}'.format(x) for x in page_dump)
 
 
-def eeprom_dump_general(physical_port, page, overall_offset, size, page_offset, no_format=False):
-    """
-    Dump module EEPROM for given pages in hex format.
-    Args:
-        logical_port_name: logical port name
-        pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
-               user
-        target_page: user input page number, optional. target_page is only for display purpose
-    Returns:
-        tuple(0, dump string) if success else tuple(error_code, error_message)
-    """
-    sfp = platform_chassis.get_sfp(physical_port)
-    page_dump = sfp.read_eeprom(overall_offset, size)
-    if page_dump is None:
-        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, overall_offset {overall_offset}, page_offset {page_offset}, size {size}!'
-    if not no_format:
-        return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
-    else:
-        return 0, ''.join('{:02x}'.format(x) for x in page_dump)
-
-
 def convert_byte_to_valid_ascii_char(byte):
     if byte < 32 or 126 < byte:
         return '.'
