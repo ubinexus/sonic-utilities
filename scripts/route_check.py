@@ -542,14 +542,14 @@ def check_frr_pending_routes():
             for entry in entries:
                 if entry['protocol'] != 'bgp':
                     continue
-
-                # skip if this bgp source prefix is not selected as best
-                if 'selected' not in entry or entry['selected'] != True:
-                    continue
-
+				
                 # TODO: Also handle VRF routes. Currently this script does not check for VRF routes so it would be incorrect for us
                 # to assume they are installed in ASIC_DB, so we don't handle them.
                 if entry['vrfName'] != 'default':
+                    continue
+
+		# skip if this bgp source prefix is not selected as best
+                if not entry.get('selected', False):
                     continue
 
                 if not entry.get('offloaded', False):
