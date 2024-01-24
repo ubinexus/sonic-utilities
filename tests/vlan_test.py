@@ -383,20 +383,31 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: VLAN ID 1000 can not be removed. First remove all members assigned to this VLAN." in result.output
 
-        vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
-        keys = [ (k, v) for k, v in vlan_member if k == 'Vlan{}'.format(1000) ]
-        for k,v in keys:    
-            result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
+        with mock.patch("config.vlan.delete_db_entry") as delete_db_entry:
+            vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
+            keys = [ (k, v) for k, v in vlan_member if k == 'Vlan{}'.format(1000) ]
+            for k,v in keys:    
+                result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
+                print(result.exit_code)
+                print(result.output)
+                assert result.exit_code == 0
 
-        with mock.patch("config.vlan.delete_state_db_entry") as delete_state_db_entry:
             result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            delete_state_db_entry.assert_called_once_with("Vlan1000")
+            delete_db_entry.assert_has_calls([
+                mock.call("DHCPv6_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCPv6_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCPv6_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCPv6_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCPv6_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCP_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCP_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCP_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCP_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
+                mock.call("DHCP_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB)
+            ], any_order=True)
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -419,10 +430,10 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
             mock_run_command.assert_has_calls([
-                mock.call("docker exec -i swss supervisorctl status ndppd", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss supervisorctl stop ndppd", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss rm -f /etc/supervisor/conf.d/ndppd.conf", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss supervisorctl update", return_cmd=True)
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'stop', 'ndppd'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'rm', '-f', '/etc/supervisor/conf.d/ndppd.conf'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'update'], return_cmd=True)
             ])
             assert result.exit_code == 0
 
@@ -760,3 +771,37 @@ class TestVlan(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         bgp_util.run_bgp_command = cls._old_run_bgp_command
         print("TEARDOWN")
+
+    def test_config_vlan_del_dhcp_relay_restart(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {"config_db": db.cfgdb}
+
+        # remove vlan IP`s
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                               ["Vlan1000", "192.168.0.1/21"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                               ["Vlan1000", "fc02:1000::1/64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        # remove vlan members
+        vlan_member = db.cfgdb.get_table("VLAN_MEMBER")
+        keys = [(k, v) for k, v in vlan_member if k == "Vlan{}".format(1000)]
+        for _, v in keys:
+            result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+        origin_run_command_func = config.vlan.clicommon.run_command
+        config.vlan.clicommon.run_command = mock.MagicMock(return_value=("active", 0))
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        config.vlan.clicommon.run_command = origin_run_command_func

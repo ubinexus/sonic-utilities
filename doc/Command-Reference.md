@@ -39,6 +39,10 @@
   * [Console config commands](#console-config-commands)
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
+* [CMIS firmware upgrade](#cmis-firmware-upgrade)
+  * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
+  * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-commands)
+  * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
   * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
@@ -64,6 +68,9 @@
   * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Hash](#hash)
+  * [Hash show commands](#hash-show-commands)
+  * [Hash config commands](#hash-config-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -129,6 +136,7 @@
 * [Platform Specific Commands](#platform-specific-commands)
   * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
   * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
+* [PINS](#pins-show commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
   * [PortChannel Config commands](#portchannel-config-commands)
@@ -194,14 +202,21 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
+* [SFP Utilities Commands](#sfp-utilities-commands)
+  * [SFP Utilities show commands](#sfp-utilities-show-commands)
+  * [SFP Utilities read command](#sfp-utilities-read-command)
+  * [SFP Utilities write command](#sfp-utilities-write-command)
 * [Static DNS Commands](#static-dns-commands)
   * [Static DNS config command](#static-dns-config-command)
   * [Static DNS show command](#static-dns-show-command)
+* [Wake-on-LAN Commands](#wake-on-lan-commands)
+  * [Send Wake-on-LAN Magic Packet command](#send-wake-on-lan-magic-packet-command)
 
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v8 | Oct-09-2023 | Add CMIS firmware upgrade commands |
 | v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
@@ -450,6 +465,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
   Commands:
     counters       Show interface counters
     description    Show interface status, protocol and...
+    fec            Show interface fec information
     link-training  Show interface link-training information
     naming_mode    Show interface naming_mode status
     neighbor       Show neighbor related information
@@ -2780,6 +2796,138 @@ Optionally, you can clear with a remote device name by specifying the `-d` or `-
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
+## CMIS firmware upgrade
+
+### CMIS firmware version show commands
+
+The sfputil command shows the current major and minor versions of active/inactive firmware, running Image details. The output may vary based on the single vs dual bank supported modules.
+
+**sfputil show fwversion**
+
+- Usage:
+  ```
+  sfputil show fwversion PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.5
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.5
+  ```
+
+### CMIS firmware upgrade commands
+
+The sfputil commands are used to download/upgrade firmware on transciver modules. The download/upgrade actually happens using set of CMIS CDB commands. The module may replace the exisiting image or copy into the inactive bank of the module. The host issues a download complete CDB command when the entire firmware image has been written to LPL or EPL pages. Each steps can be verified using the 'sfputil show fwversion PORT_NAME'
+
+**sfputil firmware download**
+
+This command is used for downloading firmware tp upgrade the transciever module.
+
+- Usage:
+  ```
+  sfputil firmware download PORT_NAME FILE_PATH
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware download Ethernet180 AEC_Camano_YCable__0.3.6_20230905.bin
+  CDB: Starting firmware download
+  Downloading ...  [####################################]  100%
+  CDB: firmware download complete
+  Firmware download complete success
+  Total download Time: 0:01:55.731397
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: A
+  Committed Image: A
+  Active Firmware: 0.3.5
+  Inactive Firmware: 0.3.6
+  ```
+**sfputil firmware run**
+
+This command is used to start and run a downloaded image. This command transfers control from the currently running firmware to a new firmware. 
+
+- Usage:
+  ```
+  sfputil firmware run PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware run Ethernet180
+  Running firmware: Non-hitless Reset to Inactive Image
+  Firmware run in mode=0 success
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: A
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+  ```
+
+**sfputil firmware commit**
+
+This command to commit the running image so that the module will boot from it on future boots. 
+
+- Usage:
+  ```
+  sfputil firmware commit PORT_NAME
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware commit Ethernet180
+  Firmware commit successful
+
+  admin@sonic:~$ sfputil show fwversion Ethernet180
+  Image A Version: 0.3.5
+  Image B Version: 0.3.6
+  Factory Image Version: 0.0.0
+  Running Image: B
+  Committed Image: B
+  Active Firmware: 0.3.6
+  Inactive Firmware: 0.3.5
+  ```
+
+### CMIS firmware target mode commands
+
+This command is vendor-specific and supported on the modules to set the target mode to perform remote firmware upgrades. The target modes can be set as 0 (local- E0), 1 (remote end E1), or 2 (remote end E2). Depending on the mode set, the remote or local end will respond to CDB/I2C commands from host's E0 end. After setting the target mode, we can use **sfputil** firmware upgrade commands, will be executed on the module for which target mode is set.
+
+Example of the module supporting target mode
+
+![RMT_UPGRD](https://github.com/AnoopKamath/sonic-utilities_remote_upgrade/assets/115578705/c3b0bb62-eb14-4b05-b0a8-96b8c082455a)
+
+**sfputil firmware target**
+
+- Usage:
+  ```
+  sfputil firmware target [OPTIONS] PORT_NAME TARGET
+
+  Select target end for firmware download
+  0-(local)
+
+  1-(remote-A)
+
+  2-(remote-B)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil firmware target Ethernet180 1
+  Target Mode set to 1
+  ```
 
 ## DHCP Relay
 
@@ -4087,6 +4235,216 @@ This command is used to change device hostname without traffic being impacted.
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
 
+## Hash
+
+This section explains the various show and configuration commands available for user.
+
+### Hash Show Commands
+
+This subsection explains how to display switch hash configuration.
+
+**show switch-hash global**
+
+This command displays switch hash global configuration.
+
+- Usage:
+  ```bash
+  show switch-hash global
+  ```
+
+- Options:
+  - _-j,--json_: display in JSON format
+
+- Example:
+  ```bash
+  admin@sonic:~$ show switch-hash global
+  +--------+-------------------------------------+
+  | Hash   | Configuration                       |
+  +========+=====================================+
+  | ECMP   | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | DST_MAC           | CRC         | |
+  |        | | SRC_MAC           |             | |
+  |        | | ETHERTYPE         |             | |
+  |        | | IP_PROTOCOL       |             | |
+  |        | | DST_IP            |             | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  | LAG    | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | DST_MAC           | CRC         | |
+  |        | | SRC_MAC           |             | |
+  |        | | ETHERTYPE         |             | |
+  |        | | IP_PROTOCOL       |             | |
+  |        | | DST_IP            |             | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  ```
+
+**show switch-hash capabilities**
+
+This command displays switch hash capabilities.
+
+- Usage:
+  ```bash
+  show switch-hash capabilities
+  ```
+
+- Options:
+  - _-j,--json_: display in JSON format
+
+- Example:
+  ```bash
+  admin@sonic:~$ show switch-hash capabilities
+  +--------+-------------------------------------+
+  | Hash   | Capabilities                        |
+  +========+=====================================+
+  | ECMP   | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | IN_PORT           | CRC         | |
+  |        | | DST_MAC           | XOR         | |
+  |        | | SRC_MAC           | RANDOM      | |
+  |        | | ETHERTYPE         | CRC_32LO    | |
+  |        | | VLAN_ID           | CRC_32HI    | |
+  |        | | IP_PROTOCOL       | CRC_CCITT   | |
+  |        | | DST_IP            | CRC_XOR     | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  | LAG    | +-------------------+-------------+ |
+  |        | | Hash Field        | Algorithm   | |
+  |        | |-------------------+-------------| |
+  |        | | IN_PORT           | CRC         | |
+  |        | | DST_MAC           | XOR         | |
+  |        | | SRC_MAC           | RANDOM      | |
+  |        | | ETHERTYPE         | CRC_32LO    | |
+  |        | | VLAN_ID           | CRC_32HI    | |
+  |        | | IP_PROTOCOL       | CRC_CCITT   | |
+  |        | | DST_IP            | CRC_XOR     | |
+  |        | | SRC_IP            |             | |
+  |        | | L4_DST_PORT       |             | |
+  |        | | L4_SRC_PORT       |             | |
+  |        | | INNER_DST_MAC     |             | |
+  |        | | INNER_SRC_MAC     |             | |
+  |        | | INNER_ETHERTYPE   |             | |
+  |        | | INNER_IP_PROTOCOL |             | |
+  |        | | INNER_DST_IP      |             | |
+  |        | | INNER_SRC_IP      |             | |
+  |        | | INNER_L4_DST_PORT |             | |
+  |        | | INNER_L4_SRC_PORT |             | |
+  |        | +-------------------+-------------+ |
+  +--------+-------------------------------------+
+  ```
+
+### Hash Config Commands
+
+This subsection explains how to configure switch hash.
+
+**config switch-hash global ecmp/lag hash**
+
+This command is used to manage switch hash global configuration.
+
+- Usage:
+  ```bash
+  config switch-hash global ecmp-hash <hash_field_list>
+  config switch-hash global lag-hash <hash_field_list>
+  ```
+
+- Parameters:
+  - _hash_field_list_: hash fields for hashing packets going through ECMP/LAG
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config switch-hash global ecmp-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
+  admin@sonic:~$ config switch-hash global lag-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
+  ```
+
+**config switch-hash global ecmp/lag hash algorithm**
+
+This command is used to manage switch hash algorithm global configuration.
+
+- Usage:
+  ```bash
+  config switch-hash global ecmp-hash-algorithm <hash_algorithm>
+  config switch-hash global lag-hash-algorithm <hash_algorithm>
+  ```
+
+- Parameters:
+  - _hash_algorithm_: hash algorithm for hashing packets going through ECMP/LAG
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config switch-hash global ecmp-hash-algorithm 'CRC'
+  admin@sonic:~$ config switch-hash global lag-hash-algorithm 'CRC'
+  ```
+
 ## Interfaces
 
 ### Interface Show Commands
@@ -4347,6 +4705,29 @@ This command displays the key fields of the interfaces such as Operational Statu
   -----------  ------  -------  --------------  --------------------
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
+
+**show interfaces fec status (Versions >= 202311)**
+
+This command is to display the FEC status of the selected interfaces. If **interface_name** is not specicied, this command shows the FEC status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces fec status [<interface_name>]
+  ```
+
+- Example:  
+```
+  admin@sonic:~$ show interfaces fec status
+  Interface    FEC Oper    FEC Admin
+  -----------  ----------  -----------
+  Ethernet0         N/A           rs
+ Ethernet32         N/A           rs
+ Ethernet36         N/A          N/A
+Ethernet112         N/A           rs
+Ethernet116         N/A           rs
+Ethernet120         N/A           rs
+Ethernet124          rs         auto
+```
 
 **show interfaces link-training (Versions >= 202211)**
 
@@ -8286,6 +8667,63 @@ It supports add/update/remove operations.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
 
+## PINS
+
+### PINS Show commands
+
+#### P4RT Table
+
+**show p4-table**
+
+This command displays the P4RT (P4 Runtime) tables in the application database.
+
+These tables are used by PINS (P4 Integrated Network Stack) for orchagent to
+communicate with the P4RT application.
+
+- Usage:
+  ```bash
+  show p4-table
+  show p4-table <table_prefix>
+  ```
+
+- Example:
+
+  ```bash
+  admin@sonic:~$ show p4-table
+  {
+      "P4RT_TABLE:ACL_TABLE_DEFINITION_TABLE:ACL_ACL_PRE_INGRESS_TABLE": {
+          "stage":"PRE_INGRESS",
+          "match/dst_ipv6":"{\"bitwidth\":128,\"format\":\"IPV6\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6\"}",
+          "match/in_port":"{\"format\":\"STRING\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_IN_PORT\"}",
+          "match/is_ipv4":"{\"bitwidth\":1,\"format\":\"HEX_STRING\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/IPV4ANY\"}",
+          "action/set_vrf": "[{\"action\":\"SAI_PACKET_ACTION_FORWARD\"},{\"action\":\"SAI_ACL_ENTRY_ATTR_ACTION_SET_VRF\",\"param\":\"vrf_id\"}]"
+      },
+      "P4RT_TABLE:ACL_ACL_PRE_INGRESS_TABLE:{\"match/dst_ip\":\"10.53.192.0&255.255.240.0\",\"match/is_ipv4\":\"0x1\",\"priority\":1132}": {
+          "action": "set_vrf",
+          "param/vrf_id": "p4rt-vrf-80",
+          "controller_metadata": "my metadata"
+      },
+      ...
+  }
+  ```
+
+  The command supports filtering entries by table name. If a prefix is
+  specified, only p4 table entries matching that prefix will be displayed.
+
+  ```bash
+  admin@sonic:~$ show p4-table ACL_ACL_PRE_INGRESS_TABLE
+  {
+      "P4RT_TABLE:ACL_ACL_PRE_INGRESS_TABLE:{\"match/dst_ip\":\"10.53.192.0&255.255.240.0\",\"match/is_ipv4\":\"0x1\",\"priority\":1132}": {
+          "action": "set_vrf",
+          "param/vrf_id": "p4rt-vrf-80",
+          "controller_metadata": "my metadata"
+      },
+      ...
+  }
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
+
 ## QoS
 
 ### QoS Show commands
@@ -8808,6 +9246,7 @@ This command displays the global sFlow configuration that includes the admin sta
   admin@sonic:~# show sflow
   sFlow Global Information:
   sFlow Admin State:          up
+  sFlow Sample Direction:     both
   sFlow Polling Interval:     default
   sFlow AgentID:              lo
 
@@ -8831,24 +9270,23 @@ This command displays the per-interface sflow admin status and the sampling rate
   admin@sonic:~# show sflow interface
 
   sFlow interface configurations
-  +-------------+---------------+-----------------+
-  | Interface   | Admin State   |   Sampling Rate |
-  +=============+===============+=================+
-  | Ethernet0   | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet1   | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Interface   | Admin State   |   Sampling Rate | Sampling Direction   |
+  +=============+===============+=================+======================+
+  | Ethernet0   | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------|
+  | Ethernet1   | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
   ...
-  +-------------+---------------+-----------------+
-  | Ethernet61  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet62  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet63  | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet61  | up            |            4000 | rx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet62  | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet63  | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------+
 
   ```
-
 ### sFlow Config commands
 
 **config sflow collector add**
@@ -8917,6 +9355,18 @@ Globally, sFlow is disabled by default. When sFlow is enabled globally, the sflo
   ```
   admin@sonic:~# sudo config sflow enable
   ```
+**config sflow sample-direction**
+
+This command takes global sflow sample direction. If not configured, default is "rx" for backward compatibility. Based on the direction, the sFlow is enabled at all the interface level at rx or tx or both.
+
+- Usage:
+  ```
+  config sflow sample-direction <rx|tx|both>
+  ```
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow sample-direction tx
+  ```
 **config sflow interface**
 
 Enable/disable sflow at an interface level. By default, sflow is enabled on all interfaces at the interface level. Use this command to explicitly disable sFlow for a specific interface. An interface is sampled if sflow is enabled globally as well as at the interface level. Note that this configuration deals only with sFlow flow samples and not counter samples.
@@ -8933,6 +9383,24 @@ Enable/disable sflow at an interface level. By default, sflow is enabled on all 
   ```
   admin@sonic:~# sudo config sflow interface disable Ethernet40
   ```
+
+**config sflow interface sample-direction**
+
+Set sample direction to determine ingress sampling or egress sampling or both. If not configured, default is "rx".
+
+- Usage:
+  ```
+  config sflow sample-direction <interface-name|all> <rx|tx|both>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface for which sFlow flow sample-direction has to be set. The “all” keyword is used as a convenience to set sflow sample-direction at the interface level for all the interfaces.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow interface sample-direction Ethernet40 tx
+  ```
+Note: The local configuration applied to an interface has higher precedence over the global configuration provided through the "all" keyword.
 
 **config sflow interface sample-rate**
 
@@ -9758,6 +10226,33 @@ This command is used to configure syslog rate limit for containers.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
   ```
 
+**config syslog rate-limit-feature enable**
+
+This command is used to enable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature enable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature enable
+  ```
+
+**config syslog rate-limit-feature disable**
+
+This command is used to disable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature disable
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
@@ -12446,6 +12941,181 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
 
+# SFP Utilities Commands
+ This sub-section explains the list of commands available for SFP utilities feature.
+
+## SFP Utilities show commands
+ 
+- Show SFP EEPROM hex dump
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --help
+Usage: sfputil show eeprom-hexdump [OPTIONS]
+  Display EEPROM hexdump of SFP transceiver(s)
+Options:
+  -p, --port <port_name>    Display SFP EEPROM hexdump for port <port_name>
+  -n, --page <page_number>  Display SFP EEEPROM hexdump for
+                            <page_number_in_hex>
+  --help                    Show this message and exit.
+```
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 0
+EEPROM hexdump for port Ethernet0 page 0h
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 1
+EEPROM hexdump for port Ethernet0 page 1h
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 1h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+admin@sonic:~$ sfputil show eeprom-hexdump
+EEPROM hexdump for port Ethernet0
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+EEPROM hexdump for port Ethernet8
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+```
+
+# SFP Utilities read command
+
+- Read SFP EEPROM data
+
+```
+admin@sonic:~$ sfputil read-eeprom --help
+Usage: sfputil read-eeprom [OPTIONS]
+
+  Read SFP EEPROM data
+
+Options:
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -s, --size <size>               Size of byte to be read  [required]
+  --no-format                     Display non formatted data
+  --wire-addr TEXT                Wire address of sff8472
+  --help                          Show this message and exit.
+```
+
+```
+admin@sonic:~$ sfputil read-eeprom -p Ethernet0 -n 0 -o 100 -s 2
+        00000064 4a 44                                            |..|
+
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 0 --size 32
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+admin@sonic:~$ sfputil read-eeprom --port Ethernet0 --page 0 --offset 100 --size 2 --no-format
+4a44
+```
+
+# SFP Utilities write command
+
+- Write SFP EEPROM data
+
+```
+admin@sonic:~$ sfputil write-eeprom --help
+Usage: sfputil write-eeprom [OPTIONS]
+
+  Write SFP EEPROM data
+
+Options:
+  -p, --port <logical_port_name>  Logical port name  [required]
+  -n, --page <page>               EEPROM page number  [required]
+  -o, --offset <offset>           EEPROM offset within the page  [required]
+  -d, --data <data>               Hex string EEPROM data  [required]
+  --wire-addr TEXT                Wire address of sff8472
+  --verify                        Verify the data by reading back
+  --help                          Show this message and exit.
+```
+
+- Write success
+```
+admin@sonic:~$ sfputil write-eeprom -p Ethernet0 -n 0 -o 100 -d 4a44
+
+admin@sonic:~$ sfputil write-eeprom --port Etherent0 --page 0 --offset 100 --data 0000 --verify
+
+```
+
+- Write fail
+```
+admin@sonic:~$ sfputil write-eeprom -p Etherent0 -n 0 -o 100 -d 4a44 --verify
+Error: Write data failed! Write: 4a44, read: 0000.
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#sfp-utilities-commands)
+
 # Static DNS Commands
 
 This sub-section explains the list of the configuration options available for static DNS feature.
@@ -12497,3 +13167,42 @@ admin@sonic:~$ show dns nameserver
      8.8.8.8
 
 ```
+
+# Wake-on-LAN Commands
+
+## Send Wake-on-LAN Magic Packet command
+
+The `wol` command is used to send magic packet to target device.
+
+### Usage
+
+```
+wol <interface> <target_mac> [-b] [-p password] [-c count] [-i interval] [-v]
+```
+
+- `interface`: SONiC interface name.
+- `target_mac`: a list of target devices' MAC address, separated by comma.
+- `-b`: Use broadcast MAC address instead of target device's MAC address as **Destination MAC Address in Ethernet Frame Header**.
+- `-p password`: An optional 4 or 6 byte password, in ethernet hex format or quad-dotted decimal[^3].
+- `-c count`: For each target MAC address, the `count` of magic packets to send. `count` must between 1 and 5. Default value is 1. This param must use with `-i`.
+- `-i interval`: Wait `interval` milliseconds between sending each magic packet. `interval` must between 0 and 2000. Default value is 0. This param must use with `-c`.
+- `-v`: Verbose output.
+
+### Example
+
+```
+admin@sonic:~$ wol Ethernet10 00:11:22:33:44:55
+admin@sonic:~$ wol Ethernet10 00:11:22:33:44:55 -b
+admin@sonic:~$ wol Vlan1000 00:11:22:33:44:55,11:33:55:77:99:bb -p 00:22:44:66:88:aa
+admin@sonic:~$ wol Vlan1000 00:11:22:33:44:55,11:33:55:77:99:bb -p 192.168.1.1 -c 3 -i 2000 -v
+Sending 3 magic packet to 00:11:22:33:44:55 via interface Vlan1000
+1st magic packet sent to 00:11:22:33:44:55
+2nd magic packet sent to 00:11:22:33:44:55
+3rd magic packet sent to 00:11:22:33:44:55
+Sending 3 magic packet to 11:33:55:77:99:bb via interface Vlan1000
+1st magic packet sent to 11:33:55:77:99:bb
+2nd magic packet sent to 11:33:55:77:99:bb
+3rd magic packet sent to 11:33:55:77:99:bb
+```
+
+For the 4th example, it specifise 2 target MAC addresses and `count` is 3. So it'll send 6 magic packets in total.
