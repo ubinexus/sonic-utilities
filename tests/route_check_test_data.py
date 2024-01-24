@@ -473,7 +473,7 @@ TEST_DATA = {
         },
         RET: -1,
     },
-    "10": {
+    "11": {
         DESCR: "basic good one with IPv6 address",
         ARGS: "route_check -m INFO -i 1000",
         PRE: {
@@ -491,7 +491,7 @@ TEST_DATA = {
             }
         }
     },
-    "11": {
+    "12": {
         DESCR: "dualtor ignore vlan neighbor route miss case",
         ARGS: "route_check -i 15",
         RET: -1,
