@@ -131,6 +131,10 @@ class TestAsicSdkHealthEvent(object):
         assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('categories')
         assert not db.cfgdb.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity).get('max_events')
 
+        result = runner.invoke(
+            config.config.commands["asic-sdk-health-event"].commands["suppress"], severity, obj=db)
+        assert result.exit_code != 0
+        assert "At least one argument should be provided" in result.output
 
     @pytest.mark.parametrize("severity", ["fatal", "warning", "notice"])
     def test_config_suppress_asic_sdk_health_event_unsupported_severity(self, severity):

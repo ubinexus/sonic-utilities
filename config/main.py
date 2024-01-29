@@ -7433,8 +7433,10 @@ def handle_asic_sdk_health_suppress(db, severity, category_list, max_events, nam
 
         entry = config_db.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity)
         need_remove = False
+        noarg = True
 
         if category_list:
+            noarg = False
             if suppressedCategoriesList:
                 entry["categories"] = suppressedCategoriesList
             elif entry.get("categories"):
@@ -7442,11 +7444,15 @@ def handle_asic_sdk_health_suppress(db, severity, category_list, max_events, nam
                 need_remove = True
 
         if max_events is not None:
+            noarg = False
             if max_events > 0:
                 entry["max_events"] = max_events
             elif entry.get("max_events"):
                 entry.pop("max_events")
                 need_remove = True
+
+        if noarg:
+            ctx.fail("At least one argument should be provided!")
 
         if entry:
             config_db.set_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, entry)
