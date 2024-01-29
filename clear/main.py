@@ -550,6 +550,15 @@ def route(prefix, vrf, namespace):
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)
 
+@cli.command()
+def logging():
+    """Clear logging files"""
+    if os.path.exists("/var/log.tmpfs"):
+        log_path = "/var/log.tmpfs"
+    else:
+        log_path = "/var/log"
+    command = ['sudo', 'rm', '-f', '{}/syslog'.format(log_path)]    
+    run_command(command)
 
 if __name__ == '__main__':
     cli()
