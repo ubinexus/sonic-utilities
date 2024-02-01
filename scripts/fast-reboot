@@ -276,6 +276,7 @@ function backup_database()
     sonic-db-cli STATE_DB eval "
         for _, k in ipairs(redis.call('keys', '*')) do
             if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
+                                          and not string.match(k, 'PORT_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
                                           and not string.match(k, 'FG_ROUTE_TABLE|') \
                                           and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
