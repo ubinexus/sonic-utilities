@@ -703,10 +703,12 @@ def eeprom_hexdump(port, page):
     if port:
         if page is None:
             page = 0
-        return_code, output = eeprom_hexdump_single_port(port, page)
+        return_code, output = eeprom_hexdump_single_port(port, int(str(page), base=16))
         click.echo(output)
         sys.exit(return_code)
     else:
+        if page is not None:
+            page = int(str(page), base=16)
         logical_port_list = natsorted(platform_sfputil.logical)
         lines = []
         for logical_port_name in logical_port_list:
@@ -729,7 +731,7 @@ def validate_eeprom_page(page):
         int page
     """
     try:
-        page = int(page)
+        page = int(page, base=16)
     except ValueError:
         click.echo('Please enter a numeric page number')
         sys.exit(ERROR_NOT_IMPLEMENTED)
@@ -830,7 +832,7 @@ def eeprom_hexdump_pages_general(logical_port_name, pages, target_page):
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     if target_page is not None:
-        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page}h']
+        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page:x}h']
     else:
         lines = [f'EEPROM hexdump for port {logical_port_name}']
     physical_port = logical_port_to_physical_port_index(logical_port_name)
@@ -871,7 +873,7 @@ def eeprom_hexdump_pages_sff8472(logical_port_name, pages, target_page):
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     if target_page is not None:
-        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page}h']
+        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page:x}h']
     else:
         lines = [f'EEPROM hexdump for port {logical_port_name}']
     physical_port = logical_port_to_physical_port_index(logical_port_name)
@@ -915,28 +917,6 @@ def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_
         page_offset: offset within a page, only for print purpose
         no_format: False if dump with hex format else dump with flat hex string. Default False.
 
-    Returns:
-        tuple(0, dump string) if success else tuple(error_code, error_message)
-    """
-    sfp = platform_chassis.get_sfp(physical_port)
-    page_dump = sfp.read_eeprom(flat_offset, size)
-    if page_dump is None:
-        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, flat_offset {flat_offset}, page_offset {page_offset}, size {size}!'
-    if not no_format:
-        return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
-    else:
-        return 0, ''.join('{:02x}'.format(x) for x in page_dump)
-
-
-
-def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_format=False):
-    """
-    Dump module EEPROM for given pages in hex format.
-    Args:
-        logical_port_name: logical port name
-        pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
-               user
-        target_page: user input page number, optional. target_page is only for display purpose
     Returns:
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
