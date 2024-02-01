@@ -265,6 +265,7 @@ def passkey(ctx, secret, encrypt):
         else:
             add_table_kv('TACPLUS', 'global', 'key_encrypt', False)
             add_table_kv('TACPLUS', 'global', 'passkey', secret)
+            secure_cipher.del_cipher_pass()
     else:
         click.echo('Argument "secret" is required')
 tacacs.add_command(passkey)
@@ -314,7 +315,8 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf, encrypt):
                     return
             else:
                 add_table_kv('TACPLUS', 'global', 'key_encrypt', False)
-                data['passkey'] = key 
+                data['passkey'] = key
+                secure_cipher.del_cipher_pass() 
         if use_mgmt_vrf :
             data['vrf'] = "mgmt"
         try:
