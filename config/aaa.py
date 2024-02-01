@@ -253,9 +253,13 @@ def passkey(ctx, secret, encrypt):
             click.echo(VALID_CHARS_MSG)
             return
 
-        if encrypt: 
-            add_table_kv('TACPLUS', 'global', 'key_encrypt', True)
-            passwd = getpass.getpass()
+        if encrypt:
+            try:
+                passwd = getpass.getpass()
+            except Exception as e:
+                click.echo('getpass aborted' % e)
+                return
+            add_table_kv('TACPLUS', 'global', 'key_encrypt', True) 
             outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', secret, passwd)
             if not errs:
                 add_table_kv('TACPLUS', 'global', 'passkey', outsecret)
@@ -305,8 +309,12 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf, encrypt):
             data['timeout'] = str(timeout)
         if key is not None:
             if encrypt:
+                try:
+                    passwd = getpass.getpass()
+                except Exception as e:
+                    click.echo('getpass aborted' % e)
+                    return
                 add_table_kv('TACPLUS', 'global', 'key_encrypt', True)
-                passwd = getpass.getpass()
                 outsecret, errs = secure_cipher.encrypt_passkey('TACPLUS', key, passwd)
                 if not errs:
                     data['passkey'] = outsecret
