@@ -567,11 +567,6 @@ def logging(all):
         cmd = ['sudo', 'rm','-f',f]
         run_command(cmd)
 
-@click.command()
-@def nothing():
-    """ do nothing """
-    cmd = ['echo', 'doing' , 'nothing']
-    run_command(cmd)
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
