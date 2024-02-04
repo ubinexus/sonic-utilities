@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import click
+import glob
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from sonic_py_common.general import getstatusoutput_noshell_pipe
@@ -545,6 +546,32 @@ def route(prefix, vrf, namespace):
         command += ['-n', str(namespace)]
     clicommon.run_command(command)
 
+@click.option('--all', '-a', is_flag=True, help='Delete also compressed logs')
+@cli.command()
+def logging(all):
+    """Clear logging files"""
+    if os.path.exists("/var/log.tmpfs"):
+        log_path = "/var/log.tmpfs"
+    else:
+        log_path = "/var/log"
+    
+    if all:
+        files_to_delete = glob.glob(f"{log_path}/syslog*")
+    else:
+        files_to_delete = [f"{log_path}/syslog"]
+        
+    if os.path.isfile(f"{log_path}/syslog.1"):
+        files_to_delete += [f"{log_path}/syslog.1"]
+
+    for f in files_to_delete:
+        cmd = ['sudo', 'rm','-f',f]
+        run_command(cmd)
+
+@click.command()
+@def nothing():
+    """ do nothing """
+    cmd = ['echo', 'doing' , 'nothing']
+    run_command(cmd)
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
