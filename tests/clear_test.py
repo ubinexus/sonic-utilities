@@ -1,6 +1,5 @@
 import click
 import pytest
-import sys
 import glob
 import clear.main as clear
 from click.testing import CliRunner
@@ -324,14 +323,7 @@ class TestClearFlowcnt(object):
 class TestClearLogging(object):
     def setup(self):
         print('SETUP')
-
-#    @patch('clear.main.run_command')
-#    def test_logging(self, mock_run_command):
-#        runner = CliRunner()
-#        result = runner.invoke(clear.cli.commands['logging'])
-#        assert result.exit_code == 0
-#        mock_run_command.assert_called_with(['sudo', 'rm' ,'-f', '/var/log/syslog']);
-        
+      
     @patch('clear.main.run_command')
     @patch("glob.glob", MagicMock(return_value=['abc']))
     def test_logging_all(self, mock_run_command):
