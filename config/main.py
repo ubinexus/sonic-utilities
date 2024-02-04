@@ -1688,7 +1688,7 @@ def load_mgmt_config(filename):
             if rc0 != 0:
                 sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
 
-            out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], return_cmd=True)
+            out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], display_cmd=True, return_cmd=True)
             if rc1 != 0:
                 sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
             clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
