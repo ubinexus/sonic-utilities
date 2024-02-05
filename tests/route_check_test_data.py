@@ -462,6 +462,7 @@ TEST_DATA = {
                     "prefix": "1.1.1.0/24",
                     "vrfName": "default",
                     "protocol": "static",
+                    "selected": True,
                 },
             ],
             "10.10.196.24/31": [
