@@ -13,6 +13,7 @@ from utilities_common.db import Db
 import utilities_common.bgp_util as bgp_util
 
 ERROR_MSG = "Error: IP address is not valid"
+VLAN_ERROR_MSG = "not a valid Vlan name"
 
 INVALID_VRF_MSG ="""\
 Usage: bind [OPTIONS] <interface_name> <vrf_name>
@@ -42,6 +43,40 @@ class TestConfigIP(object):
 
     def mock_run_bgp_command():
         return ""
+
+    def test_add_vlan_interface_ipv4(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config int ip add Vlan100 1.1.1.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan100", "1.1.1.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # config int ip add Vlan4093 1.1.1.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan4093", "1.1.1.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # config int ip add Vlan000000000000003 1.1.1.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan000000000000003", "1.1.1.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert VLAN_ERROR_MSG in result.output
+
+        # config int ip add Vlan01 1.1.1.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan01", "1.1.1.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert VLAN_ERROR_MSG in result.output
+
+        # config int ip add Vlan1.2 1.1.1.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan1.2", "1.1.1.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert VLAN_ERROR_MSG in result.output
+
 
     def test_add_del_interface_valid_ipv4(self):
         db = Db()
