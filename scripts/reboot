@@ -34,6 +34,7 @@ PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 TAG_LATEST=no
+REBOOT_CAUSE=null
 
 function debug()
 {
@@ -121,8 +122,8 @@ function show_help_and_exit()
     echo " "
     echo "    Available options:"
     echo "        -h, -? : getting this help"
-    echo "        -f     : execute reboot force"
-
+    echo "        -f     : execute reboot force" 
+    echo "        -r     : specify reboot cause (reason) string in quotes"
     exit 0
 }
 
@@ -172,22 +173,33 @@ function check_conflict_boot_in_fw_update()
 
 function parse_options()
 {
-    while getopts "h?vf" opt; do
+    while getopts "h?vftr:" opt; do
         case ${opt} in
             h|\? )
                 show_help_and_exit
                 ;;
+            f )
+                REBOOT_FORCE=true
+                echo "force: $REBOOT_FORCE"
+                ;;
             v )
                 VERBOSE=yes
+                echo "verbose: $VERBOSE"
                 ;;
             t )
                 TAG_LATEST=no
+                echo "tag_latest: $TAG_LATEST"
+                ;;
+            r )
+                REBOOT_CAUSE="$OPTARG"
+                # alternatives: $OPTARG or ${OPTARG} or "${OPTARG[@]}"
+                echo "reboot_cause: ${REBOOT_CAUSE}"
                 ;;
         esac
     done
 }
 
-parse_options $@
+parse_options "$@"
 
 # Exit if not superuser
 if [[ "$EUID" -ne 0 ]]; then
@@ -218,7 +230,11 @@ clear_warm_boot
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+if [[ ${REBOOT_CAUSE} != null  ]]; then
+    echo "System triggered reboot. reason: '${REBOOT_CAUSE}' [User: system, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+else
+    echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+fi
 sync
 /sbin/fstrim -av
 sleep 3
@@ -260,4 +276,18 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
 fi
 
 VERBOSE=yes debug "Issuing OS-level reboot ..." >&2
-exec /sbin/reboot $@
+echo "Going to issue reboot command..."
+if [ $# -eq 0 ]; then
+    echo "no argument passed"
+    exec /sbin/reboot $@
+elif [ $# -eq 1 ] && [[ $REBOOT_FORCE == true ]]; then
+    echo "force reboot"
+    exec /sbin/reboot $@
+elif [ $# -eq 2 ] && [[ ${REBOOT_CAUSE} != null ]]; then
+    echo "reboot cause specified"
+    exec /sbin/reboot
+elif [ $# -gt 2 ] && [[ $REBOOT_FORCE == true ]] && [[ ${REBOOT_CAUSE} != null ]]; then
+    echo "both options - force reboot and reboot cause - specified"
+    exec /sbin/reboot -f
+else echo "No appropriate match found, exiting"
+fi
