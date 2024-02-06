@@ -4513,6 +4513,13 @@ def ip(ctx):
     """Set IP interface attributes"""
     pass
 
+def validate_vlan_format(text):
+    pattern = re.compile(r'^Vlan([1-9]\d{0,2}|[1-3]\d{3}|40[0-8][0-9]|409[0-4])$')
+
+    if pattern.match(text):
+        return True
+    else:
+        return False
 #
 # 'add' subcommand
 #
@@ -4544,6 +4551,7 @@ def add(ctx, interface_name, ip_addr, gw):
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
+    
 
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
@@ -4576,6 +4584,12 @@ def add(ctx, interface_name, ip_addr, gw):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    
+    if table_name == "VLAN_INTERFACE":
+        if not validate_vlan_format(interface_name):
+            ctx.fail(f"{interface_name} is not a valid Vlan name")
+            return
+    
     interface_entry = config_db.get_entry(table_name, interface_name)
     if len(interface_entry) == 0:
         if table_name == "VLAN_SUB_INTERFACE":
