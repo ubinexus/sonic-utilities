@@ -1746,9 +1746,6 @@ def read_eeprom(port, page, offset, size, no_format, wire_addr):
             click.echo('Error: SFP EEPROM not detected!')
         if page is not None:
             page = validate_eeprom_page(page)
-        else:
-            click.echo('Error: Page number is not provided!')
-            sys.exit(EXIT_FAIL)
         if not isinstance(api, sff8472.Sff8472Api):
             overall_offset = get_overall_offset_general(api, page, offset, size)
         else:
@@ -1805,9 +1802,6 @@ def write_eeprom(port, page, offset, data, wire_addr, verify):
             sys.exit(EXIT_FAIL)
         if page is not None:
             page = validate_eeprom_page(page)
-        else:
-            click.echo('Error: Page number is not provided!')
-            sys.exit(EXIT_FAIL)
         if not isinstance(api, sff8472.Sff8472Api):
             overall_offset = get_overall_offset_general(api, page, offset, len(bytes))
         else:
