@@ -5845,20 +5845,9 @@ def remove_acl_rule(table_name, rule_id):
         cmd += [str(table_name)]
 
     if rule_id is not None:
-        cmd += ["rule=" + str(rule_id)]
+        cmd += [str(rule_id)]
 
     clicommon.run_command(cmd)
-
-#
-# 'rule' subcommand ('config acl remove rule ...')
-#
-@remove.command()
-@click.argument('table_name', required=True)
-@click.argument('rule_id', required=False)
-def rule(table_name, rule_id):
-    """Remove existing ACL rules"""
-    remove_acl_rule(table_name, rule_id)
-
 
 #
 # 'table' subcommand ('config acl remove table ...')
