@@ -4,6 +4,7 @@ import glob
 import clear.main as clear
 from click.testing import CliRunner
 from unittest.mock import patch, MagicMock
+from unittest import mock
 
 class TestClear(object):
     def setup(self):
@@ -333,11 +334,14 @@ class TestClearLogging(object):
         mock_run_command.assert_called_with(['sudo', 'rm' ,'-f', 'abc'])
     
     @patch('clear.main.run_command')
+    @patch("os.path.isfile",MagicMock(return_value=True))
     def test_logging(self, mock_run_command):
         runner = CliRunner()
         result = runner.invoke(clear.cli.commands['logging'])
         assert result.exit_code == 0
-        mock_run_command.assert_called_with(['sudo', 'rm' ,'-f', '/var/log/syslog'])
+        mock_run_command.assert_has_calls([mock.call(['sudo', 'rm' ,'-f', '/var/log/syslog']),
+                                          mock.call(['sudo', 'rm' ,'-f', '/var/log/syslog.1'])],
+        any_order=True)
             
     def teardown(self):
         print('TEAR DOWN')
