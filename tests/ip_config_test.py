@@ -13,7 +13,6 @@ from utilities_common.db import Db
 import utilities_common.bgp_util as bgp_util
 
 ERROR_MSG = "Error: IP address is not valid"
-ILLEGAL_VLAN_ERROR_MSG = "not a valid Vlan name"
 NOT_EXIST_VLAN_ERROR_MSG ="does not exist"
 
 INVALID_VRF_MSG ="""\
@@ -56,11 +55,6 @@ class TestConfigIP(object):
         assert result.exit_code != 0
         assert NOT_EXIST_VLAN_ERROR_MSG in result.output
 
-        # config int ip add Vlan101 1.1.1.1/24 --ignore-vlan
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], [ "Vlan101", "1.1.1.1/24" , "--ignore-vlan"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-
         # create vlan 4093
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["4093"], obj=db)
         # config int ip add Vlan4093 1.1.1.1/24
@@ -69,22 +63,16 @@ class TestConfigIP(object):
         assert result.exit_code == 0
 
         # config int ip add Vlan000000000000003 1.1.1.1/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan000000000000003", "1.1.1.1/24" , "--ignore-vlan"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code != 0
-        assert ILLEGAL_VLAN_ERROR_MSG in result.output
-
-        # config int ip add Vlan01 1.1.1.1/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan01", "1.1.1.1/24"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan000000000000003", "1.1.1.1/24"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert NOT_EXIST_VLAN_ERROR_MSG in result.output
 
         # config int ip add Vlan1.2 1.1.1.1/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan1.2", "1.1.1.1/24", "--ignore-vlan"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan1.2", "1.1.1.1/24"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert ILLEGAL_VLAN_ERROR_MSG in result.output
+        assert NOT_EXIST_VLAN_ERROR_MSG in result.output
 
 
     def test_add_del_interface_valid_ipv4(self):

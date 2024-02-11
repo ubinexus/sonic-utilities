@@ -4512,11 +4512,7 @@ def fec(ctx, interface_name, interface_fec, verbose):
 def ip(ctx):
     """Set IP interface attributes"""
     pass
-
-def validate_vlan_format(text):
-    pattern = re.compile(r'^Vlan([1-9]\d{0,2}|[1-3]\d{3}|40[0-8][0-9]|409[0-4])$')
-    return pattern.fullmatch(text) is not None
-    
+  
 def validate_vlan_exists(db,text):
     data = db.get_table('VLAN')
     keys = list(data.keys())
@@ -4529,9 +4525,8 @@ def validate_vlan_exists(db,text):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.argument('gw', metavar='<default gateway IP address>', required=False)
-@click.option('-i','--ignore-vlan',is_flag=True, required=False, help="Allow configuration on not created Vlan")
 @click.pass_context
-def add(ctx, interface_name, ip_addr, gw, ignore_vlan):
+def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     # Get the config_db connector
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
@@ -4587,14 +4582,9 @@ def add(ctx, interface_name, ip_addr, gw, ignore_vlan):
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     
     if table_name == "VLAN_INTERFACE":
-        if ignore_vlan:
-            if not validate_vlan_format(interface_name):
-                ctx.fail(f"Error: {interface_name} is not a valid Vlan name")
-                return
-        else:
-            if not validate_vlan_exists(config_db, interface_name):
-                ctx.fail(f"Error: {interface_name} does not exist")
-                return
+        if not validate_vlan_exists(config_db, interface_name):
+            ctx.fail(f"Error: {interface_name} does not exist. Vlan must be created before adding an IP address")
+            return
     
     interface_entry = config_db.get_entry(table_name, interface_name)
     if len(interface_entry) == 0:
