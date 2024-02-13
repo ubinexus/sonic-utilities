@@ -335,12 +335,15 @@ class TestClearLogging(object):
     
     @patch('clear.main.run_command')
     @patch("os.path.isfile",MagicMock(return_value=True))
+    @patch("os.path.exists",MagicMock(return_value=True))
     def test_logging(self, mock_run_command):
         runner = CliRunner()
         result = runner.invoke(clear.cli.commands['logging'])
         assert result.exit_code == 0
         mock_run_command.assert_has_calls([mock.call(['sudo', 'rm' ,'-f', '/var/log/syslog']),
-                                          mock.call(['sudo', 'rm' ,'-f', '/var/log/syslog.1'])],
+                                          mock.call(['sudo', 'rm' ,'-f', '/var/log/syslog.1']),
+                                          mock.call(['sudo', 'rm' ,'-f', '/var/log.tmpfs/syslog']),
+                                          mock.call(['sudo', 'rm' ,'-f', '/var/log.tmpfs/syslog.1'])],
         any_order=True)
             
     def teardown(self):

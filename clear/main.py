@@ -550,7 +550,9 @@ def route(prefix, vrf, namespace):
 @cli.command()
 def logging(all):
     """Clear logging files"""
-    log_path_arr = ["/var/log"]
+    log_path_arr = []
+    if os.path.exists("/var/log"):
+        log_path_arr += ["/var/log"]
     if os.path.exists("/var/log.tmpfs"):
         log_path_arr += ["/var/log.tmpfs"]
     
