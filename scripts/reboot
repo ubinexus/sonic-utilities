@@ -34,7 +34,7 @@ PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 TAG_LATEST=no
-REBOOT_CAUSE=null
+REBOOT_CAUSE=""
 
 function debug()
 {
@@ -193,7 +193,7 @@ function parse_options()
             r )
                 REBOOT_CAUSE="$OPTARG"
                 # alternatives: $OPTARG or ${OPTARG} or "${OPTARG[@]}"
-                echo "reboot_cause: ${REBOOT_CAUSE}"
+                echo "reboot_cause: $REBOOT_CAUSE"
                 ;;
         esac
     done
@@ -227,10 +227,13 @@ fi
 
 clear_warm_boot
 
-# Update the reboot cause file to reflect that user issued 'reboot' command
-# Upon next boot, the contents of this file will be used to determine the
-# cause of the previous reboot
-if [[ ${REBOOT_CAUSE} != null  ]]; then
+# Update the 'reboot cause' file to reflect the right reboot reason.
+# If 'reboot cause' is specified via the -r option, then update the same to
+# this file; else update the 'reboot cause' to reflect that user issued the
+# 'reboot' command.
+# Upon next boot, the contents of this file will be used to determine
+# the cause of the previous reboot.
+if [[ -n $REBOOT_CAUSE ]]; then
     echo "System triggered reboot. reason: '${REBOOT_CAUSE}' [User: system, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
 else
     echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
@@ -276,18 +279,12 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
 fi
 
 VERBOSE=yes debug "Issuing OS-level reboot ..." >&2
-echo "Going to issue reboot command..."
-if [ $# -eq 0 ]; then
-    echo "no argument passed"
-    exec /sbin/reboot $@
-elif [ $# -eq 1 ] && [[ $REBOOT_FORCE == true ]]; then
-    echo "force reboot"
-    exec /sbin/reboot $@
-elif [ $# -eq 2 ] && [[ ${REBOOT_CAUSE} != null ]]; then
+if [ $# -eq 2 ] && [ -n "$REBOOT_CAUSE" ]; then
     echo "reboot cause specified"
     exec /sbin/reboot
-elif [ $# -gt 2 ] && [[ $REBOOT_FORCE == true ]] && [[ ${REBOOT_CAUSE} != null ]]; then
+elif [ $# -gt 2 ] && [[ $REBOOT_FORCE == true ]] && [[ -n $REBOOT_CAUSE ]]; then
     echo "both options - force reboot and reboot cause - specified"
     exec /sbin/reboot -f
-else echo "No appropriate match found, exiting"
+else
+    exec /sbin/reboot $@
 fi
