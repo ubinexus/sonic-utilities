@@ -10,9 +10,7 @@ if [[ "$EUID" -ne 0 ]]; then
     exit 1
 fi
 
-echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: $$
-$
-{REBOOT_TIME}]"> ${REBOOT_CAUSE_FILE}
+echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]"> ${REBOOT_CAUSE_FILE}
 
 # Wait until all buffers synced with disk
 sync
