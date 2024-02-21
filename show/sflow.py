@@ -86,6 +86,12 @@ def show_sflow_global(config_db):
     else:
         click.echo("default")
 
+    click.echo("  sFlow Drop Rate Limit:".ljust(30), nl=False)
+    if (sflow_info and 'drop_monitor_limit' in sflow_info['global']):
+        click.echo("{}".format(sflow_info['global']['drop_monitor_limit']))
+    else:
+        click.echo("0")
+
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sorted(list(sflow_info.keys())):
