@@ -1413,10 +1413,14 @@ EEPROM hexdump for port Ethernet4
         assert result.output == 'Target Mode set failed!\n'
         assert result.exit_code == EXIT_FAIL
 
-    @patch('sfputil.main.multi_asic.is_multi_asic', MagicMock(return_value=True))
+    @patch('sfputil.main.multi_asic.is_multi_asic')
     @patch('sfputil.main.platform_sfputil', MagicMock())
     @patch('sfputil.main.device_info.get_paths_to_platform_and_hwsku_dirs',
         MagicMock(return_value=(None, None)))
     @patch('sfputil.main.device_info.get_path_to_port_config_file', MagicMock(return_value=('')))
-    def test_load_port_config(self):
+    def test_load_port_config(self, mock_is_multi_asic):
+        mock_is_multi_asic.return_value = True
+        assert sfputil.load_port_config() == True
+
+        mock_is_multi_asic.return_value = False
         assert sfputil.load_port_config() == True
