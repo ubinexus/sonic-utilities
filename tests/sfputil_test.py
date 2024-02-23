@@ -839,3 +839,15 @@ Ethernet0  N/A
         mock_sfp.get_transceiver_info_firmware_versions.return_value = ['a.b.c', 'd.e.f']
 
         sfputil.update_firmware_info_to_state_db("Ethernet0")
+
+    @patch('sfputil.main.multi_asic.is_multi_asic')
+    @patch('sfputil.main.platform_sfputil', MagicMock())
+    @patch('sfputil.main.device_info.get_paths_to_platform_and_hwsku_dirs',
+        MagicMock(return_value=(None, None)))
+    @patch('sfputil.main.device_info.get_path_to_port_config_file', MagicMock(return_value=('')))
+    def test_load_port_config(self, mock_is_multi_asic):
+        mock_is_multi_asic.return_value = True
+        assert sfputil.load_port_config() == True
+
+        mock_is_multi_asic.return_value = False
+        assert sfputil.load_port_config() == True
