@@ -6,6 +6,7 @@ import os
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
+from sonic_py_common import multi_asic
 from .gu_common import genericUpdaterLogging, utils
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -73,7 +74,7 @@ class ChangeApplier:
 
     updater_conf = None
 
-    def __init__(self, namespace):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE):
         self.namespace = namespace
         self.config_db = get_config_db(self.namespace)
         self.backend_tables = [

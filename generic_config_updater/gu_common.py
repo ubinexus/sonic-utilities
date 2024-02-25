@@ -70,7 +70,7 @@ class JsonChange:
         return False
 
 class ConfigWrapper:
-    def __init__(self, namespace, yang_dir=YANG_DIR):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE, yang_dir=YANG_DIR):
         self.namespace = namespace
         self.yang_dir = YANG_DIR
         self.sonic_yang_with_loaded_models = None
@@ -302,7 +302,7 @@ class ConfigWrapper:
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    def __init__(self, namespace, initial_imitated_config_db = None):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE, initial_imitated_config_db = None):
         super().__init__(namespace)
         self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
         self.imitated_config_db = copy.deepcopy(initial_imitated_config_db)
@@ -323,7 +323,7 @@ class DryRunConfigWrapper(ConfigWrapper):
 
 
 class PatchWrapper:
-    def __init__(self, namespace, config_wrapper=None):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE, config_wrapper=None):
         self.namespace = namespace
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper(self.namespace)
         self.path_addressing = PathAddressing(self.config_wrapper)

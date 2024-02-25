@@ -27,7 +27,7 @@ class ConfigFormat(Enum):
 
 class PatchApplier:
     def __init__(self,
-                 namespace,
+                 namespace=multi_asic.DEFAULT_NAMESPACE,
                  patchsorter=None,
                  changeapplier=None,
                  config_wrapper=None,
@@ -40,8 +40,8 @@ class PatchApplier:
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier(self.namespace)
 
     def apply(self, patch, sort=True):
-        self.logger.log_notice(f"ASIC {self.namespace}: Patch application starting.")
-        self.logger.log_notice(f"ASIC {self.namespace}: Patch: {patch}")
+        self.logger.log_notice(f"{self.namespace}: Patch application starting.")
+        self.logger.log_notice(f"{self.namespace}: Patch: {patch}")
 
         # Get old config
         self.logger.log_notice("Getting current config db.")
@@ -98,7 +98,7 @@ class PatchApplier:
         self.logger.log_notice("Patch application completed.")
 
 class ConfigReplacer:
-    def __init__(self, namespace, patch_applier=None, config_wrapper=None, patch_wrapper=None):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE, patch_applier=None, config_wrapper=None, patch_wrapper=None):
         self.namespace = namespace
         self.logger = genericUpdaterLogging.get_logger(title="Config Replacer", print_all_to_console=True)
         self.patch_applier = patch_applier if patch_applier is not None else PatchApplier(self.namespace)
@@ -128,7 +128,7 @@ class ConfigReplacer:
 
 class FileSystemConfigRollbacker:
     def __init__(self,
-                 namespace,
+                 namespace=multi_asic.DEFAULT_NAMESPACE,
                  checkpoints_dir=CHECKPOINTS_DIR,
                  config_replacer=None,
                  config_wrapper=None):
@@ -243,7 +243,7 @@ class FileSystemConfigRollbacker:
         return os.remove(path)
 
 class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
-    def __init__(self, namespace, decorated_patch_applier=None, decorated_config_replacer=None, decorated_config_rollbacker=None):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE, decorated_patch_applier=None, decorated_config_replacer=None, decorated_config_rollbacker=None):
         # initing base classes to make LGTM happy
         PatchApplier.__init__(self, namespace)
         ConfigReplacer.__init__(self, namespace)
@@ -272,7 +272,7 @@ class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
         self.decorated_config_rollbacker.delete_checkpoint(checkpoint_name)
 
 class SonicYangDecorator(Decorator):
-    def __init__(self, namespace, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None):
+    def __init__(self, patch_wrapper, config_wrapper, namespace=multi_asic.DEFAULT_NAMESPACE, decorated_patch_applier=None, decorated_config_replacer=None):
         Decorator.__init__(self, namespace, decorated_patch_applier, decorated_config_replacer)
 
         self.namespace = namespace
@@ -289,7 +289,7 @@ class SonicYangDecorator(Decorator):
 
 class ConfigLockDecorator(Decorator):
     def __init__(self,
-                 namespace,
+                 namespace=multi_asic.DEFAULT_NAMESPACE,
                  decorated_patch_applier=None,
                  decorated_config_replacer=None,
                  decorated_config_rollbacker=None,
@@ -316,7 +316,7 @@ class ConfigLockDecorator(Decorator):
         self.config_lock.release_lock()
 
 class GenericUpdateFactory:
-    def __init__(self, namespace):
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE):
         self.namespace = namespace
 
     def create_patch_applier(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
