@@ -18,7 +18,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 
 class Utils:
-    def _get_cmd_output(cmd):
+    def _get_cmd_output(self, cmd):
         proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
         return proc.communicate()[0], proc.returncode
 
