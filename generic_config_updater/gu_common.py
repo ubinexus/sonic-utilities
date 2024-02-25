@@ -9,13 +9,31 @@ import yang as ly
 import copy
 import re
 import os
-from sonic_py_common import logger
+from sonic_py_common import logger, multi_asic
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
 SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
+
+class Utils:
+    def _get_cmd_output(cmd):
+        proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
+        return proc.communicate()[0], proc.returncode
+
+    def get_config_db_as_json(self, namespace):
+        cmd = ['sonic-cfggen', '-d', '--print-data']
+        if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
+            cmd += ['-n', namespace]
+        stdout, return_code = self._get_cmd_output(cmd)
+        if return_code:
+            raise GenericConfigUpdaterError("Failed to get running config, Return code: {}".format(return_code))
+        try:
+            config_json = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            raise GenericConfigUpdaterError("Failed to loading config json, error: {}".format(e))
+        return config_json
 
 class GenericConfigUpdaterError(Exception):
     pass
@@ -52,25 +70,13 @@ class JsonChange:
         return False
 
 class ConfigWrapper:
-    def __init__(self, yang_dir = YANG_DIR):
+    def __init__(self, namespace, yang_dir=YANG_DIR):
+        self.namespace = namespace
         self.yang_dir = YANG_DIR
         self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
-        text = self._get_config_db_as_text()
-        config_db_json = json.loads(text)
-        config_db_json.pop("bgpraw", None)
-        return config_db_json
-
-    def _get_config_db_as_text(self):
-        # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
-        cmd = "show runningconfiguration all"
-        result = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        text, err = result.communicate()
-        return_code = result.returncode
-        if return_code: # non-zero means failure
-            raise GenericConfigUpdaterError(f"Failed to get running config, Return code: {return_code}, Error: {err}")
-        return text
+        return utils.get_config_db_as_json(self.namespace)
 
     def get_sonic_yang_as_json(self):
         config_db_json = self.get_config_db_as_json()
@@ -147,12 +153,12 @@ class ConfigWrapper:
 
     def validate_field_operation(self, old_config, target_config):
         """
-        Some fields in ConfigDB are restricted and may not allow third-party addition, replacement, or removal. 
-        Because YANG only validates state and not transitions, this method helps to JsonPatch operations/transitions for the specified fields. 
+        Some fields in ConfigDB are restricted and may not allow third-party addition, replacement, or removal.
+        Because YANG only validates state and not transitions, this method helps to JsonPatch operations/transitions for the specified fields.
         """
         patch = jsonpatch.JsonPatch.from_diff(old_config, target_config)
-        
-        # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation 
+
+        # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation
         illegal_operations_to_fields_map = {
             'add':[],
             'replace': [],
@@ -180,7 +186,7 @@ class ConfigWrapper:
             with open(GCU_FIELD_OP_CONF_FILE, "r") as s:
                 gcu_field_operation_conf = json.load(s)
         else:
-            raise GenericConfigUpdaterError("GCU field operation validators config file not found") 
+            raise GenericConfigUpdaterError("GCU field operation validators config file not found")
 
         for element in patch:
             path = element["path"]
@@ -296,8 +302,8 @@ class ConfigWrapper:
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    def __init__(self, initial_imitated_config_db = None):
-        super().__init__()
+    def __init__(self, namespace, initial_imitated_config_db = None):
+        super().__init__(namespace)
         self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
         self.imitated_config_db = copy.deepcopy(initial_imitated_config_db)
 
@@ -317,8 +323,9 @@ class DryRunConfigWrapper(ConfigWrapper):
 
 
 class PatchWrapper:
-    def __init__(self, config_wrapper=None):
-        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
+    def __init__(self, namespace, config_wrapper=None):
+        self.namespace = namespace
+        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper(self.namespace)
         self.path_addressing = PathAddressing(self.config_wrapper)
 
     def validate_config_db_patch_has_yang_models(self, patch):
@@ -1066,3 +1073,5 @@ class GenericUpdaterLogging:
         return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose, print_all_to_console)
 
 genericUpdaterLogging = GenericUpdaterLogging()
+
+utils = Utils()
