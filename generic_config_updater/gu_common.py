@@ -9,6 +9,7 @@ import yang as ly
 import copy
 import re
 import os
+import tempfile
 from sonic_py_common import logger, multi_asic
 from enum import Enum
 
@@ -23,17 +24,18 @@ class Utils:
         return proc.communicate()[0], proc.returncode
 
     def get_config_db_as_json(self, namespace):
-        cmd = ['sonic-cfggen', '-d', '--print-data']
+        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
+
         if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
-            cmd += ['-n', namespace]
-        stdout, return_code = self._get_cmd_output(cmd)
-        if return_code:
-            raise GenericConfigUpdaterError("Failed to get running config, Return code: {}".format(return_code))
-        try:
-            config_json = json.loads(stdout)
-        except json.JSONDecodeError as e:
-            raise GenericConfigUpdaterError("Failed to loading config json, error: {}".format(e))
-        return config_json
+            os.system("sonic-cfggen -d --print-data -n {} > {}".format(namespace, fname))
+        else:
+            os.system("sonic-cfggen -d --print-data > {}".format(fname))
+        run_data = {}
+        with open(fname, "r") as s:
+            run_data = json.load(s)
+        if os.path.isfile(fname):
+            os.remove(fname)
+        return run_data
 
 class GenericConfigUpdaterError(Exception):
     pass
