@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging, utils
+                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                           TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
 from .change_applier import ChangeApplier, DryRunChangeApplier
@@ -48,7 +48,7 @@ class PatchApplier:
         old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
-        self.logger.log_notice("Simulating the target full config after applying the patch.")
+        self.logger.log_notice(f"Simulating the target full config:'{old_config}' after applying the patch: {patch}.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # Validate all JsonPatch operations on specified fields

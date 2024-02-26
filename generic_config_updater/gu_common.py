@@ -18,25 +18,6 @@ SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 
-class Utils:
-    def _get_cmd_output(self, cmd):
-        proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
-        return proc.communicate()[0], proc.returncode
-
-    def get_config_db_as_json(self, namespace):
-        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
-
-        if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
-            os.system("sonic-cfggen -d --print-data -n {} > {}".format(namespace, fname))
-        else:
-            os.system("sonic-cfggen -d --print-data > {}".format(fname))
-        run_data = {}
-        with open(fname, "r") as s:
-            run_data = json.load(s)
-        if os.path.isfile(fname):
-            os.remove(fname)
-        return run_data
-
 class GenericConfigUpdaterError(Exception):
     pass
 
@@ -78,7 +59,18 @@ class ConfigWrapper:
         self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
-        return utils.get_config_db_as_json(self.namespace)
+        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
+
+        if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
+            os.system("sonic-cfggen -d --print-data -n {} > {}".format(self.namespace, fname))
+        else:
+            os.system("sonic-cfggen -d --print-data > {}".format(fname))
+        run_data = {}
+        with open(fname, "r") as s:
+            run_data = json.load(s)
+        if os.path.isfile(fname):
+            os.remove(fname)
+        return run_data
 
     def get_sonic_yang_as_json(self):
         config_db_json = self.get_config_db_as_json()
@@ -1075,5 +1067,3 @@ class GenericUpdaterLogging:
         return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose, print_all_to_console)
 
 genericUpdaterLogging = GenericUpdaterLogging()
-
-utils = Utils()

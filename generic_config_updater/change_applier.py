@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
 from sonic_py_common import multi_asic
-from .gu_common import genericUpdaterLogging, utils
+from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
@@ -167,4 +167,15 @@ class ChangeApplier:
             data.pop(key, None)
 
     def _get_running_config(self):
-        return utils.get_config_db_as_json(self.namespace)
+        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
+
+        if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
+            os.system("sonic-cfggen -d --print-data -n {} > {}".format(self.namespace, fname))
+        else:
+            os.system("sonic-cfggen -d --print-data > {}".format(fname))
+        run_data = {}
+        with open(fname, "r") as s:
+            run_data = json.load(s)
+        if os.path.isfile(fname):
+            os.remove(fname)
+        return run_data
