@@ -1304,21 +1304,6 @@ def reset(port_name):
 
         i += 1
 
-def update_firmware_info_to_state_db(port_name):
-    physical_port = logical_port_to_physical_port_index(port_name)
-
-    namespaces = multi_asic.get_front_end_namespaces()
-    for namespace in namespaces:
-        state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        if state_db is not None:
-            state_db.connect(state_db.STATE_DB)
-            transceiver_firmware_info_dict = platform_chassis.get_sfp(physical_port).get_transceiver_info_firmware_versions()
-            if transceiver_firmware_info_dict is not None:
-                active_firmware = transceiver_firmware_info_dict.get('active_firmware', 'N/A')
-                inactive_firmware = transceiver_firmware_info_dict.get('inactive_firmware', 'N/A')
-                state_db.set(state_db.STATE_DB, 'TRANSCEIVER_FIRMWARE_INFO|{}'.format(port_name), "active_firmware", active_firmware)
-                state_db.set(state_db.STATE_DB, 'TRANSCEIVER_FIRMWARE_INFO|{}'.format(port_name), "inactive_firmware", inactive_firmware)
-
 # 'firmware' subgroup
 @cli.group()
 def firmware():
@@ -1509,7 +1494,6 @@ def download_firmware(port_name, filepath):
         click.echo("Platform doesn't implement optoe write max change. Skipping value restore!")
 
     status = api.cdb_firmware_download_complete()
-    update_firmware_info_to_state_db(port_name)
     click.echo('CDB: firmware download complete')
     return status
 
@@ -1537,7 +1521,6 @@ def run(port_name, mode):
         click.echo('Failed to run firmware in mode={}! CDB status: {}'.format(mode, status))
         sys.exit(EXIT_FAIL)
 
-    update_firmware_info_to_state_db(port_name)
     click.echo("Firmware run in mode={} success".format(mode))
 
 # 'commit' subcommand
@@ -1559,7 +1542,6 @@ def commit(port_name):
         click.echo('Failed to commit firmware! CDB status: {}'.format(status))
         sys.exit(EXIT_FAIL)
 
-    update_firmware_info_to_state_db(port_name)
     click.echo("Firmware commit successful")
 
 # 'upgrade' subcommand
