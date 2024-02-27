@@ -970,6 +970,7 @@ EEPROM hexdump for port Ethernet4
     @patch('builtins.open')
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
     def test_download_firmware(self, mock_chassis, mock_file):
         mock_file.return_value.tell.return_value = 0
         mock_sfp = MagicMock()
@@ -1086,6 +1087,7 @@ EEPROM hexdump for port Ethernet4
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.run_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
     def test_firmware_run_cli(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['run'], ["Ethernet0"])
@@ -1094,10 +1096,22 @@ EEPROM hexdump for port Ethernet4
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=True))
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.commit_firmware', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
     def test_firmware_commit_cli(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['commit'], ["Ethernet0"])
         assert result.exit_code == 0
+
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sonic_py_common.multi_asic.get_front_end_namespaces', MagicMock(return_value=['']))
+    @patch('sfputil.main.SonicV2Connector', MagicMock())
+    @patch('sfputil.main.platform_chassis')
+    def test_update_firmware_info_to_state_db(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_sfp.get_transceiver_info_firmware_versions.return_value = {'active_firmware' : 'a.b.c', 'inactive_firmware' : 'd.e.f'}
+
+        sfputil.update_firmware_info_to_state_db("Ethernet0")
 
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
