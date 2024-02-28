@@ -96,8 +96,6 @@ def verify_output(output, expected_output):
     print(new_output)
     assert new_output == expected_output
 
-def upd_mock_single_asic_get_ip_intf_from_ns(namespace):
-    return mock_single_asic_get_ip_intf_from_ns(namespace).append("Loopback0")
 
 @pytest.mark.usefixtures('setup_teardown_single_asic')
 class TestShowIpInt(object):
@@ -117,14 +115,6 @@ class TestShowIpInt(object):
         return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv5'])
         assert return_code == 1
         assert result == show_error_invalid_af
-
-    def test_show_ip_intf_v4_exception(self):
-        from .mock_tables import mock_single_asic
-        mock_single_asic.multi_asic_util.multi_asic_get_ip_intf_from_ns = upd_mock_single_asic_get_ip_intf_from_ns
-        return_code, result = get_result_and_return_code(["ipintutil"])
-        assert return_code == 0
-        verify_output(result, show_ipv4_intf_with_multple_ips)
-        mock_single_asic.multi_asic_util.multi_asic_get_ip_intf_from_ns = mock_single_asic.mock_single_asic_get_ip_intf_from_ns
 
 @pytest.mark.usefixtures('setup_teardown_multi_asic')
 class TestMultiAsicShowIpInt(object):

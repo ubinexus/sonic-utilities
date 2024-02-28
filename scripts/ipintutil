@@ -29,6 +29,7 @@ try:
             mock_tables.dbconnector.load_namespace_config()
         else:
             import mock_tables.mock_single_asic
+            mock_tables.mock_single_asic.add_unknown_intf=True
 except KeyError:
     pass
 
