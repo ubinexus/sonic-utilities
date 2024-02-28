@@ -69,7 +69,7 @@ class ConfigWrapper:
             cmd = "sonic-cfggen -d --print-data -n {}".format(self.namespace)
         else:
             cmd = "sonic-cfggen -d --print-data"
-        result = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.Popen(cmd, shell=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         text, err = result.communicate()
         return_code = result.returncode
         if return_code: # non-zero means failure
