@@ -74,7 +74,8 @@ def mock_single_asic_get_ip_intf_addr_from_ns(namespace, iface):
     try:
         ipaddresses = mock_intf_table[namespace][iface]
     except KeyError:
-        pass
+        if add_unknown_intf:
+            raise ValueError("Unknow interface")
     return ipaddresses
 
 
