@@ -6,7 +6,8 @@ import os
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import genericUpdaterLogging
+from sonic_py_common import multi_asic
+from .gu_common import genericUpdaterLogging, utils
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
@@ -32,8 +33,8 @@ def log_error(m):
     logger.log(logger.LOG_PRIORITY_ERROR, m, print_to_console)
 
 
-def get_config_db():
-    config_db = ConfigDBConnector()
+def get_config_db(namespace=multi_asic.DEFAULT_NAMESPACE):
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
     config_db.connect()
     return config_db
 
@@ -73,8 +74,9 @@ class ChangeApplier:
 
     updater_conf = None
 
-    def __init__(self):
-        self.config_db = get_config_db()
+    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE):
+        self.namespace = namespace
+        self.config_db = get_config_db(self.namespace)
         self.backend_tables = [
             "BUFFER_PG",
             "BUFFER_PROFILE",
@@ -160,18 +162,9 @@ class ChangeApplier:
             log_error("Failed to apply Json change")
         return ret
 
-
     def remove_backend_tables_from_config(self, data):
         for key in self.backend_tables:
             data.pop(key, None)
 
-
     def _get_running_config(self):
-        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
-        os.system("sonic-cfggen -d --print-data > {}".format(fname))
-        run_data = {}
-        with open(fname, "r") as s:
-            run_data = json.load(s)
-        if os.path.isfile(fname):
-            os.remove(fname)
-        return run_data
+        return utils.get_config_db_as_json(self.namespace)
