@@ -116,6 +116,7 @@ class TestShowIpInt(object):
         assert return_code == 1
         assert result == show_error_invalid_af
 
+
 @pytest.mark.usefixtures('setup_teardown_multi_asic')
 class TestMultiAsicShowIpInt(object):
 
