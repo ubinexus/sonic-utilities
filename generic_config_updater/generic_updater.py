@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging, utils
+                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                           TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
 from .change_applier import ChangeApplier, DryRunChangeApplier
