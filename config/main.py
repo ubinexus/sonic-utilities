@@ -57,6 +57,7 @@ from . import plugins
 from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
+from . import switchport
 from . import dns
 
 # mock masic APIs for unit test
@@ -105,6 +106,7 @@ PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
+PORT_MODE= "switchport_mode"
 
 DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
 
@@ -1212,6 +1214,9 @@ config.add_command(syslog.syslog)
 
 # DNS module
 config.add_command(dns.dns)
+
+# Switchport module
+config.add_command(switchport.switchport)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -4515,7 +4520,11 @@ def fec(ctx, interface_name, interface_fec, verbose):
 def ip(ctx):
     """Set IP interface attributes"""
     pass
-
+  
+def validate_vlan_exists(db,text):
+    data = db.get_table('VLAN')
+    keys = list(data.keys())
+    return text in keys
 #
 # 'add' subcommand
 #
@@ -4535,19 +4544,40 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before
-    # changing it to a router port
-    vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if (interface_is_in_vlan(vlan_member_table, interface_name)):
-        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-        return
-
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
+  
+       
+    # Add a validation to check this interface is in routed mode before
+    # assigning an IP address to it
 
+    sub_intf = False
+
+    if clicommon.is_valid_port(config_db, interface_name):
+        is_port = True
+    elif clicommon.is_valid_portchannel(config_db, interface_name):
+        is_port = False
+    else:
+        sub_intf = True
+
+    if not sub_intf:
+        interface_mode = "routed"
+        if is_port:
+            interface_data = config_db.get_entry('PORT',interface_name)
+        elif not is_port:
+            interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
+
+        if "mode" in interface_data:
+            interface_mode = interface_data["mode"]
+
+        if interface_mode != "routed":
+            ctx.fail("Interface {} is not in routed mode!".format(interface_name))
+            return
+    
+    
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:
@@ -4579,6 +4609,12 @@ def add(ctx, interface_name, ip_addr, gw):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    
+    if table_name == "VLAN_INTERFACE":
+        if not validate_vlan_exists(config_db, interface_name):
+            ctx.fail(f"Error: {interface_name} does not exist. Vlan must be created before adding an IP address")
+            return
+    
     interface_entry = config_db.get_entry(table_name, interface_name)
     if len(interface_entry) == 0:
         if table_name == "VLAN_SUB_INTERFACE":
