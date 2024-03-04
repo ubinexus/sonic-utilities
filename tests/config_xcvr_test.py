@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import click
 import config.main as config
 import operator
@@ -53,11 +53,9 @@ class TestConfigXcvr(object):
         interface_name = 'Ethernet0'
         desired_config = 'enable'
 
-        config.interface_name_is_valid = MagicMock(return_value=False)
-        result = self.basic_check("dom", [interface_name, desired_config], ctx, operator.ne)
+        result = self.basic_check("dom", ["", desired_config], ctx, operator.ne)
         assert "Interface name is invalid. Please enter a valid interface name!!" in result.output
 
-        config.interface_name_is_valid = MagicMock(return_value=True)
         mock_get_entry.return_value = None
         result = self.basic_check("dom", [interface_name, desired_config], ctx, operator.ne)
         assert "Interface {} does not exist".format(interface_name) in result.output
