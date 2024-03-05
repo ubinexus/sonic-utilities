@@ -5207,7 +5207,7 @@ def dom(ctx, interface_name, desired_config):
     if port_table_entry.get("subport", '0') not in DOM_CONFIG_SUPPORTED_SUBPORTS:
         ctx.fail("DOM monitoring config only supported for subports {}".format(DOM_CONFIG_SUPPORTED_SUBPORTS))
     else:
-        config_db.mod_entry("PORT", interface_name, {"dom_status": "disabled" if desired_config == "disable" else "enabled"})
+        config_db.mod_entry("PORT", interface_name, {"dom_polling": "disabled" if desired_config == "disable" else "enabled"})
 
 #
 # 'mpls' subgroup ('config interface mpls ...')
