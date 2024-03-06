@@ -1268,6 +1268,11 @@ collect_mellanox_dfw_dumps() {
     local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
     local sdk_dump_path=`cat /usr/share/sonic/device/${platform}/${hwsku}/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
 
+    if [ -z $sdk_dump_path ]; then
+        # If the SAI_DUMP_STORE_PATH is not found in device specific sai profile, check in common sai profile
+        sdk_dump_path=`docker exec -t syncd cat /etc/mlnx/sai-common.profile | grep "SAI_DUMP_STORE_PATH" |cut -d = -f2`
+    fi
+
     if [[ ! -d $sdk_dump_path ]]; then
        # This would mean the SAI_DUMP_STORE_PATH is not mounted on the host and is only accessible though the container 
        # This is a bad design and not recommended But there is nothing which restricts against it and thus the special handling
