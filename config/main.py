@@ -5203,7 +5203,10 @@ def dom(ctx, interface_name, desired_config):
     if not port_table_entry:
         ctx.fail("Interface {} does not exist".format(interface_name))
 
-    # Reject config if port's corresponding subport is not part of DOM_CONFIG_SUPPORTED_SUBPORTS
+    # We are handling port configuration only for the below mentioned scenarios
+    # Port is a non-breakout port (subport = 0 or subport field is absent in CONFIG_DB)
+    # Port is first subport of breakout ports (subport = 1)
+    # If the port is not in the above mentioned scenarios, then fail the command
     if port_table_entry.get("subport", '0') not in DOM_CONFIG_SUPPORTED_SUBPORTS:
         ctx.fail("DOM monitoring config only supported for subports {}".format(DOM_CONFIG_SUPPORTED_SUBPORTS))
     else:
