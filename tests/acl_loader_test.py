@@ -62,12 +62,13 @@ class TestAclLoader(object):
         is true, and capability table in state_db is absent
         """
         # Backup and empty the capability table from state_db
+        SWITCH_CAPABILITY = "SWITCH_CAPABILITY|switch"
         if acl_loader.per_npu_statedb:
             statedb = list(acl_loader.per_npu_statedb.values())[0]
         else:
             statedb = acl_loader.statedb
-        switchcapability = statedb.get_all("STATE_DB", "SWITCH_CAPABILITY|switch")
-        statedb.delete("STATE_DB", "SWITCH_CAPABILITY|switch")
+        switchcapability = statedb.get_all("STATE_DB", SWITCH_CAPABILITY)
+        statedb.delete("STATE_DB", SWITCH_CAPABILITY)
         try:
             acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'), skip_action_validation=True)
             assert acl_loader.rules_info[("DATAACL", "RULE_2")]
@@ -83,7 +84,7 @@ class TestAclLoader(object):
         finally:
             # Restore the capability table in state_db
             for key, value in switchcapability.items():
-                statedb.set("STATE_DB", key, value)
+                statedb.set("STATE_DB", SWITCH_CAPABILITY, key, value)
 
     def test_vlan_id_translation(self, acl_loader):
         acl_loader.rules_info = {}
