@@ -86,6 +86,8 @@ class AclLoader(object):
     ACL_STAGE_CAPABILITY_TABLE = "ACL_STAGE_CAPABILITY_TABLE"
     ACL_ACTIONS_CAPABILITY_FIELD = "action_list"
     ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
+    DEFAULT_RULE = "DEFAULT_RULE"
+    TIME_BASED_ACL_RULE_TABLE = "TIME_BASED_ACL_RULE"
 
     min_priority = 1
     max_priority = 10000
@@ -413,15 +415,16 @@ class AclLoader(object):
                 raise AclLoaderException("Invalid input file %s" % filename)
         return yang_acl
 
-    def load_rules_from_file(self, filename):
+    def load_rules_from_file(self, filename, is_time_based=False):
         """
         Load file with ACL rules configuration in openconfig ACL format. Convert rules
         to Config DB schema.
         :param filename: File in openconfig ACL format
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return:
         """
         self.yang_acl = AclLoader.parse_acl_json(filename)
-        self.convert_rules()
+        self.convert_rules(is_time_based)
 
     def convert_action(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -686,6 +689,41 @@ class AclLoader(object):
 
         return rule_props
 
+    def is_db_rule_time_based(self, key):
+        try:
+            data = self.configdb.get_entry(self.ACL_RULE, key)
+            if 'is_time_based' in data and data['is_time_based'].lower() == 'true':
+                return True
+            return False
+        except Exception as e:
+            return False
+        
+    def is_time_based_rule(self, rule):
+        return rule.time_range.config.end_time
+
+    def convert_time_based_acl_config(self, key, rule):
+        rule_props = {}
+        
+        if self.is_time_based_rule(rule):
+            rule_props['is_time_based'] = 'True'
+            rule_props['start_time'] = rule.time_range.config.start_time
+            rule_props['end_time'] = rule.time_range.config.end_time
+        
+        return rule_props
+
+    def add_config_db_time_based_acl_rule_entry(self, table, rule, entry):
+        """
+        Insert entry to CONFIG_DB for time-based ACL
+        """
+        key = table + '|' + rule
+        try:
+            entry.pop('is_time_based', None)
+            self.configdb.mod_entry(self.TIME_BASED_ACL_RULE_TABLE, key, entry)
+            info("Added CONFIG_DB entry: time-based ACL rule {}".format(key))
+            info(str(entry))
+        except Exception as e:
+            raise AclLoaderException("Failed to add CONFIG_DB entry for {}; error is {}".format(rule, str(e)))
+
     def validate_rule_fields(self, rule_props):
         protocol = rule_props.get("IP_PROTOCOL")
 
@@ -699,16 +737,27 @@ class AclLoader(object):
             if ("ICMPV6_TYPE" in rule_props or "ICMPV6_CODE" in rule_props) and protocol != 58:
                 raise AclLoaderException("IP_PROTOCOL={} is not ICMPV6, but ICMPV6 fields were provided".format(protocol))
 
-    def convert_rule_to_db_schema(self, table_name, rule):
+    def convert_rule_to_db_schema(self, table_name, rule, rule_name, is_time_based):
         """
         Convert rules format from openconfig ACL to Config DB schema
         :param table_name: ACL table name to which rule belong
         :param rule: ACL rule in openconfig format
+        :param rule_name: The name of ACL rule, can be None
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return: dict with Config DB schema
         """
-        rule_idx = int(rule.config.sequence_id)
         rule_props = {}
-        rule_data = {(table_name, "RULE_" + str(rule_idx)): rule_props}
+        if is_time_based and not self.is_time_based_rule(rule):
+            warning("Attempting to insert time-based ACL rule without timestamps, refused")
+            return {}
+        if not is_time_based and self.is_time_based_rule(rule):
+            warning("Attempting to insert time-based ACL rule to non-time-based ACL table, refused")
+            return {}
+        rule_idx = int(rule.config.sequence_id)
+        if not rule_name:
+            rule_name = "RULE_" + str(rule_idx)
+        rule_key = (table_name, rule_name)
+        rule_data = {rule_key: rule_props}
 
         rule_props["PRIORITY"] = str(self.max_priority - rule_idx)
 
@@ -735,6 +784,7 @@ class AclLoader(object):
         deep_update(rule_props, self.convert_icmp(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_input_interface(table_name, rule_idx, rule))
+        deep_update(rule_props, self.convert_time_based_acl_config(rule_key, rule))
 
         self.validate_rule_fields(rule_props)
 
@@ -748,7 +798,7 @@ class AclLoader(object):
         :return: dict with Config DB schema
         """
         rule_props = {}
-        rule_data = {(table_name, "DEFAULT_RULE"): rule_props}
+        rule_data = {(table_name, self.DEFAULT_RULE): rule_props}
         rule_props["PRIORITY"] = str(self.min_priority)
         rule_props["PACKET_ACTION"] = "DROP"
         if self.is_table_l3v6(table_name):
@@ -761,9 +811,10 @@ class AclLoader(object):
             return {}  # Don't add default deny rule if table is not [L3, L3V6]
         return rule_data
 
-    def convert_rules(self):
+    def convert_rules(self, is_time_based):
         """
         Convert rules in openconfig ACL format to Config DB schema
+        :param is_time_based: A bool, indicates whether the rule is time-based or not
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
@@ -780,7 +831,13 @@ class AclLoader(object):
             for acl_entry_name in acl_set.acl_entries.acl_entry:
                 acl_entry = acl_set.acl_entries.acl_entry[acl_entry_name]
                 try:
-                    rule = self.convert_rule_to_db_schema(table_name, acl_entry)
+                    acl_name_to_use = None
+                    if is_time_based:
+                        acl_name_to_use = "TIME_BASED_RULE_" + acl_entry_name
+                    rule = self.convert_rule_to_db_schema(table_name=table_name,
+                                                          rule=acl_entry,
+                                                          rule_name=acl_name_to_use,
+                                                          is_time_based=is_time_based)
                     deep_update(self.rules_info, rule)
                 except AclLoaderException as ex:
                     error("Error processing rule %s: %s. Skipped." % (acl_entry_name, ex))
@@ -883,6 +940,33 @@ class AclLoader(object):
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere
                 for namespace_configdb in self.per_npu_configdb.values():
                     namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+
+    def update_time_based_acl_rules(self):
+        """
+        Perform update of time-based ACL rule.
+        Update the start_time and end_time if existing, or insert new time-based ACL rule
+        :return:
+        """
+        for key, entry in self.rules_info.items():
+            if key[1] == self.DEFAULT_RULE:
+                continue
+            self.add_config_db_time_based_acl_rule_entry(table=key[0], rule=key[1], entry=entry)
+
+    def remove_time_based_acl_rules(self, table=None, rule=None):
+        """
+        Remove entry from CONFIG_DB (must be time-based)
+        :return:
+        """
+        if not rule:
+            keys = self.configdb.get_table(self.TIME_BASED_ACL_RULE_TABLE)
+            for key in keys:
+                if table == key[0]:
+                    self.configdb.set_entry(self.TIME_BASED_ACL_RULE_TABLE, key, None)
+                    info("Removed CONFIG_DB entry: time-based ACL rule {}".format(key[0]+'|'+key[1]))
+        else:
+            key = str(table) + '|' + "TIME_BASED_RULE_" + str(rule)
+            self.configdb.set_entry(self.TIME_BASED_ACL_RULE_TABLE, key, None)
+            info("Removed CONFIG_DB entry: time-based ACL rule {}".format(key))
 
     def delete(self, table=None, rule=None):
         """
@@ -1024,7 +1108,7 @@ class AclLoader(object):
             return action
 
         def pop_matches(val):
-            matches = list(sorted(["%s: %s" % (k, val[k]) for k in val]))
+            matches = list(sorted(["%s: %s" % (k, val[k]) for k in val if k != "is_time_based"]))
             if len(matches) == 0:
                 matches.append("N/A")
             return matches
@@ -1195,6 +1279,25 @@ def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     acl_loader.load_rules_from_file(filename)
     acl_loader.incremental_update()
 
+@update.command()
+@click.argument('filename', type=click.Path(exists=True))
+@click.option('--table_name', type=click.STRING, required=False)
+@click.option('--max_priority', type=click.INT, required=False)
+@click.pass_context
+def time_based_acl(ctx, filename, table_name, max_priority):
+    """
+    Create time-based ACL rule, or renew the timestamp of an existing ACL rule.
+    """
+    acl_loader = ctx.obj["acl_loader"]
+
+    if table_name:
+        acl_loader.set_table_name(table_name)
+
+    if max_priority:
+        acl_loader.set_max_priority(max_priority)
+
+    acl_loader.load_rules_from_file(filename, True)
+    acl_loader.update_time_based_acl_rules()
 
 @cli.command()
 @click.argument('table', required=False)
@@ -1208,6 +1311,17 @@ def delete(ctx, table, rule):
 
     acl_loader.delete(table, rule)
 
+@cli.command()
+@click.argument('table', type=click.STRING, required=True)
+@click.argument('rule', type=click.STRING, required=False)
+@click.pass_context
+def delete_time_based_acl(ctx, table, rule):
+    """
+    Delete time-based ACL rules.
+    """
+    acl_loader = ctx.obj["acl_loader"]
+
+    acl_loader.remove_time_based_acl_rules(table, rule)
 
 if __name__ == "__main__":
     try:
