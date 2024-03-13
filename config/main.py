@@ -1369,7 +1369,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
             # Function to apply patch for a single ASIC.
             def apply_patch_for_asic(asic_changes):
-                log.log_notice(asic_changes)
+                print(asic_changes)
                 asic_id, changes = asic_changes
 
                 # Replace localhost to empty string which is db definition of Host
@@ -1379,7 +1379,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
                 # Call apply_patch with the ASIC-specific changes and predefined parameters
                 GenericUpdater(asic_id).apply_patch(changes, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
-            log.log_notice("Patch: {}".format(patch))
+            print("Patch: {}".format(patch))
             # Iterate over each change in the JSON Patch
             for change in patch:
                 asic_id, modified_path = extract_asic_id(change["path"])
