@@ -2680,7 +2680,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             }
         ]
 
-    def test_apply_patch_specific_namespace(self):
+    def test_apply_patch_multiasic(self):
         # Mock open to simulate file reading
         with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
@@ -2691,11 +2691,20 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 # Invocation of the command with the CliRunner
                 result = self.runner.invoke(config.config.commands["apply-patch"], [self.patch_file_path], catch_exceptions=False)
 
-                print("Output: {}".format(result.output))
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
                 # Assertions and verifications
                 self.assertEqual(result.exit_code, 0, "Command should succeed")
                 self.assertIn("Patch applied successfully.", result.output)
                 # Verify mocked_open was called as expected
                 mocked_open.assert_called_with(self.patch_file_path, 'r')
-                # Ensure is_multi_asic was called
-                # Additional assertions to verify behavior with mock_generic_updater
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
