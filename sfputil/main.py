@@ -24,6 +24,7 @@ from sonic_py_common import device_info, logger, multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
 from utilities_common.sfp_helper import QSFP_DATA_MAP
 from tabulate import tabulate
+from utilities_common.general import load_db_config
 
 VERSION = '3.0'
 
@@ -84,8 +85,6 @@ QSFP_DD_DATA_MAP = {
     'encoding': 'Encoding',
     'connector': 'Connector',
     'application_advertisement': 'Application Advertisement',
-    'active_firmware': 'Active Firmware Version',
-    'inactive_firmware': 'Inactive Firmware Version',
     'hardware_rev': 'Hardware Revision',
     'media_interface_code': 'Media Interface Code',
     'host_electrical_interface': 'Host Electrical Interface',
@@ -563,6 +562,7 @@ def load_sfputilhelper():
 
 
 def load_port_config():
+    load_db_config()
     try:
         if multi_asic.is_multi_asic():
             # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
@@ -697,16 +697,20 @@ def eeprom(port, dump_dom, namespace):
 # 'eeprom-hexdump' subcommand
 @show.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM hexdump for port <port_name>")
-@click.option('-n', '--page', metavar='<page_number>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
+@click.option('-n', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
 def eeprom_hexdump(port, page):
     """Display EEPROM hexdump of SFP transceiver(s)"""
     if port:
         if page is None:
             page = 0
-        return_code, output = eeprom_hexdump_single_port(port, page)
+        else:
+            page = validate_eeprom_page(page)
+        return_code, output = eeprom_hexdump_single_port(port, int(str(page), base=16))
         click.echo(output)
         sys.exit(return_code)
     else:
+        if page is not None:
+            page = validate_eeprom_page(page)
         logical_port_list = natsorted(platform_sfputil.logical)
         lines = []
         for logical_port_name in logical_port_list:
@@ -718,26 +722,23 @@ def eeprom_hexdump(port, page):
             lines.append(output)
         click.echo('\n'.join(lines))
 
-
 def validate_eeprom_page(page):
     """
     Validate input page module EEPROM
     Args:
         page: str page input by user
-
     Returns:
         int page
     """
     try:
-        page = int(page)
+        page = int(str(page), base=16)
     except ValueError:
         click.echo('Please enter a numeric page number')
         sys.exit(ERROR_NOT_IMPLEMENTED)
-    if page < 0 or page > 255:
-        click.echo(f'Invalid page {page}')
+    if page < 0 or page > MAX_EEPROM_PAGE:
+        click.echo(f'Error: Invalid page number {page}')
         sys.exit(ERROR_INVALID_PAGE)
     return page
-
 
 def eeprom_hexdump_single_port(logical_port_name, page):
     """
@@ -830,7 +831,7 @@ def eeprom_hexdump_pages_general(logical_port_name, pages, target_page):
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     if target_page is not None:
-        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page}h']
+        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page:x}h']
     else:
         lines = [f'EEPROM hexdump for port {logical_port_name}']
     physical_port = logical_port_to_physical_port_index(logical_port_name)
@@ -871,7 +872,7 @@ def eeprom_hexdump_pages_sff8472(logical_port_name, pages, target_page):
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
     if target_page is not None:
-        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page}h']
+        lines = [f'EEPROM hexdump for port {logical_port_name} page {target_page:x}h']
     else:
         lines = [f'EEPROM hexdump for port {logical_port_name}']
     physical_port = logical_port_to_physical_port_index(logical_port_name)
@@ -915,28 +916,6 @@ def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_
         page_offset: offset within a page, only for print purpose
         no_format: False if dump with hex format else dump with flat hex string. Default False.
 
-    Returns:
-        tuple(0, dump string) if success else tuple(error_code, error_message)
-    """
-    sfp = platform_chassis.get_sfp(physical_port)
-    page_dump = sfp.read_eeprom(flat_offset, size)
-    if page_dump is None:
-        return ERROR_NOT_IMPLEMENTED, f'Error: Failed to read EEPROM for page {page:x}h, flat_offset {flat_offset}, page_offset {page_offset}, size {size}!'
-    if not no_format:
-        return 0, hexdump(EEPROM_DUMP_INDENT, page_dump, page_offset, start_newline=False)
-    else:
-        return 0, ''.join('{:02x}'.format(x) for x in page_dump)
-
-
-
-def eeprom_dump_general(physical_port, page, flat_offset, size, page_offset, no_format=False):
-    """
-    Dump module EEPROM for given pages in hex format.
-    Args:
-        logical_port_name: logical port name
-        pages: a list of pages to be dumped. The list always include a default page list and the target_page input by
-               user
-        target_page: user input page number, optional. target_page is only for display purpose
     Returns:
         tuple(0, dump string) if success else tuple(error_code, error_message)
     """
@@ -1335,9 +1314,12 @@ def update_firmware_info_to_state_db(port_name):
         state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         if state_db is not None:
             state_db.connect(state_db.STATE_DB)
-            active_firmware, inactive_firmware = platform_chassis.get_sfp(physical_port).get_transceiver_info_firmware_versions()
-            state_db.set(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), "active_firmware", active_firmware)
-            state_db.set(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), "inactive_firmware", inactive_firmware)
+            transceiver_firmware_info_dict = platform_chassis.get_sfp(physical_port).get_transceiver_info_firmware_versions()
+            if transceiver_firmware_info_dict is not None:
+                active_firmware = transceiver_firmware_info_dict.get('active_firmware', 'N/A')
+                inactive_firmware = transceiver_firmware_info_dict.get('inactive_firmware', 'N/A')
+                state_db.set(state_db.STATE_DB, 'TRANSCEIVER_FIRMWARE_INFO|{}'.format(port_name), "active_firmware", active_firmware)
+                state_db.set(state_db.STATE_DB, 'TRANSCEIVER_FIRMWARE_INFO|{}'.format(port_name), "inactive_firmware", inactive_firmware)
 
 # 'firmware' subgroup
 @cli.group()
@@ -1737,7 +1719,7 @@ def target(port_name, target):
 # 'read-eeprom' subcommand
 @cli.command()
 @click.option('-p', '--port', metavar='<logical_port_name>', help="Logical port name", required=True)
-@click.option('-n', '--page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="EEPROM page number", required=True)
+@click.option('-n', '--page', metavar='<page>', help="EEPROM page number in hex", required=True)
 @click.option('-o', '--offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), help="EEPROM offset within the page", required=True)
 @click.option('-s', '--size', metavar='<size>', type=click.IntRange(1, MAX_EEPROM_OFFSET + 1), help="Size of byte to be read", required=True)
 @click.option('--no-format', is_flag=True, help="Display non formatted data")
@@ -1765,6 +1747,8 @@ def read_eeprom(port, page, offset, size, no_format, wire_addr):
         api = sfp.get_xcvr_api()
         if api is None:
             click.echo('Error: SFP EEPROM not detected!')
+        if page is not None:
+            page = validate_eeprom_page(page)
         if not isinstance(api, sff8472.Sff8472Api):
             overall_offset = get_overall_offset_general(api, page, offset, size)
         else:
@@ -1785,7 +1769,7 @@ def read_eeprom(port, page, offset, size, no_format, wire_addr):
 # 'write-eeprom' subcommand
 @cli.command()
 @click.option('-p', '--port', metavar='<logical_port_name>', help="Logical port name", required=True)
-@click.option('-n', '--page', metavar='<page>', type=click.IntRange(0, MAX_EEPROM_PAGE), help="EEPROM page number", required=True)
+@click.option('-n', '--page', metavar='<page>', help="EEPROM page number in hex", required=True)
 @click.option('-o', '--offset', metavar='<offset>', type=click.IntRange(0, MAX_EEPROM_OFFSET), help="EEPROM offset within the page", required=True)
 @click.option('-d', '--data', metavar='<data>', help="Hex string EEPROM data", required=True)
 @click.option('--wire-addr', help="Wire address of sff8472")
@@ -1819,7 +1803,8 @@ def write_eeprom(port, page, offset, data, wire_addr, verify):
         if api is None:
             click.echo('Error: SFP EEPROM not detected!')
             sys.exit(EXIT_FAIL)
-
+        if page is not None:
+            page = validate_eeprom_page(page)
         if not isinstance(api, sff8472.Sff8472Api):
             overall_offset = get_overall_offset_general(api, page, offset, len(bytes))
         else:
@@ -1855,11 +1840,11 @@ def get_overall_offset_general(api, page, offset, size):
     """
     if api.is_flat_memory():
         if page != 0:
-            raise ValueError(f'Invalid page number {page}, only page 0 is supported')
+            raise ValueError(f'Invalid page number {page:x}h, only page 0 is supported')
 
     if page != 0:
         if offset < MIN_OFFSET_FOR_NON_PAGE0:
-            raise ValueError(f'Invalid offset {offset} for page {page}, valid range: [128, 255]')
+            raise ValueError(f'Invalid offset {offset} for page {page:x}h, valid range: [80h, FFh]')
 
     if size + offset - 1 > MAX_EEPROM_OFFSET:
         raise ValueError(f'Invalid size {size}, valid range: [1, {255 - offset + 1}]')

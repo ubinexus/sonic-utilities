@@ -510,6 +510,39 @@ class DBMigrator():
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'adv_speeds', value['speed'])
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
+    
+
+    def migrate_config_db_switchport_mode(self):
+        port_table = self.configDB.get_table('PORT')
+        portchannel_table = self.configDB.get_table('PORTCHANNEL')
+        vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
+
+        vlan_member_keys= []
+        for _,key in vlan_member_table:
+            vlan_member_keys.append(key) 
+
+        for p_key, p_value in port_table.items():
+            if 'mode' in p_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORT", p_key), 'mode', p_value['mode'])
+            else:
+                if p_key in vlan_member_keys:
+                    p_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+                else:
+                    p_value["mode"] = "routed"
+                    self.configDB.set_entry("PORT", p_key, p_value)
+
+        for pc_key, pc_value in portchannel_table.items():
+            if 'mode' in pc_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format("PORTCHANNEL", pc_key), 'mode', pc_value['mode'])
+            else:
+                if pc_key in vlan_member_keys:
+                    pc_value["mode"] = "trunk"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+                else:
+                    pc_value["mode"] = "routed"
+                    self.configDB.set_entry("PORTCHANNEL", pc_key, pc_value)
+
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
@@ -618,6 +651,30 @@ class DBMigrator():
         certs = self.configDB.get_entry('TELEMETRY', 'certs')
         if not certs:
             self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
+
+    def migrate_gnmi(self):
+        # If there's GNMI table in CONFIG_DB, no need to migrate
+        gnmi = self.configDB.get_entry('GNMI', 'gnmi')
+        certs = self.configDB.get_entry('GNMI', 'certs')
+        if gnmi and certs:
+            return
+        if self.config_src_data:
+            if 'GNMI' in self.config_src_data:
+                # If there's GNMI in minigraph or golden config, copy configuration from config_src_data
+                gnmi_data = self.config_src_data['GNMI']
+                log.log_notice('Migrate GNMI configuration')
+                if 'gnmi' in gnmi_data:
+                    self.configDB.set_entry("GNMI", "gnmi", gnmi_data.get('gnmi'))
+                if 'certs' in gnmi_data:
+                    self.configDB.set_entry("GNMI", "certs", gnmi_data.get('certs'))
+        else:
+            # If there's no minigraph or golden config, copy configuration from CONFIG_DB TELEMETRY table
+            gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
+            if gnmi:
+                self.configDB.set_entry("GNMI", "gnmi", gnmi)
+            certs = self.configDB.get_entry('TELEMETRY', 'certs')
+            if certs:
+                self.configDB.set_entry("GNMI", "certs", certs)
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
@@ -958,6 +1015,7 @@ class DBMigrator():
         """
         log.log_info('Handling version_3_0_0')
         self.migrate_config_db_port_table_for_auto_neg()
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_3_0_1')
         return 'version_3_0_1'
 
@@ -973,7 +1031,9 @@ class DBMigrator():
             for name, data in portchannel_table.items():
                 data['lacp_key'] = 'auto'
                 self.configDB.set_entry('PORTCHANNEL', name, data)
+        self.migrate_config_db_switchport_mode()
         self.set_version('version_3_0_2')
+
         return 'version_3_0_2'
 
     def version_3_0_2(self):
@@ -1109,7 +1169,7 @@ class DBMigrator():
         Version 4_0_3.
         """
         log.log_info('Handling version_4_0_3')
-
+        
         self.set_version('version_202305_01')
         return 'version_202305_01'
 
@@ -1138,9 +1198,20 @@ class DBMigrator():
     def version_202311_02(self):
         """
         Version 202311_02.
-        This is current last erversion for 202311 branch
         """
         log.log_info('Handling version_202311_02')
+        # Update GNMI table
+        self.migrate_gnmi()
+
+        self.set_version('version_202311_03')
+        return 'version_202311_03'
+
+    def version_202311_03(self):
+        """
+        Version 202311_03.
+        This is current last erversion for 202311 branch
+        """
+        log.log_info('Handling version_202311_03')
         self.set_version('version_202405_01')
         return 'version_202405_01'
 

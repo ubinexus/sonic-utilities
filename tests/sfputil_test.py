@@ -151,8 +151,6 @@ class TestSfputil(object):
                 'specification_compliance': "sm_media_interface",
                 'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
                 'nominal_bit_rate': '0',
-                'active_firmware': '0.1',
-                'inactive_firmware': '0.0',
                 'hardware_rev': '0.0',
                 'media_interface_code': '400ZR, DWDM, amplified',
                 'host_electrical_interface': '400GAUI-8 C2M (Annex 120E)',
@@ -184,7 +182,6 @@ class TestSfputil(object):
             "        Active App Selection Host Lane 6: 1\n"
             "        Active App Selection Host Lane 7: 1\n"
             "        Active App Selection Host Lane 8: 1\n"
-            "        Active Firmware Version: 0.1\n"
             "        Application Advertisement: 400G CR8 - Host Assign (0x1) - Copper cable - Media Assign (0x2)\n"
             "                                   200GBASE-CR4 (Clause 136) - Host Assign (Unknown) - Unknown - Media Assign (Unknown)\n"
             "        CMIS Revision: 5.0\n"
@@ -197,7 +194,6 @@ class TestSfputil(object):
             "        Host Lane Assignment Options: 1\n"
             "        Host Lane Count: 8\n"
             "        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver\n"
-            "        Inactive Firmware Version: 0.0\n"
             "        Length Cable Assembly(m): 0\n"
             "        Media Interface Code: 400ZR, DWDM, amplified\n"
             "        Media Interface Technology: C-band tunable laser\n"
@@ -1113,7 +1109,7 @@ EEPROM hexdump for port Ethernet4
     def test_update_firmware_info_to_state_db(self, mock_chassis):
         mock_sfp = MagicMock()
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
-        mock_sfp.get_transceiver_info_firmware_versions.return_value = ['a.b.c', 'd.e.f']
+        mock_sfp.get_transceiver_info_firmware_versions.return_value = {'active_firmware' : 'a.b.c', 'inactive_firmware' : 'd.e.f'}
 
         sfputil.update_firmware_info_to_state_db("Ethernet0")
 
@@ -1412,3 +1408,15 @@ EEPROM hexdump for port Ethernet4
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['target'], ["Ethernet0", "1"])
         assert result.output == 'Target Mode set failed!\n'
         assert result.exit_code == EXIT_FAIL
+
+    @patch('sfputil.main.multi_asic.is_multi_asic')
+    @patch('sfputil.main.platform_sfputil', MagicMock())
+    @patch('sfputil.main.device_info.get_paths_to_platform_and_hwsku_dirs',
+        MagicMock(return_value=(None, None)))
+    @patch('sfputil.main.device_info.get_path_to_port_config_file', MagicMock(return_value=('')))
+    def test_load_port_config(self, mock_is_multi_asic):
+        mock_is_multi_asic.return_value = True
+        assert sfputil.load_port_config() == True
+
+        mock_is_multi_asic.return_value = False
+        assert sfputil.load_port_config() == True
