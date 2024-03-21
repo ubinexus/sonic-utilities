@@ -12,6 +12,7 @@ from sonic_package_manager.errors import ManifestError
 from sonic_package_manager.version import Version
 
 import os
+import json
 
 DEFAULT_MANIFEST = {
     "version": "1.0.0",
@@ -73,11 +74,9 @@ DEFAULT_MANIFEST = {
         "auto-generate-config-source-yang-modules": []
     }
 }
-#DEFAULT_MANIFEST = {'version': '1.0.0', 'package': {'version': '1.0.0', 'depends': [], 'name': 'default_manifest'}, 'service': {'name': 'default_manifest', 'requires': ['docker'], 'after': ['docker'], 'before': [], 'dependent-of': [], 'asic-service': False, 'host-service': False, 'warm-shutdown': {'after': [], 'before': []}, 'fast-shutdown':
-    #{'after': [], 'before': []}, 'syslog': {'support-rate-limit': False}}, 'container': {'privileged': False, 'volumes': [], 'tmpfs': [], 'entrypoint': ''}, 'cli': { 'mandatory': False, 'config': [], 'show': [], 'clear': []}}
-MANIFEST_LOCATION = "/var/lib/sonic-package-manager/manifests/"
-DEFAUT_MANIFEST_NAME = "default_manifest"
-DMFILE_NAME = os.path.join(MANIFEST_LOCATION, DEFAUT_MANIFEST_NAME)
+MANIFESTS_LOCATION = "/var/lib/sonic-package-manager/manifests/"
+DEFAULT_MANIFEST_NAME = "default_manifest"
+DEFAULT_MANIFEST_FILE = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
 
 class ManifestSchema:
     """ ManifestSchema class describes and provides marshalling
@@ -279,7 +278,6 @@ class ManifestSchema:
         ]),
         ManifestRoot('container', [
             ManifestField('privileged', DefaultMarshaller(bool), False),
-            ManifestField('entrypoint', DefaultMarshaller(str), ''),
             ManifestArray('volumes', DefaultMarshaller(str)),
             ManifestArray('mounts', ManifestRoot('mounts', [
                 ManifestField('source', DefaultMarshaller(str)),
@@ -317,3 +315,45 @@ class Manifest(dict):
 
     def unmarshal(self) -> Dict:
         return self.SCHEMA.unmarshal(self)
+
+    def get_manifest_from_local_file(name):
+
+        if not os.path.exists(MANIFESTS_LOCATION):
+            os.mkdir(MANIFESTS_LOCATION)
+        if not os.path.exists(DEFAULT_MANIFEST_FILE):
+            with open(DEFAULT_MANIFEST_FILE, 'w') as file:
+                json.dump(DEFAULT_MANIFEST, file, indent=4)
+        
+        if '.edit' in name:
+            actual_name = name.split('.edit')[0]
+        else:
+            actual_name = name
+
+        manifest_path = os.path.join(MANIFESTS_LOCATION, name)
+        if os.path.exists(manifest_path):
+            with open(manifest_path, 'r') as file:
+                manifest_dict = json.load(file)
+                manifest_dict["package"]["name"] = actual_name
+                manifest_dict["service"]["name"] = actual_name
+        else:
+            with open(DEFAULT_MANIFEST_FILE, 'r') as file:
+                manifest_dict = json.load(file)
+                manifest_dict["package"]["name"] = actual_name
+                manifest_dict["service"]["name"] = actual_name
+                new_manifest_path = os.path.join(MANIFESTS_LOCATION, name)
+                with open(new_manifest_path, 'w') as file:
+                    json.dump(manifest_dict, file, indent=4)
+
+        json_str = json.dumps(manifest_dict, indent=4)
+        desired_dict = {
+            'Tag': 'master',
+            'com': {
+                'azure': {
+                    'sonic': {
+                        'manifest': json_str
+                            }
+                        }
+                    }
+                }
+        return desired_dict
+

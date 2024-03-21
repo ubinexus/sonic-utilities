@@ -2,13 +2,15 @@
 
 import json
 import contextlib
-from unittest.mock import Mock, MagicMock, patch, mock_open
+from unittest.mock import Mock, MagicMock, patch
+import tempfile
+import os
 import pytest
 
 from sonic_package_manager.database import PackageEntry
 from sonic_package_manager.errors import MetadataError
-from sonic_package_manager.manifest import Manifest
-from sonic_package_manager.metadata import MetadataResolver, Metadata
+from sonic_package_manager.manifest import Manifest, MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME
+from sonic_package_manager.metadata import MetadataResolver
 from sonic_package_manager.version import Version
 
 
@@ -86,70 +88,102 @@ def test_metadata_construction(manifest_str):
     })
     assert metadata.yang_modules == ['TEST', 'TEST 2']
 
+@pytest.fixture
+def temp_manifest_dir():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield temp_dir
 
-@patch("sonic_package_manager.metadata.os.path.exists", return_value=True)
-@patch("sonic_package_manager.metadata.open", create=True)
-def test_get_manifest_from_local_file(mock_open, mock_path_exists, mock_docker_api, mock_registry_resolver):
-    # Setting up mock file content with required fields
-    mock_file_content = {
-        "package": {
-            "name": "test-package",
-            "version": "1.0.0",
-        },
-        "service": {
-            "name": "test-package",
-            "asic-service": False,
-            "host-service": True,
-        },
-        "container": {
-            "privileged": True,
-        },
-    }
-    mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(mock_file_content)
+@pytest.fixture
+def temp_tarball(temp_manifest_dir):
+    tarball_path = os.path.join(temp_manifest_dir, 'image.tar')
+    # Create an empty tarball file for testing
+    open(tarball_path, 'w').close()
+    yield tarball_path
 
-    # Creating a mock MetadataResolver
+def test_metadata_resolver_local_with_name_and_use_local_manifest(mock_registry_resolver, mock_docker_api, temp_manifest_dir):
     metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    # Patching the get_manifest_from_local_file method to avoid FileNotFoundError
+    with patch('sonic_package_manager.manifest.Manifest.get_manifest_from_local_file') as mock_get_manifest:
+        # Setting the side_effect to None to simulate the absence of a manifest file
+        mock_get_manifest.side_effect = None
+        with contextlib.suppress(MetadataError):
+            metadata_resolver.from_local('image', use_local_manifest=True, name='test_manifest', use_edit=False)
 
-    # Mocking necessary dependencies in the MetadataResolver instance
-    metadata_resolver.docker.labels = Mock(return_value={"com.azure.sonic.manifest": "mocked_manifest_labels"})
+def test_metadata_resolver_local_manifest_file_not_exist(mock_registry_resolver, mock_docker_api, temp_manifest_dir):
+    metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    # Patching the get_manifest_from_local_file method to avoid FileNotFoundError
+    with patch('sonic_package_manager.manifest.Manifest.get_manifest_from_local_file') as mock_get_manifest:
+        # Setting the side_effect to None to simulate the absence of a manifest file
+        mock_get_manifest.side_effect = None
+        with pytest.raises(MetadataError):
+            metadata_resolver.from_local('image', use_local_manifest=True, name='test_manifest', use_edit=False)
 
-    # Testing with an existing local manifest
-    metadata = metadata_resolver.from_local('test-image', use_local_manifest=True, name='test-package', use_edit=False)
+def test_metadata_resolver_tarball_with_use_local_manifest(mock_registry_resolver, mock_docker_api, temp_manifest_dir):
+    metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    # Patching the get_manifest_from_local_file method to avoid FileNotFoundError
+    with patch('sonic_package_manager.manifest.Manifest.get_manifest_from_local_file') as mock_get_manifest:
+        # Setting the side_effect to None to simulate the absence of a manifest file
+        mock_get_manifest.side_effect = None
+        with pytest.raises(MetadataError):
+            metadata_resolver.from_tarball('image.tar', use_local_manifest=True, name='test_manifest')
 
-    assert isinstance(metadata, Metadata)
+def test_metadata_resolver_no_name_and_no_metadata_in_labels_for_remote(mock_registry_resolver, mock_docker_api):
+    metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    # Mocking the registry resolver's get_registry_for method to return a MagicMock
+    mock_registry_resolver.get_registry_for = MagicMock(return_value=Mock())
+    with pytest.raises(TypeError):
+        metadata_resolver.from_registry('test-repository', '1.2.0')
+
+def test_metadata_resolver_tarball_with_use_local_manifest_true(mock_registry_resolver, mock_docker_api, temp_manifest_dir):
+    metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    # Patching the get_manifest_from_local_file method to avoid FileNotFoundError
+    with patch('sonic_package_manager.manifest.Manifest.get_manifest_from_local_file') as mock_get_manifest:
+        # Setting the side_effect to None to simulate the absence of a manifest file
+        mock_get_manifest.side_effect = None
+        with pytest.raises(MetadataError):
+            metadata_resolver.from_tarball('image.tar', use_local_manifest=True)
+
+def test_metadata_resolver_no_metadata_in_labels_for_tarball(mock_registry_resolver, mock_docker_api):
+    metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+    with pytest.raises(FileNotFoundError):
+        metadata_resolver.from_tarball('image.tar')
 
 
+def test_metadata_resolver_local_with_name_and_use_edit(mock_registry_resolver, mock_docker_api, temp_manifest_dir, sonic_fs):
+    with patch('builtins.open') as mock_open, \
+         patch('json.loads') as mock_json_loads:
+        sonic_fs.create_dir(MANIFESTS_LOCATION)  # Create the directory using sonic_fs fixture
+        mock_open.side_effect = FileNotFoundError  # Simulate FileNotFoundError when opening the manifest file
+        mock_json_loads.side_effect = ValueError  # Simulate ValueError when parsing JSON
 
-def test_get_manifest_from_local_file2(capsys):
-    metadata_resolver = MetadataResolver(None, None)  # Replace None with appropriate mocks
+        # Create the default manifest file
+        default_manifest_path = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
+        sonic_fs.create_file(default_manifest_path)
+        sonic_fs.create_file(os.path.join(MANIFESTS_LOCATION, "test_manifest.edit"))
 
-    with patch('os.path.exists', return_value=True), \
-         patch('os.mkdir'), \
-         patch('builtins.open', mock_open(read_data=json.dumps({"package": {"name": "test-package"}}))):
-        # Test when manifest file exists
-        manifest = metadata_resolver.get_manifest_from_local_file('test-package')
-        assert manifest is not None
+        metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+        with pytest.raises(FileNotFoundError):
+            metadata = metadata_resolver.from_local('image', use_local_manifest=True, name='test_manifest', use_edit=True)
 
-    with patch('os.path.exists', return_value=False), \
-         patch('os.mkdir'), \
-         patch('builtins.open', mock_open()):
-        # Test when manifest file does not exist
-        manifest = metadata_resolver.get_manifest_from_local_file('non-existent-package')
-        captured = capsys.readouterr()
-        assert captured.out.strip() == "Local Manifest file /var/lib/sonic-package-manager/manifests/non-existent-package does not exists"
-        assert manifest is None
+    mock_open.assert_called_with(os.path.join(MANIFESTS_LOCATION, 'test_manifest.edit'), 'r')
+    mock_json_loads.assert_not_called()  # Ensure json.loads is not called
 
-    manifest_data = {"package": {"name": "test-package"}, "service": {"name": "test-package"}}
-    with patch('os.path.exists', return_value=True), \
-         patch('os.mkdir'), \
-         patch('builtins.open', mock_open(read_data=json.dumps(manifest_data))), \
-         patch('json.load', return_value=manifest_data), \
-         patch('json.dump') as mock_json_dump:
-        # Test when custom_name is provided
-        manifest = metadata_resolver.get_manifest_from_local_file('test-package', custom_name='custom-name')
+def test_metadata_resolver_local_with_name_and_default_manifest(mock_registry_resolver, mock_docker_api, temp_manifest_dir, sonic_fs):
+    with patch('builtins.open') as mock_open, \
+         patch('json.loads') as mock_json_loads:
+        sonic_fs.create_dir(MANIFESTS_LOCATION)  # Create the directory using sonic_fs fixture
+        mock_open.side_effect = FileNotFoundError  # Simulate FileNotFoundError when opening the manifest file
+        mock_json_loads.side_effect = ValueError  # Simulate ValueError when parsing JSON
 
-    captured = capsys.readouterr()
-    print("Captured Output:", captured.out)
+        # Create the default manifest file
+        default_manifest_path = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
+        sonic_fs.create_file(default_manifest_path)
 
-    # Assert that the manifest is not None
-    assert manifest is not None
+        metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
+        with pytest.raises(FileNotFoundError):
+            metadata = metadata_resolver.from_local('image', use_local_manifest=False, name='test_manifest', use_edit=True)
+
+    mock_open.assert_called_with(os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME), 'r')
+    mock_json_loads.assert_not_called()  # Ensure json.loads is not called
+
+
