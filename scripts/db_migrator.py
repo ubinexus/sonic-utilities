@@ -1305,7 +1305,9 @@ class DBMigrator():
             json.dump(config, fp)
         process = subprocess.Popen(["config_validator.py", "-c", config_file])
         # Check validation result for unit test
-        if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "2":
+        # Check validation result when loganalyzer is disabled
+        disable_loganalyzer_mark = "/etc/sonic/disable_loganalyzer_mark"
+        if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "2" or os.path.exists(disable_loganalyzer_mark):
             ret = process.wait()
             assert ret == 0, "Yang validation failed"
 
