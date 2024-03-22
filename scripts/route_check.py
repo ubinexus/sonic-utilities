@@ -50,6 +50,7 @@ import subprocess
 from ipaddress import ip_network
 from swsscommon import swsscommon
 from utilities_common import chassis
+from sonic_py_common import device_info
 
 APPL_DB_NAME = 'APPL_DB'
 ASIC_DB_NAME = 'ASIC_DB'
@@ -748,10 +749,12 @@ def check_routes():
     if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
-    rt_frr_miss = check_frr_pending_routes()
-
-    if rt_frr_miss:
-        results["missed_FRR_routes"] = rt_frr_miss
+    #Don't check the FRR pending route check in Supervisor to prevent get_frr_routes
+    #throwing backtrace in json.loads since there is no route in SUP
+    if not device_info.is_supervisor():
+        rt_frr_miss = check_frr_pending_routes()
+        if rt_frr_miss:
+            results["missed_FRR_routes"] = rt_frr_miss
 
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
