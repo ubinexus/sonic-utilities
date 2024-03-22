@@ -921,6 +921,7 @@ class TestConfigQos(object):
         cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
         result = runner.invoke(config.config.commands["qos"], cmd_vector)
         print(result.exit_code)
+        assert result.output == "ok"
         print(result.output)
         assert result.exit_code == 0
         cwd = os.path.dirname(os.path.realpath(__file__))
