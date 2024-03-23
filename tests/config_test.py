@@ -918,7 +918,7 @@ class TestConfigQos(object):
         json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
         runner = CliRunner()
         output_file = os.path.join(os.sep, "tmp", "qos_config_update_multi_dut.json")
-        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run"]
+        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data]
         result = runner.invoke(config.config.commands["qos"], cmd_vector)
         print(result.exit_code)
         assert result.output == "ok"
