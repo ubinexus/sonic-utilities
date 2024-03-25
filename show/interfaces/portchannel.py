@@ -107,8 +107,19 @@ class Teamshow(object):
                 self.summary[team_id]['ports'] = ''
                 continue
             state = self.teamsraw[team_id]
-            info['protocol'] = "LACP"
-            info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
+            if 'setup.runner_name' in state and state['setup.runner_name'] == "roundrobin":
+                runner_name = "roundrobin"
+            elif 'setup.runner_name' in state and state['setup.runner_name'] == "loadbalance":
+                runner_name = "loadbalance"
+            else:
+                runner_name = "lacp"
+
+            if runner_name == "roundrobin" or runner_name == "loadbalance":
+                info['protocol'] = "NONE"
+                info['protocol'] += "(A)"
+            else:
+                info['protocol'] = "LACP"
+                info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
 
             portchannel_status = self.get_portchannel_status(team)
             if portchannel_status is None:
@@ -129,7 +140,9 @@ class Teamshow(object):
                 for port in ports:
                     status = self.get_portchannel_member_status(team, port)
                     pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
-                    selected = True if pstate['runner.aggregator.selected'] == "true" else False
+                    selected = True if pstate['link.up'] == "true" else False
+                    if runner_name == "lacp":
+                        selected = True if pstate['runner.aggregator.selected'] == "true" else False
                     if clicommon.get_interface_naming_mode() == "alias":
                         alias = clicommon.InterfaceAliasConverter().name_to_alias(port)
                         info["ports"] += alias + "("
