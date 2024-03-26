@@ -183,6 +183,7 @@ PortChannel0001  routed
 PortChannel0002  routed
 PortChannel0003  routed
 PortChannel0004  routed
+PortChannel0100  routed
 PortChannel1001  trunk
 """
 
@@ -222,6 +223,7 @@ PortChannel0001  routed
 PortChannel0002  routed
 PortChannel0003  routed
 PortChannel0004  routed
+PortChannel0100  routed
 PortChannel1001  trunk               4000
 """
 
