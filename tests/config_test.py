@@ -925,7 +925,7 @@ class TestConfigQos(object):
         assert result.exit_code == 0
         cwd = os.path.dirname(os.path.realpath(__file__))
         expected_result = os.path.join(
-            cwd, "qos_config_input", "update_qos.json"
+            cwd, "qos_config_input", "update_qos_multi_dut.json"
         )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
             
