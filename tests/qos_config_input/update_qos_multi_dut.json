@@ -1,9 +1,4 @@
 {
-    "DEVICE_METADATA": {
-        "localhost": {
-            "type": "spinerouter"
-        }
-    },
     "BUFFER_PG": {
         "lc1-1|asic0|Ethernet0|0": {
             "profile": "ingress_lossy_profile"
