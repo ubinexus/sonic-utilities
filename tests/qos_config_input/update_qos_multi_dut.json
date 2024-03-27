@@ -5,13 +5,13 @@
         }
     },
     "BUFFER_QUEUE": {
-        "lc1-1|asic0|Ethernet0|0-2": {
+        "Ethernet0|0-2": {
             "profile": "egress_lossy_profile"
         },
-        "lc1-1|asic0|Ethernet0|3-4": {
+        "Ethernet0|3-4": {
             "profile": "egress_lossless_profile"
         },
-        "lc1-1|asic0|Ethernet0|5-6": {
+        "Ethernet0|5-6": {
             "profile": "egress_lossy_profile"
         }
     },
