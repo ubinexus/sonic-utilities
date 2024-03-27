@@ -915,7 +915,7 @@ class TestConfigQos(object):
             self, get_cmd_module, setup_qos_mock_apis
         ):
         (config, show) = get_cmd_module
-        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        json_data = '{"DEVICE_METADATA": {"localhost": {"type": "spinerouter"}}, "PORT": {"Ethernet0": {}}}'
         runner = CliRunner()
         output_file = os.path.join(os.sep, "tmp", "qos_config_update_multi_dut.json")
         cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
