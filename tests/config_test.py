@@ -893,24 +893,6 @@ class TestConfigQos(object):
         )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
 
-    def test_qos_update_single(
-            self, get_cmd_module, setup_qos_mock_apis
-        ):
-        (config, show) = get_cmd_module
-        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
-        runner = CliRunner()
-        output_file = os.path.join(os.sep, "tmp", "qos_config_update.json")
-        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
-        result = runner.invoke(config.config.commands["qos"], cmd_vector)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        cwd = os.path.dirname(os.path.realpath(__file__))
-        expected_result = os.path.join(
-            cwd, "qos_config_input", "update_qos.json"
-        )
-        assert filecmp.cmp(output_file, expected_result, shallow=False)
-
     def test_qos_update_multi_dut(
             self, get_cmd_module, setup_qos_mock_apis
         ):
@@ -936,9 +918,14 @@ class TestConfigQos(object):
         json_data = '{"DEVICE_METADATA": {"localhost": {"type": "spinerouter"}}, "PORT": {"Ethernet0": {}}}'
         runner = CliRunner()
         output_file = os.path.join(os.sep, "tmp", "qos_config_update_multi_dut.json")
-        print_file_content_as_json(output_file)
+        print("Saving output in {}".format(output_file))
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
         cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
         result = runner.invoke(config.config.commands["qos"], cmd_vector)
+        print_file_content_as_json(output_file)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -948,7 +935,25 @@ class TestConfigQos(object):
             cwd, "qos_config_input", "update_qos_multi_dut.json"
         )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
-            
+
+    def test_qos_update_single(
+            self, get_cmd_module, setup_qos_mock_apis
+        ):
+        (config, show) = get_cmd_module
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "qos_config_update.json")
+        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
+        result = runner.invoke(config.config.commands["qos"], cmd_vector)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "qos_config_input", "update_qos.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
