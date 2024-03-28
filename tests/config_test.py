@@ -24,6 +24,24 @@ from generic_config_updater.generic_updater import ConfigFormat
 
 import config.main as config
 import config.validated_config_db_connector as validated_config_db_connector
+import json
+
+def print_file_content_as_json(file_path):
+    try:
+        # Open the file in read mode
+        with open(file_path, 'r') as file:
+            # Read the content of the file
+            content = file.read()
+            # Assuming the content is in JSON format, parse it
+            json_data = json.loads(content)
+            # Convert the parsed data to a formatted JSON string
+            json_string = json.dumps(json_data, indent=4)
+            # Print the JSON string
+            print(json_string)
+    except FileNotFoundError:
+        print(f"File '{file_path}' not found.")
+    except json.JSONDecodeError:
+        print(f"File '{file_path}' does not contain valid JSON.")
 
 # Add Test, module and script path.
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -896,24 +914,6 @@ class TestConfigQos(object):
     def test_qos_update_multi_dut(
             self, get_cmd_module, setup_qos_mock_apis
         ):
-        import json
-        def print_file_content_as_json(file_path):
-            try:
-                # Open the file in read mode
-                with open(file_path, 'r') as file:
-                    # Read the content of the file
-                    content = file.read()
-                    # Assuming the content is in JSON format, parse it
-                    json_data = json.loads(content)
-                    # Convert the parsed data to a formatted JSON string
-                    json_string = json.dumps(json_data, indent=4)
-                    # Print the JSON string
-                    print(json_string)
-            except FileNotFoundError:
-                print(f"File '{file_path}' not found.")
-            except json.JSONDecodeError:
-                print(f"File '{file_path}' does not contain valid JSON.")
-        
         (config, show) = get_cmd_module
         json_data = '{"DEVICE_METADATA": {"localhost": {"type": "spinerouter"}}, "PORT": {"Ethernet0": {}}}'
         runner = CliRunner()
@@ -947,6 +947,7 @@ class TestConfigQos(object):
         result = runner.invoke(config.config.commands["qos"], cmd_vector)
         print(result.exit_code)
         print(result.output)
+        print_file_content_as_json(output_file)
         assert result.exit_code == 0
         cwd = os.path.dirname(os.path.realpath(__file__))
         expected_result = os.path.join(
