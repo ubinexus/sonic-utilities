@@ -15,6 +15,7 @@ def
 {%-         set filename_postfix = 't1' %}
 {%-     elif 'spinerouter' in switch_role.lower() and 'mgmt' not in switch_role.lower()%}
 {%-         set topo = 't2' %}
+{%-         set filename_postfix = set_default_topology() %}
 {%-     else %}
 {%-         set filename_postfix = set_default_topology() %}
 {%-     endif %}
