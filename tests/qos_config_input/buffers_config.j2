@@ -13,6 +13,8 @@ def
 {%-         set filename_postfix = 't0' %}
 {%-     elif 'leafrouter' in switch_role.lower() and 'mgmt' not in switch_role.lower()%}
 {%-         set filename_postfix = 't1' %}
+{%-     elif 'spinerouter' in switch_role.lower() and 'mgmt' not in switch_role.lower()%}
+{%-         set topo = 't2' %}
 {%-     else %}
 {%-         set filename_postfix = set_default_topology() %}
 {%-     endif %}
@@ -139,7 +141,7 @@ def
 {% else %}
     "BUFFER_PG": {
     {% for port in PORT_ACTIVE %}
-        {%- if 'spinerouter' in switch_role.lower() and 'mgmt' not in switch_role.lower()%}
+        {%- if topo == 't2'%}
             "lc1-1|asic0|{{ port }}|0": {
                 "profile": "ingress_lossy_profile"
             }
