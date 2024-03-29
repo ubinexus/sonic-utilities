@@ -128,10 +128,10 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
             #Multiple VLANs needs to be checked
             if no_restart_dhcp_relay:
                if is_dhcpv6_relay_config_exist(db, vlan):
-               ctx.fail("Can't delete {} because related DHCPv6 Relay config is exist".format(vlan))
+                    ctx.fail("Can't delete {} because related DHCPv6 Relay config is exist".format(vlan))
             
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
-            ctx.fail("{} does not exist".format(vlan))
+                ctx.fail("{} does not exist".format(vlan))
 
             intf_table = db.cfgdb.get_table('VLAN_INTERFACE')
             for intf_key in intf_table:
@@ -340,9 +340,8 @@ def del_vlan_member(db, vid, port):
         for vid in vid_list:
             log.log_info("'vlan member del {} {}' executing...".format(vid, port))
 
-
             if not clicommon.is_vlanid_in_range(vid):
-                ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
+                ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
             vlan = 'Vlan{}'.format(vid)
 
