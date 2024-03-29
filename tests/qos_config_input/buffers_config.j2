@@ -138,10 +138,10 @@ def
 {% endif %}
 
 {%- if defs.generate_pg_profils is defined %}
-"Wenyi: 1"
-{{ defs.generate_pg_profils(port_names_active) }}
+    "aaaaaaaaaaaaaaaaaaaaaaa"
+    {{ defs.generate_pg_profils(port_names_active) }}
 {% else %}
-"Wenyi: 2"
+    "bbbbbbbbbbbbbbbbbbbbb"
     "BUFFER_PG": {
     {% for port in PORT_ACTIVE %}
         {%- if topo == 't2'%}
