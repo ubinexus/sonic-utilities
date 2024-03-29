@@ -138,22 +138,24 @@ def
 {% endif %}
 
 {%- if defs.generate_pg_profils is defined %}
-{{ defs.generate_pg_profils(port_names_active) }}
+{{ defs.generate_pg_profils(port_names_active) }},
 {% else %}
     "BUFFER_PG": {
+{% if topo == 't2'%}
     {% for port in PORT_ACTIVE %}
-        {%- if topo == 't2'%}
-            "lc1-1|asic0|{{ port }}|0": {
-                "profile": "ingress_lossy_profile"
-            }
-        {%- else %}
-            "{{ port }}|0": {
-                "profile": "ingress_lossy_profile"
-            }
-        {%- endif %}
+        "lc1-1|asic0|{{ port }}|0": {
+            "profile": "ingress_lossy_profile"
+        }{% if not loop.last %},{% endif %}
     {% endfor %}
+{% else %}
+    {% for port in PORT_ACTIVE %}
+        "{{ port }}|0": {
+            "profile": "ingress_lossy_profile"
+        }{% if not loop.last %},{% endif %}
+    {% endfor %}
+{% endif %}
     },
-{%- endif %}
+{% endif %}
 
 {% if defs.generate_queue_buffers is defined %}
 {{ defs.generate_queue_buffers(port_names_active) }}
