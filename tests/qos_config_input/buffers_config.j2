@@ -15,7 +15,7 @@ def
 {%-         set filename_postfix = 't1' %}
 {%-     elif 'spinerouter' in switch_role.lower() and 'mgmt' not in switch_role.lower()%}
 {%-         set topo = 't2' %}
-{%-         set filename_postfix = set_default_topology() %}
+{%-         set filename_postfix = 't1' %}
 {%-     else %}
 {%-         set filename_postfix = set_default_topology() %}
 {%-     endif %}
@@ -138,9 +138,10 @@ def
 {% endif %}
 
 {%- if defs.generate_pg_profils is defined %}
-    "Wenyi"
-    {{ defs.generate_pg_profils(port_names_active) }}
+"Wenyi: 1"
+{{ defs.generate_pg_profils(port_names_active) }}
 {% else %}
+"Wenyi: 2"
     "BUFFER_PG": {
     {% for port in PORT_ACTIVE %}
         {%- if topo == 't2'%}
