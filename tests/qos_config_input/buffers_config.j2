@@ -137,8 +137,9 @@ def
 {{ defs.generate_profile_lists(port_names_active) }},
 {% endif %}
 
-{%- if defs.generate_pg_profils is defined %}
+{% if defs.generate_pg_profils is defined %}
 {{ defs.generate_pg_profils(port_names_active) }}
+    "BUFFER": {
 {% else %}
     "BUFFER_PG": {
 {% if topo == 't2'%}
