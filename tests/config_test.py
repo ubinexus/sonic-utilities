@@ -886,7 +886,6 @@ class TestConfigQos(object):
         )
         print(result.exit_code)
         print(result.output)
-        print_file_content_as_json(output_file)
         assert result.exit_code == 0
 
         cwd = os.path.dirname(os.path.realpath(__file__))
