@@ -144,8 +144,6 @@ Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
  1001  PortChannel1001  N/A
 """
 
-
-
 show_interfaces_switchport_status_output="""\
 Interface        Mode
 ---------------  ------

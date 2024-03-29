@@ -462,7 +462,7 @@ def get_interface_switchport_mode(db, interface):
     if "mode" in port:
         switchport_mode = port['mode']
     elif "mode" in portchannel:
-        switchport_mode = portchannel['mode']
+        switchport_mode = portchannel['mode']ip.command()
     return switchport_mode
 
 

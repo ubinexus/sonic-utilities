@@ -228,7 +228,7 @@ test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-test_config_add_del_add_vlans_and_add_vlans_member_except_vlan__after_del_member_output = """\
+test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_after_del_member_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -845,7 +845,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error
+        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error   need to change
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1000,4000", "Ethernet20", "--multiple", "--except_flag"], obj=db)
         print(result.exit_code)
@@ -886,7 +886,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_add_del_add_vlans_and_add_vlans_member_except_vlan__after_del_member_output
+        assert result.output == test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_after_del_member_output
 
          # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -919,7 +919,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error
+        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error   need to change
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["all", "Ethernet20"], obj=db)
         print(result.exit_code)
@@ -978,14 +978,14 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add Ethernet20 to vlan 1001 but Ethernet20 is in routed mode will give error
+        # add Ethernet20 to vlan 1001 but Ethernet20 is in routed mode will give error   need to change
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1001", "Ethernet20", "--untagged"], obj=db)
         print(result.exit_code)
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code != 0
-        assert "Ethernet20 is in routed mode!\nUse switchport mode command to change port mode" in result.output
+        assert "Ethernet20 is in router Interface!" in result.output
 
 
         # configure Ethernet20 from routed to access mode
@@ -1098,7 +1098,7 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code != 0
-        assert "Ethernet64 is in routed mode!\nUse switchport mode command to change port mode" in result.output
+        assert "Ethernet64 is in router Interface!" in result.output
 
         # configure Ethernet64 from routed to trunk mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet64"], obj=db)
