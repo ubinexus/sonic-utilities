@@ -142,11 +142,11 @@ def
 {% else %}
     "BUFFER_PG": {
     {% for port in PORT_ACTIVE %}
-    {% if topo == 't2' %}
+        {% if topo == 't2' %}
         "lc1-1|asic0|{{ port }}|0": {
             "profile": "ingress_lossy_profile"
-        }
-    {% else %}
+        }{% if not loop.last %},{% endif %}
+        {% else %}
         "{{ port }}|0": {
             "profile": "ingress_lossy_profile"
         }{% if not loop.last %},{% endif %}
