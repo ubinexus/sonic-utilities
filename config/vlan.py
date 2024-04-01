@@ -62,7 +62,7 @@ def add_vlan(db, vid, multiple):
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
 
             #Multiple VLANs need to be referenced
-                vlan = 'Vlan{}'.format(vid)
+            vlan = 'Vlan{}'.format(vid)
 
             # Defualt VLAN checker
             if vid == 1:
