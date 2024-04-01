@@ -147,6 +147,11 @@ def
             "profile": "ingress_lossy_profile"
         }{% if not loop.last %},{% endif %}
     {% endfor %}
+    {% for port in PORT_ACTIVE %}
+        "{{ port }}|0": {
+            "profile": "ingress_lossy_profile"
+        }{% if not loop.last %},{% endif %}
+    {% endfor %}
     },
 {% endif %}
 
