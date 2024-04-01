@@ -308,6 +308,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             elif not is_port:
                 port_data = config_db.get_entry('PORTCHANNEL',port)
 
+            existing_mode = None
+
             if "mode" in port_data:
                 existing_mode = port_data["mode"]
             

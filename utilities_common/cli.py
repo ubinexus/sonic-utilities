@@ -458,7 +458,7 @@ def get_interface_tagged_vlan_members(db,interface):
 def get_interface_switchport_mode(db, interface):
     port = db.cfgdb.get_entry('PORT',interface)
     portchannel = db.cfgdb.get_entry('PORTCHANNEL',interface)
-    vlan_member_table = self.configDB.get_table('VLAN_MEMBER')
+    vlan_member_table = db.cfgdb.get_table('VLAN_MEMBER')
 
     vlan_member_keys = []
     for _,key in vlan_member_table:

@@ -4611,7 +4611,7 @@ def add(ctx, interface_name, ip_addr, gw):
         sub_intf = True
 
     if not sub_intf:
-        interface_mode = "routed"
+        interface_mode = None
         if is_port:
             interface_data = config_db.get_entry('PORT',interface_name)
         elif not is_port:
@@ -4620,7 +4620,7 @@ def add(ctx, interface_name, ip_addr, gw):
         if "mode" in interface_data:
             interface_mode = interface_data["mode"]
 
-        if interface_mode != "routed":
+        if interface_mode == "trunk" or "access":
             ctx.fail("Interface {} is in {} mode and needs to be in routed mode!".format(interface_name, interface_mode))
             return
     
