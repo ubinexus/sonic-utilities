@@ -150,6 +150,7 @@ def
         "{{ port }}|0": {
             "profile": "ingress_lossy_profile"
         }{% if not loop.last %},{% endif %}
+        {% endif %}
     {% endfor %}
     },
 {% endif %}
