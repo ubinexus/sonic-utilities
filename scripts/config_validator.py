@@ -35,6 +35,9 @@ def main():
     except sonic_yang.SonicYangException as e:
         log.log_error("Yang validation failed: " + str(e))
         raise
+    if len(yang_parser.tablesWithOutYang):
+        log.log_error("Tables without yang models: " + str(yang_parser.tablesWithOutYang))
+        raise Exception("Tables without yang models: " + str(yang_parser.tablesWithOutYang))
 
 
 if __name__ == "__main__":
