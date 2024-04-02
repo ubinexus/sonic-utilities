@@ -141,11 +141,19 @@ def
 {{ defs.generate_pg_profiles(port_names_active) }}
 {% else %}
     "BUFFER_PG": {
+    {%- if DEVICE_METADATA is defined and DEVICE_METADATA['localhost']['type'] is defined and DEVICE_METADATA['localhost']['type'] == 'spinerouter'%}
     {% for port in PORT_ACTIVE %}
-        "lc1-1|asic0|{{ port }}|0": {
+        "lc1|asic0|{{ port }}|0": {
             "profile" : "ingress_lossy_profile"
         }{% if not loop.last %},{% endif %}
     {% endfor %}
+    {% else %}
+    {% for port in PORT_ACTIVE %}
+        "{{ port }}|0": {
+            "profile" : "ingress_lossy_profile"
+        }{% if not loop.last %},{% endif %}
+    {% for port in PORT_ACTIVE %}
+    {% endif %}
     },
 {% endif %}
 
@@ -154,9 +162,6 @@ def
 {% else %}
     "BUFFER_QUEUE": {
 {% for port in PORT_ACTIVE %}
-        "lc1-1|asic0|{{ port }}|3-4": {
-            "profile" : "egress_lossless_profile"
-        },
         "{{ port }}|3-4": {
             "profile" : "egress_lossless_profile"
         },
