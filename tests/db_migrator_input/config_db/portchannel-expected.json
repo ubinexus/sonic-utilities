@@ -2,35 +2,30 @@
     "PORTCHANNEL|PortChannel0": {
         "admin_status": "up",
         "min_links": "2",
-        "mode": "routed",
         "mtu": "9100",
         "lacp_key": "auto"
     },
     "PORTCHANNEL|PortChannel1": {
         "admin_status": "up",
         "min_links": "2",
-        "mode": "routed",
         "mtu": "9100",
         "lacp_key": "auto"
     },
     "PORTCHANNEL|PortChannel0123": {
         "admin_status": "up",
         "min_links": "1",
-        "mode": "routed",
         "mtu": "9100",
         "lacp_key": "auto"
     },
     "PORTCHANNEL|PortChannel0011": {
         "admin_status": "up",
         "min_links": "2",
-        "mode": "routed",
         "mtu": "9100",
         "lacp_key": "auto"
     },
     "PORTCHANNEL|PortChannel9999": {
         "admin_status": "up",
         "mtu": "9100",
-        "mode": "routed",
         "lacp_key": "auto"
     },
     "VERSIONS|DATABASE": {
