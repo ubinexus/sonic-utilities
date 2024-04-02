@@ -169,10 +169,17 @@ class ChangeApplier:
     def _get_running_config(self):
         (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
 
+        command = "sonic-cfggen -d --print-data"
+
         if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
-            os.system("sonic-cfggen -d --print-data -n {} > {}".format(self.namespace, fname))
-        else:
-            os.system("sonic-cfggen -d --print-data > {}".format(fname))
+            command += " -n {}".format(self.namespace)
+        command += " > {}".format(fname)
+
+        ret_code = os.system(command)
+        if ret_code != 0:
+            # Handle the error appropriately, e.g., raise an exception or log an error
+            raise RuntimeError("sonic-cfggen command failed with return code {}".format(ret_code))
+
         run_data = {}
         with open(fname, "r") as s:
             run_data = json.load(s)
