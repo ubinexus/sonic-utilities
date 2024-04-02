@@ -60,14 +60,22 @@ def switchport_mode(db, type, port):
         if "mode" in port_data:
             existing_mode = port_data["mode"]
         else:
-            existing_mode = "routed"
             mode_exists_status = False
+        
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
             (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
             ctx.fail("Remove IP from {} to change mode!".format(port))
 
-        if existing_mode == "routed":
-            if mode_exists_status:
+        if not mode_exists_status:
+            port_data["mode"] = type
+            if is_port:
+                db.cfgdb.set_entry("PORT", port, port_data)
+            # if not port then is a port channel
+            elif not is_port:
+                db.cfgdb.set_entry("PORTCHANNEL", port, port_data)
+        
+        if mode_exists_status:
+            if existing_mode == "routed":
                 # if the port in an interface
                 if is_port:
                     db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
@@ -75,29 +83,21 @@ def switchport_mode(db, type, port):
                 elif not is_port:
                     db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
 
-            if not mode_exists_status:
-                port_data["mode"] = type
+            if existing_mode == type:
+                ctx.fail("{} is already in the {} mode".format(port,type))
+            else: 
+                if existing_mode == "access" and type == "trunk":
+                    pass
+                if existing_mode == "trunk" and type == "access":
+                    if clicommon.interface_is_tagged_member(db.cfgdb,port):
+                        ctx.fail("{} is in {} mode and have tagged member(s).\nRemove tagged member(s) from {} to switch to {} mode".format(port,existing_mode,port,type))
                 if is_port:
-                    db.cfgdb.set_entry("PORT", port, port_data)
+                    db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
                 # if not port then is a port channel
                 elif not is_port:
-                    db.cfgdb.set_entry("PORTCHANNEL", port, port_data)
+                    db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
 
-        if existing_mode == type:
-            ctx.fail("{} is already in the {} mode".format(port,type))
-        else: 
-            if existing_mode == "access" and type == "trunk":
-                pass
-            if existing_mode == "trunk" and type == "access":
-                if clicommon.interface_is_tagged_member(db.cfgdb,port):
-                    ctx.fail("{} is in {} mode and have tagged member(s).\nRemove tagged member(s) from {} to switch to {} mode".format(port,existing_mode,port,type))
-            if is_port:
-                db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
-            # if not port then is a port channel
-            elif not is_port:
-                db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
-
-        click.echo("{} switched from {} to {} mode".format(port, existing_mode, type))
+        click.echo("{} switched to {} mode".format(port,type))
 
     # if mode type is routed
     else:
@@ -111,7 +111,6 @@ def switchport_mode(db, type, port):
         if "mode" in port_data:
             existing_mode = port_data["mode"]
         else:
-            existing_mode = "routed"
             mode_exists_status = False
         
         if not mode_exists_status:
@@ -123,15 +122,15 @@ def switchport_mode(db, type, port):
             elif not is_port:
                 db.cfgdb.set_entry("PORTCHANNEL", port, port_data)
             pass
-        
-        elif mode_exists_status and existing_mode == type:
-            ctx.fail("{} is already in {} mode".format(port,type))
-        
-        else:
-            if is_port:
-                db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
-            # if not port then is a port channel
-            elif not is_port:
-                db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
 
-            click.echo("{} switched from {} to {} mode".format(port,existing_mode,type))
+        if mode_exists_status:
+            if existing_mode == type:
+                ctx.fail("{} is already in {} mode".format(port,type))
+            else:
+                if is_port:
+                    db.cfgdb.mod_entry("PORT", port, {"mode": "{}".format(type)})
+                # if not port then is a port channel
+                elif not is_port:
+                    db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
+                
+                click.echo("{} switched to {} mode".format(port,type))

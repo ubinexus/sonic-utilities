@@ -684,20 +684,6 @@ class TestVlan(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
 
-        # configure Ethernet20 from routed to access mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "Ethernet20 switched from routed to access mode" in result.output
-
-        # add Ethernet20 to vlan 1001
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["1001", "Ethernet20", "--untagged"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
         print(result.output)
@@ -710,7 +696,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add del 1001
+        # del 1001
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -736,15 +722,6 @@ class TestVlan(object):
         assert result.exit_code == 0
 
         # add etp6 to vlan 1001 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["1001", "etp6", "--untagged"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
-        
-
-        # add etp6 to vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1001", "etp6", "--untagged"], obj=db)
         print(result.exit_code)
@@ -780,9 +757,6 @@ class TestVlan(object):
 
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
-
-
-
     def test_config_add_del_multiple_vlan_and_vlan_member(self,mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
@@ -813,7 +787,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add del 1001
+        # del 1001
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001-1003","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -888,29 +862,13 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
 
-        # add vlan 1001
+        # add vlan 1001, 1002, 1003
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001,1002,1003","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # add Ethernet20 to vlan1001, vlan1002, vlan1003 multiple flag but Ethernet20 is in routed mode will give error   need to change
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["all", "Ethernet20"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Ethernet20 is in router Interface" in result.output
-
-        # configure Ethernet20 from routed to access mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet20"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "Ethernet20 switched from routed to trunk mode" in result.output
-
-        # add Ethernet20 to vlan 1001
+        # add Ethernet20 to all vlans
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["all", "Ethernet20"], obj=db)
         print(result.exit_code)
@@ -930,7 +888,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # add del 1001
+        # del 1001, 1002, 1003
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001-1003","--multiple"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -952,6 +910,13 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+
+        # configure Ethernet20 to access mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Ethernet20 switched to access mode" in result.output
 
         # add Ethernet20 to vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -975,7 +940,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet20 switched from access to trunk mode" in result.output
+        assert "Ethernet20 switched to trunk mode" in result.output
 
         # add Ethernet20 to vlan 1001 as tagged member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -1023,9 +988,9 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet20 switched from trunk to routed mode" in result.output
+        assert "Ethernet20 switched to routed mode" in result.output
 
-        # add del 1001
+        # del 1001
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -1063,7 +1028,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet64 switched from routed to trunk mode" in result.output
+        assert "Ethernet64 switched to trunk mode" in result.output
 
         # add Ethernet64 to vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -1073,7 +1038,7 @@ class TestVlan(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
 
-        # configure Ethernet64 from routed to access mode
+        # configure Ethernet64 from trunk to access mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet64"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -1092,7 +1057,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert "Ethernet64 switched from trunk to access mode" in result.output
+        assert "Ethernet64 switched to access mode" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
