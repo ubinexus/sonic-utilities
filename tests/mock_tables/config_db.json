@@ -2725,16 +2725,19 @@
     },
     "FABRIC_PORT|Fabric0": {
         "alias": "Fabric0",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "0"
     },
     "FABRIC_PORT|Fabric1": {
         "alias": "Fabric1",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "1"
     },
     "FABRIC_PORT|Fabric2": {
         "alias": "Fabric2",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "2"
     },

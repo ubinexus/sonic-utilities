@@ -69,7 +69,7 @@ def isolate(portid, namespace):
 #
 @port.command()
 @click.argument('portid', metavar='<portid>', required=True)
-@click.option('-f', '--force', is_flag=True, help='Force to unisolate a link even if it is auto isolated.')
+@click.option('-f', '--force', is_flag=True, default=False, help='Force to unisolate a link even if it is auto isolated.')
 @multi_asic_util.multi_asic_click_option_namespace
 def unisolate(portid, namespace, force):
     """FABRIC PORT unisolate <portid>"""
@@ -136,8 +136,8 @@ def unisolate(portid, namespace, force):
         config_db.mod_entry( "FABRIC_PORT", portName,
                              {'forceUnisolateStatus': forceShutCnt})
 
-        print("Force unisolate the link.")
-        print("It will clear all fabric link monitoring status for this link!")
+        click.echo("Force unisolate the link.")
+        click.echo("It will clear all fabric link monitoring status for this link!")
 
 #
 # 'config fabric port monitor ...'
