@@ -297,14 +297,14 @@ def capacity():
 #
 # 'config fabric monitor capacity threshold <capcityThresh>'
 #
-@capacity_monitor.command()
+@capacity.command()
 @click.argument('capacitythreshold', metavar='<capacityThreshold>', required=True, type=int)
 def threshold(capacitythreshold):
     """FABRIC CAPACITY MONITOR THRESHOLD configuration tasks"""
     ctx = click.get_current_context()
 
-    if capacitythreshold < 50 or capacitythreshold > 250:
-        ctx.fail("threshold must be in range 50...250")
+    if capacitythreshold < 5 or capacitythreshold > 250:
+        ctx.fail("threshold must be in range 5...250")
 
     if multi_asic.is_multi_asic():
         ns_list = multi_asic.get_all_namespaces()

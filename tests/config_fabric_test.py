@@ -112,10 +112,10 @@ class TestConfigFabric(object):
         expect_result=0
         assert operator.eq(result.exit_code, expect_result)
 
-        # Issue command "config fabric monitor capacity threshold 10",
+        # Issue command "config fabric monitor capacity threshold 3",
         # check if the result has the warning message.
-        result = self.basic_check("monitor", ["capacity", "threshold", "10"], ctx)
-        assert "threshold must be in range 50...250" in result.output
+        result = self.basic_check("monitor", ["capacity", "threshold", "3"], ctx)
+        assert "threshold must be in range 5...250" in result.output
 
     @classmethod
     def teardown_class(cls):
