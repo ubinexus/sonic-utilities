@@ -891,16 +891,16 @@ class TestMain(object):
         db_migrator.main()
 
     @mock.patch('argparse.ArgumentParser.parse_args')
-    @mock.patch('SonicDBConfig.isInit', mock.MagicMock(return_value=False))
-    @mock.patch('SonicDBConfig.load_sonic_db_config', mock.MagicMock())
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.isInit', mock.MagicMock(return_value=False))
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.load_sonic_db_config', mock.MagicMock())
     def test_init_no_namespace(self, mock_args):
         mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
         import db_migrator
         db_migrator.main()
 
     @mock.patch('argparse.ArgumentParser.parse_args')
-    @mock.patch('SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
-    @mock.patch('SonicDBConfig.load_sonic_global_db_config', mock.MagicMock())
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.load_sonic_global_db_config', mock.MagicMock())
     def test_init_namespace(self, mock_args):
         mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
         import db_migrator
