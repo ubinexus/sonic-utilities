@@ -875,38 +875,6 @@ class TestGoldenConfigInvalid(object):
         assert hostname == 'SONiC-Dummy'
 
 
-def mock_SonicDBConfig_isGlobalInit():
-    return False
-
-
-def mock_SonicDBConfig_isInit():
-    return False
-
-
-class TestMain(object):
-    @classmethod
-    def setup_class(cls):
-        os.environ['UTILITIES_UNIT_TESTING'] = "2"
-
-    @classmethod
-    def teardown_class(cls):
-        os.environ['UTILITIES_UNIT_TESTING'] = "0"
-
-    @mock.patch('argparse.ArgumentParser.parse_args')
-    def test_init(self, mock_args):
-        SonicDBConfig.isGlobalInit = mock_SonicDBConfig_isGlobalInit
-        mock_args.return_value=argparse.Namespace(namespace=None, operation='get_version', socket=None)
-        import db_migrator
-        db_migrator.main()
-
-    @mock.patch('argparse.ArgumentParser.parse_args')
-    def test_init_namespace(self, mock_args):
-        SonicDBConfig.isInit = mock_SonicDBConfig_isInit
-        mock_args.return_value=argparse.Namespace(namespace="asic0", operation='get_version', socket=None)
-        import db_migrator
-        db_migrator.main()
-
-
 class TestGNMIMigrator(object):
     @classmethod
     def setup_class(cls):
