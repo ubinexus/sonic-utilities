@@ -4614,7 +4614,7 @@ def add(ctx, interface_name, ip_addr, gw):
         interface_mode = None
         if is_port:
             interface_data = config_db.get_entry('PORT',interface_name)
-        else is_port:
+        else:
             interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
 
         if "mode" in interface_data:
