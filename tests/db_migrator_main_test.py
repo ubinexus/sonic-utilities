@@ -22,8 +22,16 @@ def mock_SonicDBConfig_isGlobalInit():
     return False
 
 
+def mock_SonicDBConfig_load_sonic_global_db_config(namespace):
+    pass
+
+
 def mock_SonicDBConfig_isInit():
     return False
+
+
+def mock_SonicDBConfig_load_sonic_db_config():
+    pass
 
 
 class TestMain(object):
@@ -44,6 +52,7 @@ class TestMain(object):
     @mock.patch('argparse.ArgumentParser.parse_args')
     def test_init_no_namespace(self, mock_args):
         SonicDBConfig.isInit = mock_SonicDBConfig_isInit
+        SonicDBConfig.load_sonic_db_config = mock_SonicDBConfig_load_sonic_db_config
         mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
         import db_migrator
         db_migrator.main()
@@ -51,6 +60,7 @@ class TestMain(object):
     @mock.patch('argparse.ArgumentParser.parse_args')
     def test_init_namespace(self, mock_args):
         SonicDBConfig.isGlobalInit = mock_SonicDBConfig_isGlobalInit
+        SonicDBConfig.load_sonic_global_db_config = mock_SonicDBConfig_load_sonic_global_db_config
         mock_args.return_value=argparse.Namespace(namespace="asic0", operation='version_202405_01', socket=None)
         import db_migrator
         db_migrator.main()
