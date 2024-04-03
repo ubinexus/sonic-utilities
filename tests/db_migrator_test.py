@@ -874,7 +874,6 @@ class TestGoldenConfigInvalid(object):
         # hostname is from minigraph.xml
         assert hostname == 'SONiC-Dummy'
 
-
 class TestMain(object):
     @classmethod
     def setup_class(cls):
