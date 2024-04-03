@@ -10,7 +10,7 @@ from sonic_py_common import device_info
 
 from .mock_tables import dbconnector
 
-import config.main as configS
+import config.main as config
 from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))
