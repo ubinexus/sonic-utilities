@@ -5,7 +5,7 @@ import argparse
 from unittest import mock
 from deepdiff import DeepDiff
 
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from sonic_py_common import device_info
 
 from .mock_tables import dbconnector
@@ -873,6 +873,38 @@ class TestGoldenConfigInvalid(object):
         hostname = host.get('hostname', '')
         # hostname is from minigraph.xml
         assert hostname == 'SONiC-Dummy'
+
+
+class TestMain(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    def test_init(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace=None, operation='get_version', socket=None)
+        import db_migrator
+        db_migrator.main()
+
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    @mock.patch('SonicDBConfig.isInit', mock.MagicMock(return_value=False))
+    @mock.patch('SonicDBConfig.load_sonic_db_config', mock.MagicMock())
+    def test_init_no_namespace(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
+        import db_migrator
+        db_migrator.main()
+
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    @mock.patch('SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
+    @mock.patch('SonicDBConfig.load_sonic_global_db_config', mock.MagicMock())
+    def test_init_namespace(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
+        import db_migrator
+        db_migrator.main()
 
 
 class TestGNMIMigrator(object):
