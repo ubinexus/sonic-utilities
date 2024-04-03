@@ -889,6 +889,12 @@ class TestMain(object):
         import db_migrator
         db_migrator.main()
 
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    def test_init_namespace(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace="asic0", operation='get_version', socket=None)
+        import db_migrator
+        db_migrator.main()
+
 
 class TestGNMIMigrator(object):
     @classmethod
