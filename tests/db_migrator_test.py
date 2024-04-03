@@ -902,7 +902,7 @@ class TestMain(object):
     @mock.patch('swsscommon.swsscommon.SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
     @mock.patch('swsscommon.swsscommon.SonicDBConfig.load_sonic_global_db_config', mock.MagicMock())
     def test_init_namespace(self, mock_args):
-        mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
+        mock_args.return_value=argparse.Namespace(namespace="asic0", operation='version_202405_01', socket=None)
         import db_migrator
         db_migrator.main()
 
