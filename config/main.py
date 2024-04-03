@@ -4614,14 +4614,14 @@ def add(ctx, interface_name, ip_addr, gw):
         interface_mode = None
         if is_port:
             interface_data = config_db.get_entry('PORT',interface_name)
-        elif not is_port:
+        else is_port:
             interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
 
         if "mode" in interface_data:
             interface_mode = interface_data["mode"]
 
         if interface_mode == "trunk" or interface_mode == "access":
-            ctx.fail("Interface {} is in {} mode and needs to be in routed mode!".format(interface_name, interface_mode))
+            click.echo("Interface {} is in {} mode and needs to be in routed mode!".format(interface_name, interface_mode))
             return
     
    
