@@ -5,12 +5,12 @@ import argparse
 from unittest import mock
 from deepdiff import DeepDiff
 
-from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 from sonic_py_common import device_info
 
 from .mock_tables import dbconnector
 
-import config.main as config
+import config.main as configS
 from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))
