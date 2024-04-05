@@ -169,7 +169,6 @@ class ChangeApplier:
     def _get_running_config(self):
         (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
         os.system("sonic-cfggen -d --print-data > {}".format(fname))
-        os.system("sonic-cfggen -d --print-data > {}".format(fname))
         run_data = {}
         with open(fname, "r") as s:
             run_data = json.load(s)
