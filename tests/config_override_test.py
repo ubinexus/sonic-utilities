@@ -18,12 +18,15 @@ NEW_FEATURE_CONFIG = os.path.join(DATA_DIR, "new_feature_config.json")
 FULL_CONFIG_OVERRIDE = os.path.join(DATA_DIR, "full_config_override.json")
 PORT_CONFIG_OVERRIDE = os.path.join(DATA_DIR, "port_config_override.json")
 EMPTY_TABLE_REMOVAL = os.path.join(DATA_DIR, "empty_table_removal.json")
+AAA_YANG_HARD_CHECK = os.path.join(DATA_DIR, "aaa_yang_hard_check.json")
 RUNNING_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "running_config_yang_failure.json")
 GOLDEN_INPUT_YANG_FAILURE = os.path.join(DATA_DIR, "golden_input_yang_failure.json")
 FINAL_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "final_config_yang_failure.json")
 MULTI_ASIC_MACSEC_OV = os.path.join(DATA_DIR, "multi_asic_macsec_ov.json")
-MULTI_ASIC_DEVICE_METADATA_RM = os.path.join(DATA_DIR, "multi_asic_dm_rm.json")
+MULTI_ASIC_FEATURE_RM = os.path.join(DATA_DIR, "multi_asic_feature_rm.json")
 MULTI_ASIC_DEVICE_METADATA_GEN_SYSINFO = os.path.join(DATA_DIR, "multi_asic_dm_gen_sysinfo.json")
+MULTI_ASIC_MISSING_LOCALHOST_OV = os.path.join(DATA_DIR, "multi_asic_missing_localhost.json")
+MULTI_ASIC_MISSING_ASIC_OV = os.path.join(DATA_DIR, "multi_asic_missing_asic.json")
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -102,7 +105,9 @@ class TestConfigOverride(object):
                                    ['golden_config_db.json', '--dry-run'])
 
             assert result.exit_code == 0
-            assert json.loads(result.output) == current_config
+            start_pos = result.output.find('{')
+            json_text = result.output[start_pos:]
+            assert json.loads(json_text) == current_config
 
     def test_golden_config_db_empty(self):
         db = Db()
@@ -156,6 +161,25 @@ class TestConfigOverride(object):
         self.check_override_config_table(
             db, config, read_data['running_config'], read_data['golden_config'],
             read_data['expected_config'])
+
+    def test_aaa_yang_hard_depdency_check_failure(self):
+        """YANG hard depdency must be satisfied"""
+        db = Db()
+        with open(AAA_YANG_HARD_CHECK, "r") as f:
+            read_data = json.load(f)
+            def read_json_file_side_effect(filename):
+                return read_data['golden_config']
+
+            with mock.patch('config.main.read_json_file',
+                            mock.MagicMock(side_effect=read_json_file_side_effect)):
+                write_init_config_db(db.cfgdb, read_data['running_config'])
+
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["override-config-table"],
+                                       ['golden_config_db.json'], obj=db)
+
+                assert result.exit_code != 0
+                assert "Authentication with 'tacacs+' is not allowed when passkey not exits." in result.output
 
     def check_override_config_table(self, db, config, running_config,
                                     golden_config, expected_config):
@@ -286,7 +310,15 @@ class TestConfigOverrideMultiasic(object):
 
         # The profile_content was copied from MULTI_ASIC_MACSEC_OV, where all
         # ns sharing the same content: {"profile": {"key": "value"}}
-        profile_content = {"profile": {"key": "value"}}
+        profile_content = {
+            "profile": {
+                "primary_cak": "1159485744465e5a537272050a1011073557475152020c0e040c57223a357d7d71",
+                "primary_ckn": "6162636465666768696A6B6C6D6E6F70",
+                "fallback_cak": "000000000000000000000000000000000000000000000000000000000000000000",
+                "fallback_ckn": "11111111111111111111111111111111"
+
+            }
+        }
 
         with mock.patch('config.main.read_json_file',
                         mock.MagicMock(side_effect=read_json_file_side_effect)):
@@ -298,16 +330,16 @@ class TestConfigOverrideMultiasic(object):
         for ns, config_db in cfgdb_clients.items():
             assert config_db.get_config()['MACSEC_PROFILE'] == profile_content
 
-    def test_device_metadata_table_rm(self):
+    def test_feature_table_rm(self):
         def read_json_file_side_effect(filename):
-            with open(MULTI_ASIC_DEVICE_METADATA_RM, "r") as f:
-                device_metadata = json.load(f)
-            return device_metadata
+            with open(MULTI_ASIC_FEATURE_RM, "r") as f:
+                feature = json.load(f)
+            return feature
         db = Db()
         cfgdb_clients = db.cfgdb_clients
 
         for ns, config_db in cfgdb_clients.items():
-            assert 'DEVICE_METADATA' in config_db.get_config()
+            assert 'FEATURE' in config_db.get_config()
 
         with mock.patch('config.main.read_json_file',
                         mock.MagicMock(side_effect=read_json_file_side_effect)):
@@ -317,7 +349,7 @@ class TestConfigOverrideMultiasic(object):
             assert result.exit_code == 0
 
         for ns, config_db in cfgdb_clients.items():
-            assert 'DEVICE_METADATA' not in config_db.get_config()
+            assert 'FEATURE' not in config_db.get_config()
 
     def test_device_metadata_keep_sysinfo(self):
         def read_json_file_side_effect(filename):
@@ -381,6 +413,39 @@ class TestConfigOverrideMultiasic(object):
             assert platform == "multi_asic"
             assert mac == "11:22:33:44:55:66"
 
+    def test_masic_missig_localhost_override(self):
+        def read_json_file_side_effect(filename):
+            with open(MULTI_ASIC_MISSING_LOCALHOST_OV, "r") as f:
+                wrong_format = json.load(f)
+            return wrong_format
+        db = Db()
+        cfgdb_clients = db.cfgdb_clients
+
+        with mock.patch('config.main.read_json_file',
+                        mock.MagicMock(side_effect=read_json_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["override-config-table"],
+                                   ['golden_config_db.json'], obj=db)
+            assert "'localhost' not found in host config" in result.output
+            # make sure program aborted with return code 1
+            assert result.exit_code == 1
+                
+    def test_masic_missig_asic_override(self):
+        def read_json_file_side_effect(filename):
+            with open(MULTI_ASIC_MISSING_ASIC_OV, "r") as f:
+                wrong_format = json.load(f)
+            return wrong_format
+        db = Db()
+        cfgdb_clients = db.cfgdb_clients
+
+        with mock.patch('config.main.read_json_file',
+                        mock.MagicMock(side_effect=read_json_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["override-config-table"],
+                                   ['golden_config_db.json'], obj=db)
+            assert "Override config not present for asic1" in result.output
+            # make sure program did not abort
+            assert result.exit_code == 0
 
     @classmethod
     def teardown_class(cls):

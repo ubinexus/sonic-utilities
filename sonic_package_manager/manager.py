@@ -44,7 +44,10 @@ from sonic_package_manager.progress import ProgressManager
 from sonic_package_manager.reference import PackageReference
 from sonic_package_manager.registry import RegistryResolver
 from sonic_package_manager.service_creator import SONIC_CLI_COMMANDS
-from sonic_package_manager.service_creator.creator import ServiceCreator
+from sonic_package_manager.service_creator.creator import (
+    ServiceCreator,
+    run_command
+)
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.sonic_db import (
     INIT_CFG_JSON,
@@ -483,7 +486,7 @@ class PackageManager:
         # After all checks are passed we proceed to actual uninstallation
 
         try:
-            self._stop_feature(package)
+            self._disable_feature(package)
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package, keep_config=keep_config)
             self.service_creator.generate_shutdown_sequence_files(
@@ -660,6 +663,10 @@ class PackageManager:
                                  skip_host_plugins=skip_host_plugins)
 
     @under_lock
+    def get_docker_client(self, dockerd_sock:str):
+        return docker.DockerClient(base_url=f'unix://{dockerd_sock}', timeout=120)
+
+    @under_lock
     def migrate_packages(self,
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
@@ -701,7 +708,8 @@ class PackageManager:
                 # dockerd_sock is defined, so use docked_sock to connect to
                 # dockerd and fetch package image from it.
                 log.info(f'installing {name} from old docker library')
-                docker_api = DockerApi(docker.DockerClient(base_url=f'unix://{dockerd_sock}'))
+                docker_client = self.get_docker_client(dockerd_sock)
+                docker_api = DockerApi(docker_client)
 
                 image = docker_api.get_image(old_package_entry.image_id)
 
@@ -929,18 +937,29 @@ class PackageManager:
         packages.pop(package.name)
         return packages
 
-    def _start_feature(self, package: Package, block: bool = True):
-        """ Starts the feature and blocks till operation is finished if
-        block argument is set to True.
+    def _stop_feature(self, package: Package):
+        self._systemctl_action(package, 'stop')
 
-        Args:
-            package: Package object of the feature that will be started.
-            block: Whether to block for operation completion.
-        """
+    def _start_feature(self, package: Package):
+        self._systemctl_action(package, 'start')
 
-        self._set_feature_state(package, 'enabled', block)
+    def _systemctl_action(self, package: Package, action: str):
+        """ Execute systemctl action for a service. """
 
-    def _stop_feature(self, package: Package, block: bool = True):
+        name = package.manifest['service']['name']
+        log.info('Execute systemctl action {} on {} service'.format(action, name))
+
+        host_service = package.manifest['service']['host-service']
+        asic_service = package.manifest['service']['asic-service']
+        single_instance = host_service or (asic_service and not self.is_multi_npu)
+        multi_instance = asic_service and self.is_multi_npu
+        if single_instance:
+            run_command(['systemctl', action, name])
+        if multi_instance:
+            for npu in range(self.num_npus):
+                run_command(['systemctl', action, f'{name}@{npu}'])
+
+    def _disable_feature(self, package: Package, block: bool = True):
         """ Stops the feature and blocks till operation is finished if
         block argument is set to True.
 

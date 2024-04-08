@@ -361,6 +361,7 @@
         "window29": "{'prefec_ber_avg': 0.0006281245811956536, 'prefec_ber_min': 0.0005365406426360099, 'prefec_ber_max': 0.0006680605638445678, 'uncorr_frames_avg': 0.0, 'uncorr_frames_min': 0.0, 'uncorr_frames_max': 0.0, 'cd_avg': -0.7504892342165151, 'cd_min': -6.0, 'cd_max': 2.0, 'dgd_avg': 1.937370531202753, 'dgd_min': 1.0, 'dgd_max': 3.0, 'sopmd_avg': 33.14757245751743, 'sopmd_min': 19.0, 'sopmd_max': 61.0, 'pdl_avg': 0.3498075113750104, 'pdl_min': 0.2, 'pdl_max': 0.5, 'osnr_avg': 36.4, 'osnr_min': 36.4, 'osnr_max': 36.4, 'esnr_avg': 18.00010386405879, 'esnr_min': 17.8, 'esnr_max': 18.3, 'cfo_avg': -670.6894597763727, 'cfo_min': -799.0, 'cfo_max': -541.0, 'evm_avg': 0.0, 'evm_min': 0.0, 'evm_max': 0.0, 'soproc_avg': 0.0, 'soproc_min': 0.0, 'soproc_max': 0.0, 'tx_power_avg': -8.10992188638861, 'tx_power_min': -8.19, 'tx_power_max': -8.08, 'rx_tot_power_avg': -8.560338993568784, 'rx_tot_power_min': -8.65, 'rx_tot_power_max': -8.46, 'rx_sig_power_avg': -9.032818310875726, 'rx_sig_power_min': -9.12, 'rx_sig_power_max': -8.99, 'pm_win_end_time': '1690757034.4068897', 'pm_win_start_time': '1690670590.1528366', 'pm_win_current': 'false'}"
     },
     "TRANSCEIVER_STATUS|Ethernet44":{
+        "cmis_state": "READY",
         "DP1State": "DataPathActivated",
         "DP2State": "DataPathActivated",
         "DP3State": "DataPathActivated",
@@ -671,16 +672,17 @@
         "media_interface_technology" : "1550 nm DFB",
         "vendor_rev" : "XX",
         "cmis_rev" : "4.1",
-        "active_firmware" : "X.X",
-        "inactive_firmware" : "X.X",
         "supported_max_tx_power" : "4.0",
         "supported_min_tx_power" : "-22.9",
         "supported_max_laser_freq" : "196100",
         "supported_min_laser_freq" : "191300"
     },
+    "TRANSCEIVER_FIRMWARE_INFO|Ethernet64": {
+        "active_firmware": "X.X",
+        "inactive_firmware": "X.X"
+    },
     "TRANSCEIVER_INFO|Ethernet72": {
         "active_apsel_hostlane4": "N/A",
-        "active_firmware": "0.0",
         "is_replaceable": "True",
         "application_advertisement": "{1: {'host_electrical_interface_id': 'IB NDR', 'module_media_interface_id': 'Copper cable', 'media_lane_count': 4, 'host_lane_count': 4, 'host_lane_assignment_options': 17}, 2: {'host_electrical_interface_id': 'IB SDR (Arch.Spec.Vol.2)', 'module_media_interface_id': 'Copper cable', 'media_lane_count': 4, 'host_lane_count': 4, 'host_lane_assignment_options': 17}}",
         "host_electrical_interface": "N/A",
@@ -697,7 +699,6 @@
         "supported_min_laser_freq": "N/A",
         "serial": "serial1   ",
         "active_apsel_hostlane7": "N/A",
-        "inactive_firmware": "N/A",
         "active_apsel_hostlane1": "N/A",
         "type": "OSFP 8X Pluggable Transceiver",
         "cable_length": "1.0",
@@ -782,6 +783,10 @@
         "txbiashighwarning": "N/A",
         "txbiaslowalarm": "N/A",
         "txbiaslowwarning": "N/A"
+    },
+    "TRANSCEIVER_FIRMWARE_INFO|Ethernet72": {
+        "active_firmware": "0.0",
+        "inactive_firmware": "N/A"
     },
     "TRANSCEIVER_STATUS|Ethernet0": {
         "status": "67",
@@ -1343,7 +1348,8 @@
         "speed" : "100000",
         "supported_speeds": "10000,25000,40000,100000",
         "supported_fecs": "rs,none,test",
-        "link_training_status": "not_trained"
+        "link_training_status": "not_trained",
+	"fec": "rs"
     },
     "PORT_TABLE|Ethernet32": {
         "link_training_status": "trained"
@@ -1352,6 +1358,11 @@
         "speed": "40000",
         "supported_fecs": "N/A",
         "link_training_status": "off"
+    },
+    "PORT_TABLE|Ethernet124": {
+        "speed": "40000",
+        "supported_fecs": "rs,none,fc,auto",
+        "fec": "rs"
     },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
@@ -1607,5 +1618,57 @@
     },
     "ACL_RULE_TABLE|DATAACL_5|RULE_1" : {
         "status": "Active"
+    },
+    "VOLTAGE_INFO|VSENSOR0": {
+        "critical_high_threshold": "872",
+        "critical_low_threshold": "664",
+        "high_threshold": "852",
+        "is_replaceable": "False",
+        "low_threshold": "684",
+        "maximum_voltage": "760",
+        "minimum_voltage": "759",
+        "timestamp": "20230704 17:38:04",
+        "voltage": "760",
+        "unit": "mV",
+        "warning_status": "False"
+    },
+    "VOLTAGE_INFO|VSENSOR1": {
+        "critical_high_threshold": "872",
+        "critical_low_threshold": "664",
+        "high_threshold": "852",
+        "is_replaceable": "False",
+        "low_threshold": "684",
+        "maximum_voltage": "760",
+        "minimum_voltage": "759",
+        "timestamp": "20230704 17:38:04",
+        "voltage": "759",
+        "unit": "mV",
+        "warning_status": "False"
+    },
+    "CURRENT_INFO|ISENSOR0": {
+        "critical_high_threshold": "460",
+        "critical_low_threshold": "300",
+        "current": "410",
+         "unit": "mA",
+        "high_threshold": "440",
+        "is_replaceable": "False",
+        "low_threshold": "320",
+        "maximum_current": "431",
+        "minimum_current": "402",
+        "timestamp": "20230704 17:38:04",
+        "warning_status": "False"
+    },
+    "CURRENT_INFO|ISENSOR1": {
+        "critical_high_threshold": "460",
+        "critical_low_threshold": "300",
+        "current": "360",
+         "unit": "mA",
+        "high_threshold": "440",
+        "is_replaceable": "False",
+        "low_threshold": "320",
+        "maximum_current": "367",
+        "minimum_current": "339",
+        "timestamp": "20230704 17:38:04",
+        "warning_status": "False"
     }
 }

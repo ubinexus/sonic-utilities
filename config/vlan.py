@@ -26,7 +26,8 @@ def set_dhcp_relay_table(table, config_db, vlan_name, value):
 
 
 def is_dhcp_relay_running():
-    out, _ = clicommon.run_command("systemctl show dhcp_relay.service --property ActiveState --value", return_cmd=True)
+    out, _ = clicommon.run_command(["systemctl", "show", "dhcp_relay.service", "--property", "ActiveState", "--value"],
+                                   return_cmd=True)
     return out.strip() == "active"
 
 
@@ -66,12 +67,10 @@ def is_dhcpv6_relay_config_exist(db, vlan_name):
         return True
 
 
-def delete_state_db_entry(entry_name):
-    state_db = SonicV2Connector()
-    state_db.connect(state_db.STATE_DB)
-    exists = state_db.exists(state_db.STATE_DB, 'DHCPv6_COUNTER_TABLE|{}'.format(entry_name))
+def delete_db_entry(entry_name, db_connector, db_name):
+    exists = db_connector.exists(db_name, entry_name)
     if exists:
-        state_db.delete(state_db.STATE_DB, 'DHCPv6_COUNTER_TABLE|{}'.format(entry_name))
+        db_connector.delete(db_name, entry_name)
 
 
 @vlan.command('del')
@@ -124,25 +123,25 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
         # We need to restart dhcp_relay service after dhcpv6_relay config change
         if is_dhcp_relay_running():
             dhcp_relay_util.handle_restart_dhcp_relay_service()
-    delete_state_db_entry(vlan)
+    delete_db_entry("DHCPv6_COUNTER_TABLE|{}".format(vlan), db.db, db.db.STATE_DB)
+    delete_db_entry("DHCP_COUNTER_TABLE|{}".format(vlan), db.db, db.db.STATE_DB)
 
     vlans = db.cfgdb.get_keys('VLAN')
     if not vlans:
-        docker_exec_cmd = "docker exec -i swss {}"
-        _, rc = clicommon.run_command(docker_exec_cmd.format("supervisorctl status ndppd"), ignore_error=True, return_cmd=True)
+        docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
+        _, rc = clicommon.run_command(docker_exec_cmd + ['supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True)
         if rc == 0:
             click.echo("No VLANs remaining, stopping ndppd service")
-            clicommon.run_command(docker_exec_cmd.format("supervisorctl stop ndppd"), ignore_error=True, return_cmd=True)
-            clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
-            clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
-
+            clicommon.run_command(docker_exec_cmd + ['supervisorctl', 'stop', 'ndppd'], ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd + ['rm', '-f', '/etc/supervisor/conf.d/ndppd.conf'], ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd + ['supervisorctl', 'update'], return_cmd=True)
 
 def restart_ndppd():
     verify_swss_running_cmd = ['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss']
     docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
     ndppd_config_gen_cmd = ['sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']
-    ndppd_restart_cmd =['supervisorctl', 'restart', 'ndppd']
-    ndppd_status_cmd= ["supervisorctl", "status", "ndppd"]
+    ndppd_restart_cmd = ['supervisorctl', 'restart', 'ndppd']
+    ndppd_status_cmd = ["supervisorctl", "status", "ndppd"]
     ndppd_conf_copy_cmd = ['cp', '/usr/share/sonic/templates/ndppd.conf', '/etc/supervisor/conf.d/']
     supervisor_update_cmd = ['supervisorctl', 'update']
 
@@ -279,6 +278,8 @@ def del_vlan_member(db, vid, port):
 
     try:
         config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
+        delete_db_entry("DHCPv6_COUNTER_TABLE|{}".format(port), db.db, db.db.STATE_DB)
+        delete_db_entry("DHCP_COUNTER_TABLE|{}".format(port), db.db, db.db.STATE_DB)
     except JsonPatchConflict:
         ctx.fail("{} invalid or does not exist, or {} is not a member of {}".format(vlan, port, vlan))
 

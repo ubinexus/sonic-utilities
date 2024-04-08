@@ -54,6 +54,7 @@ from . import kube
 from . import muxcable
 from . import nat
 from . import platform
+from . import p4_table
 from . import processes
 from . import reboot_cause
 from . import sflow
@@ -140,6 +141,24 @@ def run_command(command, display_cmd=False, return_cmd=False, shell=False):
 def get_cmd_output(cmd):
     proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
     return proc.communicate()[0], proc.returncode
+
+def get_config_json_by_namespace(namespace):
+    cmd = ['sonic-cfggen', '-d', '--print-data']
+    if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
+        cmd += ['-n', namespace]
+
+    stdout, rc = get_cmd_output(cmd)
+    if rc:
+        click.echo("Failed to get cmd output '{}':rc {}".format(cmd, rc))
+        raise click.Abort()
+
+    try:
+        config_json = json.loads(stdout)
+    except JSONDecodeError as e:
+        click.echo("Failed to load output '{}':{}".format(cmd, e))
+        raise click.Abort()
+
+    return config_json
 
 # Lazy global class instance for SONiC interface name to alias conversion
 iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
@@ -288,6 +307,7 @@ cli.add_command(kube.kubernetes)
 cli.add_command(muxcable.muxcable)
 cli.add_command(nat.nat)
 cli.add_command(platform.platform)
+cli.add_command(p4_table.p4_table)
 cli.add_command(processes.processes)
 cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(sflow.sflow)
@@ -716,7 +736,8 @@ def queue():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
 @click.option('--voq', is_flag=True, help="VOQ counters")
-def counters(interfacename, namespace, display, verbose, json, voq):
+@click.option('--nonzero', is_flag=True, help="Non Zero Counters")
+def counters(interfacename, namespace, display, verbose, json, voq, nonzero):
     """Show queue counters"""
 
     cmd = ["queuestat"]
@@ -736,6 +757,9 @@ def counters(interfacename, namespace, display, verbose, json, voq):
 
     if voq:
         cmd += ["-V"]
+
+    if nonzero:
+        cmd += ["-nz"]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1401,25 +1425,25 @@ def runningconfiguration():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Show full running configuration"""
-    cmd = ['sonic-cfggen', '-d', '--print-data']
-    stdout, rc = get_cmd_output(cmd)
-    if rc:
-        click.echo("Failed to get cmd output '{}':rc {}".format(cmd, rc))
-        raise click.Abort()
+    output = {}
+    bgpraw_cmd = "show running-config"
 
-    try:
-        output = json.loads(stdout)
-    except JSONDecodeError as e:
-        click.echo("Failed to load output '{}':{}".format(cmd, e))
-        raise click.Abort()
+    import utilities_common.bgp_util as bgp_util
+    # In multiaisc, the namespace is changed to 'localhost' by design
+    host_config = get_config_json_by_namespace(multi_asic.DEFAULT_NAMESPACE)
+    output['localhost'] = host_config
 
-    if not multi_asic.is_multi_asic():
-        bgpraw_cmd = [constants.RVTYSH_COMMAND, '-c', 'show running-config']
-        bgpraw, rc = get_cmd_output(bgpraw_cmd)
-        if rc:
-            bgpraw = ""
-        output['bgpraw'] = bgpraw
-    click.echo(json.dumps(output, indent=4))
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_namespace_list()
+        for ns in ns_list:
+            ns_config = get_config_json_by_namespace(ns)
+            if bgp_util.is_bgp_feature_state_enabled(ns):
+                ns_config['bgpraw'] = bgp_util.run_bgp_show_command(bgpraw_cmd, ns)
+            output[ns] = ns_config
+        click.echo(json.dumps(output, indent=4))
+    else:
+        host_config['bgpraw'] = bgp_util.run_bgp_show_command(bgpraw_cmd)
+        click.echo(json.dumps(output['localhost'], indent=4))
 
 
 # 'acl' subcommand ("show runningconfiguration acl")
