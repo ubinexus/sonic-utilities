@@ -14,6 +14,7 @@ import sys
 import time
 import itertools
 import copy
+import tempfile
 
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
@@ -33,7 +34,7 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
-from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
+from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding, update_config
 from utilities_common.general import load_db_config, load_module_from_source
 from .validated_config_db_connector import ValidatedConfigDBConnector
 import utilities_common.multi_asic as multi_asic_util
@@ -105,6 +106,8 @@ PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
 
+DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
+
 asic_type = None
 
 DSCP_RANGE = click.IntRange(min=0, max=63)
@@ -141,6 +144,14 @@ def read_json_file(fileName):
     except Exception as e:
         raise Exception(str(e))
     return result
+
+# write given JSON file
+def write_json_file(json_input, fileName):
+    try:
+        with open(fileName, 'w') as f:
+            json.dump(json_input, f, indent=4)
+    except Exception as e:
+        raise Exception(str(e))
 
 def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
@@ -1525,6 +1536,12 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
         if cfg_files:
             file = cfg_files[inst+1]
+            # Save to tmpfile in case of stdin input which can only be read once
+            if file == "/dev/stdin":
+                file_input = read_json_file(file)
+                (_, tmpfname) = tempfile.mkstemp(dir="/tmp", suffix="_configReloadStdin")
+                write_json_file(file_input, tmpfname)
+                file = tmpfname
         else:
             if file_format == 'config_db':
                 if namespace is None:
@@ -1539,6 +1556,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         if not os.path.exists(file):
             click.echo("The config file {} doesn't exist".format(file))
             continue
+
+        if file_format == 'config_db':
+            file_input = read_json_file(file)
+
+            platform = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("platform")
+            mac = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("mac")
+
+            if not platform or not mac:
+                log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
+                    .format(None if platform is None else platform, None if mac is None else mac))
+                load_sysinfo = True
 
         if load_sysinfo:
             try:
@@ -1598,6 +1628,13 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
 
+        if os.path.exists(file) and file.endswith("_configReloadStdin"):
+            # Remove tmpfile
+            try:
+                os.remove(file)
+            except OSError as e:
+                click.echo("An error occurred while removing the temporary file: {}".format(str(e)), err=True)
+
         # Migrate DB contents to latest version
         db_migrator='/usr/local/bin/db_migrator.py'
         if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
@@ -1648,17 +1685,15 @@ def load_mgmt_config(filename):
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
     if len(config_data['MGMT_INTERFACE'].keys()) > 0:
         filepath = '/var/run/dhclient.eth0.pid'
-        if not os.path.isfile(filepath):
-            sys.exit('File {} does not exist'.format(filepath))
+        if os.path.isfile(filepath):
+            out0, rc0 = clicommon.run_command(['cat', filepath], display_cmd=True, return_cmd=True)
+            if rc0 != 0:
+                sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
 
-        out0, rc0 = clicommon.run_command(['cat', filepath], display_cmd=True, return_cmd=True)
-        if rc0 != 0:
-            sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
-
-        out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], return_cmd=True)
-        if rc1 != 0:
-            sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
-        clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
+            out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], display_cmd=True, return_cmd=True)
+            if rc1 != 0:
+                sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
+            clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
@@ -1673,6 +1708,15 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     """Reconfigure based on minigraph."""
     argv_str = ' '.join(['config', *sys.argv[1:]])
     log.log_notice(f"'load_minigraph' executing with command: {argv_str}")
+
+    # check if golden_config exists if override flag is set
+    if override_config:
+        if golden_config_path is None:
+            golden_config_path = DEFAULT_GOLDEN_CONFIG_DB_FILE
+        if not os.path.isfile(golden_config_path):
+            click.secho("Cannot find '{}'!".format(golden_config_path),
+                        fg='magenta')
+            raise click.Abort()
 
     #Stop services before config push
     if not no_service_restart:
@@ -1710,7 +1754,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     update_sonic_environment()
 
     if os.path.isfile('/etc/sonic/acl.json'):
-        clicommon.run_command(['acl-loader', 'update', 'full', '/etc/sonic/acl.json'], display_cmd=True)
+        clicommon.run_command(['acl-loader', 'update', 'full', '/etc/sonic/acl.json', '--skip_action_validation'], display_cmd=True)
 
     # Load port_config.json
     try:
@@ -1745,12 +1789,6 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
 
     # Load golden_config_db.json
     if override_config:
-        if golden_config_path is None:
-            golden_config_path = DEFAULT_GOLDEN_CONFIG_DB_FILE
-        if not os.path.isfile(golden_config_path):
-            click.secho("Cannot find '{}'!".format(golden_config_path),
-                        fg='magenta')
-            raise click.Abort()
         override_config_by(golden_config_path)
 
     # Invoke platform script if available before starting the services
@@ -1915,7 +1953,11 @@ def override_config_table(db, input_config_db, dry_run):
             ns_config_input = config_input
         # Generate sysinfo if missing in ns_config_input
         generate_sysinfo(current_config, ns_config_input, ns)
+        # Use deepcopy by default to avoid modifying input config
         updated_config = update_config(current_config, ns_config_input)
+
+        # Enable YANG hard dependecy check to exit early if not satisfied
+        table_hard_dependency_check(updated_config)
 
         yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
         if yang_enabled:
@@ -1932,6 +1974,18 @@ def override_config_table(db, input_config_db, dry_run):
             validate_config_by_cm(cm, ns_config_input, "config_input")
             # Validate updated whole config
             validate_config_by_cm(cm, updated_config, "updated_config")
+        else:
+            cm = None
+            try:
+                # YANG validate of config minigraph generated
+                cm = ConfigMgmt(configdb=config_db)
+                cm.validateConfigData()
+            except Exception as ex:
+                log.log_warning("Failed to validate running config. Alerting: {}".format(ex))
+
+            # YANG validate config of minigraph generated overriden by golden config
+            if cm:
+                validate_config_by_cm_alerting(cm, updated_config, "updated_config")
 
         if dry_run:
             print(json.dumps(updated_config, sort_keys=True,
@@ -1950,12 +2004,13 @@ def validate_config_by_cm(cm, config_json, jname):
         sys.exit(1)
 
 
-def update_config(current_config, config_input):
-    updated_config = copy.deepcopy(current_config)
-    # Override current config with golden config
-    for table in config_input:
-        updated_config[table] = config_input[table]
-    return updated_config
+def validate_config_by_cm_alerting(cm, config_json, jname):
+    tmp_config_json = copy.deepcopy(config_json)
+    try:
+        cm.loadData(tmp_config_json)
+        cm.validateConfigData()
+    except Exception as ex:
+        log.log_warning("Failed to validate {}. Alerting: {}".format(jname, ex))
 
 
 def override_config_db(config_db, config_input):
@@ -1969,6 +2024,22 @@ def override_config_db(config_db, config_input):
     data = sonic_cfggen.FormatConverter.output_to_db(config_input)
     config_db.mod_config(data)
     click.echo("Overriding completed. No service is restarted.")
+
+
+def table_hard_dependency_check(config_json):
+    aaa_table_hard_dependency_check(config_json)
+
+
+def aaa_table_hard_dependency_check(config_json):
+    AAA_TABLE = config_json.get("AAA", {})
+    TACPLUS_TABLE = config_json.get("TACPLUS", {})
+
+    aaa_authentication_login = AAA_TABLE.get("authentication", {}).get("login", "")
+    tacacs_enable = "tacacs+" in aaa_authentication_login.split(",")
+    tacplus_passkey = TACPLUS_TABLE.get("global", {}).get("passkey", "")
+    if tacacs_enable and len(tacplus_passkey) == 0:
+        click.secho("Authentication with 'tacacs+' is not allowed when passkey not exits.", fg="magenta")
+        sys.exit(1)
 
 
 #
@@ -2909,11 +2980,23 @@ def _qos_update_ports(ctx, ports, dry_run, json_data):
             click.secho("QoS definition template not found at {}".format(qos_template_file), fg="yellow")
             ctx.abort()
 
-        # Remove multi indexed entries first
+        # Remove entries first
+        for table_name in tables_single_index:
+            for port in portset_to_handle:
+                if config_db.get_entry(table_name, port):
+                    config_db.set_entry(table_name, port, None)
+
         for table_name in tables_multi_index:
             entries = config_db.get_keys(table_name)
             for key in entries:
-                port, _ = key
+                # Add support for chassis/multi-dut:
+                # on a single-dut, key = ('Ethernet136', '6')
+                # while on a chassis, key = ('str2-chassis-lcx-1', 'Asic0', 'Ethernet84', '5')
+                for element in key:
+                    if element.startswith('Eth'):
+                        port = element
+                        break
+                assert port is not None, "Port is not found in config DB"
                 if not port in portset_to_handle:
                     continue
                 config_db.set_entry(table_name, '|'.join(key), None)
@@ -4479,7 +4562,11 @@ def fec(ctx, interface_name, interface_fec, verbose):
 def ip(ctx):
     """Set IP interface attributes"""
     pass
-
+  
+def validate_vlan_exists(db,text):
+    data = db.get_table('VLAN')
+    keys = list(data.keys())
+    return text in keys
 #
 # 'add' subcommand
 #
@@ -4543,6 +4630,12 @@ def add(ctx, interface_name, ip_addr, gw):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    
+    if table_name == "VLAN_INTERFACE":
+        if not validate_vlan_exists(config_db, interface_name):
+            ctx.fail(f"Error: {interface_name} does not exist. Vlan must be created before adding an IP address")
+            return
+    
     interface_entry = config_db.get_entry(table_name, interface_name)
     if len(interface_entry) == 0:
         if table_name == "VLAN_SUB_INTERFACE":
@@ -5102,6 +5195,43 @@ def reset(ctx, interface_name):
 
     cmd = ['sudo', 'sfputil', 'reset', str(interface_name)]
     clicommon.run_command(cmd)
+
+#
+# 'dom' subcommand ('config interface transceiver dom ...')
+# This command is supported only for
+#   1. non-breakout ports (subport = 0 or subport field is absent in CONFIG_DB)
+#   2. first subport of breakout ports (subport = 1)
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('desired_config', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
+@click.pass_context
+def dom(ctx, interface_name, desired_config):
+    """Enable/disable DOM monitoring for SFP transceiver module"""
+    log.log_info("interface transceiver dom {} {} executing...".format(interface_name, desired_config))
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    port_table_entry = config_db.get_entry("PORT", interface_name)
+    if not port_table_entry:
+        ctx.fail("Interface {} does not exist".format(interface_name))
+
+    # We are handling port configuration only for the below mentioned scenarios
+    # Port is a non-breakout port (subport = 0 or subport field is absent in CONFIG_DB)
+    # Port is first subport of breakout ports (subport = 1)
+    # If the port is not in the above mentioned scenarios, then fail the command
+    if port_table_entry.get("subport", '0') not in DOM_CONFIG_SUPPORTED_SUBPORTS:
+        ctx.fail("DOM monitoring config only supported for subports {}".format(DOM_CONFIG_SUPPORTED_SUBPORTS))
+    else:
+        config_db.mod_entry("PORT", interface_name, {"dom_polling": "disabled" if desired_config == "disable" else "enabled"})
 
 #
 # 'mpls' subgroup ('config interface mpls ...')
@@ -6435,6 +6565,22 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
 
 
 #
+# 'mmu' command ('config mmu...')
+#
+@config.command()
+@click.option('-p', metavar='<profile_name>', type=str, required=True, help="Profile name")
+@click.option('-a', metavar='<alpha>', type=click.IntRange(-8,8), help="Set alpha for profile type dynamic")
+@click.option('-s', metavar='<staticth>', type=int, help="Set staticth for profile type static")
+def mmu(p, a, s):
+    """mmuconfig configuration tasks"""
+    log.log_info("'mmuconfig -p {}' executing...".format(p))
+    command = ['mmuconfig', '-p', str(p)]
+    if a is not None: command += ['-a', str(a)]
+    if s is not None: command += ['-s', str(s)]
+    clicommon.run_command(command)
+
+
+#
 # 'pfc' group ('config interface pfc ...')
 #
 
@@ -6999,7 +7145,9 @@ def add_ntp_server(ctx, ntp_ip_address):
         return
     else:
         try:
-            db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+            db.set_entry('NTP_SERVER', ntp_ip_address,
+                         {'resolve_as': ntp_ip_address,
+                          'association_type': 'server'})
         except ValueError as e:
             ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
@@ -7120,6 +7268,41 @@ def polling_int(ctx, interval):
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
+def is_port_egress_sflow_supported():
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="SWITCH_CAPABILITY|switch"
+    supported = state_db.get(state_db.STATE_DB, entry_name,"PORT_EGRESS_SAMPLE_CAPABLE")
+    return supported
+
+#
+# 'sflow' command ('config sflow sample-direction ...')
+#
+@sflow.command('sample-direction')
+@click.argument('direction',  metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def global_sample_direction(ctx, direction):
+    """Set sampling direction """
+    if ADHOC_VALIDATION:
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if ((direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false')):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    sflow_tbl = config_db.get_table('SFLOW')
+
+    if not sflow_tbl:
+        sflow_tbl = {'global': {'admin_state': 'down'}}
+
+    sflow_tbl['global']['sample_direction'] = direction
+    try:
+        config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
 def is_valid_sample_rate(rate):
     return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
@@ -7228,6 +7411,40 @@ def sample_rate(ctx, ifname, rate):
                 config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
             except ValueError as e:
                 ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
+#
+# 'sflow' command ('config sflow interface sample-direction  ...')
+#
+@interface.command('sample-direction')
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.argument('direction', metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def interface_sample_direction(ctx, ifname, direction):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+            click.echo('Invalid interface name')
+            return
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if (direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false'):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    sess_dict = config_db.get_table('SFLOW_SESSION')
+
+    if sess_dict and ifname in sess_dict.keys():
+        sess_dict[ifname]['sample_direction'] = direction
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+    else:
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_direction': direction})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
@@ -7677,7 +7894,7 @@ def clock():
 
 
 def get_tzs(ctx, args, incomplete):
-    ret = clicommon.run_command('timedatectl list-timezones',
+    ret = clicommon.run_command(['timedatectl', 'list-timezones'],
                                 display_cmd=False, ignore_error=False,
                                 return_cmd=True)
     if len(ret) == 0:
