@@ -999,7 +999,7 @@ def vrrp(ctx, verbose):
     if ctx.invoked_subcommand is not None:
         return
 
-    cmd = 'sudo {} -c "show vrrp"'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp']
     run_command(cmd, display_cmd=verbose)
 
 # 'interface' command  
@@ -1010,11 +1010,11 @@ def vrrp(ctx, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def vrrp_interface(ctx, interface_name, vrid, verbose):
     """show vrrp interface <interface_name> <vrid>"""
-    cmd = 'sudo {} -c "show vrrp'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp']
     if vrid is not None:
-        cmd += ' interface {} {}"'.format(interface_name, vrid)
+        cmd[-1] += ' interface {} {}'.format(interface_name, vrid)
     else:
-        cmd += ' interface {}"'.format(interface_name)
+        cmd[-1] += ' interface {}'.format(interface_name)
     run_command(cmd, display_cmd=verbose)
 
 # 'vrid' command  
@@ -1024,7 +1024,7 @@ def vrrp_interface(ctx, interface_name, vrid, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def vrrp_vrid(ctx, vrid, verbose):
     """show vrrp vrid <vrid>"""
-    cmd = 'sudo {} -c "show vrrp {}"'.format(constants.RVTYSH_COMMAND, vrid)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp {}'.format(vrid)]
     run_command(cmd, display_cmd=verbose)
 
 # 'summary' command
@@ -1033,44 +1033,56 @@ def vrrp_vrid(ctx, vrid, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def vrrp_summary(ctx, verbose):
     """show vrrp summary"""
-    cmd = 'sudo {} -c "show vrrp summary"'.format(constants.RVTYSH_COMMAND)
-    # run_command(cmd, display_cmd=verbose)
-    result = run_command(cmd, display_cmd=verbose, return_cmd=True)
-    result = result.splitlines()
-    if len(result) == 0:
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp summary']
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'vrrp6' group ("show vrrp6 ...")
+#
+@cli.group(cls=clicommon.AliasedGroup, invoke_without_command="true")
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def vrrp6(ctx, verbose):
+    """Show vrrp6 commands"""
+    if ctx.invoked_subcommand is not None:
         return
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    headers = []
-    table = []
-    interface_index = 0
-    vrid_index = 0
-    priority_index = 0
-    for line in result:
-        if len(line.split()) <= 1:
-            continue
-        if len(headers) == 0:
-            headers = line.split()
-            interface_index = headers.index("Interface")
-            vrid_index = headers.index("VRID")
-            priority_index = headers.index("Priority")
-            headers.insert(priority_index, "Configured Priority")
-        else:
-            vrrp = line.split()
-            interface_name = vrrp[interface_index]
-            vrid = vrrp[vrid_index]
-            vrrp_entry = config_db.get_entry("VRRP", (interface_name, vrid))
-            conf_priority = 100
-            if "priority" in vrrp_entry:
-                conf_priority = int(vrrp_entry["priority"])
-            vrrp.insert(priority_index, conf_priority)
-            table.append(vrrp)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6']
+    run_command(cmd, display_cmd=verbose)
 
-    if len(headers) != 0 and len(table) != 0:
-        click.echo()
-        click.echo(tabulate(table, headers=headers, tablefmt="simple"))
-        click.echo()
+# 'interface' command  
+@vrrp6.command('interface')
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('vrid', metavar='<vrid>', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def vrrp6_interface(ctx, interface_name, vrid, verbose):
+    """show vrrp6 interface <interface_name> <vrid>"""
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6']
+    if vrid is not None:
+        cmd[-1] += ' interface {} {}'.format(interface_name, vrid)
+    else:
+        cmd[-1] += ' interface {}'.format(interface_name)
+    run_command(cmd, display_cmd=verbose)
+
+# 'vrid' command  
+@vrrp6.command('vrid')
+@click.pass_context
+@click.argument('vrid', metavar='<vrid>', required=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def vrrp6_vrid(ctx, vrid, verbose):
+    """show vrrp6 vrid <vrid>"""
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6 {}'.format(vrid)]
+    run_command(cmd, display_cmd=verbose)
+
+# 'summary' command
+@vrrp6.command('summary')
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def vrrp6_summary(ctx, verbose):
+    """show vrrp6 summary"""
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6 summary']
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'ip' group ("show ip ...")
