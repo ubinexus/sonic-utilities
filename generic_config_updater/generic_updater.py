@@ -40,62 +40,63 @@ class PatchApplier:
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier(namespace=self.namespace)
 
     def apply(self, patch, sort=True):
-        self.logger.log_notice(f"{self.namespace}: Patch application starting.")
-        self.logger.log_notice(f"{self.namespace}: Patch: {patch}")
+        scope = self.namespace if self.namespace else 'localhost'
+        self.logger.log_notice(f"{scope}: Patch application starting.")
+        self.logger.log_notice(f"{scope}: Patch: {patch}")
 
         # Get old config
-        self.logger.log_notice("Getting current config db.")
+        self.logger.log_notice(f"{scope }G getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
-        self.logger.log_notice("Simulating the target full config after applying the patch.")
+        self.logger.log_notice(f"{scope}: simulating the target full config after applying the patch.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # Validate all JsonPatch operations on specified fields
-        self.logger.log_notice("Validating all JsonPatch operations are permitted on the specified fields")
+        self.logger.log_notice(f"{scope}: validating all JsonPatch operations are permitted on the specified fields")
         self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
-        self.logger.log_notice("Validating target config does not have empty tables, " \
+        self.logger.log_notice(f"{scope}: alidating target config does not have empty tables, " \
                                "since they do not show up in ConfigDb.")
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables: # if there are empty tables
             empty_tables_txt = ", ".join(empty_tables)
-            raise EmptyTableError("Given patch is not valid because it will result in empty tables " \
+            raise EmptyTableError(f"{scope}: given patch is not valid because it will result in empty tables " \
                              "which is not allowed in ConfigDb. " \
                             f"Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
 
         # Generate list of changes to apply
         if sort:
-            self.logger.log_notice("Sorting patch updates.")
+            self.logger.log_notice(f"{scope}: sorting patch updates.")
             changes = self.patchsorter.sort(patch)
         else:
-            self.logger.log_notice("Converting patch to JsonChange.")
+            self.logger.log_notice(f"{scope}: converting patch to JsonChange.")
             changes = [JsonChange(jsonpatch.JsonPatch([element])) for element in patch]
 
         changes_len = len(changes)
-        self.logger.log_notice(f"The patch was converted into {changes_len} " \
+        self.logger.log_notice(f"The {scope} patch was converted into {changes_len} " \
                           f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
 
         for change in changes:
             self.logger.log_notice(f"  * {change}")
 
         # Apply changes in order
-        self.logger.log_notice(f"Applying {changes_len} change{'s' if changes_len != 1 else ''} " \
+        self.logger.log_notice(f"{scope}: applying {changes_len} change{'s' if changes_len != 1 else ''} " \
                                f"in order{':' if changes_len > 0 else '.'}")
         for change in changes:
             self.logger.log_notice(f"  * {change}")
             self.changeapplier.apply(change)
 
         # Validate config updated successfully
-        self.logger.log_notice("Verifying patch updates are reflected on ConfigDB.")
+        self.logger.log_notice(f"{scope}: verifying patch updates are reflected on ConfigDB.")
         new_config = self.config_wrapper.get_config_db_as_json()
         self.changeapplier.remove_backend_tables_from_config(target_config)
         self.changeapplier.remove_backend_tables_from_config(new_config)
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
-            raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
+            raise GenericConfigUpdaterError(f"{scope}: after applying patch to config, there are still some parts not updated")
 
-        self.logger.log_notice("Patch application completed.")
+        self.logger.log_notice(f"{scope} patch application completed.")
 
 
 class ConfigReplacer:

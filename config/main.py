@@ -1152,6 +1152,33 @@ def validate_gre_type(ctx, _, value):
         return gre_type_value
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
+    
+# Function to extract scope identifier from the change path
+def extract_scope(path):
+    if path.startswith("/asic"):
+        start = path.find("/") + 1
+        end = path.find("/", start)
+        return path[start:end], path[end:]
+    elif path.startswith("/localhost"):
+        return "localhost", path[len("/localhost"):]
+    else:
+        return "", path
+
+# Function to apply patch for a single ASIC.
+def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
+    scope, changes = scope_changes
+    # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
+    if scope.lower() == "localhost" or scope == "":
+        scope = multi_asic.DEFAULT_NAMESPACE
+    try:
+        # Call apply_patch with the ASIC-specific changes and predefined parameters
+        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        results[scope] = {"success": True, "message": "Success"}
+        log.log_notice(f"'apply-patch' executed successfully for {scope} by {changes}")
+    except Exception as e:
+        results[scope] = {"success": False, "message": str(e)}
+        log.log_error(f"'apply-patch' executed failed for {scope} by {changes} due to {str(e)}")
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1359,60 +1386,33 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
         results = {}
         config_format = ConfigFormat[format.upper()]
-        if multi_asic.is_multi_asic():
-            # Initialize a dictionary to hold changes categorized by ASIC
-            changes_by_asic = {}
+        # Initialize a dictionary to hold changes categorized by scope
+        changes_by_scope = {}
 
-            # Function to extract ASIC identifier from the change path
-            def extract_asic_id(path):
-                start = path.find("/") + 1
-                end = path.find("/", start)
-                return path[start:end], path[end:]  # Also return the modified path without ASIC ID
+        # Iterate over each change in the JSON Patch
+        for change in patch:
+            scope, modified_path = extract_scope(change["path"])
 
-            # Function to apply patch for a single ASIC.
-            def apply_patch_for_asic(asic_changes):
-                asic_id, changes = asic_changes
+            # Modify the 'path' in the change to remove the scope
+            change["path"] = modified_path
 
-                # Replace localhost to empty string which is db definition of Host
-                if asic_id.lower() == "localhost":
-                    asic_id = ""
+            # Check if the scope is already in our dictionary, if not, initialize it
+            if scope not in changes_by_scope:
+                changes_by_scope[scope] = []
 
-                try:
-                    # Call apply_patch with the ASIC-specific changes and predefined parameters
-                    GenericUpdater(namespace=asic_id).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
-                    results[asic_id] = {"success": True, "message": "Success"}
+            # Add the modified change to the appropriate list based on scope
+            changes_by_scope[scope].append(change)
 
-                    log.log_notice(f"'apply-patch' executed successfully for {asic_id} by {changes}")
-                except Exception as e:
-                    results[asic_id] = {"success": False, "message": str(e)}
-                    log.log_notice(f"'apply-patch' executed failed for {asic_id} by {changes} due to {str(e)}")
+        # Apply changes for each scope
+        for scope_changes in changes_by_scope.items():
+            apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
-            # Iterate over each change in the JSON Patch
-            for change in patch:
-                asic_id, modified_path = extract_asic_id(change["path"])
+        # Check if any updates failed
+        failures = [scope for scope, result in results.items() if not result['success']]
 
-                # Modify the 'path' in the change to remove the ASIC ID
-                change["path"] = modified_path
-
-                # Check if the ASIC ID is already in our dictionary, if not, initialize it
-                if asic_id not in changes_by_asic:
-                    changes_by_asic[asic_id] = []
-
-                # Add the modified change to the appropriate list based on ASIC ID
-                changes_by_asic[asic_id].append(change)
-
-            for asic_changes in changes_by_asic.items():
-                apply_patch_for_asic(asic_changes)
-
-            # Check if any ASIC updates failed
-            failures = [asic_id for asic_id, result in results.items() if not result['success']]
-
-            if failures:
-                failure_messages = '\n'.join([f"- {asic_id}: {results[asic_id]['message']}" for asic_id in failures])
-                raise Exception(f"Failed to apply patch on the following ASICs:\n{failure_messages}")
-
-        else:
-            GenericUpdater(multi_asic.DEFAULT_NAMESPACE).apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        if failures:
+            failure_messages = '\n'.join([f"- {scope}: {results[scope]['message']}" for scope in failures])
+            raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
 
         log.log_notice(f"Patch applied successfully for {patch}.")
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
