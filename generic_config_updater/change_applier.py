@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
 from sonic_py_common import multi_asic
-from .gu_common import genericUpdaterLogging, get_config_db_as_text
+from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
@@ -34,7 +34,9 @@ def log_error(m):
 
 
 def get_config_db(namespace=multi_asic.DEFAULT_NAMESPACE):
-    return multi_asic.connect_config_db_for_ns(namespace=namespace)
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+    return config_db
 
 def set_config(config_db, tbl, key, data):
     config_db.set_entry(tbl, key, data)
