@@ -45,7 +45,7 @@ class PatchApplier:
         self.logger.log_notice(f"{scope}: Patch: {patch}")
 
         # Get old config
-        self.logger.log_notice(f"{scope }G getting current config db.")
+        self.logger.log_notice(f"{scope} getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
@@ -300,7 +300,7 @@ class ConfigLockDecorator(Decorator):
                  decorated_config_rollbacker=None,
                  config_lock=ConfigLock(),
                  namespace=multi_asic.DEFAULT_NAMESPACE):
-        Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, decorated_config_rollbacker, namespace=namespace,)
+        Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, decorated_config_rollbacker, namespace=namespace)
 
         self.config_lock = config_lock
 

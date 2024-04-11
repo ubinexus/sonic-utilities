@@ -1,5 +1,6 @@
 import copy
 import json
+import subprocess
 import jsondiff
 import importlib
 import os
@@ -7,7 +8,7 @@ import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
 from sonic_py_common import multi_asic
-from .gu_common import genericUpdaterLogging
+from .gu_common import GenericConfigUpdaterError, genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
@@ -166,22 +167,28 @@ class ChangeApplier:
             data.pop(key, None)
 
     def _get_running_config(self):
-        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
+        _, fname = tempfile.mkstemp(suffix="_changeApplier")
+        print(fname)
+        
+        if self.namespace:
+            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
+        else:
+            cmd = ['sonic-cfggen', '-d', '--print-data']
 
-        command = "sonic-cfggen -d --print-data"
+        with open(fname, "w") as file:
+            result = subprocess.Popen(cmd, stdout=file, stderr=subprocess.PIPE, text=True)
+            _, err = result.communicate()
 
-        if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
-            command += " -n {}".format(self.namespace)
-        command += " > {}".format(fname)
-
-        ret_code = os.system(command)
-        if ret_code != 0:
-            # Handle the error appropriately, e.g., raise an exception or log an error
-            raise RuntimeError("sonic-cfggen command failed with return code {}".format(ret_code))
+        return_code = result.returncode
+        if return_code:
+            os.remove(fname)
+            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.namespace}, Return code: {return_code}, Error: {err}")
 
         run_data = {}
-        with open(fname, "r") as s:
-            run_data = json.load(s)
-        if os.path.isfile(fname):
-            os.remove(fname)
+        try:
+            with open(fname, "r") as file:
+                run_data = json.load(file)
+        finally:
+            if os.path.isfile(fname):
+                os.remove(fname)
         return run_data

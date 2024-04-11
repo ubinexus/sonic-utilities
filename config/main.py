@@ -1403,6 +1403,13 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             # Add the modified change to the appropriate list based on scope
             changes_by_scope[scope].append(change)
 
+        # Empty case to force validate YANG model.
+        if not changes_by_scope:
+            asic_list = [multi_asic.DEFAULT_NAMESPACE]
+            asic_list.extend(multi_asic.get_namespace_list())
+            for asic in asic_list:
+                changes_by_scope[asic] = []
+
         # Apply changes for each scope
         for scope_changes in changes_by_scope.items():
             apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
