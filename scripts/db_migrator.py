@@ -1280,10 +1280,10 @@ def main():
         # run on the local database, ASIC instance will have not created the /var/run/redis0/sonic-db/database-config.json
         if args.namespace is not None:
             if not SonicDBConfig.isGlobalInit():
-                SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+                SonicDBConfig.initializeGlobalConfig()
         else:
             if not SonicDBConfig.isInit():
-                SonicDBConfig.load_sonic_db_config()
+                SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
