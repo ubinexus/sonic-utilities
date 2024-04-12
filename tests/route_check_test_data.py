@@ -980,7 +980,7 @@ TEST_DATA = {
         },
         RET: -1,
     },
-    "21": {
+    "22": {
         DESCR: "basic good one on single asic, bgp disabled",
         MULTI_ASIC: False,
         NAMESPACE: [''],
@@ -1044,7 +1044,7 @@ TEST_DATA = {
             },
         },
     },
-    "22": {
+    "23": {
         DESCR: "basic good one on multi-asic, bgp disabled",
         MULTI_ASIC: True,
         NAMESPACE: ['asic0'],
