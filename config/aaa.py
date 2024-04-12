@@ -7,7 +7,7 @@ from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 import utilities_common.cli as clicommon
-from sonic_py_common.security_cipher import security_cipher
+from sonic_py_common.security_cipher import master_key_mgr 
 
 ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
@@ -15,7 +15,7 @@ RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
 TACACS_PASSKEY_MAX_LEN = 65
 
-secure_cipher = security_cipher()
+secure_cipher = master_key_mgr()
 
 def is_secret(secret):
     return bool(re.match('^' + '[^ #,]*' + '$', secret))
