@@ -19,7 +19,7 @@ import tempfile
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from collections import OrderedDict
-from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
@@ -1153,17 +1153,6 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
     
-# Function to extract scope identifier from the change path
-def extract_scope(path):
-    if path.startswith("/asic"):
-        start = path.find("/") + 1
-        end = path.find("/", start)
-        return path[start:end], path[end:]
-    elif path.startswith("/localhost"):
-        return "localhost", path[len("/localhost"):]
-    else:
-        return "", path
-
 # Function to apply patch for a single ASIC.
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
