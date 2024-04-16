@@ -70,8 +70,8 @@ def fetch_reboot_cause_from_db(module_name):
             else:
                 append = True
                 d.append(entry['device'])
-            wrapper = textwrap.TextWrapper(width=30)
-            r.append(entry['device'] if 'device' in entry else "")
+            if not module_name is None:
+                r.append(entry['device'] if 'device' in entry else "")
             if 'cause' in entry:
                 wrp_cause = wrapper.fill(entry['cause'])
             r.append(wrp_cause if 'cause' in entry else "")
@@ -91,6 +91,8 @@ def fetch_reboot_cause_history_from_db(module_name):
     prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
+    wrapper = textwrap.TextWrapper(width=30)
+
     if table_keys is not None:
         table_keys.sort(reverse=True)
 
@@ -101,8 +103,8 @@ def fetch_reboot_cause_history_from_db(module_name):
             if 'device' in entry:
                 device_present = True
             r = []
-            wrapper = textwrap.TextWrapper(width=30)
-            r.append(entry['device'] if 'device' in entry else "SWITCH")
+            if not module_name is None and device_present: 
+                r.append(entry['device'] if 'device' in entry else "SWITCH")
             r.append(tk.replace(prefix, ""))
             if 'cause' in entry:
                 wrp_cause = wrapper.fill(entry['cause'])
@@ -160,19 +162,24 @@ def all():
     """Show cause of most recent reboot"""
     reboot_cause_data = fetch_reboot_cause_from_db("all")
     if not reboot_cause_data:
-        click.echo(f"Reboot cause history for {module_name} is not available.")
+        click.echo("Reboot-cause history is not yet available in StateDB")
     else:
         header = ['Device', 'Name', 'Cause', 'Time', 'User']
         click.echo(tabulate(reboot_cause_data, header, numalign="left"))
 
 # 'history' command within 'reboot-cause'
 @reboot_cause.command()
-@click.argument('module_name', default='all', required=False)
+@click.argument('module_name', required=False)
 def history(module_name):
     """Show history of reboot-cause"""
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
     if not reboot_cause_history:
-        click.echo(f"Reboot cause history for {module_name} is not available.")
+        click.echo("Reboot-cause history is not yet available in StateDB")
     else:
-        header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
-        click.echo(tabulate(reboot_cause_history, header, numalign="left"))
+        if not module_name is None :
+            header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
+            click.echo(tabulate(reboot_cause_history, header, numalign="left"))
+        else:
+            header = ['Name', 'Cause', 'Time', 'User', 'Comment']
+            click.echo(tabulate(reboot_cause_history, header, numalign="left"))
+
