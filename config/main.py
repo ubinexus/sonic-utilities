@@ -5945,36 +5945,6 @@ def startup(ctx, interface_name, vrrp_id):
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
 
 #
-# 'vrrp' subcommand ('config interface vrrp backup_forward ...')
-#
-@vrrp.command("backup_forward")
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.argument('forward', metavar='<forward>', required=True, type=click.Choice(["enabled", "disabled"]), default="disabled")
-@click.pass_context
-def backup_forward(ctx, interface_name, vrrp_id, forward):
-    """Config backup_forward mode to the vrrp instance"""
-    config_db = ctx.obj["config_db"]
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    table_name = get_interface_table_name(interface_name)
-    if table_name == "" or table_name == "LOOPBACK_INTERFACE":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
-    if interface_name not in config_db.get_table(table_name):
-        ctx.fail("Router Interface '{}' not found".format(interface_name))
-
-    vrrp_entry = config_db.get_entry("VRRP", (interface_name, str(vrrp_id)))
-    if not vrrp_entry:
-        ctx.fail("vrrp instance {} not found on interface {}".format(vrrp_id, interface_name))
-
-    vrrp_entry['backup_forward'] = forward
-    config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
-
-#
 # 'vrrp' subcommand ('config interface vrrp version...')
 #
 @vrrp.command("version")
