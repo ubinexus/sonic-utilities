@@ -4623,8 +4623,6 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_mode == "trunk" or interface_mode == "access":
             click.echo("Interface {} is in {} mode and needs to be in routed mode!".format(interface_name, interface_mode))
             return
-    
-   
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:
