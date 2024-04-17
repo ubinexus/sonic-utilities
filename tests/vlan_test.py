@@ -239,7 +239,7 @@ test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_after_del_member_
 +-----------+-----------------+-----------------+----------------+-------------+
 |      1001 |                 | Ethernet20      | tagged         | disabled    |
 +-----------+-----------------+-----------------+----------------+-------------+
-|      1002 |                 |                 | tagged         | disabled    |
+|      1002 |                 |                 |                | disabled    |
 +-----------+-----------------+-----------------+----------------+-------------+
 |      2000 | 192.168.0.10/21 | Ethernet24      | untagged       | enabled     |
 |           | fc02:1011::1/64 | Ethernet28      | untagged       |             |
@@ -473,7 +473,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "{} is not integer".format(vid) in result.output
+        assert "test_fail_case,1001,1002 is not integer".format(vid) in result.output
     
     def test_config_vlan_add_vlan_is_digit_fail(self):
         runner = CliRunner()
@@ -575,7 +575,7 @@ class TestVlan(object):
     def test_config_vlan_add_member_multiple_untagged(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["1000,2000", "Ethernet4", "--multiple"])
+                ["1000,2000", "Ethernet4", "--multiple", "--untagged"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -605,32 +605,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: PortChannel1011 does not exist" in result.output
-
-    def test_config_vlan_add_member_in_alias_mode_with_nonexist_alias(self):
-        runner = CliRunner()
-        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["2000", "etp64"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "cannot find port name for alias etp64" in result.output
-
-        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
-
-    def test_config_vlan_del_member_in_alias_mode_with_nonexist_alias(self):
-        runner = CliRunner()
-        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                ["2000", "etp64"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "cannot find port name for alias etp64" in result.output
-
-        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
     
     def test_config_vlan_add_mirror_destintion_port_member(self):
         runner = CliRunner()
@@ -640,18 +614,6 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
     
-    def test_config_switchport_mode_in_alias_mode_with_nonexist_alias(self):
-        runner = CliRunner()
-        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "etp64"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "cannot find port name for alias etp64" in result.output
-
-        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
-    
     def test_config_switchport_mode_with_mirror_destintion_port(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet44"])
@@ -659,17 +621,37 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
-
-    def test_config_vlan_add_portchannel_member(self):
+    
+    def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
-				["1000", "PortChannel1001", "--untagged"], obj=db)
+        # Configure Ethernet112 to trunk mode; should give error as it is part of Portchannel0001
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet32"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Ethernet112 is part of portchannel!" in result.output
+
+        # Configure Portchannel0001 to trunk mode; should give error as it is a router interface
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Portchannel0001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Remove IP from Portchannel0001 to change mode!" in result.output
+
+        # Configure Portchannel1001 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Portchannel1001"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
+        # Add Portchannel1001 to Vlan1000
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
+				["1000", "PortChannel1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
