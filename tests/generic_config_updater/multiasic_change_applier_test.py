@@ -7,7 +7,7 @@ import generic_config_updater.services_validator
 import generic_config_updater.gu_common
 
 
-class TestMultiAsicChangeApplier(unittest.TestCase):    
+class TestMultiAsicChangeApplier(unittest.TestCase):
 
     def test_extract_scope(self):
         test_paths_expectedresults = {
@@ -17,8 +17,9 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
             "/asic0123456789/PORTCHANNEL/PortChannel102/admin_status": (True, "asic0123456789", "/PORTCHANNEL/PortChannel102/admin_status"),
             "/localhost/BGP_DEVICE_GLOBAL/STATE/tsa_enabled": (True, "localhost", "/BGP_DEVICE_GLOBAL/STATE/tsa_enabled"),
             "/asic1/BGP_DEVICE_GLOBAL/STATE/tsa_enabled": (True, "asic1", "/BGP_DEVICE_GLOBAL/STATE/tsa_enabled"),
+            "/sometable/data": (True, "", "/sometable/data"),
+            "": (False, "", ""),
             "localhostabc/BGP_DEVICE_GLOBAL/STATE/tsa_enabled": (False, "", ""),
-            "/unknownpath/data": (False, "", ""),
             "/asic77": (False, "", ""),
             "/Asic0/PORTCHANNEL/PortChannel102/admin_status": (False, "", ""),
             "/ASIC1/PORTCHANNEL/PortChannel102/admin_status": (False, "", ""),

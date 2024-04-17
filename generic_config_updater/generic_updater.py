@@ -13,27 +13,28 @@ CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
 
 def extract_scope(path):
+    if not path:
+        raise Exception("Wrong patch with empty path.")
+
     try:
         pointer = jsonpointer.JsonPointer(path)
         parts = pointer.parts
     except Exception as e:
-        print("Error resolving path:", e)
-        raise Exception(f"Error resolving path: {path} due to {e}")
+        raise Exception(f"Error resolving path: '{path}' due to {e}")
 
+    if not parts:
+        raise Exception("Wrong patch with empty path.")
     if parts[0].startswith("asic"):
         if not parts[0][len("asic"):].isnumeric():
-            raise Exception(f"Error resolving path: {path} due to incorrect ASIC number.")
-
-        scope = pointer.parts[0]
+            raise Exception(f"Error resolving path: '{path}' due to incorrect ASIC number.")
+        scope = parts[0]
+        remainder = "/" + "/".join(parts[1:])
     elif parts[0] == "localhost":
         scope = "localhost"
-    else:
-        raise Exception(f"Error resolving path: {path} due to invalid scope.")
-    
-    if len(parts) > 1:
         remainder = "/" + "/".join(parts[1:])
     else:
-        raise Exception(f"Error resolving path: {path} due to incomplete path.")
+        scope = ""
+        remainder = path
 
     return scope, remainder
 
