@@ -9,7 +9,7 @@ import generic_config_updater.gu_common
 
 class TestMultiAsicChangeApplier(unittest.TestCase):    
 
-    def test_extract_scope():
+    def test_extract_scope(self):
         test_paths_expectedresults = {
             "/asic0/PORTCHANNEL/PortChannel102/admin_status": (True, "asic0", "/PORTCHANNEL/PortChannel102/admin_status"),
             "/asic01/PORTCHANNEL/PortChannel102/admin_status": (True, "asic01", "/PORTCHANNEL/PortChannel102/admin_status"),
