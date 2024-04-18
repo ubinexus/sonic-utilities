@@ -626,27 +626,27 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
 
-        # Configure Ethernet116 to trunk mode; should give error as it is part of Portchannel0002
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet116"], obj=db)
+        # Configure Ethernet112 to trunk mode; should give error as it is part of PortChannel0001
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet112"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Ethernet116 is part of portchannel!" in result.output
+        assert "Error: Ethernet112 is part of portchannel!" in result.output
 
-        # Configure Portchannel0002 to trunk mode; should give error as it is a router interface
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Portchannel0002"], obj=db)
+        # Configure PortChannel0001 to trunk mode; should give error as it is a router interface
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel0001"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Remove IP from Portchannel0002 to change mode!" in result.output
+        assert "Error: Remove IP from PortChannel0001 to change mode!" in result.output
 
-        # Configure Portchannel1001 to trunk mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Portchannel1001"], obj=db)
+        # Configure PortChannel1001 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel1001"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # Add Portchannel1001 to Vlan1000
+        # Add PortChannel1001 to Vlan1000
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
 				["1000", "PortChannel1001"], obj=db)
         print(result.exit_code)
