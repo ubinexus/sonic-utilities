@@ -660,7 +660,6 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_with_portchannel_output
 
-     
     def test_config_vlan_with_vxlanmap_del_vlan(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
@@ -1183,7 +1182,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output
-
 
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
