@@ -648,7 +648,7 @@ class TestVlan(object):
 
         # Add PortChannel1001 to Vlan1000
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
-				["1000", "PortChannel1001"], obj=db)
+				["1000", "PortChannel1001", "--untagged"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
