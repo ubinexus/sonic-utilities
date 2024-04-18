@@ -627,7 +627,7 @@ class TestVlan(object):
         db = Db()
 
         # Configure Ethernet112 to trunk mode; should give error as it is part of Portchannel0001
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet32"], obj=db)
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet112"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
