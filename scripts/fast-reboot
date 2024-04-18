@@ -500,6 +500,17 @@ function check_conflict_boot_in_fw_update() {
     fi
 }
 
+function sync_fsio_rw()
+{
+    if [ -x /usr/local/bin/fsio-rw-sync ]; then
+        VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
+        /usr/local/bin/fsio-rw-sync
+        rc=$?
+        VERBOSE=yes debug "fsio-rw-sync returned $rc"
+        sleep 1
+    fi
+}
+
 # main starts here
 parseOptions $@
 
@@ -793,6 +804,8 @@ sync
 sleep 1
 sync
 
+sync_fsio_rw
+
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
@@ -807,7 +820,6 @@ if [[ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_FWUTIL_AU_REBOOT_HANDLE} ]]; then
         exit "${EXIT_PLATFORM_FW_AU_FAILURE}"
     fi
 fi
-
 
 # Enable Watchdog Timer
 if [ -x ${WATCHDOG_UTIL} ]; then

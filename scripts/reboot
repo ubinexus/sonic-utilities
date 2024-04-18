@@ -170,6 +170,17 @@ function check_conflict_boot_in_fw_update()
     fi
 }
 
+function sync_fsio_rw()
+{
+    if [ -x /usr/local/bin/fsio-rw-sync ]; then
+        VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
+        /usr/local/bin/fsio-rw-sync
+        rc=$?
+        VERBOSE=yes debug "fsio-rw-sync returned $rc"
+        sleep 1
+    fi
+}
+
 function parse_options()
 {
     while getopts "h?vf" opt; do
@@ -215,6 +226,8 @@ fi
 
 clear_warm_boot
 
+sync_fsio_rw
+
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
@@ -240,12 +253,6 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE} ]; then
     debug "updating reboot cause for ${PLATFORM}"
     ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE}
-fi
-
-if [ -x /usr/bin/local/fsio-sync ]; then
-    VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
-    /usr/bin/local/fsio-sync
-    sleep 1
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then

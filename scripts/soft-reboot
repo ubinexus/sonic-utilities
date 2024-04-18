@@ -81,6 +81,17 @@ function stop_sonic_services()
     stop_pmon_service
 }
 
+function sync_fsio_rw()
+{
+    if [ -x /usr/local/bin/fsio-rw-sync ]; then
+        VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
+        /usr/local/bin/fsio-rw-sync
+        rc=$?
+        VERBOSE=yes debug "fsio-rw-sync returned $rc"
+        sleep 1
+    fi
+}
+
 function clear_lingering_reboot_config()
 {
     # Clear any outstanding warm-reboot config
@@ -214,6 +225,8 @@ tag_images
 stop_sonic_services
 
 clear_lingering_reboot_config
+
+sync_fsio_rw
 
 load_kernel
 
