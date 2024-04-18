@@ -633,6 +633,19 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet112 is part of portchannel!" in result.output
 
+        # Configure PortChannel0001 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Configure PortChannel0001 to routed mode again; should give error as it is already in routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: PortChannel0001 is already in routed mode" in result.output
+
         # Configure PortChannel0001 to trunk mode; should give error as it is a router interface
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel0001"], obj=db)
         print(result.exit_code)
@@ -640,8 +653,38 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Remove IP from PortChannel0001 to change mode!" in result.output
 
-        # Configure PortChannel1001 to trunk mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel1001"], obj=db)
+        # Create PortChannel2000
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"],["PortChannel2000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Configure PortChannel2000 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel2000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Configure PortChannel2000 to access mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "PortChannel2000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Configure PortChannel2000 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel2000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Configure PortChannel2000 back to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel2000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # Delete PortChannel2000
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"],["PortChannel2000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -1028,12 +1071,26 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
+        # configure Ethernet20 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "Ethernet20"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Ethernet20 switched to routed mode" in result.output
+
         # configure Ethernet20 to access mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert "Ethernet20 switched to access mode" in result.output
+
+        # configure Ethernet20 to access mode again; should give error as it is already in access mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Ethernet20 is already in access mode" in result.output
 
         # add Ethernet20 to vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
