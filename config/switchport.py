@@ -133,4 +133,4 @@ def switchport_mode(db, type, port):
                 elif not is_port:
                     db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
                 
-                click.echo("{} switched to {} mode".format(port,type))
+        click.echo("{} switched to {} mode".format(port,type))

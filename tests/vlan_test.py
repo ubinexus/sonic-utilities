@@ -1076,6 +1076,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+        assert "Ethernet20 switched to routed mode" in result.output
 
         # configure Ethernet20 to access mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "Ethernet20"], obj=db)
