@@ -168,7 +168,6 @@ class ChangeApplier:
 
     def _get_running_config(self):
         _, fname = tempfile.mkstemp(suffix="_changeApplier")
-        print(fname)
         
         if self.namespace:
             cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
