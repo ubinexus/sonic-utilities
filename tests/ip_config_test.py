@@ -115,6 +115,21 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Eth36.10', '32.11.10.1/24') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+    
+    def test_add_del_portchannel_interface_valid_ipv4(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config int ip remove PortChannel0002 10.0.0.58/31
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0002", "10.0.0.58/31"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # config int ip add PortChannel0002 10.0.0.58/31
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["PortChannel0002", "10.0.0.58/31"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
 
     def test_add_interface_invalid_ipv4(self):
         db = Db()

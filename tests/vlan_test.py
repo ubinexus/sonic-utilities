@@ -469,11 +469,11 @@ class TestVlan(object):
     def test_config_vlan_add_vlan_with_multiple_vlanids_is_digit_fail(self):
         runner = CliRunner()
         vid = "test_fail_case"
-        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["{},1001,1002".format(vid)])
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["{},1001,1002".format(vid), "--multiple"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "test_fail_case,1001,1002 is not integer".format(vid) in result.output
+        assert "{} is not integer".format(vid) in result.output
     
     def test_config_vlan_add_vlan_is_digit_fail(self):
         runner = CliRunner()
@@ -655,12 +655,6 @@ class TestVlan(object):
 
         # Remove PortChannel1001 member from Vlan4000
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["4000", "PortChannel1001"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        # Configure PortChannel1001 to routed mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel1001"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -1187,6 +1181,13 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+
+        # configure Ethernet20 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet20"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Ethernet20 switched to trunk mode" in result.output
 
         # add Ethernet64 to vlan 1001 but Ethernet64 is in routed mode will give error
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
