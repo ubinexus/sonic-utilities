@@ -119,6 +119,12 @@ class TestConfigVRRP(object):
         assert result.exit_code == 0
         assert ('Ethernet64', '10.10.10.1/24') in db.cfgdb.get_table('INTERFACE')
 
+        # config int ip add Ethernet63 10.10.10.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet63", "9.9.9.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Ethernet63', '9.9.9.1/24') in db.cfgdb.get_table('INTERFACE')
+
         # check interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["add"], ["Ethernt64", "8"], obj=obj)
         print(result.exit_code, result.output)
@@ -189,6 +195,12 @@ class TestConfigVRRP(object):
         assert result.exit_code != 0
         assert ('Ethernet64', '10.10.10.1/24') not in db.cfgdb.get_table('INTERFACE')
 
+        # config int ip remove Ethernet63 9.9.9.1/24
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet63", "9.9.9.1/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert ('Ethernet63', '9.9.9.1/24') not in db.cfgdb.get_table('INTERFACE')
+
     def test_add_del_vrrp6_instance(self):
         runner = CliRunner()
         db = Db()
@@ -199,6 +211,12 @@ class TestConfigVRRP(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('Ethernet64', '100::1/64') in db.cfgdb.get_table('INTERFACE')
+
+        # config int ip add Ethernet63 99::1/64
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet63", "99::1/64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert ('Ethernet63', '99::1/64') in db.cfgdb.get_table('INTERFACE')
 
         # check interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["add"], ["Ethernt64", "8"], obj=obj)
@@ -269,6 +287,12 @@ class TestConfigVRRP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Ethernet64', '100::1/64') not in db.cfgdb.get_table('INTERFACE')
+
+        # config int ip remove Ethernet63 99::1/64
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet63", "99::1/64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert ('Ethernet63', '99::1/64') not in db.cfgdb.get_table('INTERFACE')
 
     def test_add_del_vrrp_instance_track_intf(self):
         db = Db()
@@ -362,25 +386,25 @@ class TestConfigVRRP(object):
         assert ('Ethernet64', '8', 'Ethernet5') not in db.cfgdb.get_table('VRRP_TRACK')
 
         # check interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernt64", "8", "Ethernet5", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernt64", "8", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
         assert "'interface_name' is not valid" in result.output
         assert result.exit_code != 0
 
         # check interface is Router interface
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet2", "8", "Ethernet5", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet2", "8", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
 
         # check track_interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernt5", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernt5"], obj=obj)
         print(result.exit_code, result.output)
         assert "'track_interface' is not valid." in result.output
         assert result.exit_code != 0
 
         # check track_interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
@@ -507,25 +531,25 @@ class TestConfigVRRP(object):
         assert ('Ethernet64', '8', 'Ethernet5') not in db.cfgdb.get_table('VRRP6_TRACK')
 
         # check interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernt64", "8", "Ethernet", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernt64", "8", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
         assert "'interface_name' is not valid" in result.output
         assert result.exit_code != 0
 
         # check interface is Router interface
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet2", "8", "Ethernet5", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet2", "8", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
 
         # check track_interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernt5", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernt5"], obj=obj)
         print(result.exit_code, result.output)
         assert "'track_interface' is not valid." in result.output
         assert result.exit_code != 0
 
         # check track_interface_name is valid
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2", "20"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
