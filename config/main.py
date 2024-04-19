@@ -1162,12 +1162,12 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
-        results[scope] = {"success": True, "message": "Success"}
         scope_for_log = scope if scope else "localhost"
+        results[scope_for_log] = {"success": True, "message": "Success"}
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
-        results[scope] = {"success": False, "message": str(e)}
-        log.log_error(f"'apply-patch' executed failed for {scope if scope else "localhost"} by {changes} due to {str(e)}")
+        results[scope_for_log] = {"success": False, "message": str(e)}
+        log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
 
 # This is our main entrypoint - the main 'config' command
@@ -1408,7 +1408,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
         failures = [scope for scope, result in results.items() if not result['success']]
 
         if failures:
-            failure_messages = '\n'.join([f"- {scope if scope else "localhost"}: {results[scope]['message']}" for scope in failures])
+            failure_messages = '\n'.join([f"- {failed_scope}: {results[failed_scope]['message']}" for failed_scope in failures])
             raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
 
         log.log_notice(f"Patch applied successfully for {patch}.")
