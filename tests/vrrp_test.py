@@ -279,7 +279,7 @@ class TestConfigVRRP(object):
         # config int vrrp remove Ethernet63 9
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["remove"], ["Ethernet63", "9"], obj=obj)
         print(result.exit_code, result.output)
-        assert "Ethernet63 dose not configured the vrrp instance 9" in result.output
+        assert "Ethernet63 dose not configured the Vrrpv6 instance 9" in result.output
         assert result.exit_code != 0
 
         # config int ip remove Ethernet64 100::1/64
@@ -406,7 +406,7 @@ class TestConfigVRRP(object):
         # check track_interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2"], obj=obj)
         print(result.exit_code, result.output)
-        assert "Router Interface 'Ethernet2' not found" in result.output
+        assert "Ethernet2 is not configured on the vrrp instance 8" in result.output
         assert result.exit_code != 0
 
         # config int vrrp remove Ethernet64 8
@@ -551,7 +551,7 @@ class TestConfigVRRP(object):
         # check track_interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet64", "8", "Ethernet2"], obj=obj)
         print(result.exit_code, result.output)
-        assert "Router Interface 'Ethernet2' not found" in result.output
+        assert "Ethernet2 is not configured on the vrrp6 instance 8" in result.output
         assert result.exit_code != 0
 
         # config int vrrp6 remove Ethernet64 8
