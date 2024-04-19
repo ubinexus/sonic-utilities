@@ -1163,7 +1163,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
         results[scope] = {"success": True, "message": "Success"}
-        log.log_notice(f"'apply-patch' executed successfully for {scope if scope else "localhost"} by {changes}")
+        log.log_notice(f"'apply-patch' executed successfully for {scope if scope else 'localhost'} by {changes}")
     except Exception as e:
         results[scope] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope if scope else "localhost"} by {changes} due to {str(e)}")
