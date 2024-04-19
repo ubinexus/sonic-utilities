@@ -5528,7 +5528,7 @@ def disable_use_link_local_only(ctx, interface_name):
     interface_dict = db.get_table(interface_type)
     set_ipv6_link_local_only_on_interface(db, interface_dict, interface_type, interface_name, "disable")
 
-def is_vaild_intf_ip_addr(interface_name, ip_addr) -> bool :
+def is_vaild_intf_ip_addr(ip_addr) -> bool :
     """Check whether the ip address is valid"""
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
@@ -5540,9 +5540,6 @@ def is_vaild_intf_ip_addr(interface_name, ip_addr) -> bool :
         if ip_address.is_unspecified:
             click.echo("IPv6 address {} is unspecified".format(str(ip_address)))
             return False
-        elif str(ip_address.ip) == "::":
-            click.echo("IPv6 address is {} is Zero".format(str(ip_address)))
-            return False
     elif ip_address.version == 4:
         if str(ip_address.ip) == "0.0.0.0":
             click.echo("IPv4 address {} is Zero".format(str(ip_address)))
@@ -5552,24 +5549,10 @@ def is_vaild_intf_ip_addr(interface_name, ip_addr) -> bool :
         click.echo("IP address {} is multicast".format(str(ip_address)))
         return False
 
-    if is_loopback_name_valid(interface_name):
-        if ip_address.network.num_addresses == 1:
-            return True
-    else:
-        if ip_address.is_loopback:
-            click.echo("IP address {} is loopback address".format(str(ip_address)))
-            return False
-        if ip_address.network.num_addresses == 1:
-            click.echo("IP address {} is does not contain any subnet".format(str(ip_address)))
-            return False
-
     if ip_address.version == 4:
         if ip_address.network.prefixlen == 31:
             return True
-        if ip_address.ip == ip_address.network.network_address:
-            click.echo("IP address {} is network address".format(str(ip_address)))
-            return False
-        elif ip_address.ip == ip_address.network.broadcast_address:
+        if ip_address.ip == ip_address.network.broadcast_address:
             click.echo("IP address {} is broadcast address".format(str(ip_address)))
             return False
 
@@ -5613,7 +5596,7 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
     if interface_name not in config_db.get_table(table_name):
         ctx.fail("Router Interface '{}' not found".format(interface_name))
 
-    if not is_vaild_intf_ip_addr(interface_name, ip_addr):
+    if not is_vaild_intf_ip_addr(ip_addr):
         ctx.abort()
     if check_vrrp_ip_exist(config_db, ip_addr):
         ctx.abort()
@@ -6076,7 +6059,7 @@ def add_vrrp6_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
     if interface_name not in config_db.get_table(table_name):
         ctx.fail("Router Interface '{}' not found".format(interface_name))
 
-    if not is_vaild_intf_ip_addr(interface_name, ipv6_addr):
+    if not is_vaild_intf_ip_addr(ipv6_addr):
         ctx.abort()
     if check_vrrp_ip_exist(config_db, ipv6_addr):
         ctx.abort()
