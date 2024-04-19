@@ -157,6 +157,12 @@ class TestConfigVRRP(object):
         assert ('Ethernet64', '8') in db.cfgdb.get_table('VRRP')
         assert db.cfgdb.get_table('VRRP')['Ethernet64', '8']['vip'] == ['10.10.10.8/24', '10.10.10.16/24']
 
+        # config int vrrp ip add Ethernet64 8 10.10.10.16/24
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["ip"].commands["add"], ["Ethernet64", "8", "10.10.10.16/24"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "10.10.10.16/24 has already configured on the Ethernet64 vrrp instance 8"
+        assert result.exit_code == 0
+
         # config int vrrp ip add Ethernet62 7 8.8.8.16/24
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["ip"].commands["add"], ["Ethernet62", "7", "8.8.8.16/24"], obj=obj)
         print(result.exit_code, result.output)
@@ -235,7 +241,7 @@ class TestConfigVRRP(object):
         # config int vrrp remove Ethernet63 9
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["ip"].commands["remove"], ["Ethernet63", "9", "10.10.10.16/24"], obj=obj)
         print(result.exit_code, result.output)
-        assert "Ethernet63 dose not configured the vrrp instance 9" in result.output
+        assert "10.10.10.16/24 is not configured on the vrrp instance" in result.output
         assert result.exit_code != 0
 
         # config int ip remove Ethernet64 10.10.10.1/24
