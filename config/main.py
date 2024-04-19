@@ -5549,13 +5549,6 @@ def is_vaild_intf_ip_addr(ip_addr) -> bool :
         click.echo("IP address {} is multicast".format(str(ip_address)))
         return False
 
-    if ip_address.version == 4:
-        if ip_address.network.prefixlen == 31:
-            return True
-        if ip_address.ip == ip_address.network.broadcast_address:
-            click.echo("IP address {} is broadcast address".format(str(ip_address)))
-            return False
-
     return True
 
 #
