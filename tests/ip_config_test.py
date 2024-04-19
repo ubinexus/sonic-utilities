@@ -121,13 +121,18 @@ class TestConfigIP(object):
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
 
-        # config int ip remove PortChannel0002 10.0.0.58/31
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0002", "10.0.0.58/31"], obj=obj)
+        # config create PortChannel0002 
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0002"], obj=db)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
         # config int ip add PortChannel0002 10.0.0.58/31
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["PortChannel0002", "10.0.0.58/31"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # config int ip remove PortChannel0002 10.0.0.58/31
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0002", "10.0.0.58/31"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 

@@ -639,6 +639,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
+
         # Configure PortChannel0001 to routed mode again; should give error as it is already in routed mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
         print(result.exit_code)

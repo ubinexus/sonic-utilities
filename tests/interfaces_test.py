@@ -269,6 +269,8 @@ class TestInterfaces(object):
         assert result.exit_code != 0
         assert "Error: Invalid interface name Ethernet3" in result.output
 
+    
+
     def test_show_interfaces_naming_mode_default(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["naming_mode"], [])
@@ -419,13 +421,6 @@ class TestInterfaces(object):
 
     def test_show_interfaces_switchport_status(self):
         runner = CliRunner()
-
-        # Configure PortChannel0001 to routed mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        
         result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"].commands["status"])
         print(result.exit_code)
         print(result.output)
