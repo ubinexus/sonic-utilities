@@ -84,7 +84,7 @@ def switchport_mode(db, type, port):
                     db.cfgdb.mod_entry("PORTCHANNEL", port, {"mode": "{}".format(type)})
 
             if existing_mode == type:
-                ctx.fail("{} is already in the {} mode".format(port,type))
+                ctx.fail("{} is already in {} mode".format(port,type))
             else: 
                 if existing_mode == "access" and type == "trunk":
                     pass
