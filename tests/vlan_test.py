@@ -653,38 +653,38 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Remove IP from PortChannel0001 to change mode!" in result.output
 
-        # Create PortChannel2000
-        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel2000"], obj=db)
+        # Create PortChannel1000
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        #assert result.exit_code == 0
+
+        # Configure PortChannel1000 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel1000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # Configure PortChannel2000 to routed mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel2000"], obj=db)
+        # Configure PortChannel1000 to access mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "PortChannel1000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # Configure PortChannel2000 to access mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "PortChannel2000"], obj=db)
+        # Configure PortChannel1000 to trunk mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel1000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # Configure PortChannel2000 to trunk mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "PortChannel2000"], obj=db)
+        # Configure PortChannel1000 back to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel1000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
-        # Configure PortChannel2000 back to routed mode
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel2000"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        # Delete PortChannel2000
-        result = runner.invoke(config.config.commands["portchannel"].commands["del"],["PortChannel2000"], obj=db)
+        # Delete PortChannel1000
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"],["PortChannel1000"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
