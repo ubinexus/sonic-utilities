@@ -1159,10 +1159,11 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
     if scope.lower() == "localhost" or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
+        
+    scope_for_log = scope if scope else "localhost"
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
-        scope_for_log = scope if scope else "localhost"
         results[scope_for_log] = {"success": True, "message": "Success"}
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
