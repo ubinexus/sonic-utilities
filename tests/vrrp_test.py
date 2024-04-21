@@ -161,7 +161,7 @@ class TestConfigVRRP(object):
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["ip"].commands["add"], ["Ethernet64", "8", "10.10.10.16/24"], obj=obj)
         print(result.exit_code, result.output)
         assert "10.10.10.16/24 has already configured on the Ethernet64 vrrp instance 8"
-        assert result.exit_code == 0
+        assert result.exit_code != 0
 
         # config int vrrp ip add Ethernet62 7 8.8.8.16/24
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["ip"].commands["add"], ["Ethernet62", "7", "8.8.8.16/24"], obj=obj)
