@@ -4702,7 +4702,7 @@ def remove(ctx, interface_name, ip_addr):
         command = ['sudo', 'ip', 'netns', 'exec', str(ctx.obj['namespace']), 'ip', 'neigh', 'flush', 'dev', str(interface_name), str(ip_address)]
     else:
         command = ['ip', 'neigh', 'flush', 'dev', str(interface_name), str(ip_address)]
-    clicommon.run_command(command)
+    clicommon.run_command(command, ignore_error=True)
 
 #
 # 'loopback-action' subcommand
