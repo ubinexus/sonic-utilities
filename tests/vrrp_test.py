@@ -449,7 +449,7 @@ class TestConfigVRRP(object):
         # config int vrrp remove Ethernet63 9
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["ipv6"].commands["remove"], ["Ethernet63", "9", "100::16/64"], obj=obj)
         print(result.exit_code, result.output)
-        assert "Ethernet63 dose not configured the Vrrpv6 instance 9" in result.output
+        assert "100::16/64 is not configured on the Vrrpv6 instance 9" in result.output
         assert result.exit_code != 0
 
         # config int vrrp6 ipv6 remove Ethernet64 8 88cg::2/64
@@ -565,7 +565,7 @@ class TestConfigVRRP(object):
         # config interface vrrp track_interface add Ethernet7 7 Ethernet5 40
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["add"], ["Ethernet7", "7", "Ethernet5", "40"], obj=obj)
         print(result.exit_code, result.output)
-        assert "vrrp instance 7 not found on interface Ethernet7' not found" in result.output
+        assert "vrrp instance 7 not found on interface Ethernet7" in result.output
         assert result.exit_code != 0
 
         # config interface vrrp track_interface remove Ethernet64 8 Ethernet6
@@ -737,8 +737,8 @@ class TestConfigVRRP(object):
         assert result.exit_code == 0
         assert ('Ethernet64', '8', 'Ethernet5') not in db.cfgdb.get_table('VRRP6_TRACK')
 
-        # config interface vrrp6 track_interface remove Ethernet7 8 Ethernet5 20
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet7", "8", "Ethernet5", "20"], obj=obj)
+        # config interface vrrp6 track_interface remove Ethernet7 8 Ethernet5
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["track_interface"].commands["remove"], ["Ethernet7", "8", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
         assert "vrrp6 instance 8 not found on interface Ethernet7" in result.output
         assert result.exit_code != 0
