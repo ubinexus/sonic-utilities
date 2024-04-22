@@ -1045,14 +1045,10 @@ def main():
         socket_path = args.socket
         namespace = args.namespace
 
-        # Can't load global config base on the result of is_multi_asic(), because on multi-asic device, when db_migrate.py
-        # run on the local database, ASIC instance will have not created the /var/run/redis0/sonic-db/database-config.json
         if args.namespace is not None:
-            if not SonicDBConfig.isGlobalInit():
-                SonicDBConfig.initializeGlobalConfig()
+            SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
         else:
-            if not SonicDBConfig.isInit():
-                SonicDBConfig.initialize()
+            SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
