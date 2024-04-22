@@ -604,10 +604,10 @@ class TestConfigVRRP(object):
         assert "Ethernet2 is not configured on the vrrp instance 8" in result.output
         assert result.exit_code != 0
 
-        # config interface vrrp track_interface remove Ethernet7 7 Ethernet5 40
-        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet7", "7", "Ethernet5", "40"], obj=obj)
+        # config interface vrrp track_interface remove Ethernet7 7 Ethernet5
+        result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["track_interface"].commands["remove"], ["Ethernet7", "7", "Ethernet5"], obj=obj)
         print(result.exit_code, result.output)
-        assert "vrrp instance 7 not found on interface Ethernet7' not found" in result.output
+        assert "vrrp instance 7 not found on interface Ethernet7" in result.output
         assert result.exit_code != 0
 
         # config int vrrp remove Ethernet64 8
