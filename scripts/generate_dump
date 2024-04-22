@@ -1251,6 +1251,7 @@ collect_mellanox() {
       echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
     fi
 
+    save_cmd "get_component_versions.py" "component_versions"
 }
 
 ###############################################################################
@@ -1266,7 +1267,18 @@ collect_mellanox_dfw_dumps() {
     trap 'handle_error $? $LINENO' ERR
     local platform=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_platform())")
     local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
+    local def_dump_path="/var/log/mellanox/sdk-dumps"
     local sdk_dump_path=`cat /usr/share/sonic/device/${platform}/${hwsku}/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
+
+    if [ -z $sdk_dump_path ]; then
+        # If the SAI_DUMP_STORE_PATH is not found in device specific sai profile, check in common sai profile
+        sdk_dump_path=`docker exec syncd cat /etc/mlnx/sai-common.profile | grep "SAI_DUMP_STORE_PATH" |cut -d = -f2`
+        if [ -z $sdk_dump_path ]; then
+            # If the above two mechanisms fail e.g. when syncd is not running , fallback to default sdk dump path
+            sdk_dump_path=$def_dump_path
+        fi
+    fi
+
 
     if [[ ! -d $sdk_dump_path ]]; then
        # This would mean the SAI_DUMP_STORE_PATH is not mounted on the host and is only accessible though the container 
@@ -1553,6 +1565,27 @@ collect_cisco_8000() {
         echo "'/usr/share/sonic/device/${platform}' does not exist" > /tmp/error
         save_file /tmp/error sai false
     fi
+
+    save_cmd "show platform versions" "platform.versions"
+
+    # run 'hw-management-generate-dump.sh' script and save the result file
+    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
+    if [[ -x $HW_DUMP_FILE ]]; then
+      ${CMD_PREFIX} $HW_DUMP_FILE $ALLOW_PROCESS_STOP
+      ret=$?
+      if [[ $ret -ne 0 ]]; then
+        if [[ $ret -eq $TIMEOUT_EXIT_CODE ]]; then
+          echo "hw-management dump timedout after ${TIMEOUT_MIN} minutes."
+        else
+          echo "hw-management dump failed ..."
+        fi
+      else
+        save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
+        rm -f /tmp/hw-mgmt-dump*
+      fi
+    else
+      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
+    fi
 }
 
 ##############################################################################
@@ -1567,6 +1600,56 @@ collect_cisco_8000() {
 collect_innovium() {
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile'" "show_techsupport_op_ifcs.log"
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile_iSAI'" "show_techsupport_op_iSAI.log"
+}
+
+###############################################################################
+# Collect Nvidia Bluefield specific information
+# Globals:
+#  CMD_PREFIX
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_nvidia_bluefield() {
+    trap 'handle_error $? $LINENO' ERR
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local sai_dump_folder="/root/saisdkdump"
+    local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+
+    ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
+    ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
+
+    if [ $? != 0 ]; then
+        echo "Failed to collect saisdkdump."
+    fi
+
+    copy_from_docker syncd $sai_dump_folder $sai_dump_folder
+    echo "$sai_dump_folder"
+    for file in `ls $sai_dump_folder`; do
+        save_file ${sai_dump_folder}/${file} sai_sdk_dump true
+    done
+
+    ${CMD_PREFIX}rm -rf $sai_dump_folder
+    ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
+
+    DUMP_FILE=/usr/bin/platform-dump.sh
+    if [ -f "$DUMP_FILE" ]; then
+      ${CMD_PREFIX}${timeout_cmd} ${DUMP_FILE} $ALLOW_PROCESS_STOP
+      ret=$?
+      if [ $ret -ne 0 ]; then
+        if [ $ret -eq $TIMEOUT_EXIT_CODE ]; then
+          echo "platform dump timedout after ${TIMEOUT_MIN} minutes."
+        else
+          echo "platform dump failed ..."
+        fi
+      else
+        save_file "/tmp/platform-dump*" "platform-dump" false
+        rm -f /tmp/platform-dump*
+      fi
+    else
+      echo "Platform dump script $DUMP_FILE does not exist"
+    fi
 }
 
 ###############################################################################
@@ -1987,6 +2070,10 @@ main() {
         collect_cisco_8000
     fi
 
+    if [[ "$asic" = "nvidia-bluefield" ]]; then
+        collect_nvidia_bluefield
+    fi
+
     if [ "$asic" = "innovium" ]; then
         collect_innovium
     fi
@@ -2031,7 +2118,7 @@ main() {
 
     save_sai_failure_dump 
 
-    if [[ "$asic" = "mellanox" ]]; then
+    if [[ "$asic" = "mellanox" ]] || [[ "$asic" = "nvidia-bluefield" ]]; then
         collect_mellanox_dfw_dumps
     fi
 

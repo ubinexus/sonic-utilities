@@ -3844,6 +3844,21 @@ This command sets the number of consecutive polls in which no error is detected 
   admin@sonic:~$ config fabric port monitor poll threshold recovery 5 -n asic0
   ```
 
+**config fabric port monitor state <enable/disable>**
+
+This command sets the monitor state in CONFIG_DB to enable/disable the fabric monitor feature.
+
+- Usage:
+  ```
+  config fabric port monitor state [OPTIONS] <state>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor state enable
+  admin@sonic:~$ config fabric port monitor state disable
+  ```
+
 ## Feature
 
 SONiC includes a capability in which Feature state can be enabled/disabled
@@ -5279,6 +5294,22 @@ This command is used to reset an SFP transceiver
   ```
   user@sonic~$ sudo config interface transceiver reset Ethernet0
   Resetting port Ethernet0...  OK
+  ```
+
+**config interface transceiver dom**
+
+This command is used to configure the Digital Optical Monitoring (DOM) for an interface.
+
+- Usage:
+  ```
+  config interface transceiver dom <interface_name> (enable | disable)
+  ```
+
+- Examples:
+  ```
+  user@sonic~$ sudo config interface transceiver dom Ethernet0 enable
+
+  user@sonic~$ sudo config interface transceiver dom Ethernet0 disable
   ```
 
 **config interface mtu <interface_name> (Versions >= 201904)**
@@ -10118,7 +10149,7 @@ This command displays rate limit configuration for containers.
 
 - Usage
   ```
-  show syslog rate-limit-container [<service_name>]
+  show syslog rate-limit-container [<service_name>] -n [<namespace>]
   ```
 
 - Example:
@@ -10142,6 +10173,37 @@ This command displays rate limit configuration for containers.
   SERVICE         INTERVAL    BURST
   --------------  ----------  -------
   bgp             0           0
+
+  # Multi ASIC
+  show syslog rate-limit-container
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          N/A
+  snmp       300          20000
+  swss       2000         12000
+  Namespace asic0:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          N/A
+  snmp       300          20000
+  swss       2000         12000
+
+  # Multi ASIC
+  show syslog rate-limit-container bgp
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
+  Namespace asic0:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
+
+  # Multi ASIC
+  show syslog rate-limit-container bgp -n asic1
+  Namespace asic1:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
   ```
 
 ### Syslog Config Commands
@@ -10220,10 +10282,19 @@ This command is used to configure syslog rate limit for containers.
 - Parameters:
   - _interval_: determines the amount of time that is being measured for rate limiting.
   - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+  - _namespace_: namespace name or all. Value "default" indicates global namespace.
 
 - Example:
   ```
+  # Config bgp for all namespaces. For multi ASIC platforms, bgp service in all namespaces will be affected.
+  # For single ASIC platforms, bgp service in global namespace will be affected.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
+
+  # Config bgp for global namespace only.
+  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n default
+
+  # Config bgp for asic0 namespace only.
+  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n asic0
   ```
 
 **config syslog rate-limit-feature enable**
@@ -10232,12 +10303,28 @@ This command is used to enable syslog rate limit feature.
 
 - Usage:
   ```
-  config syslog rate-limit-feature enable
+  config syslog rate-limit-feature enable [<service_name>] -n [<namespace>]
   ```
 
 - Example:
   ```
+  # Enable syslog rate limit for all services in all namespaces
   admin@sonic:~$ sudo config syslog rate-limit-feature enable
+
+  # Enable syslog rate limit for all services in global namespace
+  config syslog rate-limit-feature enable -n default
+
+  # Enable syslog rate limit for all services in asic0 namespace
+  config syslog rate-limit-feature enable -n asic0
+
+  # Enable syslog rate limit for database in all namespaces
+  config syslog rate-limit-feature enable database
+
+  # Enable syslog rate limit for database in default namespace
+  config syslog rate-limit-feature enable database -n default
+
+  # Enable syslog rate limit for database in asci0 namespace
+  config syslog rate-limit-feature enable database -n asci0
   ```
 
 **config syslog rate-limit-feature disable**
@@ -10246,12 +10333,28 @@ This command is used to disable syslog rate limit feature.
 
 - Usage:
   ```
-  config syslog rate-limit-feature disable
+  config syslog rate-limit-feature disable [<service_name>] -n [<namespace>]
   ```
 
 - Example:
   ```
+  # Disable syslog rate limit for all services in all namespaces
   admin@sonic:~$ sudo config syslog rate-limit-feature disable
+
+  # Disable syslog rate limit for all services in global namespace
+  config syslog rate-limit-feature disable -n default
+
+  # Disable syslog rate limit for all services in asic0 namespace
+  config syslog rate-limit-feature disable -n asic0
+
+  # Disable syslog rate limit for database in all namespaces
+  config syslog rate-limit-feature disable database
+
+  # Disable syslog rate limit for database in default namespace
+  config syslog rate-limit-feature disable database -n default
+
+  # Disable syslog rate limit for database in asci0 namespace
+  config syslog rate-limit-feature disable database -n asci0
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
@@ -13060,7 +13163,7 @@ Usage: sfputil read-eeprom [OPTIONS]
 
 Options:
   -p, --port <logical_port_name>  Logical port name  [required]
-  -n, --page <page>               EEPROM page number  [required]
+  -n, --page <page>               EEPROM page number in hex [required]
   -o, --offset <offset>           EEPROM offset within the page  [required]
   -s, --size <size>               Size of byte to be read  [required]
   --no-format                     Display non formatted data
@@ -13092,7 +13195,7 @@ Usage: sfputil write-eeprom [OPTIONS]
 
 Options:
   -p, --port <logical_port_name>  Logical port name  [required]
-  -n, --page <page>               EEPROM page number  [required]
+  -n, --page <page>               EEPROM page number in hex [required]
   -o, --offset <offset>           EEPROM offset within the page  [required]
   -d, --data <data>               Hex string EEPROM data  [required]
   --wire-addr TEXT                Wire address of sff8472

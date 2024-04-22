@@ -304,6 +304,7 @@ Ethernet4:
 
 test_qsfp_dd_status_output = """\
 Ethernet44:
+        CMIS State (SW): READY
         Tx fault flag on media lane 1: False
         Tx fault flag on media lane 2: False
         Tx fault flag on media lane 3: False
@@ -883,6 +884,28 @@ Ethernet36  Present
 """
         assert result.exit_code == 0
         assert result.output == expected
+
+    def test_sfp_dpc_ports(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"])
+        assert result.exit_code == 0
+        assert "Ethernet24" not in result.output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"])
+        assert result.exit_code == 0
+        assert "Ethernet24" not in result.output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["status"])
+        assert result.exit_code == 0
+        assert "Ethernet24" not in result.output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["pm"])
+        assert result.exit_code == 0
+        assert "Ethernet24" not in result.output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"])
+        assert result.exit_code == 0
+        assert "Ethernet24" not in result.output
 
     def test_sfp_eeprom_with_dom(self):
         runner = CliRunner()
