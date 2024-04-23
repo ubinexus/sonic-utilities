@@ -945,12 +945,23 @@ class TestGNMIMigrator(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+class TestAAAMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
     def test_migrator_configdb_per_command_aaa_enable(self):
         import db_migrator
 
         test_json_list = ('per_command_aaa_enable',
                         'per_command_aaa_no_passkey_expected',
-                        'per_command_aaa_disable')
+                        'per_command_aaa_disable'.
+                        'per_command_aaa_no_change')
 
         for test_json in test_json_list:
             dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
