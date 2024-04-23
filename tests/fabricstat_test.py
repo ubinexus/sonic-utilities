@@ -152,7 +152,7 @@ asic0
 """
 
 multi_asic_fabric_capacity = """\
-Monitored fabric capacity threshold:  100%
+Monitored fabric capacity threshold: 100%
 
   ASIC    Operating     Total #     %    Last Event    Last Time
               Links    of Links
@@ -162,7 +162,7 @@ Monitored fabric capacity threshold:  100%
 """
 
 multi_asic_fabric_capacity_asic0 = """\
-Monitored fabric capacity threshold:  100%
+Monitored fabric capacity threshold: 100%
 
   ASIC    Operating     Total #     %    Last Event    Last Time
               Links    of Links

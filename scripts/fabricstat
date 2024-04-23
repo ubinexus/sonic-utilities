@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
 import argparse
-from collections import OrderedDict, namedtuple
+import click
 import json
 import os
 import sys
+import utilities_common.multi_asic as multi_asic_util
 
+from collections import OrderedDict, namedtuple
+from datetime import datetime, timezone, timedelta
+from natsort import natsorted
+from sonic_py_common import multi_asic
+from swsscommon.swsscommon import APP_FABRIC_PORT_TABLE_NAME, COUNTERS_TABLE, COUNTERS_FABRIC_PORT_NAME_MAP, COUNTERS_FABRIC_QUEUE_NAME_MAP
+from tabulate import tabulate
 from utilities_common import constants
 from utilities_common.cli import json_serial, UserCache
 from utilities_common.netstat import format_number_with_comma, table_as_json, ns_diff, format_prate
-from natsort import natsorted
-from tabulate import tabulate
-from sonic_py_common import multi_asic
-from swsscommon.swsscommon import APP_FABRIC_PORT_TABLE_NAME, COUNTERS_TABLE, COUNTERS_FABRIC_PORT_NAME_MAP, COUNTERS_FABRIC_QUEUE_NAME_MAP
-import utilities_common.multi_asic as multi_asic_util
-from datetime import datetime, timezone, timedelta
 
 # mock the redis for unit test purposes #
 try:
@@ -488,9 +489,9 @@ Examples:
             stat = FabricCapacity(namespace, table_cnt, threshold)
             stat.capacity_print()
 
-        print("Monitored fabric capacity threshold: ", threshold[0])
-        print()
-        print(tabulate(table_cnt, capacity_header, tablefmt='simple', stralign='right'))
+        click.echo("Monitored fabric capacity threshold: {}".format(threshold[0]))
+        click.echo()
+        click.echo(tabulate(table_cnt, capacity_header, tablefmt='simple', stralign='right'))
     else:
         # other show fabric commands
         if namespace is None:

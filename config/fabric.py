@@ -343,27 +343,9 @@ def threshold(capacitythreshold):
     if capacitythreshold < 5 or capacitythreshold > 250:
         ctx.fail("threshold must be in range 5...250")
 
-    if multi_asic.is_multi_asic():
-        ns_list = multi_asic.get_all_namespaces()
-        namespaces = ns_list['front_ns'] + ns_list['back_ns']
-        for namespace in namespaces:
-            # Connect to config database
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            config_db.connect()
-
-            # Make sure configuration data exists
-            monitorData = config_db.get_all(config_db.CONFIG_DB, "FABRIC_MONITOR|FABRIC_MONITOR_DATA")
-            if not bool(monitorData):
-                ctx.fail("Fabric monitor configuration data not present")
-
-            # Update entry
-            config_db.mod_entry("FABRIC_MONITOR", "FABRIC_MONITOR_DATA",
-                {"monCapacityThreshWarn": capacitythreshold})
-            # Connect to config database
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            config_db.connect()
-    else:
-        namespace = ''
+    namespaces = multi_asic.get_namespace_list()
+    for idx, namespace in enumerate(namespaces, start=1):
+        # Connect to config database
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
 
@@ -375,6 +357,3 @@ def threshold(capacitythreshold):
         # Update entry
         config_db.mod_entry("FABRIC_MONITOR", "FABRIC_MONITOR_DATA",
             {"monCapacityThreshWarn": capacitythreshold})
-        # Connect to config database
-        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        config_db.connect()
