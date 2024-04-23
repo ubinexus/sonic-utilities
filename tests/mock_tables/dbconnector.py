@@ -121,6 +121,8 @@ class SwssSyncClient(mockredis.MockRedis):
                     else:
                         for attr, value in v.items():
                             self.hset(k, attr, value)
+        else:
+            print("SwssSyncClient: failed to load mock database json file: {}".format(fname))
 
     # Patch mockredis/mockredis/client.py
     # The offical implementation assume decode_responses=False
