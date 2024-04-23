@@ -1,9 +1,4 @@
 steps:
-- script: |
-    username=$(id -un)
-    sudo chown -R ${username}.${username} .
-  displayName: 'Cleanup'
-
 - checkout: self
   clean: true
   displayName: 'checkout sonic-utilities repo'
