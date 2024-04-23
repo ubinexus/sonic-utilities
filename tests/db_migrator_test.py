@@ -960,7 +960,7 @@ class TestAAAMigrator(object):
 
         test_json_list = ('per_command_aaa_enable',
                         'per_command_aaa_no_passkey_expected',
-                        'per_command_aaa_disable'.
+                        'per_command_aaa_disable',
                         'per_command_aaa_no_change')
 
         for test_json in test_json_list:
