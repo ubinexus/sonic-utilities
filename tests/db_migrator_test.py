@@ -955,25 +955,22 @@ class TestAAAMigrator(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
-    def test_migrator_configdb_per_command_aaa_enable(self):
+    @pytest.mark.parametrize('test_json', ['per_command_aaa_enable',
+                                           'per_command_aaa_no_passkey_expected',
+                                           'per_command_aaa_disable',
+                                           'per_command_aaa_no_change'])
+    def test_migrator_configdb_per_command_aaa(self, test_json):
         import db_migrator
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
+        dbmgtr = db_migrator.DBMigrator(None)
+        # Set config_src_data
+        dbmgtr.config_src_data = {}
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json + '_expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_202405_01')
+        resulting_table = dbmgtr.configDB.get_table("AAA")
+        expected_table = expected_db.cfgdb.get_table("AAA")
 
-        test_json_list = ('per_command_aaa_enable',
-                        'per_command_aaa_no_passkey_expected',
-                        'per_command_aaa_disable',
-                        'per_command_aaa_no_change')
-
-        for test_json in test_json_list:
-            dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
-            dbmgtr = db_migrator.DBMigrator(None)
-            # Set config_src_data
-            dbmgtr.config_src_data = {}
-            dbmgtr.migrate()
-            dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json + '_expected')
-            expected_db = Db()
-            advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_202405_01')
-            resulting_table = dbmgtr.configDB.get_table("AAA")
-            expected_table = expected_db.cfgdb.get_table("AAA")
-
-            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
-            assert not diff
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
