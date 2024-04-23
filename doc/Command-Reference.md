@@ -203,6 +203,7 @@
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
 * [SFP Utilities Commands](#sfp-utilities-commands)
+  * [SFP Utilities show commands](#sfp-utilities-show-commands)
   * [SFP Utilities read command](#sfp-utilities-read-command)
   * [SFP Utilities write command](#sfp-utilities-write-command)
 * [Static DNS Commands](#static-dns-commands)
@@ -3843,6 +3844,21 @@ This command sets the number of consecutive polls in which no error is detected 
   admin@sonic:~$ config fabric port monitor poll threshold recovery 5 -n asic0
   ```
 
+**config fabric port monitor state <enable/disable>**
+
+This command sets the monitor state in CONFIG_DB to enable/disable the fabric monitor feature.
+
+- Usage:
+  ```
+  config fabric port monitor state [OPTIONS] <state>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor state enable
+  admin@sonic:~$ config fabric port monitor state disable
+  ```
+
 ## Feature
 
 SONiC includes a capability in which Feature state can be enabled/disabled
@@ -5278,6 +5294,22 @@ This command is used to reset an SFP transceiver
   ```
   user@sonic~$ sudo config interface transceiver reset Ethernet0
   Resetting port Ethernet0...  OK
+  ```
+
+**config interface transceiver dom**
+
+This command is used to configure the Digital Optical Monitoring (DOM) for an interface.
+
+- Usage:
+  ```
+  config interface transceiver dom <interface_name> (enable | disable)
+  ```
+
+- Examples:
+  ```
+  user@sonic~$ sudo config interface transceiver dom Ethernet0 enable
+
+  user@sonic~$ sudo config interface transceiver dom Ethernet0 disable
   ```
 
 **config interface mtu <interface_name> (Versions >= 201904)**
@@ -10117,7 +10149,7 @@ This command displays rate limit configuration for containers.
 
 - Usage
   ```
-  show syslog rate-limit-container [<service_name>]
+  show syslog rate-limit-container [<service_name>] -n [<namespace>]
   ```
 
 - Example:
@@ -10141,6 +10173,37 @@ This command displays rate limit configuration for containers.
   SERVICE         INTERVAL    BURST
   --------------  ----------  -------
   bgp             0           0
+
+  # Multi ASIC
+  show syslog rate-limit-container
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          N/A
+  snmp       300          20000
+  swss       2000         12000
+  Namespace asic0:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          N/A
+  snmp       300          20000
+  swss       2000         12000
+
+  # Multi ASIC
+  show syslog rate-limit-container bgp
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
+  Namespace asic0:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
+
+  # Multi ASIC
+  show syslog rate-limit-container bgp -n asic1
+  Namespace asic1:
+  SERVICE    INTERVAL     BURST
+  --------   ----------   --------
+  bgp        500          5000
   ```
 
 ### Syslog Config Commands
@@ -10219,12 +10282,80 @@ This command is used to configure syslog rate limit for containers.
 - Parameters:
   - _interval_: determines the amount of time that is being measured for rate limiting.
   - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+  - _namespace_: namespace name or all. Value "default" indicates global namespace.
 
 - Example:
   ```
+  # Config bgp for all namespaces. For multi ASIC platforms, bgp service in all namespaces will be affected.
+  # For single ASIC platforms, bgp service in global namespace will be affected.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
+
+  # Config bgp for global namespace only.
+  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n default
+
+  # Config bgp for asic0 namespace only.
+  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n asic0
   ```
 
+**config syslog rate-limit-feature enable**
+
+This command is used to enable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature enable [<service_name>] -n [<namespace>]
+  ```
+
+- Example:
+  ```
+  # Enable syslog rate limit for all services in all namespaces
+  admin@sonic:~$ sudo config syslog rate-limit-feature enable
+
+  # Enable syslog rate limit for all services in global namespace
+  config syslog rate-limit-feature enable -n default
+
+  # Enable syslog rate limit for all services in asic0 namespace
+  config syslog rate-limit-feature enable -n asic0
+
+  # Enable syslog rate limit for database in all namespaces
+  config syslog rate-limit-feature enable database
+
+  # Enable syslog rate limit for database in default namespace
+  config syslog rate-limit-feature enable database -n default
+
+  # Enable syslog rate limit for database in asci0 namespace
+  config syslog rate-limit-feature enable database -n asci0
+  ```
+
+**config syslog rate-limit-feature disable**
+
+This command is used to disable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature disable [<service_name>] -n [<namespace>]
+  ```
+
+- Example:
+  ```
+  # Disable syslog rate limit for all services in all namespaces
+  admin@sonic:~$ sudo config syslog rate-limit-feature disable
+
+  # Disable syslog rate limit for all services in global namespace
+  config syslog rate-limit-feature disable -n default
+
+  # Disable syslog rate limit for all services in asic0 namespace
+  config syslog rate-limit-feature disable -n asic0
+
+  # Disable syslog rate limit for database in all namespaces
+  config syslog rate-limit-feature disable database
+
+  # Disable syslog rate limit for database in default namespace
+  config syslog rate-limit-feature disable database -n default
+
+  # Disable syslog rate limit for database in asci0 namespace
+  config syslog rate-limit-feature disable database -n asci0
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
@@ -12914,8 +13045,111 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
 
 # SFP Utilities Commands
+ This sub-section explains the list of commands available for SFP utilities feature.
 
-This sub-section explains the list of commands available for SFP utilities feature.
+## SFP Utilities show commands
+ 
+- Show SFP EEPROM hex dump
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --help
+Usage: sfputil show eeprom-hexdump [OPTIONS]
+  Display EEPROM hexdump of SFP transceiver(s)
+Options:
+  -p, --port <port_name>    Display SFP EEPROM hexdump for port <port_name>
+  -n, --page <page_number>  Display SFP EEEPROM hexdump for
+                            <page_number_in_hex>
+  --help                    Show this message and exit.
+```
+
+```
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 0
+EEPROM hexdump for port Ethernet0 page 0h
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+admin@sonic:~$ sfputil show eeprom-hexdump --port Ethernet0 --page 1
+EEPROM hexdump for port Ethernet0 page 1h
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 1h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+admin@sonic:~$ sfputil show eeprom-hexdump
+EEPROM hexdump for port Ethernet0
+        Lower page 0h
+        00000000 11 08 06 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000010 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000060 00 00 00 00 00 00 00 00  00 00 00 00 00 01 08 00 |................|
+        00000070 00 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 11 00 23 88 00 00 04 00  00 00 00 08 ff 00 00 00 |..#.............|
+        00000090 00 00 01 a0 4d 65 6c 6c  61 6e 6f 78 20 20 20 20 |....Mellanox    |
+        000000a0 20 20 20 20 00 00 02 c9  4d 43 50 31 36 35 30 2d |    ....MCP1650-|
+        000000b0 56 30 30 31 45 33 30 20  41 32 02 03 05 07 46 c5 |V001E30 A2....F.|
+        000000c0 40 00 00 00 4d 54 32 30  31 30 56 53 30 38 33 32 |@...MT2010VS0832|
+        000000d0 39 20 20 20 32 30 30 33  30 32 20 20 00 00 6a 84 |9   200302  ..j.|
+        000000e0 31 39 32 32 39 33 31 43  41 31 43 54 00 1e 00 00 |1922931CA1CT....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 30 00 00 |.............0..|
+
+EEPROM hexdump for port Ethernet8
+        Lower page 0h
+        00000000 18 30 80 03 00 00 00 00  00 00 00 00 00 00 00 00 |.0..............|
+        00000010 00 00 00 00 00 00 00 00  00 00 08 00 00 00 00 00 |................|
+        00000020 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000030 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000040 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+        00000050 00 00 00 00 00 03 1d 01  88 01 1c 01 44 11 1b 01 |............D...|
+        00000060 22 55 1a 01 44 11 18 01  11 ff 17 01 44 11 16 01 |"U..D.......D...|
+        00000070 11 ff 01 01 11 ff 00 00  00 00 00 00 00 00 00 00 |................|
+
+        Upper page 0h
+        00000080 18 4d 65 6c 6c 61 6e 6f  78 20 20 20 20 20 20 20 |.Mellanox       |
+        00000090 20 00 02 c9 4d 43 50 31  36 36 30 2d 57 30 30 41 | ...MCP1660-W00A|
+        000000a0 45 33 30 20 41 32 4d 54  32 30 31 39 56 53 30 34 |E30 A2MT2019VS04|
+        000000b0 37 39 35 20 20 20 32 30  30 35 30 37 20 20 00 00 |795   200507  ..|
+        000000c0 00 00 00 00 00 00 00 00  00 01 05 23 04 05 07 15 |...........#....|
+        000000d0 00 00 00 02 0a 00 00 00  00 00 00 00 00 00 77 00 |..............w.|
+        000000e0 33 30 33 33 30 4b 34 33  34 31 30 44 00 00 00 00 |30330K43410D....|
+        000000f0 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
+```
 
 # SFP Utilities read command
 
@@ -12929,7 +13163,7 @@ Usage: sfputil read-eeprom [OPTIONS]
 
 Options:
   -p, --port <logical_port_name>  Logical port name  [required]
-  -n, --page <page>               EEPROM page number  [required]
+  -n, --page <page>               EEPROM page number in hex [required]
   -o, --offset <offset>           EEPROM offset within the page  [required]
   -s, --size <size>               Size of byte to be read  [required]
   --no-format                     Display non formatted data
@@ -12961,7 +13195,7 @@ Usage: sfputil write-eeprom [OPTIONS]
 
 Options:
   -p, --port <logical_port_name>  Logical port name  [required]
-  -n, --page <page>               EEPROM page number  [required]
+  -n, --page <page>               EEPROM page number in hex [required]
   -o, --offset <offset>           EEPROM offset within the page  [required]
   -d, --data <data>               Hex string EEPROM data  [required]
   --wire-addr TEXT                Wire address of sff8472

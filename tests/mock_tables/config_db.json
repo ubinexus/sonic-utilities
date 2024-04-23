@@ -97,7 +97,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "1000"
+        "speed": "1000",
+        "role": "Dpc"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -793,13 +794,19 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled",
-        "set_owner": "local"
+        "set_owner": "local",
+        "support_syslog_rate_limit": "true",
+        "has_global_scope": "false",
+        "has_per_asic_scope": "true"
     },
     "FEATURE|database": {
         "state": "always_enabled",
         "auto_restart": "always_enabled",
         "high_mem_alert": "disabled",
-        "set_owner": "local"
+        "set_owner": "local",
+        "support_syslog_rate_limit": "true",
+        "has_global_scope": "true",
+        "has_per_asic_scope": "true"
     },
     "FEATURE|dhcp_relay": {
         "state": "enabled",
@@ -823,7 +830,10 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled",
-        "set_owner": "kube"
+        "set_owner": "kube",
+        "support_syslog_rate_limit": "true",
+        "has_global_scope": "true",
+        "has_per_asic_scope": "false"
     },
     "FEATURE|radv": {
         "state": "enabled",
@@ -872,6 +882,14 @@
         "auto_restart": "enabled",
         "high_mem_alert": "disabled",
         "set_owner": "kube"
+    },
+    "SYSLOG_CONFIG_FEATURE|database": {
+        "rate_limit_interval": "200",
+        "rate_limit_burst": "20000"
+    },
+    "SYSLOG_CONFIG_FEATURE|pmon": {
+        "rate_limit_interval": "100",
+        "rate_limit_burst": "10000"
     },
     "DEVICE_METADATA|localhost": {
         "default_bgp_status": "down",
@@ -2692,18 +2710,51 @@
     },
     "FABRIC_PORT|Fabric0": {
         "alias": "Fabric0",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "0"
     },
     "FABRIC_PORT|Fabric1": {
         "alias": "Fabric1",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "1"
     },
     "FABRIC_PORT|Fabric2": {
         "alias": "Fabric2",
+        "forceUnisolateStatus": "0",
         "isolateStatus": "False",
         "lanes": "2"
+    },
+    "FABRIC_PORT|Fabric3": {
+        "alias": "Fabric3",
+        "forceUnisolateStatus": "0",
+        "isolateStatus": "False",
+        "lanes": "3"
+    },
+    "FABRIC_PORT|Fabric4": {
+        "alias": "Fabric4",
+        "forceUnisolateStatus": "0",
+        "isolateStatus": "False",
+        "lanes": "4"
+    },
+    "FABRIC_PORT|Fabric5": {
+        "alias": "Fabric5",
+        "forceUnisolateStatus": "0",
+        "isolateStatus": "False",
+        "lanes": "5"
+    },
+    "FABRIC_PORT|Fabric6": {
+        "alias": "Fabric6",
+        "forceUnisolateStatus": "0",
+        "isolateStatus": "False",
+        "lanes": "6"
+    },
+    "FABRIC_PORT|Fabric7": {
+        "alias": "Fabric7",
+        "forceUnisolateStatus": "0",
+        "isolateStatus": "False",
+        "lanes": "7"
     },
     "DHCP_RELAY|Vlan1000": {
         "dhcpv6_servers": [
