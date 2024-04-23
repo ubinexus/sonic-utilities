@@ -3946,12 +3946,13 @@ def enable_bgp_neighbor_table(ctx):
     log.log_info("'bmp enable bgp-neighbor-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_neighbor_table': 'true'}}
-    else:
-        bmp_table['table']['bgp_neighbor_table'] = 'true'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_neighbor_table': 'true'}}
+        else:
+            bmp_table['table']['bgp_neighbor_table'] = 'true'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
@@ -3970,12 +3971,13 @@ def enable_bgp_rib_out_table(ctx):
     log.log_info("'bmp enable bgp-rib-out-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_rib_out_table': 'true'}}
-    else:
-        bmp_table['table']['bgp_rib_out_table'] = 'true'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_rib_out_table': 'true'}}
+        else:
+            bmp_table['table']['bgp_rib_out_table'] = 'true'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
@@ -3992,12 +3994,13 @@ def enable_bgp_rib_in_table(ctx):
     log.log_info("'bmp enable bgp-rib-in-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_rib_in_table': 'true'}}
-    else:
-        bmp_table['table']['bgp_rib_in_table'] = 'true'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_rib_in_table': 'true'}}
+        else:
+            bmp_table['table']['bgp_rib_in_table'] = 'true'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
@@ -4022,12 +4025,13 @@ def disable_bgp_neighbor_table(ctx):
     log.log_info("'bmp disable bgp-neighbor-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_neighbor_table': 'false'}}
-    else:
-        bmp_table['table']['bgp_neighbor_table'] = 'false'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_neighbor_table': 'false'}}
+        else:
+            bmp_table['table']['bgp_neighbor_table'] = 'false'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
@@ -4044,12 +4048,13 @@ def diable_bgp_rib_out_table(ctx):
     log.log_info("'bmp disable bgp-rib-out-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_rib_out_table': 'false'}}
-    else:
-        bmp_table['table']['bgp_rib_out_table'] = 'false'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_rib_out_table': 'false'}}
+        else:
+            bmp_table['table']['bgp_rib_out_table'] = 'false'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
@@ -4067,12 +4072,13 @@ def disable_bgp_rib_in_table(ctx):
     log.log_info("'bmp disable bgp-rib-in-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
-    bmp_table = config_db.get_table('BMP')
-    if not bmp_table:
-        bmp_table =  {'table': {'bgp_rib_in_table': 'false'}}
-    else:
-        bmp_table['table']['bgp_rib_in_table'] = 'false'
     try:
+        bmp_table = config_db.get_table('BMP')
+        if not bmp_table:
+            bmp_table =  {'table': {'bgp_rib_in_table': 'false'}}
+        else:
+            bmp_table['table']['bgp_rib_in_table'] = 'false'
+
         config_db.mod_entry('BMP', 'table', bmp_table['table'])
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
