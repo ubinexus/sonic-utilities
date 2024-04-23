@@ -38,12 +38,5 @@ steps:
 
     echo "Pre-commit check results:"
     echo "$out"
-    # Truncate the output if it has more than 20 lines
-    if [[ `echo "$out" | wc -l` -gt 20 ]]; then
-      out=`echo "$out" | head -n 20`
-      out="$out\n...\n[truncated extra lines, please run pre-commit locally to view full check results]"
-      out=`printf "$out"`
-    fi
-
     exit $RC
   displayName: 'Run pre-commit check'
