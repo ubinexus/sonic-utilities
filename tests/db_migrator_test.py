@@ -971,6 +971,10 @@ class TestAAAMigrator(object):
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_202405_01')
         resulting_table = dbmgtr.configDB.get_table("AAA")
         expected_table = expected_db.cfgdb.get_table("AAA")
+        
+        print("test_migrator_configdb_per_command_aaa: {}".format(test_json))
+        print("test_migrator_configdb_per_command_aaa, resulting_table: {}".format(resulting_table))
+        print("test_migrator_configdb_per_command_aaa, expected_table: {}".format(expected_table))
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
