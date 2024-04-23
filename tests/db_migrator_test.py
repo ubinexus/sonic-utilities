@@ -944,3 +944,25 @@ class TestGNMIMigrator(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
+
+    def test_migrator_configdb_per_command_aaa_enable(self):
+        import db_migrator
+
+        test_json_list = ('per_command_aaa_enable',
+                        'per_command_aaa_no_passkey_expected',
+                        'per_command_aaa_disable')
+
+        for test_json in test_json_list:
+            dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
+            dbmgtr = db_migrator.DBMigrator(None)
+            # Set config_src_data
+            dbmgtr.config_src_data = {}
+            dbmgtr.migrate()
+            dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json + '_expected')
+            expected_db = Db()
+            advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_202405_01')
+            resulting_table = dbmgtr.configDB.get_table("AAA")
+            expected_table = expected_db.cfgdb.get_table("AAA")
+
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff

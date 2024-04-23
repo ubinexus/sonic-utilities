@@ -1200,6 +1200,38 @@ class DBMigrator():
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
+    def enable_per_command_aaa(self):
+        if not self.config_src_data or 'AAA' not in self.config_src_data:
+            log.log_info('AAA table does not exist ignore setup per-command accounting&authorization.')
+            return
+
+        authentication_config_old = self.configDB.get_entry('AAA', 'authentication')
+        # If device enabled TACACS authentication, then enable TACACS per-command accounting and authorization
+        if 'login' in authentication_config_old and 'tacacs+' == authentication_config_old.get('login'):
+
+            accounting_config_old = self.configDB.get_entry('AAA', 'accounting')
+            if 'login' not in accounting_config_old:
+                accounting_config = { 'login' : 'tacacs+,local' }
+                self.configDB.set_entry('AAA', 'accounting', accounting_config)
+                log.log_info('Setup per-command accounting to: {}'.format(accounting_config))
+            else:
+                log.log_info('TACACS per-command accounting already setup.')
+
+            tacplus_config_old = self.configDB.get_entry('TACPLUS', 'global')
+            if 'passkey' in tacplus_config_old and '' != tacplus_config_old.get('passkey'):
+                authorization_config_old = self.configDB.get_entry('AAA', 'authorization')
+                if 'login' not in authorization_config_old:
+                    authorization_config =  { 'login' : 'tacacs+' }
+                    self.configDB.set_entry('AAA', 'authorization', authorization_config)
+                    log.log_info('Setup per-command authorization to: {}'.format(authorization_config))
+                else:
+                    log.log_info('TACACS per-command authorization already setup.')
+            else:
+                log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
+
+        else:
+            log.log_info('TACACS authentication disabled, ignore setup per-command accounting&authorization.')
+
     def common_migration_ops(self):
         try:
             with open(INIT_CFG_FILE) as f:
@@ -1234,6 +1266,8 @@ class DBMigrator():
         self.update_edgezone_aggregator_config()
         # update FRR config mode based on minigraph parser on target image
         self.migrate_routing_config_mode()
+        # enable per-command authorization/accounting feature for 202205 & 202305
+        self.enable_per_command_aaa()
 
     def migrate(self):
         version = self.get_version()

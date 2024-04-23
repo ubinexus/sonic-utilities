@@ -1,0 +1,10 @@
+{
+    "AAA": {
+    },
+    "TACPLUS": {
+        "global": {
+            "auth_type": "login",
+            "passkey": "testpasskey"
+        }
+    }
+}

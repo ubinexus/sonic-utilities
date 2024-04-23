@@ -1,0 +1,13 @@
+{
+    "AAA": {
+        "authentication": {
+            "login": "tacacs+"
+        }
+    },
+    "TACPLUS": {
+        "global": {
+            "auth_type": "login",
+            "passkey": "testpasskey"
+        }
+    }
+}
