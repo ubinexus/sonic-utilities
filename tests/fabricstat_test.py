@@ -170,6 +170,36 @@ Monitored fabric capacity threshold:  100%
  asic0            5           8  62.5          None        Never
 """
 
+multi_asic_fabric_isolation = """\
+
+asic0
+  Local Link    Auto Isolated    Manual Isolated    Isolated
+------------  ---------------  -----------------  ----------
+           0                0                  0           0
+           2                0                  0           0
+           4                0                  0           0
+           6                0                  0           0
+           7                0                  0           0
+
+asic1
+  Local Link    Auto Isolated    Manual Isolated    Isolated
+------------  ---------------  -----------------  ----------
+           0                0                  0           0
+           4                0                  0           0
+"""
+
+multi_asic_fabric_isolation_asic0 = """\
+
+asic0
+  Local Link    Auto Isolated    Manual Isolated    Isolated
+------------  ---------------  -----------------  ----------
+           0                0                  0           0
+           2                0                  0           0
+           4                0                  0           0
+           6                0                  0           0
+           7                0                  0           0
+"""
+
 class TestFabricStat(object):
     @classmethod
     def setup_class(cls):
@@ -303,6 +333,20 @@ class TestMultiAsicFabricStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_fabric_capacity_asic0
+
+    def test_multi_show_fabric_isolation(self):
+        return_code, result = get_result_and_return_code(['fabricstat', '-i'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_isolation
+
+    def test_multi_show_fabric_isolation_asic(self):
+        return_code, result = get_result_and_return_code(['fabricstat', '-i', '-n', 'asic0'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_isolation_asic0
 
     @classmethod
     def teardown_class(cls):
