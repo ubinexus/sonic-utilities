@@ -21,9 +21,9 @@ steps:
 
     if [[ $RC -ne 0 ]]; then
       echo -e "The [pre-commit](http://pre-commit.com/) check detected issues in the files touched by this pull request.\n\
-      The pre-commit check is a mandatory check, please fix detected issues.\n\
-      \n\
-      To run the pre-commit checks locally, you can follow below steps:\n\
+    The pre-commit check is a mandatory check, please fix detected issues.\n\
+    \n\
+    To run the pre-commit checks locally, you can follow below steps:\n\
       1. Ensure that default python is python3.\n\
       2. Ensure that the 'pre-commit' package is installed:\n\
          sudo pip install pre-commit\n\
