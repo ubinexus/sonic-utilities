@@ -966,10 +966,10 @@ class TestAAAMigrator(object):
         # Set config_src_data
         dbmgtr.config_src_data = {}
         dbmgtr.migrate()
+        resulting_table = dbmgtr.configDB.get_table("AAA")
+
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json + '_expected')
         expected_db = Db()
-        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_202405_01')
-        resulting_table = dbmgtr.configDB.get_table("AAA")
         expected_table = expected_db.cfgdb.get_table("AAA")
         
         print("test_migrator_configdb_per_command_aaa: {}".format(test_json))

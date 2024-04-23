@@ -1201,7 +1201,8 @@ class DBMigrator():
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
     def enable_per_command_aaa(self):
-        if not self.config_src_data or 'AAA' not in self.config_src_data:
+        aaa_table = self.configDB.get_table('AAA')
+        if not aaa_table:
             log.log_info('AAA table does not exist ignore setup per-command accounting&authorization.')
             return
 
