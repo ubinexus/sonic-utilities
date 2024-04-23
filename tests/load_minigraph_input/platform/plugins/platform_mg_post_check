@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo "Do Nothing!"
-exit 0

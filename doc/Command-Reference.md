@@ -83,6 +83,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [BMP](#bmp)
+  * [BMP show commands](#bmp-show-commands)
+  * [BMP config commands](#bmp-config-commands)
 * [IPv6 Link Local](#ipv6-link-local)
   * [IPv6 Link Local config commands](#ipv6-link-local-config-commands)
   * [IPv6 Link Local show commands](#ipv6-link-local-show-commands)
@@ -2077,6 +2080,131 @@ This command displays the state and key parameters of all BFD sessions that matc
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bfd)
+
+
+## BMP
+
+### BMP show commands
+
+This sub-section explains the list of show options available for BMP module.
+
+**show bmp bgp-neighbor-table**
+
+
+This command is used to show bgp-neighbor-table population.
+
+- Usage:
+  ```
+  show bmp bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo show bmp bgp-neighbor-table
+
+  Total number of bmp neighbors: 2
+
+  Neighbor_Address       Peer_Address  Peer_ASN Peer_RD  Peer_Port     Local_Address   Local_ASN      Local_Port   Advertised_Capabilities Received_Capabilities
+  10.0.0.61              10.0.0.61     64915    300      5000          10.1.0.32       65100          6000           supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-restart
+  10.0.0.62              10.0.0.61     64915    300      5000          10.1.0.32       65100          6000           supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-restart
+  ```
+
+**show bmp bgp-rib-out-table**
+
+**show bmp bgp-rib-in-table**
+
+**show bmp status**
+
+
+### BMP config commands
+
+This sub-section explains the list of configuration options available for BMP module.
+
+**config bmp enable bgp-neighbor-table**
+
+This command is used to enable bgp-neighbor-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-neighbor-table
+  ```
+
+
+**config bmp disable bgp-neighbor-table**
+
+This command is used to disable bgp-neighbor-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-neighbor-table
+  ```
+
+**config bmp enable bgp-rib-out-table**
+
+This command is used to enable bgp-rib-out-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-rib-out-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-rib-out-table
+  ```
+
+**config bmp disable bgp-rib-out-table**
+
+This command is used to disable bgp-rib-out-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-rib-out-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-rib-out-table
+  ```
+
+**config bmp enable bgp-rib-in-table**
+
+This command is used to enable bgp-rib-in-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-rib-in-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-rib-in-table
+  ```
+
+**config bmp disable bgp-rib-in-table**
+
+This command is used to disable bgp-rib-in-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-rib-in-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-rib-in-table
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#bmp)
 
 ## BGP
 
