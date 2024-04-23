@@ -83,6 +83,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [BMP](#bmp)
+  * [BMP show commands](#bmp-show-commands)
+  * [BMP config commands](#bmp-config-commands)
 * [IPv6 Link Local](#ipv6-link-local)
   * [IPv6 Link Local config commands](#ipv6-link-local-config-commands)
   * [IPv6 Link Local show commands](#ipv6-link-local-show-commands)
@@ -2077,6 +2080,129 @@ This command displays the state and key parameters of all BFD sessions that matc
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bfd)
+
+
+## BMP
+
+### BMP show commands
+
+This sub-section explains the list of show options available for BMP module.
+
+**show bmp bgp-neighbor-table**
+
+
+This command is used to show bgp-neighbor-table population.
+
+- Usage:
+  ```
+  show bmp bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo show bmp bgp-neighbor-table
+  Neighbor Address    Peer Address    Peer ASN      Peer RD    Type          Local Addr      Local ASN    Local Port    Advertised Capabilities  Received Capabilities
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.0.61     10.0.0.61      64915  64900     ibgp  10.0.0.1                65100            5000             11  true
+
+  ```
+
+**show bmp bgp-rib-out-table**
+
+**show bmp bgp-rib-in-table**
+
+**show bmp status**
+
+
+### BMP config commands
+
+This sub-section explains the list of configuration options available for BMP module.
+
+**config bmp enable bgp-neighbor-table**
+
+This command is used to enable bgp-neighbor-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-neighbor-table
+  ```
+
+
+**config bmp disable bgp-neighbor-table**
+
+This command is used to disable bgp-neighbor-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-neighbor-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-neighbor-table
+  ```
+
+**config bmp enable bgp-rib-out-table**
+
+This command is used to enable bgp-rib-out-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-rib-out-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-rib-out-table
+  ```
+
+**config bmp disable bgp-rib-out-table**
+
+This command is used to disable bgp-rib-out-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-rib-out-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-rib-out-table
+  ```
+
+**config bmp enable bgp-rib-in-table**
+
+This command is used to enable bgp-rib-in-table population.
+
+- Usage:
+  ```
+  config bmp enable bgp-rib-in-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp enable bgp-rib-in-table
+  ```
+
+**config bmp disable bgp-rib-in-table**
+
+This command is used to disable bgp-rib-in-table population.
+
+- Usage:
+  ```
+  config bmp disable bgp-rib-in-table
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config bmp disable bgp-rib-in-table
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#bmp)
 
 ## BGP
 
@@ -10149,7 +10275,7 @@ This command displays rate limit configuration for containers.
 
 - Usage
   ```
-  show syslog rate-limit-container [<service_name>] -n [<namespace>]
+  show syslog rate-limit-container [<service_name>]
   ```
 
 - Example:
@@ -10173,37 +10299,6 @@ This command displays rate limit configuration for containers.
   SERVICE         INTERVAL    BURST
   --------------  ----------  -------
   bgp             0           0
-
-  # Multi ASIC
-  show syslog rate-limit-container
-  SERVICE    INTERVAL     BURST
-  --------   ----------   --------
-  bgp        500          N/A
-  snmp       300          20000
-  swss       2000         12000
-  Namespace asic0:
-  SERVICE    INTERVAL     BURST
-  --------   ----------   --------
-  bgp        500          N/A
-  snmp       300          20000
-  swss       2000         12000
-
-  # Multi ASIC
-  show syslog rate-limit-container bgp
-  SERVICE    INTERVAL     BURST
-  --------   ----------   --------
-  bgp        500          5000
-  Namespace asic0:
-  SERVICE    INTERVAL     BURST
-  --------   ----------   --------
-  bgp        500          5000
-
-  # Multi ASIC
-  show syslog rate-limit-container bgp -n asic1
-  Namespace asic1:
-  SERVICE    INTERVAL     BURST
-  --------   ----------   --------
-  bgp        500          5000
   ```
 
 ### Syslog Config Commands
@@ -10282,19 +10377,10 @@ This command is used to configure syslog rate limit for containers.
 - Parameters:
   - _interval_: determines the amount of time that is being measured for rate limiting.
   - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
-  - _namespace_: namespace name or all. Value "default" indicates global namespace.
 
 - Example:
   ```
-  # Config bgp for all namespaces. For multi ASIC platforms, bgp service in all namespaces will be affected.
-  # For single ASIC platforms, bgp service in global namespace will be affected.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
-
-  # Config bgp for global namespace only.
-  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n default
-
-  # Config bgp for asic0 namespace only.
-  config syslog rate-limit-container bgp --interval 300 --burst 20000 -n asic0
   ```
 
 **config syslog rate-limit-feature enable**
@@ -10303,28 +10389,12 @@ This command is used to enable syslog rate limit feature.
 
 - Usage:
   ```
-  config syslog rate-limit-feature enable [<service_name>] -n [<namespace>]
+  config syslog rate-limit-feature enable
   ```
 
 - Example:
   ```
-  # Enable syslog rate limit for all services in all namespaces
   admin@sonic:~$ sudo config syslog rate-limit-feature enable
-
-  # Enable syslog rate limit for all services in global namespace
-  config syslog rate-limit-feature enable -n default
-
-  # Enable syslog rate limit for all services in asic0 namespace
-  config syslog rate-limit-feature enable -n asic0
-
-  # Enable syslog rate limit for database in all namespaces
-  config syslog rate-limit-feature enable database
-
-  # Enable syslog rate limit for database in default namespace
-  config syslog rate-limit-feature enable database -n default
-
-  # Enable syslog rate limit for database in asci0 namespace
-  config syslog rate-limit-feature enable database -n asci0
   ```
 
 **config syslog rate-limit-feature disable**
@@ -10333,28 +10403,12 @@ This command is used to disable syslog rate limit feature.
 
 - Usage:
   ```
-  config syslog rate-limit-feature disable [<service_name>] -n [<namespace>]
+  config syslog rate-limit-feature disable
   ```
 
 - Example:
   ```
-  # Disable syslog rate limit for all services in all namespaces
   admin@sonic:~$ sudo config syslog rate-limit-feature disable
-
-  # Disable syslog rate limit for all services in global namespace
-  config syslog rate-limit-feature disable -n default
-
-  # Disable syslog rate limit for all services in asic0 namespace
-  config syslog rate-limit-feature disable -n asic0
-
-  # Disable syslog rate limit for database in all namespaces
-  config syslog rate-limit-feature disable database
-
-  # Disable syslog rate limit for database in default namespace
-  config syslog rate-limit-feature disable database -n default
-
-  # Disable syslog rate limit for database in asci0 namespace
-  config syslog rate-limit-feature disable database -n asci0
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
