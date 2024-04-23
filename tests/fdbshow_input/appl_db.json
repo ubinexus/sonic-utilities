@@ -1,5 +1,0 @@
-{
-    "SWITCH_TABLE:switch": {
-        "fdb_aging_time" : "600"
-    }
-}
