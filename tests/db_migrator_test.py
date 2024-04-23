@@ -960,11 +960,9 @@ class TestAAAMigrator(object):
                                            'per_command_aaa_disable',
                                            'per_command_aaa_no_change'])
     def test_migrator_configdb_per_command_aaa(self, test_json):
-        import db_migrator
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
+        import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
-        # Set config_src_data
-        dbmgtr.config_src_data = {}
         dbmgtr.migrate()
         resulting_table = dbmgtr.configDB.get_table("AAA")
 
