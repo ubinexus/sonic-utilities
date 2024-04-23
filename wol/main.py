@@ -172,7 +172,7 @@ def validate_count_interval(count, interval):
 @click.argument('interface', type=click.STRING, callback=validate_interface)
 @click.argument('target_mac', type=click.STRING, callback=parse_target_mac)
 @click.option('-b', 'broadcast', is_flag=True, show_default=True, default=False,
-              help="Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header.")
+              help="Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
 @click.option('-p', 'password', type=click.STRING, show_default=True, default='', callback=parse_password, metavar='password',
               help='An optional 4 or 6 byte password, in ethernet hex format or quad-dotted decimal')
 @click.option('-c', 'count', type=click.IntRange(1, 5), metavar='count', show_default=True,  # default=1,
@@ -186,7 +186,25 @@ def wol(interface, target_mac, broadcast, password, count, interval, verbose):
     Generate and send Wake-On-LAN (WOL) "Magic Packet" to specific interface
     """
     count, interval = validate_count_interval(count, interval)
-
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
+    print("Use broadcast MAC address instead of target device's MAC address as Destination MAC Address in Ethernet Frame Header   .")
     if not is_root():
         raise click.ClickException("root priviledge is required to run this script")
 

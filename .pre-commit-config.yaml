@@ -5,4 +5,5 @@ repos:
     rev: 4.0.1
     hooks:
     -   id: flake8
-        entry: bash -c 'git diff HEAD^ HEAD -U0 -- "$@" | flake8 --diff' --
+        entry: bash -c 'git diff HEAD^ HEAD -U0 -- "$@" | flake8 --diff "$@"' --
+        args: ["--max-line-length=120"]
