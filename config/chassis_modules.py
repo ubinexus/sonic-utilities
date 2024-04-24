@@ -38,7 +38,6 @@ def get_config_module_state_timeout(ctx, db, chassis_module_name, state):
         if counter >= TIMEOUT_SECS:
             ctx.fail("get_config_module_state {} timeout".format(chassis_module_name))
             return True
-            break
     return False
 
 #
