@@ -956,7 +956,8 @@ class TestAAAMigrator(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
     @pytest.mark.parametrize('test_json', ['per_command_aaa_enable',
-                                           'per_command_aaa_no_passkey_expected',
+                                           'per_command_aaa_enable_mgmt',
+                                           'per_command_aaa_no_passkey',
                                            'per_command_aaa_disable',
                                            'per_command_aaa_no_change'])
     def test_migrator_configdb_per_command_aaa(self, test_json):

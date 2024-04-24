@@ -1208,30 +1208,46 @@ class DBMigrator():
 
         authentication_config_old = self.configDB.get_entry('AAA', 'authentication')
         # If device enabled TACACS authentication, then enable TACACS per-command accounting and authorization
-        if 'login' in authentication_config_old and 'tacacs+' == authentication_config_old.get('login'):
-
-            accounting_config_old = self.configDB.get_entry('AAA', 'accounting')
-            if 'login' not in accounting_config_old:
-                accounting_config = { 'login' : 'tacacs+,local' }
-                self.configDB.set_entry('AAA', 'accounting', accounting_config)
-                log.log_info('Setup per-command accounting to: {}'.format(accounting_config))
-            else:
-                log.log_info('TACACS per-command accounting already setup.')
-
-            tacplus_config_old = self.configDB.get_entry('TACPLUS', 'global')
-            if 'passkey' in tacplus_config_old and '' != tacplus_config_old.get('passkey'):
-                authorization_config_old = self.configDB.get_entry('AAA', 'authorization')
-                if 'login' not in authorization_config_old:
-                    authorization_config =  { 'login' : 'tacacs+' }
-                    self.configDB.set_entry('AAA', 'authorization', authorization_config)
-                    log.log_info('Setup per-command authorization to: {}'.format(authorization_config))
-                else:
-                    log.log_info('TACACS per-command authorization already setup.')
-            else:
-                log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
-
-        else:
+        if 'login' not in authentication_config_old or 'tacacs+' != authentication_config_old.get('login'):
             log.log_info('TACACS authentication disabled, ignore setup per-command accounting&authorization.')
+            return
+
+        # setup per-command accounting
+        accounting_config_old = self.configDB.get_entry('AAA', 'accounting')
+        if 'login' not in accounting_config_old:
+            accounting_config = { 'login' : 'tacacs+,local' }
+            self.configDB.set_entry('AAA', 'accounting', accounting_config)
+            log.log_info('Setup per-command accounting to: {}'.format(accounting_config))
+        else:
+            log.log_info('TACACS per-command accounting already setup.')
+
+        # setup per-command authorization
+        tacplus_config_old = self.configDB.get_entry('TACPLUS', 'global')
+        if 'passkey' not in tacplus_config_old or '' == tacplus_config_old.get('passkey'):
+            # If no passkey, setup per-command authorization will block remote user command
+            log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
+            return
+
+        localhost_info_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        if 'type' not in localhost_info_old:
+            # If no type, setup per-command authorization has potensial risk on mgmt device
+            log.log_info('Device type does not exist, ignore setup per-command authorization.')
+            return
+
+        authorization_config_old = self.configDB.get_entry('AAA', 'authorization')
+        if 'login' in authorization_config_old:
+            log.log_info('TACACS per-command authorization already setup.')
+            return
+
+        # setup per-command authorization by device type
+        authorization_config =  { 'login' : 'tacacs+' }
+        if "Mgmt" in localhost_info_old.get('type'):
+            # On mgmt device, failback to local authorizarion when TACACS unreachable
+            authorization_config =  { 'login' : 'tacacs+,local' }
+
+        self.configDB.set_entry('AAA', 'authorization', authorization_config)
+        log.log_info('Setup per-command authorization to: {}'.format(authorization_config))
+
 
     def common_migration_ops(self):
         try:

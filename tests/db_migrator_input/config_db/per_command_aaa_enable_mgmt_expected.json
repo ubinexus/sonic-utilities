@@ -6,13 +6,13 @@
         "login": "tacacs+"
     },
     "AAA|authorization": {
-        "login": "tacacs+"
+        "login": "tacacs+,local"
     },
     "TACPLUS|global": {
         "auth_type": "login",
         "passkey": "testpasskey"
     },
     "DEVICE_METADATA|localhost": {
-        "type": "ToRRouter"
+        "type": "MgmtToRRouter"
     }
 }

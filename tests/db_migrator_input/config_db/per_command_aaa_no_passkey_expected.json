@@ -1,15 +1,14 @@
 {
-    "AAA": {
-        "accounting": {
-            "login": "tacacs+,local"
-        },
-        "authentication": {
-            "login": "tacacs+"
-        }
+    "AAA|accounting": {
+        "login": "tacacs+,local"
     },
-    "TACPLUS": {
-        "global": {
-            "auth_type": "login"
-        }
+    "AAA|authentication": {
+        "login": "tacacs+"
+    },
+    "TACPLUS|global": {
+        "auth_type": "login"
+    },
+    "DEVICE_METADATA|localhost": {
+        "type": "ToRRouter"
     }
 }

@@ -1,19 +1,18 @@
 {
-    "AAA": {
-        "accounting": {
-            "login": "local"
-        },
-        "authentication": {
-            "login": "tacacs+"
-        },
-        "authorization": {
-            "login": "local"
-        }
+    "AAA|accounting": {
+        "login": "local"
     },
-    "TACPLUS": {
-        "global": {
-            "auth_type": "login",
-            "passkey": "testpasskey"
-        }
+    "AAA|authentication": {
+        "login": "tacacs+"
+    },
+    "AAA|authorization": {
+        "login": "local"
+    },
+    "TACPLUS|global": {
+        "auth_type": "login",
+        "passkey": "testpasskey"
+    },
+    "DEVICE_METADATA|localhost": {
+        "type": "ToRRouter"
     }
 }
