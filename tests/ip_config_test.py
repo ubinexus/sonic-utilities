@@ -169,15 +169,15 @@ class TestConfigIP(object):
 
         # config int ip remove PortChannel0001 10.0.0.56/31
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
-        assert result.exit_code == 0
         print(result.output)
         print(result.exit_code)
+        assert result.exit_code == 0
 
         # config int ip add PortChannel0001 10.0.0.56/31
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
-        assert result.exit_code == 0
         print(result.output)
         print(result.exit_code)
+        assert result.exit_code == 0
 
     '''  Tests for IPv6 '''
 

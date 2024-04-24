@@ -462,7 +462,7 @@ class TestInterfaces(object):
     def test_show_interfaces_switchport_status(self):
         runner = CliRunner()
 
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
