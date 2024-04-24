@@ -2081,6 +2081,104 @@ def ztp(status, verbose):
        cmd += ["--verbose"]
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'bmp' group ("show bmp ...")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def bmp():
+    """Show details of the bmp dataset"""
+    pass
+
+# 'bgp-neighbor-table' subcommand ("show bmp bgp-neighbor-table")
+@bmp.command()
+@cli.command('bgp-neighbor-table')
+@clicommon.pass_db
+def bmp_neighbor_table(db):
+    """Show bmp bgp-neighbor-table information"""
+    bmp_headers = ["Neighbor_Address", "Peer_Address", "Peer_ASN", "Peer_RD", "Peer_Port", "Local_Address", "Local_ASN", "Local_Port",
+                   "Advertised_Capabilities", "Received_Capabilities"]
+
+    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_NEIGHBOR_TABLE|*")
+
+    click.echo("Total number of bmp neighbors: {}".format(0 if bmp_keys is None else len(bmp_keys)))
+
+    bmp_body = []
+    if bmp_keys is not None:
+        for key in bmp_keys:
+            key_values = key.split('|')
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bmp_body.append([values["peer_addr"], values["peer_addr"], values["peer_asn"], values["peer_rd"], values["peer_port"],
+                             values["local_ip"], values["local_asn"], values["local_port"], values["sent_cap"], values["recv_cap"]])
+
+    click.echo(tabulate(bmp_body, bmp_headers))
+
+# 'bmp-rib-out-table' subcommand ("show bmp bgp-rib-out-table")
+@bmp.command()
+@cli.command('bmp-rib-out-table')
+@clicommon.pass_db
+def bmp_rib_out_table(db):
+    """Show bmp bgp-rib-out-table information"""
+    bmp_headers = ["Neighbor_Address", "NLRI", "Origin", "AS_Path", "Origin_AS", "Next_Hop", "Local_Pref",
+                   "Originator_ID",  "Community_List", "Ext_Community_List"]
+
+    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_RIB_OUT_TABLE|*")
+
+    click.echo("Total number of bmp bgp-rib-out-table: {}".format(0 if bmp_keys is None else len(bmp_keys)))
+
+    bmp_body = []
+    if bmp_keys is not None:
+        for key in bmp_keys:
+            key_values = key.split('|')
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bmp_body.append([key_values[3], key_values[1], values["origin"], values["as_path"], values["origin_as"], values["next_hop"], values["local_pref"], values["originator_id"],
+                             values["community_list"], values["ext_community_list"]])
+
+    click.echo(tabulate(bmp_body, bmp_headers))
+
+# 'bgp-rib-in-table' subcommand ("show bmp bgp-rib-in-table")
+@bmp.command()
+@cli.command('bgp-rib-in-table')
+@clicommon.pass_db
+def bmp_rib_in_table(db):
+    """Show bmp bgp-rib-in-table information"""
+    bmp_headers = ["Neighbor_Address", "NLRI", "Origin", "AS_Path", "Origin_AS", "Next_Hop", "Local_Pref",
+                   "Originator_ID",  "Community_List", "Ext_Community_List"]
+
+    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_RIB_IN_TABLE|*")
+
+    click.echo("Total number of bmp bgp-rib-in-table: {}".format(0 if bmp_keys is None else len(bmp_keys)))
+
+    bmp_body = []
+    if bmp_keys is not None:
+        for key in bmp_keys:
+            key_values = key.split('|')
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bmp_body.append([key_values[3], key_values[1], values["origin"], values["as_path"], values["origin_as"], values["next_hop"], values["local_pref"], values["originator_id"],
+                             values["community_list"], values["ext_community_list"]])
+
+    click.echo(tabulate(bmp_body, bmp_headers))
+
+# 'status' subcommand ("show bmp status")
+@bmp.command()
+@cli.command('status')
+@clicommon.pass_db
+def status(db):
+    """Show bmp table status information"""
+    bmp_header = ["Table Name", "Enabled"]
+    bmp_body = []
+    bmp_keys = db.cfgdb.get_table('BMP')
+    try:
+        if bmp_keys['table']:
+            nei = [bmp_keys['table']['bgp_neighbor_table']]
+            rib_in = [bmp_keys['table']['bgp_rib_in_table']]
+            rib_out = [bmp_keys['table']['bgp_rib_out_table']]
+            bmp_body.append(nei)
+            bmp_body.append(rib_in)
+            bmp_body.append(rib_out)
+    except KeyError:
+        bmp_keys['table'] = ''
+    click.echo(tabulate(bmp_body, bmp_header))
+
 
 #
 # 'bfd' group ("show bfd ...")
