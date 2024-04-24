@@ -869,13 +869,38 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
+    
         # add etp6 to vlan 1001 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1001", "etp6", "--untagged"], obj=db)
         print(result.exit_code)
         print(result.output)
         traceback.print_tb(result.exc_info[2])
+        assert result.exit_code != 0
+        assert "Ethernet20 is a router interface!" in result.output
+
+        # configure Ethernet20 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "etp6"], obj=db)
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
+        assert "Ethernet20 switched to routed mode" in result.output
+
+        # configure etp6 from routed to access mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["access", "etp6"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Ethernet20 switched to access mode" in result.output
+
+        # add etp6 to vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                ["1001", "etp6", "--untagged"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)

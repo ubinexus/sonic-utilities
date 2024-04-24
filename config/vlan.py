@@ -267,13 +267,13 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
                 ctx.fail("{} does not exist".format(vlan))
-
             if clicommon.get_interface_naming_mode() == "alias": # TODO: MISSING CONSTRAINT IN YANG MODEL
                 alias = port
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
                 if port is None:
                     ctx.fail("cannot find port name for alias {}".format(alias))
+
 
             if clicommon.is_port_mirror_dst_port(db.cfgdb, port): # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is configured as mirror destination port".format(port))
