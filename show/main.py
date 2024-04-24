@@ -2160,7 +2160,7 @@ def bmp_rib_in_table(db):
 @clicommon.pass_db
 def status(db):
     """Show bmp table status information"""
-    bmp_header = ["Table Name", "Enabled"]
+    bmp_header = ["Table_Name", "Enabled"]
     bmp_body = []
     bmp_keys = db.cfgdb.get_table('BMP')
     try:

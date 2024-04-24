@@ -50,15 +50,16 @@ class TestShowBmp(object):
 
         expected_output = """\
 Total number of bmp neighbors: 2
-Neighbor_Address       Peer_Address  Peer_ASN Peer_RD  Peer_Port     Local_Address   Local_ASN      Local_Port     Advertised_Capabilities                    Received_Capabilities
----------------------  -----------   -------  -------  ------------  -----------     -------------  -------------  -----------------------                    ----------------------------
+Neighbor_Address       Peer_Address  Peer_ASN Peer_RD  Peer_Port     Local_Address   Local_ASN      Local_Port     Advertised_Capabilities                      Received_Capabilities
+------------------    --------------  ----------  ---------  -----------  ---------------  -----------  ------------  ----------------------------------------  ----------------------------------------
 10.0.0.61              10.0.0.61     64915    300      5000          10.1.0.32       65100          6000           supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-restart
-10.0.0.62              10.0.0.61     64915    300      5000          10.1.0.32       65100          6000           supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-restart
+10.0.0.62              10.0.0.62     64915    300      5000          10.1.0.32       65100          6000           supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-restart
 """
-
         result = runner.invoke(show.cli.commands['bmp'].commands['bgp-neighbor-table'], [], obj=db)
         assert result.exit_code == 0
-        #assert result.output == expected_output
+        resultA = result.output.strip().replace(' ', '').replace('\n', '')
+        resultB = expected_output.strip().replace(' ', '').replace('\n', '')
+        assert resultA == resultB
 
 
 
@@ -92,15 +93,15 @@ Neighbor_Address       Peer_Address  Peer_ASN Peer_RD  Peer_Port     Local_Addre
         expected_output = """\
 Total number of bmp bgp-rib-out-table: 2
 Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_Hop        Local_Pref     Originator_ID  Community_List            Ext_Community_List
----------------------  -----------      -------  -------     ------------  -----------     -------------  -------------  -----------------------   ----------------------------
+------------------    ----------------  --------  -----------  ----------- ----------      ------------  ---------------  ----------------          --------------------
 10.0.0.57              20c0:ef50::/64   igp      65100 64600 64915         fc00::7e        0              0              residential               traffic_engineering
 10.0.0.59              192.181.168.0/25 igp      65100 64600 64915         10.0.0.63       0              0              business                  preferential_transit
 """
-
         result = runner.invoke(show.cli.commands['bmp'].commands['bgp-rib-out-table'], [], obj=db)
         assert result.exit_code == 0
-        #assert result.output == expected_output
-
+        resultA = result.output.strip().replace(' ', '').replace('\n', '')
+        resultB = expected_output.strip().replace(' ', '').replace('\n', '')
+        assert resultA == resultB
 
     def test_show_bmp_rib_in_table(self):
         runner = CliRunner()
@@ -132,14 +133,40 @@ Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_
         expected_output = """\
 Total number of bmp bgp-rib-in-table: 2
 Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_Hop        Local_Pref     Originator_ID  Community_List            Ext_Community_List
----------------------  -----------      -------  -------     ------------  -----------     -------------  -------------  -----------------------   ----------------------------
+------------------  ----------------  --------  -----------  -----------   ----------     ------------  ---------------  ----------------         --------------------
 10.0.0.57              20c0:ef50::/64   igp      65100 64600 64915         fc00::7e        0              0              residential               traffic_engineering
 10.0.0.59              192.181.168.0/25 igp      65100 64600 64915         10.0.0.63       0              0              business                  preferential_transit
 """
-
         result = runner.invoke(show.cli.commands['bmp'].commands['bgp-rib-in-table'], [], obj=db)
         assert result.exit_code == 0
-        #assert result.output == expected_output
+        resultA = result.output.strip().replace(' ', '').replace('\n', '')
+        resultB = expected_output.strip().replace(' ', '').replace('\n', '')
+        assert resultA == resultB
+
+    def test_status(self):
+        runner = CliRunner()
+        db = Db()
+
+        runner.invoke(config.config.commands['bgp_neighbor_table'], ['true'], obj=db)
+        runner.invoke(config.config.commands['bgp_rib_in_table'], ['false'], obj=db)
+        runner.invoke(config.config.commands['bgp_rib_out_table'], ['true'], obj=db)
+
+        assert db.cfgdb.get_entry('BMP' , 'table')['bgp_neighbor_table'] == 'true'
+        assert db.cfgdb.get_entry('BMP' , 'table')['bgp_rib_in_table'] == 'false'
+        assert db.cfgdb.get_entry('BMP' , 'table')['bgp_rib_out_table'] == 'true'
+
+        expected_output = """\
+Table_Name          Enabled
+-----------         -------
+bgp_neighbor_table  true
+bgp_rib_in_table    false
+bgp_rib_out_table   true
+"""
+        result = runner.invoke(show.cli.commands['status'], obj=db)
+        assert result.exit_code == 0
+        resultA = result.output.strip().replace(' ', '').replace('\n', '')
+        resultB = expected_output.strip().replace(' ', '').replace('\n', '')
+        assert resultA == resultB
 
     @classmethod
     def teardown_class(cls):
