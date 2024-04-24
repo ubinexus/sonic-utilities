@@ -97,7 +97,7 @@ Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_
 10.0.0.59              192.181.168.0/25 igp      65100 64600 64915         10.0.0.63       0              0              business                  preferential_transit
 """
 
-        result = runner.invoke(show.cli.commands['bmp'].commands['bmp-rib-out-table'], [], obj=db)
+        result = runner.invoke(show.cli.commands['bmp'].commands['bgp-rib-out-table'], [], obj=db)
         assert result.exit_code == 0
         assert result.output == expected_output
 
@@ -137,7 +137,7 @@ Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_
 10.0.0.59              192.181.168.0/25 igp      65100 64600 64915         10.0.0.63       0              0              business                  preferential_transit
 """
 
-        result = runner.invoke(show.cli.commands['bmp'].commands['bmp-rib-in-table'], [], obj=db)
+        result = runner.invoke(show.cli.commands['bmp'].commands['bgp-rib-in-table'], [], obj=db)
         assert result.exit_code == 0
         assert result.output == expected_output
 

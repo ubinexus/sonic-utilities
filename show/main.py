@@ -2107,7 +2107,7 @@ def bmp_neighbor_table(db):
             key_values = key.split('|')
             values = db.db.get_all(db.db.STATE_DB, key)
             bmp_body.append([values["peer_addr"], values["peer_addr"], values["peer_asn"], values["peer_rd"], values["peer_port"],
-                             values["local_ip"], values["local_asn"], values["local_port"], values["sent_cap"], values["recv_cap"]])
+                             values["local_addr"], values["local_asn"], values["local_port"], values["sent_cap"], values["recv_cap"]])
 
     click.echo(tabulate(bmp_body, bmp_headers))
 
