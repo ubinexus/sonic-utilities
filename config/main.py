@@ -3942,7 +3942,6 @@ def enable_bgp_neighbor_table(ctx):
     """enable bgp-neighbor-table sessions
        In the case of Multi-Asic platform, corresponding database instance of neighbor will be operated.
     """
-    print("'bmp enable bgp-neighbor-table' executing...")
     log.log_info("'bmp enable bgp-neighbor-table' executing...")
     config_db = ConfigDBConnector()
     config_db.connect()
