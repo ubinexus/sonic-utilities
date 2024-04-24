@@ -167,8 +167,8 @@ class TestConfigIP(object):
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        # config int ip rem PortChannel0001 10.0.0.56/31
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["rem"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
+        # config int ip remove PortChannel0001 10.0.0.56/31
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
         assert result.exit_code == 0
         print(result.output)
         print(result.exit_code)

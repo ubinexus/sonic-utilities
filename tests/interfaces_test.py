@@ -5,6 +5,7 @@ from click.testing import CliRunner
 from unittest import mock
 from utilities_common.intf_filter import parse_interface_in_filter
 
+import config.main as config
 import show.main as show
 
 show_interfaces_alias_output="""\
