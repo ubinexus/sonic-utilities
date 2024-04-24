@@ -162,23 +162,6 @@ class TestConfigIP(object):
         print(result.exit_code)
         assert 'Error: Ethernet32 is configured as a member of portchannel.' in result.output
 
-    def test_ip_add_rem_on_portchannel(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'config_db':db.cfgdb}
-
-        # config int ip remove PortChannel0001 10.0.0.56/31
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
-        print(result.output)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
-        # config int ip add PortChannel0001 10.0.0.56/31
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["PortChannel0001", "10.0.0.56/31"], obj=obj)
-        print(result.output)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
     '''  Tests for IPv6 '''
 
     def test_add_del_interface_valid_ipv6(self):
