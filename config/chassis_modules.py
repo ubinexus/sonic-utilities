@@ -21,7 +21,10 @@ def modules():
 def get_config_module_state(db, chassis_module_name):
     config_db = db.cfgdb
     fvs = config_db.get_entry('CHASSIS_MODULE', chassis_module_name)
-    return fvs['admin_status']
+    if not fvs:
+        return None
+    else:
+        return fvs['admin_status']
 
 TIMEOUT_SECS = 10
 
