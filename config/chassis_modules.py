@@ -56,9 +56,12 @@ def shutdown_chassis_module(db, chassis_module_name):
        not chassis_module_name.startswith("FABRIC-CARD"):
         ctx.fail("'module_name' has to begin with 'SUPERVISOR', 'LINE-CARD' or 'FABRIC-CARD'")
 
+    #To avoid duplicate operation
+    if get_config_module_state(db, chassis_module_name) == 'down':
+        click.echo("Duplicate operation for " + chassis_module_name)
+        return
     fvs = {'admin_status': 'down'}
     config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
-
     if not get_config_module_state_timeout(ctx, db, chassis_module_name, 'down'):
         fabric_module_set_admin_status(chassis_module_name, 'down')
 
@@ -73,7 +76,11 @@ def startup_chassis_module(db, chassis_module_name):
     config_db = db.cfgdb
     ctx = click.get_current_context()
     
-    config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
+    #To avoid duplicate operation
+    if get_config_module_state(db, chassis_module_name) is None:
+        click.echo("Duplicate operation for " + chassis_module_name)
+        return
 
-    if not get_config_module_state_timeout(ctx, db, chassis_module_name, 'up'):
+    config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
+    if not get_config_module_state_timeout(ctx, db, chassis_module_name, None):
         fabric_module_set_admin_status(chassis_module_name, 'up')

@@ -8,7 +8,6 @@ import subprocess
 import time
 from swsscommon.swsscommon import SonicV2Connector
 from sonic_py_common.logger import Logger
-from platform_ndk import nokia_common
 
 # Name: fabric_module_set_admin_status.py, version: 1.0
 # Syntax: fabric_module_set_admin_status <module_name> <up/down>
@@ -36,18 +35,18 @@ def fabric_module_set_admin_status(module, state):
             if name == module:
                 asic_id = int(re.search(r"(\d+)$", service).group())
                 asic_list.append(asic_id)
-
+        if len(asic_list) == 0:
+            logger.log_warning("Failed to get {}'s asic list.".format(module))
+            return
         logger.log_info("Shutting down chassis module {}".format(module))
-
         for asic in asic_list:
             logger.log_info("Stopping swss@{} and syncd@{} ...".format(asic, asic))
             process = subprocess.Popen(['sudo', 'systemctl', 'stop', 'swss@{}.service'.format(asic)],
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
             outstr = stdout.decode('ascii')
-
             # wait for service is down
-            time.sleep(2)
+            time.sleep(5)
             chassisdb.delete("CHASSIS_STATE_DB","CHASSIS_FABRIC_ASIC_TABLE|asic" + str(asic))
 
             logger.log_info("Start swss@{} and syncd@{} ...".format(asic, asic))
@@ -65,11 +64,12 @@ def fabric_module_set_admin_status(module, state):
             if name == module:
                 asic_id = int(re.search(r"(\d+)$", service).group())
                 asic_list.append(asic_id)
-
+        if len(asic_list) == 0:
+            logger.log_warning("Failed to get {}'s asic list.".format(module))
+            return
         for asic in asic_list:
             logger.log_info("Start swss@{} and syncd@{} ...".format(asic, asic))
             process = subprocess.Popen(['sudo', 'systemctl', 'start', 'swss@{}.service'.format(asic)],
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
             outstr = stdout.decode('ascii')
-    return
