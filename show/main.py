@@ -2112,7 +2112,7 @@ def bmp_neighbor_table(db):
     click.echo(tabulate(bmp_body, bmp_headers))
 
 # 'bmp-rib-out-table' subcommand ("show bmp bgp-rib-out-table")
-@bmp.command('bmp-rib-out-table')
+@bmp.command('bgp-rib-out-table')
 @clicommon.pass_db
 def bmp_rib_out_table(db):
     """Show bmp bgp-rib-out-table information"""
