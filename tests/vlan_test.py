@@ -869,7 +869,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-    
         # add etp6 to vlan 1001 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["1001", "etp6", "--untagged"], obj=db)
@@ -877,15 +876,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-
-        # add etp6 to vlan 1001
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                ["1001", "etp6", "--untagged"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
-
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
