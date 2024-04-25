@@ -485,6 +485,13 @@ class TestInterfaces(object):
     
     def test_show_interfaces_switchport_config_in_alias_mode(self):
         runner = CliRunner()
+
+        # Configure PortChannel1001 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"].commands["config"])
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
