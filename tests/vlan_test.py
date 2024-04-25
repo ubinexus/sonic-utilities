@@ -639,7 +639,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-
+    
         # Configure PortChannel0001 to routed mode again; should give error as it is already in routed mode
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
         print(result.exit_code)
@@ -690,6 +690,15 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+
+
+        # Configure etp70 to routed mode
+        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "etp70"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Can't find port name for alias" in result.output
+
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
