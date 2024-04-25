@@ -1,6 +1,7 @@
 import os
 import sys
 from click.testing import CliRunner
+import config.main as config
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 
@@ -143,26 +144,27 @@ Neighbor_Address       NLRI             Origin   AS_Path     Origin_AS     Next_
         resultB = expected_output.strip().replace(' ', '').replace('\n', '')
         assert resultA == resultB
 
-    def test_status(self):
+    def test_tables(self):
         runner = CliRunner()
         db = Db()
-
-        runner.invoke(config.config.commands['bgp_neighbor_table'], ['true'], obj=db)
-        runner.invoke(config.config.commands['bgp_rib_in_table'], ['false'], obj=db)
-        runner.invoke(config.config.commands['bgp_rib_out_table'], ['true'], obj=db)
+        dbconnector = db.db
+        db.cfgdb.mod_entry("BMP", "table", {'bgp_neighbor_table' : 'true'})
+        db.cfgdb.mod_entry("BMP", "table", {'bgp_rib_in_table' : 'false'})
+        db.cfgdb.mod_entry("BMP", "table", {'bgp_rib_out_table' : 'true'})
 
         assert db.cfgdb.get_entry('BMP' , 'table')['bgp_neighbor_table'] == 'true'
         assert db.cfgdb.get_entry('BMP' , 'table')['bgp_rib_in_table'] == 'false'
         assert db.cfgdb.get_entry('BMP' , 'table')['bgp_rib_out_table'] == 'true'
 
         expected_output = """\
+BMP tables:
 Table_Name          Enabled
------------         -------
+------------------  ---------
 bgp_neighbor_table  true
 bgp_rib_in_table    false
 bgp_rib_out_table   true
 """
-        result = runner.invoke(show.cli.commands['status'], obj=db)
+        result = runner.invoke(show.cli.commands['bmp'].commands['tables'], [], obj=db)
         assert result.exit_code == 0
         resultA = result.output.strip().replace(' ', '').replace('\n', '')
         resultB = expected_output.strip().replace(' ', '').replace('\n', '')

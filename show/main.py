@@ -2155,25 +2155,23 @@ def bmp_rib_in_table(db):
 
     click.echo(tabulate(bmp_body, bmp_headers))
 
-# 'status' subcommand ("show bmp status")
-@bmp.command('status')
+# 'tables' subcommand ("show bmp tables")
+@bmp.command('tables')
 @clicommon.pass_db
-def status(db):
+def tables(db):
     """Show bmp table status information"""
-    bmp_header = ["Table_Name", "Enabled"]
+    bmp_headers = ["Table_Name", "Enabled"]
     bmp_body = []
-    bmp_keys = db.cfgdb.get_table('BMP')
+    click.echo("BMP tables: ")
     try:
+        bmp_keys = db.cfgdb.get_table('BMP')
         if bmp_keys['table']:
-            nei = [bmp_keys['table']['bgp_neighbor_table']]
-            rib_in = [bmp_keys['table']['bgp_rib_in_table']]
-            rib_out = [bmp_keys['table']['bgp_rib_out_table']]
-            bmp_body.append(nei)
-            bmp_body.append(rib_in)
-            bmp_body.append(rib_out)
+            bmp_body.append(['bgp_neighbor_table', bmp_keys['table']['bgp_neighbor_table']])
+            bmp_body.append(['bgp_rib_in_table', bmp_keys['table']['bgp_rib_in_table']])
+            bmp_body.append(['bgp_rib_out_table', bmp_keys['table']['bgp_rib_out_table']])
     except KeyError:
         bmp_keys['table'] = ''
-    click.echo(tabulate(bmp_body, bmp_header))
+    click.echo(tabulate(bmp_body, bmp_headers))
 
 
 #
