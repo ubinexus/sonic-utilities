@@ -11,6 +11,8 @@ PLATFORM_UPDATE_REBOOT_CAUSE="platform_update_reboot_cause"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 REBOOT_TIME=$(date)
+PLATFORMS_NOT_SUPPORT_180S_WD=("x86_64-mlnx_msn2100-r0" "x86_64-mlnx_msn2010-r0")
+IS_PLATFORM_SUPPORT_180S_WD=1
 
 # Reboot immediately if we run the kdump capture kernel
 VMCORE_FILE=/proc/vmcore
@@ -177,6 +179,19 @@ function check_conflict_boot_in_fw_update()
     fi
 }
 
+function is_platform_support_180s_wd()
+{
+    # Test whether the platform support 180s wathdog
+    for i in "${PLATFORMS_NOT_SUPPORT_180S_WD[@]}"
+    do
+        if [ "$i" == "${PLATFORM}" ] ; then
+            debug "Platform ${PLATFORM} doesn't support 180s watchdog"
+            IS_PLATFORM_SUPPORT_180S_WD=0
+            return
+        fi
+    done
+}
+
 function parse_options()
 {
     while getopts "h?v" opt; do
@@ -265,9 +280,13 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PRE_REBOOT_HOOK} ]; then
     fi
 fi
 
-if [ -x ${WATCHDOG_UTIL} ]; then
+is_platform_support_180s_wd
+
+if [[ -x ${WATCHDOG_UTIL} && "${IS_PLATFORM_SUPPORT_180S_WD}" == 1 ]]; then
     debug "Enabling the Watchdog before reboot"
     ${WATCHDOG_UTIL} arm
+else
+    debug "Skip enabling the watchdog"
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
