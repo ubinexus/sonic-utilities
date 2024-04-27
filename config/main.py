@@ -7770,7 +7770,6 @@ def state(state):
                         {'state': state})
 
 
-
 @banner.command()
 @click.argument('message', metavar='<message>', required=True)
 def login(message):
