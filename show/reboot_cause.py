@@ -28,7 +28,6 @@ def read_reboot_cause_file():
 def fetch_reboot_cause_from_db(module_name):
     table = []
     r = []
-    wrapper = textwrap.TextWrapper(width=30)
 
     # Read the previous reboot cause
     if module_name == "all" or module_name == "SWITCH":
@@ -72,9 +71,7 @@ def fetch_reboot_cause_from_db(module_name):
                 d.append(entry['device'])
             if not module_name is None:
                 r.append(entry['device'] if 'device' in entry else "")
-            if 'cause' in entry:
-                wrp_cause = wrapper.fill(entry['cause'])
-            r.append(wrp_cause if 'cause' in entry else "")
+            r.append(cause if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
             if append == True:
@@ -91,7 +88,6 @@ def fetch_reboot_cause_history_from_db(module_name):
     prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
-    wrapper = textwrap.TextWrapper(width=30)
 
     if table_keys is not None:
         table_keys.sort(reverse=True)
@@ -106,14 +102,10 @@ def fetch_reboot_cause_history_from_db(module_name):
             if not module_name is None and device_present: 
                 r.append(entry['device'] if 'device' in entry else "SWITCH")
             r.append(tk.replace(prefix, ""))
-            if 'cause' in entry:
-                wrp_cause = wrapper.fill(entry['cause'])
-            r.append(wrp_cause if 'cause' in entry else "")
+            r.append(cause if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
-            if 'comment' in entry:
-                wrp_comment = wrapper.fill(entry['comment'])
-            r.append(wrp_comment if 'comment' in entry else "")
+            r.append(comment if 'comment' in entry else "")
             if module_name == 'all' or module_name == entry['device']:
                 table.append(r)
 
