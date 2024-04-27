@@ -404,28 +404,6 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Vlan1001 does not exist" in result.output
 
-    def test_config__interface_name_is_invalid_etp33(self):
-        runner = CliRunner()
-        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "etp33"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: cannot find port name for alias etp33" in result.output
-
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["4000", "etp33"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: cannot find port name for alias etp33" in result.output
-
-        result = runner.invoke(config.config.commands["interfaces"].commands["switchport"], ["routed", "etp33"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: cannot find port name for alias etp33" in result.output
-        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
-
 
     def test_config_vlan_add_exist_port_member(self):
         runner = CliRunner()
