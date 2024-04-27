@@ -2,6 +2,8 @@ import os
 import traceback
 import pytest
 from unittest import mock
+from mock import patch
+import jsonpatch
 
 from click.testing import CliRunner
 
