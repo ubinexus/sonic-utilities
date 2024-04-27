@@ -613,7 +613,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
-    
+
     def test_config_switchport_mode_with_mirror_destintion_port(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],["trunk", "Ethernet44"])
