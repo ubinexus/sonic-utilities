@@ -161,11 +161,8 @@ def reboot_cause(ctx):
 def all():
     """Show cause of most recent reboot"""
     reboot_cause_data = fetch_reboot_cause_from_db("all")
-    if not reboot_cause_data:
-        click.echo("Reboot-cause history is not yet available in StateDB")
-    else:
-        header = ['Device', 'Name', 'Cause', 'Time', 'User']
-        click.echo(tabulate(reboot_cause_data, header, numalign="left"))
+    header = ['Device', 'Name', 'Cause', 'Time', 'User']
+    click.echo(tabulate(reboot_cause_data, header, numalign="left"))
 
 # 'history' command within 'reboot-cause'
 @reboot_cause.command()
@@ -173,13 +170,10 @@ def all():
 def history(module_name):
     """Show history of reboot-cause"""
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if not reboot_cause_history:
-        click.echo("Reboot-cause history is not yet available in StateDB")
+    if not module_name is None :
+        header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
+        click.echo(tabulate(reboot_cause_history, header, numalign="left"))
     else:
-        if not module_name is None :
-            header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
-            click.echo(tabulate(reboot_cause_history, header, numalign="left"))
-        else:
-            header = ['Name', 'Cause', 'Time', 'User', 'Comment']
-            click.echo(tabulate(reboot_cause_history, header, numalign="left"))
+        header = ['Name', 'Cause', 'Time', 'User', 'Comment']
+        click.echo(tabulate(reboot_cause_history, header, numalign="left"))
 
