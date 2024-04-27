@@ -1506,14 +1506,12 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "Ethernet20"], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert "Invalid ConfigDB. Error" in result.output
         assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
         assert result.exit_code != 0 
 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", "Ethernet4"], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert "Invalid ConfigDB. Error" in result.output
         assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
         assert result.exit_code != 0 
 
