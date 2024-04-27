@@ -7524,5 +7524,76 @@ def date(date, time):
     clicommon.run_command(['timedatectl', 'set-time', date_time])
 
 
+#
+# 'logrotate' group ('config logrotate ...')
+#
+@config.group()
+def logrotate():
+    """Configuring logrotate"""
+    pass
+
+
+@logrotate.command()
+@click.argument('file', metavar='<syslog|debug>', required=True,
+                type=click.Choice(['syslog', 'debug']))
+@click.argument('disk_percentage', metavar='<disk-percentage>',
+                required=True,  type=float)
+def disk_percentage(file, disk_percentage):
+    """Configuring logrotate disk-precentage file <syslog|debug> <disk_percentage>"""
+
+    if 0 > disk_percentage > 100:
+        click.echo(f'Disk percentage {disk_percentage} is not in range [0 - 100]')
+        pass
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
+                        {'disk_percentage': disk_percentage})
+
+
+@logrotate.command()
+@click.argument('file', metavar='<syslog|debug>', required=True,
+                type=click.Choice(['syslog', 'debug']))
+@click.argument('frequency', metavar='<daily|weekly|monthly|yearly>',
+                required=True,
+                type=click.Choice(['daily', 'weekly', 'monthly', 'yearly']))
+def frequency(file, frequency):
+    """Configuring logrotate frequency file <syslog|debug> <frequency>"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
+                        {'frequency': frequency})
+
+
+@logrotate.command()
+@click.argument('file', metavar='<syslog|debug>', required=True,
+                type=click.Choice(['syslog', 'debug']))
+@click.argument('max_number', metavar='<max-number>',
+                type=click.IntRange(0, 999999), required=True)
+def max_number(file, max_number):
+    """Configuring logrotate max-number file <syslog|debug> <max_number>"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
+                        {'max_number': max_number})
+
+
+@logrotate.command()
+@click.argument('file', metavar='<syslog|debug>', required=True,
+                type=click.Choice(['syslog', 'debug']))
+@click.argument('size', metavar='<size>', type=float, required=True)
+def size(file, size):
+    """Configuring logrotate size file <syslog|debug> <size>"""
+
+    if 0.001 > size > 3500.0:
+        click.echo(f'Size {disk_percentage} is not in range [0.001 - 3500.0]')
+        pass
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
+                        {'size': size})
+
+
 if __name__ == '__main__':
     config()
