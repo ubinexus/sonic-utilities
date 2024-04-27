@@ -8,6 +8,8 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from jsonpatch import JsonPatchConflict
+
 from importlib import reload
 import utilities_common.bgp_util as bgp_util
 
@@ -399,6 +401,28 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Vlan1001 does not exist" in result.output
+
+    def test_config__interface_name_is_invalid_etp33(self):
+        runner = CliRunner()
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "etp33"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["4000", "etp33"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+
+        result = runner.invoke(config.config.commands["interfaces"].commands["switchport"], ["routed", "etp33"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
 
 
     def test_config_vlan_add_exist_port_member(self):
@@ -1469,8 +1493,29 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "DHCPv6 relay config for Vlan1001 already exists" in result.output
+        assert "DHCPv6 relay config for Vlan1001 already exists" in result.Output
+    
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_vlan_member_invalid_JsonPatch_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "Ethernet20"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+        assert result.exit_code != 0 
 
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", "Ethernet4"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
+        assert result.exit_code != 0 
+
+    
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
