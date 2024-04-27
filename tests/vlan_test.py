@@ -1473,7 +1473,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "DHCPv6 relay config for Vlan1001 already exists" in result.Output
+        assert "DHCPv6 relay config for Vlan1001 already exists" in result.output
     
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
@@ -1484,8 +1484,9 @@ class TestVlan(object):
         obj = {'db':db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "Ethernet20"], obj=obj)
         print(result.exit_code)
-        assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
         assert result.exit_code != 0
+        assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
@@ -1497,8 +1498,9 @@ class TestVlan(object):
         obj = {'db':db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", "Ethernet4"], obj=obj)
         print(result.exit_code)
-        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
         assert result.exit_code != 0
+        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
+
 
     @classmethod
     def teardown_class(cls):
