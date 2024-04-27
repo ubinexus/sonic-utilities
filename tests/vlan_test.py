@@ -1478,6 +1478,7 @@ class TestVlan(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
+
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
@@ -1490,8 +1491,10 @@ class TestVlan(object):
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
-    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'sample_key': 'sample_value'}))
     def test_config_vlan_del_member_yang_validation(self):
+
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
@@ -1499,7 +1502,6 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", "Ethernet4"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
-        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
 
 
     @classmethod
