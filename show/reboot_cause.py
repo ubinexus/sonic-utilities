@@ -4,7 +4,6 @@ import sys
 
 import click
 from tabulate import tabulate
-import textwrap
 from swsscommon.swsscommon import SonicV2Connector
 import utilities_common.cli as clicommon
 
@@ -71,7 +70,7 @@ def fetch_reboot_cause_from_db(module_name):
                 d.append(entry['device'])
             if not module_name is None:
                 r.append(entry['device'] if 'device' in entry else "")
-            r.append(cause if 'cause' in entry else "")
+            r.append(entry['cause'] if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
             if append == True:
@@ -99,14 +98,14 @@ def fetch_reboot_cause_history_from_db(module_name):
             if 'device' in entry:
                 device_present = True
             r = []
-            if not module_name is None and device_present: 
+            if not module_name is None:
                 r.append(entry['device'] if 'device' in entry else "SWITCH")
             r.append(tk.replace(prefix, ""))
-            r.append(cause if 'cause' in entry else "")
+            r.append(entry['cause'] if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
-            r.append(comment if 'comment' in entry else "")
-            if module_name == 'all' or module_name == entry['device']:
+            r.append(entry['comment'] if 'comment' in entry else "")
+            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or 'device' in entry and module_name == entry['device']:
                 table.append(r)
 
     return table
