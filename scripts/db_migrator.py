@@ -808,6 +808,52 @@ class DBMigrator():
                 sflow_key = "SFLOW_SESSION_TABLE:{}".format(key)
                 self.appDB.set(self.appDB.APPL_DB, sflow_key, 'sample_direction','rx')
 
+    def migrate_tacplus(self):
+        if not self.config_src_data or 'TACPLUS' not in self.config_src_data:
+            return
+
+        tacplus_new = self.config_src_data['TACPLUS']
+        log.log_notice('Migrate TACPLUS configuration')
+
+        global_old = self.configDB.get_entry('TACPLUS', 'global')
+        if not global_old:
+            global_new = tacplus_new.get("global")
+            self.configDB.set_entry("TACPLUS", "global", global_new)
+            log.log_info('Migrate TACPLUS global: {}'.format(global_new))
+
+    def migrate_aaa(self):
+        if not self.config_src_data or 'AAA' not in self.config_src_data:
+            return
+
+        aaa_new = self.config_src_data['AAA']
+        log.log_notice('Migrate AAA configuration')
+
+        authentication = self.configDB.get_entry('AAA', 'authentication')
+        if not authentication:
+            authentication_new = aaa_new.get("authentication")
+            self.configDB.set_entry("AAA", "authentication", authentication_new)
+            log.log_info('Migrate AAA authentication: {}'.format(authentication_new))
+
+        # setup per-command accounting
+        accounting = self.configDB.get_entry('AAA', 'accounting')
+        if not accounting:
+            accounting_new = aaa_new.get("accounting")
+            self.configDB.set_entry("AAA", "accounting", accounting_new)
+            log.log_info('Migrate AAA accounting: {}'.format(accounting_new))
+
+        # setup per-command authorization
+        tacplus_config = self.configDB.get_entry('TACPLUS', 'global')
+        if 'passkey' in tacplus_config and '' != tacplus_config.get('passkey'):
+            authorization = self.configDB.get_entry('AAA', 'authorization')
+            if not authorization:
+                authorization_new = aaa_new.get("authorization")
+                self.configDB.set_entry("AAA", "authorization", authorization_new)
+                log.log_info('Migrate AAA authorization: {}'.format(authorization_new))
+        else:
+            # If no passkey, setup per-command authorization will block remote user command
+            log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
+
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -1200,55 +1246,6 @@ class DBMigrator():
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
-    def enable_per_command_aaa(self):
-        aaa_table = self.configDB.get_table('AAA')
-        if not aaa_table:
-            log.log_info('AAA table does not exist ignore setup per-command accounting&authorization.')
-            return
-
-        authentication_config_old = self.configDB.get_entry('AAA', 'authentication')
-        # If device enabled TACACS authentication, then enable TACACS per-command accounting and authorization
-        if 'login' not in authentication_config_old or 'tacacs+' != authentication_config_old.get('login'):
-            log.log_info('TACACS authentication disabled, ignore setup per-command accounting&authorization.')
-            return
-
-        # setup per-command accounting
-        accounting_config_old = self.configDB.get_entry('AAA', 'accounting')
-        if 'login' not in accounting_config_old:
-            accounting_config = { 'login' : 'tacacs+,local' }
-            self.configDB.set_entry('AAA', 'accounting', accounting_config)
-            log.log_info('Setup per-command accounting to: {}'.format(accounting_config))
-        else:
-            log.log_info('TACACS per-command accounting already setup.')
-
-        # setup per-command authorization
-        tacplus_config_old = self.configDB.get_entry('TACPLUS', 'global')
-        if 'passkey' not in tacplus_config_old or '' == tacplus_config_old.get('passkey'):
-            # If no passkey, setup per-command authorization will block remote user command
-            log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
-            return
-
-        localhost_info_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        if 'type' not in localhost_info_old:
-            # If no type, setup per-command authorization has potensial risk on mgmt device
-            log.log_info('Device type does not exist, ignore setup per-command authorization.')
-            return
-
-        authorization_config_old = self.configDB.get_entry('AAA', 'authorization')
-        if 'login' in authorization_config_old:
-            log.log_info('TACACS per-command authorization already setup.')
-            return
-
-        # setup per-command authorization by device type
-        authorization_config =  { 'login' : 'tacacs+' }
-        if "Mgmt" in localhost_info_old.get('type'):
-            # On mgmt device, failback to local authorizarion when TACACS unreachable
-            authorization_config =  { 'login' : 'tacacs+,local' }
-
-        self.configDB.set_entry('AAA', 'authorization', authorization_config)
-        log.log_info('Setup per-command authorization to: {}'.format(authorization_config))
-
-
     def common_migration_ops(self):
         try:
             with open(INIT_CFG_FILE) as f:
@@ -1283,8 +1280,6 @@ class DBMigrator():
         self.update_edgezone_aggregator_config()
         # update FRR config mode based on minigraph parser on target image
         self.migrate_routing_config_mode()
-        # enable per-command authorization/accounting feature for 202205 & 202305
-        self.enable_per_command_aaa()
 
     def migrate(self):
         version = self.get_version()

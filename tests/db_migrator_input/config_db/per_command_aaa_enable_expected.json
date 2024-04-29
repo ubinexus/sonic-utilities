@@ -11,8 +11,5 @@
     "TACPLUS|global": {
         "auth_type": "login",
         "passkey": "testpasskey"
-    },
-    "DEVICE_METADATA|localhost": {
-        "type": "ToRRouter"
     }
 }

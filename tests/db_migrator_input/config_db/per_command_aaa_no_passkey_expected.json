@@ -7,8 +7,5 @@
     },
     "TACPLUS|global": {
         "auth_type": "login"
-    },
-    "DEVICE_METADATA|localhost": {
-        "type": "ToRRouter"
     }
 }
