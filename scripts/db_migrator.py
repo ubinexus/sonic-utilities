@@ -841,19 +841,6 @@ class DBMigrator():
             self.configDB.set_entry("AAA", "accounting", accounting_new)
             log.log_info('Migrate AAA accounting: {}'.format(accounting_new))
 
-        # setup per-command authorization
-        tacplus_config = self.configDB.get_entry('TACPLUS', 'global')
-        if 'passkey' in tacplus_config and '' != tacplus_config.get('passkey'):
-            authorization = self.configDB.get_entry('AAA', 'authorization')
-            if not authorization:
-                authorization_new = aaa_new.get("authorization")
-                self.configDB.set_entry("AAA", "authorization", authorization_new)
-                log.log_info('Migrate AAA authorization: {}'.format(authorization_new))
-        else:
-            # If no passkey, setup per-command authorization will block remote user command
-            log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
-
-
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
