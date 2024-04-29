@@ -1281,6 +1281,9 @@ class DBMigrator():
         # update FRR config mode based on minigraph parser on target image
         self.migrate_routing_config_mode()
 
+        self.migrate_tacplus()
+        self.migrate_aaa()
+
     def migrate(self):
         version = self.get_version()
         log.log_info('Upgrading from version ' + version)
