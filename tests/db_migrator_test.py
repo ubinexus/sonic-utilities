@@ -6,7 +6,7 @@ from unittest import mock
 from deepdiff import DeepDiff
 import json
 
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from sonic_py_common import device_info
 
 from .mock_tables import dbconnector
@@ -890,6 +890,22 @@ class TestMain(object):
         import db_migrator
         db_migrator.main()
 
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.isInit', mock.MagicMock(return_value=False))
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.initialize', mock.MagicMock())
+    def test_init_no_namespace(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace=None, operation='version_202405_01', socket=None)
+        import db_migrator
+        db_migrator.main()
+
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
+    @mock.patch('swsscommon.swsscommon.SonicDBConfig.initializeGlobalConfig', mock.MagicMock())
+    def test_init_namespace(self, mock_args):
+        mock_args.return_value=argparse.Namespace(namespace="asic0", operation='version_202405_01', socket=None)
+        import db_migrator
+        db_migrator.main()
+
 
 class TestGNMIMigrator(object):
     @classmethod
@@ -971,7 +987,9 @@ class TestAAAMigrator(object):
     @pytest.mark.parametrize('test_json', ['per_command_aaa_enable',
                                            'per_command_aaa_no_passkey',
                                            'per_command_aaa_disable',
-                                           'per_command_aaa_no_change'])
+                                           'per_command_aaa_no_change',
+                                           'per_command_aaa_no_tacplus',
+                                           'per_command_aaa_no_authentication'])
     def test_per_command_aaa(self, test_json):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', test_json)
         import db_migrator
