@@ -15,6 +15,15 @@ LINE-CARD0 line-card 1 Empty down LC1000101
 show_linecard0_startup_output="""\
 LINE-CARD0 line-card 1 Empty up LC1000101
 """
+
+show_fabriccard0_shutdown_output="""\
+FABRIC-CARD0 fabric-card 17 Online down FC1000101
+"""
+
+show_fabriccard0_startup_output="""\
+FABRIC-CARD0 fabric-card 17 Online up FC1000101
+"""
+
 header_lines = 2
 warning_lines = 0
 
@@ -186,6 +195,23 @@ class TestChassisModules(object):
         #db.cfgdb.set_entry("CHASSIS_MODULE", "LINE-CARD0", { "admin_status" : "down" })
         #db.get_data("CHASSIS_MODULE", "LINE-CARD0")
 
+    def test_config_shutdown_module_fabric(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(config.config.commands["chassis"].commands["modules"].commands["shutdown"], ["FABRIC-CARD0"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+
+        result = runner.invoke(show.cli.commands["chassis"].commands["modules"].commands["status"], ["FABRIC-CARD0"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        result_lines = result.output.strip('\n').split('\n')
+        assert result.exit_code == 0
+        header_lines = 2
+        result_out = " ".join((result_lines[header_lines]).split())
+        assert result_out.strip('\n') == show_fabriccard0_shutdown_output.strip('\n')
+
     def test_config_startup_module(self):
         runner = CliRunner()
         db = Db()
@@ -201,6 +227,22 @@ class TestChassisModules(object):
         assert result.exit_code == 0
         result_out = " ".join((result_lines[header_lines]).split())
         assert result_out.strip('\n') == show_linecard0_startup_output.strip('\n')
+
+    def test_config_startup_module_fabric(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(config.config.commands["chassis"].commands["modules"].commands["startup"], ["FABRIC-CARD0"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["chassis"].commands["modules"].commands["status"], ["FABRIC-CARD0"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        result_lines = result.output.strip('\n').split('\n')
+        assert result.exit_code == 0
+        result_out = " ".join((result_lines[header_lines]).split())
+        assert result_out.strip('\n') == show_fabriccard0_startup_output.strip('\n')
 
     def test_config_incorrect_module(self):
         runner = CliRunner()
