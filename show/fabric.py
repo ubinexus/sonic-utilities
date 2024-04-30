@@ -81,6 +81,7 @@ def rate():
     """Show fabric countes rate"""
     pass
 
+
 @rate.command()
 @multi_asic_util.multi_asic_click_option_namespace
 def mbps(namespace):
