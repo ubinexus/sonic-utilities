@@ -84,7 +84,7 @@ class PatchApplier:
         self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
-        self.logger.log_notice(f"{scope}: alidating target config does not have empty tables, " \
+        self.logger.log_notice(f"{scope}: validating target config does not have empty tables, " \
                                "since they do not show up in ConfigDb.")
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables: # if there are empty tables
@@ -169,6 +169,7 @@ class FileSystemConfigRollbacker:
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper(namespace=self.namespace)
 
     def rollback(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Config rollbacking starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
@@ -185,6 +186,7 @@ class FileSystemConfigRollbacker:
         self.logger.log_notice("Config rollbacking completed.")
 
     def checkpoint(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Config checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
@@ -223,6 +225,7 @@ class FileSystemConfigRollbacker:
         return checkpoint_names
 
     def delete_checkpoint(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Deleting checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
@@ -291,15 +294,18 @@ class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
         self.decorated_config_replacer.replace(target_config)
 
     def rollback(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.decorated_config_rollbacker.rollback(checkpoint_name)
 
     def checkpoint(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.decorated_config_rollbacker.checkpoint(checkpoint_name)
 
     def list_checkpoints(self):
         return self.decorated_config_rollbacker.list_checkpoints()
 
     def delete_checkpoint(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.decorated_config_rollbacker.delete_checkpoint(checkpoint_name)
 
 
@@ -338,9 +344,11 @@ class ConfigLockDecorator(Decorator):
         self.execute_write_action(Decorator.replace, self, target_config)
 
     def rollback(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.execute_write_action(Decorator.rollback, self, checkpoint_name)
 
     def checkpoint(self, checkpoint_name):
+        checkpoint_name = checkpoint_name + self.namespace
         self.execute_write_action(Decorator.checkpoint, self, checkpoint_name)
 
     def execute_write_action(self, action, *args):
@@ -475,14 +483,17 @@ class GenericUpdater:
         config_replacer.replace(target_config)
 
     def rollback(self, checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        checkpoint_name = checkpoint_name + self.namespace
         config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         config_rollbacker.rollback(checkpoint_name)
 
     def checkpoint(self, checkpoint_name, verbose):
+        checkpoint_name = checkpoint_name + self.namespace
         config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose)
         config_rollbacker.checkpoint(checkpoint_name)
 
     def delete_checkpoint(self, checkpoint_name, verbose):
+        checkpoint_name = checkpoint_name + self.namespace
         config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose)
         config_rollbacker.delete_checkpoint(checkpoint_name)
 
