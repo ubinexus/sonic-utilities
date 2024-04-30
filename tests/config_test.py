@@ -2691,6 +2691,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
         self.runner = CliRunner()
         self.patch_file_path = 'path/to/patch.json'
+        self.replace_file_path = 'path/to/replace.json'
         self.patch_content = [
             {
                 "op": "add",
@@ -2782,6 +2783,121 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
                     # Ensure ConfigDBConnector was never instantiated or called
                     mock_config_db_connector.assert_not_called()
+    
+    def test_repalce_multiasic(self):
+        # Mock open to simulate file reading
+        mock_replace_content = "[]"
+        with patch('builtins.open', mock_open(read_data=json.dumps(mock_replace_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.replace = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.replace_file_path,
+                                            "--scope", "localhost"],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertEqual(result.exit_code, 0, "Command should succeed")
+                self.assertIn("Config replaced successfully.", result.output)
+
+                # Verify mocked_open was called as expected
+                mocked_open.assert_called_with(self.replace_file_path, 'r')
+    
+    def test_repalce_multiasic_missing_scope(self):
+        # Mock open to simulate file reading
+        mock_replace_content = "[]"
+        with patch('builtins.open', mock_open(read_data=json.dumps(mock_replace_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.replace = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.replace_file_path],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertEqual(result.exit_code, 2, "Command should failed")
+                self.assertIn("Missing option \"-s\"", result.output)
+    
+    def test_repalce_multiasic_with_wrong_scope(self):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.replace = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.replace_file_path,
+                                            "--scope", "x"],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertEqual(result.exit_code, 2, "Command should failed")
+                self.assertIn("Invalid value for \"-s\"", result.output)
+   
+    def test_checkpoint_multiasic(self):
+        # Mock open to simulate file reading
+        checkpointname = "checkpointname"
+        # Mock GenericUpdater to avoid actual patch application
+        with patch('config.main.GenericUpdater') as mock_generic_updater:
+            mock_generic_updater.return_value.checkpoint = MagicMock()
+
+            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+            # Invocation of the command with the CliRunner
+            result = self.runner.invoke(config.config.commands["checkpoint"],
+                                        [checkpointname],
+                                        catch_exceptions=True)
+
+            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+            # Assertions and verifications
+            self.assertEqual(result.exit_code, 0, "Command should succeed")
+            self.assertIn("Checkpoint created successfully.", result.output)
+            
+    def test_rollback_multiasic(self):
+        # Mock open to simulate file reading
+        checkpointname = "checkpointname"
+        # Mock GenericUpdater to avoid actual patch application
+        with patch('config.main.GenericUpdater') as mock_generic_updater:
+            mock_generic_updater.return_value.rollback = MagicMock()
+
+            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+            # Invocation of the command with the CliRunner
+            result = self.runner.invoke(config.config.commands["rollback"],
+                                        [checkpointname],
+                                        catch_exceptions=True)
+
+            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+            # Assertions and verifications
+            self.assertEqual(result.exit_code, 0, "Command should succeed")
+            self.assertIn("Config rolled back successfully.", result.output)
+            
+    def test_delete_checkpoint_multiasic(self):
+        # Mock open to simulate file reading
+        checkpointname = "checkpointname"
+        # Mock GenericUpdater to avoid actual patch application
+        with patch('config.main.GenericUpdater') as mock_generic_updater:
+            mock_generic_updater.return_value.deletecheckpoint = MagicMock()
+
+            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+            # Invocation of the command with the CliRunner
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
+                                        [checkpointname],
+                                        catch_exceptions=True)
+
+            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+            # Assertions and verifications
+            self.assertEqual(result.exit_code, 0, "Command should succeed")
+            self.assertIn("Checkpoint deleted successfully.", result.output)
 
     @patch('config.main.subprocess.Popen')
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))

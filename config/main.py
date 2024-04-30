@@ -1178,7 +1178,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
-        log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
+        log.log_warning(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
 
 def validate_patch(patch):
@@ -1466,6 +1466,10 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
 @config.command()
 @click.argument('target-file-path', type=str, required=True)
+@click.option('-s', '--scope', 
+              help='Specify the namespace for Multi-ASIC environments. For single ASIC environments or Multi-ASIC localhost, specifying the namespace is not required.',
+              required=True if multi_asic.is_multi_asic() else False, 
+              type=click.Choice(multi_asic.get_namespace_list() + ['localhost']))
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
                help='format of target config is either ConfigDb(ABNF) or SonicYang',
@@ -1475,14 +1479,18 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
+def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
        if ACL config is different between current and target config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
 
        **WARNING** The target config file should be the whole config, not just the part intended to be updated.
 
-       <target-file-path>: Path to the target file on the file-system."""
+       <target-file-path>: Path to the target file on the file-system.
+       
+       If the device is a Multi-ASIC environment, please give the namespace of specific ASIC, for instance:
+        localhost, asic0, asic1, ... 
+       """
     try:
         print_dry_run_message(dry_run)
 
@@ -1491,8 +1499,13 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
             target_config = json.loads(target_config_as_text)
 
         config_format = ConfigFormat[format.upper()]
-
-        GenericUpdater().replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        if multi_asic.is_multi_asic():
+            if scope not in (multi_asic.get_namespace_list() + ["localhost"]):
+                raise Exception(f"Failed to replace config due to wrong namespace:{scope}")
+            scope = scope if scope != "localhost" else multi_asic.DEFAULT_NAMESPACE
+        else:
+            scope = multi_asic.DEFAULT_NAMESPACE
+        GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1514,8 +1527,11 @@ def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path,
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
         print_dry_run_message(dry_run)
-
-        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        asic_list = [multi_asic.DEFAULT_NAMESPACE]
+        if multi_asic.is_multi_asic():
+            asic_list.extend(multi_asic.get_namespace_list())
+        for asic in asic_list:
+            GenericUpdater(namespace=asic).rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1531,7 +1547,11 @@ def checkpoint(ctx, checkpoint_name, verbose):
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().checkpoint(checkpoint_name, verbose)
+        asic_list = [multi_asic.DEFAULT_NAMESPACE]
+        if multi_asic.is_multi_asic():
+            asic_list.extend(multi_asic.get_namespace_list())
+        for asic in asic_list:
+            GenericUpdater(namespace=asic).checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1547,7 +1567,11 @@ def delete_checkpoint(ctx, checkpoint_name, verbose):
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
+        asic_list = [multi_asic.DEFAULT_NAMESPACE]
+        if multi_asic.is_multi_asic():
+            asic_list.extend(multi_asic.get_namespace_list())
+        for asic in asic_list:
+            GenericUpdater(namespace=asic).delete_checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
     except Exception as ex:
