@@ -172,6 +172,48 @@ def tpid(interfacename, namespace, display, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+@interfaces.command(name='dhcp-mitigation-rate')
+@click.argument('interfacename', required=False)
+def dhcp_mitigation_rate(interfacename):
+    """Show Interface DHCP mitigation rate information"""
+
+    # Reading data from Redis configDb
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    keys = []
+
+    if interfacename is not None:
+        port_data = list(config_db.get_table('PORT').keys())
+        portchannel_data = list(config_db.get_table('PORTCHANNEL').keys())
+
+        portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+
+        for interface in port_data:
+            if clicommon.interface_is_in_portchannel(portchannel_member_table,interface):
+                port_data.remove(interface)
+        
+        keys = port_data + portchannel_data
+    else:
+        keys.append(interfacename)
+    
+    def get_interface_name_for_display(interface):
+        if clicommon.get_interface_naming_mode() == 'alias':
+            iface_alias_converter = clicommon.InterfaceAliasConverter(config_db)
+            alias = iface_alias_converter.name_to_alias(interface)
+            return alias
+        return interface
+
+    def tablelize(keys):
+        table = []
+        for key in natsorted(keys):
+            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(config_db, key)]
+            table.append(r)
+        return table
+    
+    header = ['Interface', 'DHCP Mitigation Rate']
+    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
+
 #
 # 'breakout' group ###
 #
