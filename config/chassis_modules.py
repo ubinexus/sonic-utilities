@@ -99,10 +99,10 @@ def shutdown_chassis_module(db, chassis_module_name):
         click.echo("Module {} is already in down state".format(chassis_module_name))
         return
 
+    click.echo("Shutting down chassis module {}".format(chassis_module_name))
+    fvs = {'admin_status': 'down'}
+    config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
     if chassis_module_name.startswith("FABRIC-CARD"):
-        click.echo("Shutting down chassis module {}".format(chassis_module_name))        
-        fvs = {'admin_status': 'down'}
-        config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
         if not get_config_module_state_timeout(ctx, db, chassis_module_name, 'down'):
             fabric_module_set_admin_status(chassis_module_name, 'down')
 
@@ -122,8 +122,8 @@ def startup_chassis_module(db, chassis_module_name):
         click.echo("Module {} is already set to up state".format(chassis_module_name))
         return
 
+    click.echo("Starting up chassis module {}".format(chassis_module_name))
+    config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
     if chassis_module_name.startswith("FABRIC-CARD"):
-        click.echo("Starting up chassis module {}".format(chassis_module_name))
-        config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
         if not get_config_module_state_timeout(ctx, db, chassis_module_name, 'up'):
             fabric_module_set_admin_status(chassis_module_name, 'up')
