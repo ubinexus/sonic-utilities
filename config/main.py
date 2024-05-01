@@ -1422,7 +1422,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 @config.command()
 @click.argument('target-file-path', type=str, required=True)
 @click.option('-s', '--scope',
-              help='Specify the namespace for Multi-ASIC environments. For single ASIC environments or Multi-ASIC localhost, \
+              help='Specify the namespace for Multi-ASIC environments. For Single-ASIC environments, \
                 specifying the namespace is not required.',
               required=True if multi_asic.is_multi_asic() else False,
               type=click.Choice(multi_asic.get_namespace_list() + ['localhost']))
