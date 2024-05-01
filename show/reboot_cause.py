@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import redis
 
 import click
 from tabulate import tabulate
@@ -9,7 +10,8 @@ import utilities_common.cli as clicommon
 
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
-
+STATE_DB=6
+CHASSIS_STATE_DB=13
 
 def read_reboot_cause_file():
     reboot_cause_dict = {}
@@ -24,6 +26,61 @@ def read_reboot_cause_file():
     return reboot_cause_dict
 
 # Function to fetch reboot cause data from database
+def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
+    if use_chassis_db:
+        redis_host = '169.254.28.2'
+        redis_port = 6385
+        redis_idx = CHASSIS_STATE_DB
+    else:
+        redis_host = '127.0.0.1'
+        redis_port = 6379
+        redis_idx = STATE_DB
+    prefix='REBOOT_CAUSE|'
+    try:
+        rdb = redis.Redis(host = redis_host, port = redis_port, decode_responses=True, db=redis_idx)
+        table_keys = rdb.keys(prefix+'*')
+    except redis.exceptions.RedisError as e:
+        return []
+    except Exception as e:
+        return []
+
+    if not table_keys is None:
+        table_keys.sort(reverse=True)
+
+    table = []
+    d = []
+    append = False
+    for tk in table_keys:
+        r = []
+
+        entry = rdb.hgetall(tk)
+
+        if not module_name is None:
+            if 'device' in entry:
+                if module_name != entry['device'] and module_name != "all":
+                    continue
+                if entry['device'] in d:
+                    append = False
+                    continue
+                else:
+                    append = True
+                    d.append(entry['device'])
+            r.append(entry['device'] if 'device' in entry else "SWITCH")
+        r.append(tk.replace(prefix, ""))
+        r.append(entry['cause'] if 'cause' in entry else "")
+        r.append(entry['time'] if 'time' in entry else "")
+        r.append(entry['user'] if 'user' in entry else "")
+        if append == True and fetch_history == False:
+            table.append(r)
+        elif fetch_history == True:
+            r.append(entry['comment'] if 'comment' in entry else "")
+            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or 'device' in entry and module_name == entry['device']:
+                table.append(r)
+
+    return table
+
+
+# Wrapper-function to fetch reboot cause data from database
 def fetch_reboot_cause_from_db(module_name):
     table = []
     r = []
@@ -44,71 +101,20 @@ def fetch_reboot_cause_from_db(module_name):
         if module_name == "SWITCH":
             return table
 
-    REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
-    TABLE_NAME_SEPARATOR = '|'
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)   # Make one attempt only
-    prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    table_keys = db.keys(db.STATE_DB, _hash)
-    if table_keys is not None:
-        table_keys.sort(reverse=True)
-
-    d = []
-    append = False
-    for tk in table_keys:
-        r = []
-        entry = db.get_all(db.STATE_DB, tk)
-        if 'device' in entry:
-            if module_name != entry['device'] and module_name != "all":
-                continue
-            if entry['device'] in d:
-                append = False
-                continue
-            else:
-                append = True
-                d.append(entry['device'])
-            if not module_name is None:
-                r.append(entry['device'] if 'device' in entry else "")
-            r.append(entry['cause'] if 'cause' in entry else "")
-            r.append(entry['time'] if 'time' in entry else "")
-            r.append(entry['user'] if 'user' in entry else "")
-            if append == True:
-                table.append(r)
-
+    table += fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=True)
     return table
 
 # Function to fetch reboot cause history data from database
 def fetch_reboot_cause_history_from_db(module_name):
-    REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
-    TABLE_NAME_SEPARATOR = '|'
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)   # Make one attempt only
-    prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    table_keys = db.keys(db.STATE_DB, _hash)
-
-    if table_keys is not None:
-        table_keys.sort(reverse=True)
-
-        table = []
-        device_present = False
-        for tk in table_keys:
-            entry = db.get_all(db.STATE_DB, tk)
-            if 'device' in entry:
-                device_present = True
-            r = []
-            if not module_name is None:
-                r.append(entry['device'] if 'device' in entry else "SWITCH")
-            r.append(tk.replace(prefix, ""))
-            r.append(entry['cause'] if 'cause' in entry else "")
-            r.append(entry['time'] if 'time' in entry else "")
-            r.append(entry['user'] if 'user' in entry else "")
-            r.append(entry['comment'] if 'comment' in entry else "")
-            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or 'device' in entry and module_name == entry['device']:
-                table.append(r)
-
-    return table
+    if module_name == "all":
+        # Combine data from both Redis containers for "all" modules
+        data_switch = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
+        data_dpu = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
+        return data_switch + data_dpu
+    elif module_name is None or module_name == "SWITCH":
+        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
+    else:
+        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
 
 #
 # 'reboot-cause' group ("show reboot-cause")
