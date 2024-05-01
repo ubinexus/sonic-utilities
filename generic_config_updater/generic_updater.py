@@ -87,8 +87,8 @@ class PatchApplier:
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables:  # if there are empty tables
             empty_tables_txt = ", ".join(empty_tables)
-            raise EmptyTableError(f"{scope}: given patch is not valid because it will result in empty tables
-                                  which is not allowed in ConfigDb.
+            raise EmptyTableError(f"{scope}: given patch is not valid because it will result in empty tables \
+                                  which is not allowed in ConfigDb. \
                                   Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
 
         # Generate list of changes to apply
