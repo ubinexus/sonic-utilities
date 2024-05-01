@@ -508,6 +508,24 @@ class DBMigrator():
                         self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'adv_speeds', value['speed'])
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
+    
+    def migrate_config_db_port_table_for_dhcp_rate_limit(self):
+        port_table_name = 'PORT'
+        portchannel_table_name = 'PORTCHANNEL'
+        port_table = self.configDB.get_table(port_table_name)
+        portchannel_table = self.configDB.get_table(portchannel_table_name)
+
+        for p_key, p_value in port_table.items():
+            if 'dhcp_rate_limit' in p_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), 'dhcp_rate_limit', p_value['dhcp_rate_limit'])
+            else:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), 'dhcp_rate_limit', '300')
+        
+        for pc_key, pc_value in portchannel_table.items():
+            if 'dhcp_rate_limit' in pc_value:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, pc_key), 'dhcp_rate_limit', pc_value['dhcp_rate_limit'])
+            else:
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, pc_key), 'dhcp_rate_limit', '300')
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
         for pair in table_list:
@@ -1013,6 +1031,7 @@ class DBMigrator():
         """
         log.log_info('Handling version_3_0_0')
         self.migrate_config_db_port_table_for_auto_neg()
+        self.migrate_config_db_port_table_for_dhcp_rate_limit()
         self.set_version('version_3_0_1')
         return 'version_3_0_1'
 
