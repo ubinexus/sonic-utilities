@@ -1421,9 +1421,10 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
 @config.command()
 @click.argument('target-file-path', type=str, required=True)
-@click.option('-s', '--scope', 
-              help='Specify the namespace for Multi-ASIC environments. For single ASIC environments or Multi-ASIC localhost, specifying the namespace is not required.',
-              required=True if multi_asic.is_multi_asic() else False, 
+@click.option('-s', '--scope',
+              help='Specify the namespace for Multi-ASIC environments. For single ASIC environments or Multi-ASIC localhost, \
+                specifying the namespace is not required.',
+              required=True if multi_asic.is_multi_asic() else False,
               type=click.Choice(multi_asic.get_namespace_list() + ['localhost']))
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
@@ -1442,7 +1443,6 @@ def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_table
        **WARNING** The target config file should be the whole config, not just the part intended to be updated.
 
        <target-file-path>: Path to the target file on the file-system.
-       
        If the device is a Multi-ASIC environment, please give the namespace of specific ASIC, for instance:
         localhost, asic0, asic1, ... 
        """
