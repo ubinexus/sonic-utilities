@@ -2822,7 +2822,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             # Assertions and verifications
             self.assertEqual(result.exit_code, 2, "Command should failed")
             self.assertIn("Missing option \"-s\"", result.output)
-    
+
     def test_repalce_multiasic_with_wrong_scope(self):
         # Mock GenericUpdater to avoid actual patch application
         with patch('config.main.GenericUpdater') as mock_generic_updater:
@@ -2856,7 +2856,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             # Assertions and verifications
             self.assertEqual(result.exit_code, 0, "Command should succeed")
             self.assertIn("Checkpoint created successfully.", result.output)
-            
+
     def test_rollback_multiasic(self):
         checkpointname = "checkpointname"
         # Mock GenericUpdater to avoid actual patch application
@@ -2873,7 +2873,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             # Assertions and verifications
             self.assertEqual(result.exit_code, 0, "Command should succeed")
             self.assertIn("Config rolled back successfully.", result.output)
-            
+
     def test_delete_checkpoint_multiasic(self):
         checkpointname = "checkpointname"
         # Mock GenericUpdater to avoid actual patch application
