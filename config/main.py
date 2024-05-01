@@ -1444,7 +1444,7 @@ def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_table
 
        <target-file-path>: Path to the target file on the file-system.
        If the device is a Multi-ASIC environment, please give the namespace of specific ASIC, for instance:
-        localhost, asic0, asic1, ... 
+        localhost, asic0, asic1, ...
        """
     try:
         print_dry_run_message(dry_run)
@@ -1460,7 +1460,8 @@ def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_table
             scope = scope if scope != "localhost" else multi_asic.DEFAULT_NAMESPACE
         else:
             scope = multi_asic.DEFAULT_NAMESPACE
-        GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run,
+                                                ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1486,7 +1487,8 @@ def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path,
         if multi_asic.is_multi_asic():
             asic_list.extend(multi_asic.get_namespace_list())
         for asic in asic_list:
-            GenericUpdater(namespace=asic).rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+            GenericUpdater(namespace=asic).rollback(checkpoint_name, verbose, dry_run,
+                                                    ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
