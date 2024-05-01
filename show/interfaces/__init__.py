@@ -174,7 +174,8 @@ def tpid(interfacename, namespace, display, verbose):
 
 @interfaces.command(name='dhcp-mitigation-rate')
 @click.argument('interfacename', required=False)
-def dhcp_mitigation_rate(interfacename):
+@click.pass_context
+def dhcp_mitigation_rate(ctx, interfacename):
     """Show Interface DHCP mitigation rate information"""
 
     # Reading data from Redis configDb
@@ -185,16 +186,16 @@ def dhcp_mitigation_rate(interfacename):
 
     if interfacename is not None:
         port_data = list(config_db.get_table('PORT').keys())
-        portchannel_data = list(config_db.get_table('PORTCHANNEL').keys())
+        keys = port_data
 
-        portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-
-        for interface in port_data:
-            if clicommon.interface_is_in_portchannel(portchannel_member_table,interface):
-                port_data.remove(interface)
-        
-        keys = port_data + portchannel_data
     else:
+        if clicommon.is_valid_port(config_db, interfacename):
+            pass
+        elif clicommon.is_valid_portchannel(config_db, interfacename):
+            ctx.fail("{} is a PortChannel!".format(interfacename))
+        else:
+            ctx.fail("{} does not exist".format(interfacename))
+
         keys.append(interfacename)
     
     def get_interface_name_for_display(interface):

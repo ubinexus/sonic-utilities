@@ -4810,22 +4810,13 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
             ctx.fail("'interface_name' is None!")
     
     if clicommon.is_valid_port(config_db, interface_name):
-        is_port = True
+        pass
     elif clicommon.is_valid_portchannel(config_db, interface_name):
-        is_port = False
+        ctx.fail("{} is a PortChannel!".format(interface_name))
     else:
         ctx.fail("{} does not exist".format(interface_name))
     
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-
-    if interface_is_in_portchannel(portchannel_member_table, interface_name):
-        ctx.fail("{} is configured as a member of portchannel."
-                .format(interface_name))
-    
-    if is_port:
-        port_data = config_db.get_entry('PORT', interface_name)
-    else:
-        port_data = config_db.get_entry('PORTCHANNEL', interface_name)
+    port_data = config_db.get_entry('PORT', interface_name)
     
     if port_data["dhcp_rate_limit"] != '0':
         ctx.fail("{} has DHCP rate limit configured. \nRemove it to add new DHCP rate limit.".format(interface_name))
@@ -4856,22 +4847,13 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
             ctx.fail("'interface_name' is None!")
     
     if clicommon.is_valid_port(config_db, interface_name):
-        is_port = True
+        pass
     elif clicommon.is_valid_portchannel(config_db, interface_name):
-        is_port = False
+        ctx.fail("{} is a PortChannel!".format(interface_name))
     else:
         ctx.fail("{} does not exist".format(interface_name))
     
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-
-    if interface_is_in_portchannel(portchannel_member_table, interface_name):
-        ctx.fail("{} is configured as a member of portchannel."
-                .format(interface_name))
-    
-    if is_port:
-        port_data = config_db.get_entry('PORT', interface_name)
-    else:
-        port_data = config_db.get_entry('PORTCHANNEL', interface_name)
+    port_data = config_db.get_entry('PORT', interface_name)
     
     if port_data["dhcp_rate_limit"] != str(packet_rate):
         ctx.fail("{} DHCP rate limit does not exist on {}.".format(packet_rate, interface_name))
