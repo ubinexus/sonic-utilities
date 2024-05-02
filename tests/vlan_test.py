@@ -91,7 +91,7 @@ show_vlan_brief_with_portchannel_output = """\
 """
 
 show_vlan_config_output = """\
-Name        VID             Mode
+Name        VID  Member          Mode
 --------  -----  ---------------  --------
 Vlan1000   1000  Ethernet4        untagged
 Vlan1000   1000  Ethernet8        untagged
@@ -104,7 +104,7 @@ Vlan4000   4000  PortChannel1001  tagged
 """
 
 show_vlan_config_in_alias_mode_output = """\
-Name        VID             Mode
+Name        VID  Member           Mode
 --------  -----  ---------------  --------
 Vlan1000   1000  etp2             untagged
 Vlan1000   1000  etp3             untagged
@@ -274,7 +274,7 @@ test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output = """\
 """
 
 
-test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output = """\
+test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -746,15 +746,13 @@ class TestVlan(object):
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
-                                   ["Vlan1000", "192.168.0.1/21"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],["Vlan1000", "192.168.0.1/21"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
 
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
-                                   ["Vlan1000", "fc02:1000::1/64"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],["Vlan1000", "fc02:1000::1/64"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
@@ -1191,7 +1189,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_output
 
-    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types(
+    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes(
             self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
@@ -1261,7 +1259,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == (
-            test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output)
+            test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output)
 
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
