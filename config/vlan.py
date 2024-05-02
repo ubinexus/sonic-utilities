@@ -304,8 +304,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                  portchannel_member_table, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is part of portchannel!".format(port))
 
-            if (clicommon.interface_is_untagged_member(db.cfgdb, port) and \
-                    untagged):  # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if (clicommon.interface_is_untagged_member(
+                    db.cfgdb, port) and untagged):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is already untagged member!".format(port))
 
             # checking mode status of port if its access, trunk or routed

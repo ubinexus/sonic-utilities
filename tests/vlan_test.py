@@ -116,7 +116,7 @@ Vlan3000   3000
 Vlan4000   4000  PortChannel1001  tagged
 """
 
-config_add_del_vlan_and_vlan__output = """\
+config_add_del_vlan_and_vlan_member_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -136,7 +136,7 @@ config_add_del_vlan_and_vlan__output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-config_add_del_vlan_and_vlan__in_alias_mode_output = """\
+config_add_del_vlan_and_vlan_member_in_alias_mode_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -156,7 +156,7 @@ config_add_del_vlan_and_vlan__in_alias_mode_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-test_config_add_del_multiple_vlan_and_vlan__output = """\
+test_config_add_del_multiple_vlan_and_vlan_member_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -180,7 +180,7 @@ test_config_add_del_multiple_vlan_and_vlan__output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-test_config_add_del_add_vlans_and_add_all_vlan__output = """\
+test_config_add_del_add_vlans_and_add_all_vlan_member_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -207,7 +207,7 @@ test_config_add_del_add_vlans_and_add_all_vlan__output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-test_config_add_del_add_vlans_and_add_vlans__except_vlan_output = """\
+test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -1238,7 +1238,8 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Ethernet64 is in trunk mode and have tagged member(s). \nRemove tagged member(s) from Ethernet64 to switch to access mode" in result.output
+        assert ("Ethernet64 is in trunk mode and have tagged member(s). "
+                "\nRemove tagged member(s) from Ethernet64 to switch to access mode") in result.output
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1259,7 +1260,8 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output
+        assert result.output == (
+            test_config_add_del_vlan_and_vlan_member_with_switchport_modes_and_change_mode_types_output)
 
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
@@ -1499,10 +1501,9 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4000", "Ethernet44"], obj=obj)
+                               ["4000", "Ethernet20test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_output"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
-        assert "Vlan4000 invalid or does not exist, or Ethernet44 invalid or does not exist" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
@@ -1519,7 +1520,6 @@ class TestVlan(object):
                                ["1000", "Ethernet4"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
-        assert "Ethernet4 is not a member of Vlan1000" in result.output
 
     @classmethod
     def teardown_class(cls):

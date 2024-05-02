@@ -62,7 +62,7 @@ def switchport_mode(db, type, port):
             mode_exists_status = False
 
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-            (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
+                (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
             ctx.fail("Remove IP from {} to change mode!".format(port))
 
         if not mode_exists_status:
