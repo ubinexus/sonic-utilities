@@ -208,6 +208,10 @@ function linecard_reboot_notify_supervisor()
             module="${key#CHASSIS_MODULE_TABLE}"
             if [ ! -z module ]; then
                 sonic-db-cli CHASSIS_STATE_DB hset "CHASSIS_MODULE_REBOOT_INFO_TABLE${module}" "reboot" "expected"
+                status=$?
+                if [ $status -ne 0 ]; then
+                    debug "Failed to notify Supervisor: Linecard reboot is expected"
+                fi
             fi
         fi
     fi
