@@ -1501,7 +1501,7 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4000", "Ethernet20test_config_add_del_add_vlans_and_add_vlans_member_except_vlan_output"], obj=obj)
+                               ["4000", "Ethernet20"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
 
