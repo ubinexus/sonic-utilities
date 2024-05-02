@@ -9,7 +9,7 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 
-show_interfaces_alias_output="""\
+show_interfaces_alias_output = """\
 Name         Alias
 -----------  -------
 Ethernet0    etp1
@@ -46,13 +46,13 @@ Ethernet120  etp31
 Ethernet124  etp32
 """
 
-show_interfaces_alias_Ethernet0_output="""\
+show_interfaces_alias_Ethernet0_output = """\
 Name       Alias
 ---------  -------
 Ethernet0  etp1
 """
 
-show_interfaces_neighbor_expected_output="""\
+show_interfaces_neighbor_expected_output = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet112  ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
@@ -61,7 +61,7 @@ Ethernet120  ARISTA03T1  Ethernet1       None                10.250.0.53     Lea
 Ethernet124  ARISTA04T1  Ethernet1       None                10.250.0.54     LeafRouter
 """
 
-show_interfaces_neighbor_expected_output_t1="""\
+show_interfaces_neighbor_expected_output_t1 = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet0    ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
@@ -98,31 +98,31 @@ Ethernet120  ARISTA15T0  Ethernet1       None                172.16.137.78   ToR
 Ethernet124  ARISTA16T0  Ethernet1       None                172.16.137.79   ToRRouter
 """
 
-show_interfaces_neighbor_expected_output_Ethernet112="""\
+show_interfaces_neighbor_expected_output_Ethernet112 = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet112  ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
 """
 
-show_interfaces_neighbor_expected_output_t1_Ethernet0="""\
+show_interfaces_neighbor_expected_output_t1_Ethernet0 = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet0    ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
 """
 
-show_interfaces_neighbor_expected_output_etp29="""\
+show_interfaces_neighbor_expected_output_etp29 = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 etp29        ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
 """
 
-show_interfaces_neighbor_expected_output_t1_Ethernet1_1="""\
+show_interfaces_neighbor_expected_output_t1_Ethernet1_1 = """\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet1/1  ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
 """
 
-show_interfaces_portchannel_output="""\
+show_interfaces_portchannel_output = """\
 Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
        S - selected, D - deselected, * - not synced
   No.  Team Dev         Protocol     Ports
@@ -134,7 +134,7 @@ Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
  1001  PortChannel1001  N/A
 """
 
-show_interfaces_portchannel_in_alias_mode_output="""\
+show_interfaces_portchannel_in_alias_mode_output = """\
 Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
        S - selected, D - deselected, * - not synced
   No.  Team Dev         Protocol     Ports
@@ -146,7 +146,7 @@ Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
  1001  PortChannel1001  N/A
 """
 
-show_interfaces_switchport_status_output="""\
+show_interfaces_switchport_status_output = """\
 Interface        Mode
 ---------------  ------
 Ethernet0        routed
@@ -310,8 +310,6 @@ class TestInterfaces(object):
         assert result.exit_code != 0
         assert "Error: Invalid interface name Ethernet3" in result.output
 
-    
-
     def test_show_interfaces_naming_mode_default(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["naming_mode"], [])
@@ -339,7 +337,6 @@ class TestInterfaces(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_neighbor_expected_output
 
-    
     def test_show_interfaces_neighbor_expected_t1(self, setup_t1_topo):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], [])
@@ -351,7 +348,8 @@ class TestInterfaces(object):
 
     def test_show_interfaces_neighbor_expected_Ethernet112(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet112"])
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet112"])
         print(result.exit_code)
         print(result.output)
         # traceback.print_tb(result.exc_info[2])
@@ -381,7 +379,8 @@ class TestInterfaces(object):
     def test_show_interfaces_neighbor_expected_t1_Ethernet1_1(self, setup_t1_topo):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-        result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet1/1"])
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet1/1"])
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
@@ -417,7 +416,7 @@ class TestInterfaces(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_portchannel_in_alias_mode_output
-       
+
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     def test_supervisor_show_interfaces_alias_etp1_with_waring(self):
         runner = CliRunner()
@@ -460,12 +459,12 @@ class TestInterfaces(object):
         assert len(intf_list) == 3
         assert intf_list == ["Ethernet-BP10", "Ethernet-BP11", "Ethernet-BP12"]
 
-
     def test_show_interfaces_switchport_status(self):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["switchport"].commands["mode"],["routed", "PortChannel0001"], obj=db)
+        result = runner.invoke(
+            config.config.commands["switchport"].commands["mode"], ["routed", "PortChannel0001"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -485,7 +484,7 @@ class TestInterfaces(object):
 
         assert result.exit_code == 0
         assert result.output == show_interfaces_switchport_config_output
-    
+
     def test_show_interfaces_switchport_config_in_alias_mode(self):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
@@ -496,7 +495,7 @@ class TestInterfaces(object):
 
         assert result.exit_code == 0
         assert result.output == show_interfaces_switchport_config_in_alias_mode_output
-    
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

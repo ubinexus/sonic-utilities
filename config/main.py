@@ -107,7 +107,7 @@ PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
-PORT_MODE= "switchport_mode"
+PORT_MODE = "switchport_mode"
 
 DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
 
@@ -4666,15 +4666,16 @@ def add(ctx, interface_name, ip_addr, gw):
     if not sub_intf:
         interface_mode = None
         if is_port:
-            interface_data = config_db.get_entry('PORT',interface_name)
+            interface_data = config_db.get_entry('PORT', interface_name)
         else:
-            interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
+            interface_data = config_db.get_entry('PORTCHANNEL', interface_name)
 
         if "mode" in interface_data:
             interface_mode = interface_data["mode"]
 
         if interface_mode == "trunk" or interface_mode == "access":
-            click.echo("Interface {} is in {} mode and needs to be in routed mode!".format(interface_name, interface_mode))
+            click.echo("Interface {} is in {} mode and needs to be in routed mode!".format(
+                interface_name, interface_mode))
             return
     try:
         ip_address = ipaddress.ip_interface(ip_addr)

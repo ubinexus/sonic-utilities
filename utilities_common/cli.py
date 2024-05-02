@@ -278,7 +278,7 @@ def vlan_range_list(ctx, vid_range: str) -> list:
         ctx.fail("Vlan1 is default vlan")
 
     if vid1 >= vid2:
-        ctx.fail("{} is greater than {}. List cannot be generated".format(vid1,vid2))
+        ctx.fail("{} is greater than {}. List cannot be generated".format(vid1, vid2))
 
     if is_vlanid_in_range(vid1) and is_vlanid_in_range(vid2):
         return list(range(vid1, vid2+1))
@@ -312,11 +312,12 @@ def get_existing_vlan_id(db) -> list:
 
     return sorted(existing_vlans)
 
-def get_existing_vlan_id_on_interface(db,port) -> list:
+
+def get_existing_vlan_id_on_interface(db, port) -> list:
     intf_vlans = []
     vlan_member_data = db.cfgdb.get_table('VLAN_MEMBER')
 
-    for (k,v) in vlan_member_data.keys():
+    for (k, v) in vlan_member_data.keys():
         if v == port:
             intf_vlans.append(int(k.strip("Vlan")))
 
@@ -327,9 +328,9 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
     vid_list = []
     if vid == "all":
         if command_mode == "add":
-            return get_existing_vlan_id(db) # config vlan member add
+            return get_existing_vlan_id(db)  # config vlan member add
         if command_mode == "del":
-            return get_existing_vlan_id_on_interface(db,port) # config vlan member del
+            return get_existing_vlan_id_on_interface(db, port)  # config vlan member del
 
     if multiple:
         vid_list = multiple_vlan_parser(ctx, vid)
@@ -339,7 +340,7 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
             comp_list = get_existing_vlan_id(db)  # config vlan member add
 
         elif command_mode == "del":
-            comp_list = get_existing_vlan_id_on_interface(db,port) # config vlan member del
+            comp_list = get_existing_vlan_id_on_interface(db, port)  # config vlan member del
 
         if multiple:
             for i in vid_list:
@@ -363,6 +364,7 @@ def vlan_member_input_parser(ctx, command_mode, db, except_flag, multiple, vid, 
     # sorting the vid_list
     vid_list.sort()
     return vid_list
+
 
 def interface_is_tagged_member(db, interface_name):
     """ Check if interface has tagged members i.e. is in trunk mode"""
@@ -420,14 +422,15 @@ def get_vlan_id(vlan):
     vlan_prefix, vid = vlan.split('Vlan')
     return vid
 
-def get_interface_name_for_display(db ,interface):
+
+def get_interface_name_for_display(db, interface):
     interface_naming_mode = get_interface_naming_mode()
     iface_alias_converter = InterfaceAliasConverter(db)
     if interface_naming_mode == "alias" and interface:
         return iface_alias_converter.name_to_alias(interface)
     return interface
 
-def get_interface_untagged_vlan_members(db,interface):
+def get_interface_untagged_vlan_members(db, interface):
     untagged_vlans = []
     vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
 
@@ -439,7 +442,8 @@ def get_interface_untagged_vlan_members(db,interface):
 
     return "\n".join(untagged_vlans)
 
-def get_interface_tagged_vlan_members(db,interface):
+
+def get_interface_tagged_vlan_members(db, interface):
     tagged_vlans = []
     formatted_tagged_vlans = []
     vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
@@ -455,9 +459,10 @@ def get_interface_tagged_vlan_members(db,interface):
 
     return "\n".join(formatted_tagged_vlans)
 
+
 def get_interface_switchport_mode(db, interface):
-    port = db.cfgdb.get_entry('PORT',interface)
-    portchannel = db.cfgdb.get_entry('PORTCHANNEL',interface)
+    port = db.cfgdb.get_entry('PORT', interface)
+    portchannel = db.cfgdb.get_entry('PORTCHANNEL', interface)
     vlan_member_table = db.cfgdb.get_table('VLAN_MEMBER')
 
     vlan_member_keys = []
@@ -701,8 +706,8 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format 
-    # with a list for next hops 
+    # IP route table cannot be handled in function run_command_in_alias_mode since it is in JSON format
+    # with a list for next hops
     if get_interface_naming_mode() == "alias" and not command_str.startswith("intfutil") and not re.search("show ip|ipv6 route", command_str):
         run_command_in_alias_mode(command, shell=shell)
         sys.exit(0)
