@@ -4820,13 +4820,13 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
     else:
         ctx.fail("{} does not exist".format(interface_name))
 
+    if packet_rate <= 0:
+        ctx.fail("DHCP rate limit is not valid. \nIt must be greater than 0.")
+
     port_data = config_db.get_entry('PORT', interface_name)
 
     if port_data["dhcp_rate_limit"] != '0':
         ctx.fail("{} has DHCP rate limit configured. \nRemove it to add new DHCP rate limit.".format(interface_name))
-
-    if packet_rate <= 0:
-        ctx.fail("DHCP rate limit is not valid. \nIt must be greater than 0.")
 
     try:
         config_db.set_entry('PORT', interface_name, {"dhcp_rate_limit": "{}".format(str(packet_rate))})
@@ -4858,6 +4858,9 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
         ctx.fail("{} is a PortChannel!".format(interface_name))
     else:
         ctx.fail("{} does not exist".format(interface_name))
+
+    if packet_rate <= 0:
+        ctx.fail("DHCP rate limit is not valid. \nIt must be greater than 0.")
 
     port_data = config_db.get_entry('PORT', interface_name)
 

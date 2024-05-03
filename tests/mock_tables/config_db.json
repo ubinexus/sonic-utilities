@@ -31,7 +31,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet4": {
         "admin_status": "up",
@@ -42,7 +43,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet8": {
         "admin_status": "up",
@@ -53,7 +55,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet12": {
         "admin_status": "up",
@@ -64,7 +67,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet16": {
         "admin_status": "up",
@@ -75,7 +79,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "100"
+        "speed": "100",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet20": {
         "admin_status": "up",
@@ -86,7 +91,8 @@
         "mtu": "9100",
         "tpid": "0x9200",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet24": {
         "admin_status": "up",
@@ -98,7 +104,8 @@
         "tpid": "0x8100",
         "pfc_asym": "off",
         "speed": "1000",
-        "role": "Dpc"
+        "role": "Dpc",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -109,7 +116,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "1000"
+        "speed": "1000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet32": {
         "admin_status": "up",
@@ -120,7 +128,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet36": {
         "admin_status": "up",
@@ -131,7 +140,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "10"
+        "speed": "10",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet40": {
         "admin_status": "up",
@@ -142,7 +152,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet44": {
         "admin_status": "up",
@@ -153,7 +164,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet48": {
         "admin_status": "up",
@@ -164,7 +176,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet52": {
         "admin_status": "up",
@@ -175,7 +188,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet56": {
         "admin_status": "up",
@@ -186,7 +200,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet60": {
         "admin_status": "up",
@@ -197,7 +212,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet64": {
         "admin_status": "up",
@@ -208,7 +224,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet68": {
         "admin_status": "up",
@@ -219,7 +236,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet72": {
         "admin_status": "up",
@@ -230,7 +248,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet76": {
         "admin_status": "up",
@@ -241,7 +260,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet80": {
         "admin_status": "up",
@@ -252,7 +272,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet84": {
         "admin_status": "up",
@@ -263,7 +284,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet88": {
         "admin_status": "up",
@@ -274,7 +296,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet92": {
         "admin_status": "up",
@@ -285,7 +308,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet96": {
         "admin_status": "up",
@@ -296,7 +320,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet100": {
         "alias": "etp26",
@@ -306,7 +331,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet104": {
         "alias": "etp27",
@@ -316,7 +342,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet108": {
         "alias": "etp28",
@@ -326,7 +353,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet112": {
         "admin_status": "up",
@@ -337,7 +365,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet116": {
         "admin_status": "up",
@@ -348,7 +377,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet120": {
         "admin_status": "up",
@@ -359,7 +389,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "dhcp_rate_limit": "300"
     },
     "PORT|Ethernet124": {
         "admin_status": "up",
@@ -371,6 +402,7 @@
         "tpid": "0x8100",
         "pfc_asym": "off",
         "speed": "40000",
+        "dhcp_rate_limit": "300",
         "fec" : "auto"
     },
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
