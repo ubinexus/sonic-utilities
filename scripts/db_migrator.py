@@ -515,10 +515,10 @@ class DBMigrator():
 
         for p_key, p_value in port_table.items():
             if 'dhcp_rate_limit' in p_value:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), \
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), 
                                   'dhcp_rate_limit', p_value['dhcp_rate_limit'])
             else:
-                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), \
+                self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(port_table_name, p_key), 
                                   'dhcp_rate_limit', '300')
 
     def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):

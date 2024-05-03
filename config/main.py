@@ -4787,6 +4787,7 @@ def loopback_action(ctx, interface_name, action):
 # 'dhcp-mitigation-rate' subgroup ('config interface dhcp-mitigation-rate ...')
 #
 
+
 @interface.group(cls=clicommon.AbbreviationGroup, name='dhcp-mitigation-rate')
 @click.pass_context
 def dhcp_mitigation_rate(ctx):
@@ -4796,6 +4797,7 @@ def dhcp_mitigation_rate(ctx):
 #
 # 'add' subcommand
 #
+
 
 @dhcp_mitigation_rate.command(name='add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -4834,6 +4836,7 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 #
 # 'del' subcommand
 #
+
 
 @dhcp_mitigation_rate.command(name='del')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
