@@ -16,6 +16,7 @@ import utilities_common.bgp_util as bgp_util
 IP_VERSION_PARAMS_MAP = {
     "ipv4": {
         "table": "VLAN"
+        
     },
     "ipv6": {
         "table": "DHCP_RELAY"
@@ -617,6 +618,37 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
 
+    def test_show_port_switchport_etp33_in_alias_mode(self):
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"],
+                               ["routed", "etp33"])
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+
+    def test_show_port_vlan_etp33_in_alias_mode(self):
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                               ["4000", "etp33"])
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+
+    def test_show_port_vlan_del_etp33_in_alias_mode(self):
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
+                               ["4000", "etp33"])
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: cannot find port name for alias etp33" in result.output
+    
+
     def test_config_switchport_mode_with_mirror_destintion_port(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["switchport"].commands["mode"], ["trunk", "Ethernet44"])
@@ -624,6 +656,34 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
+
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_vlan_add_member_yang_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                               ["4000", "Ethernet20"], obj=db)
+        print(result.exit_code)
+        assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+        assert result.exit_code != 0
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
+    def test_config_vlan_del_member_yang_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
+                               ["1000", "Ethernet4"], obj=db)
+        print(result.exit_code)
+        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
+        assert result.exit_code != 0
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
