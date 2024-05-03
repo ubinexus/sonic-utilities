@@ -4786,6 +4786,7 @@ def loopback_action(ctx, interface_name, action):
 #
 # 'dhcp-mitigation-rate' subgroup ('config interface dhcp-mitigation-rate ...')
 #
+
 @interface.group(cls=clicommon.AbbreviationGroup, name='dhcp-mitigation-rate')
 @click.pass_context
 def dhcp_mitigation_rate(ctx):
@@ -4795,6 +4796,7 @@ def dhcp_mitigation_rate(ctx):
 #
 # 'add' subcommand
 #
+
 @dhcp_mitigation_rate.command(name='add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('packet_rate', metavar='<DHCP packet rate>', required=True, type=int)
@@ -4808,7 +4810,7 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-    
+
     if clicommon.is_valid_port(config_db, interface_name):
         pass
     elif clicommon.is_valid_portchannel(config_db, interface_name):
@@ -4817,13 +4819,13 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
         ctx.fail("{} does not exist".format(interface_name))
 
     port_data = config_db.get_entry('PORT', interface_name)
-    
+
     if port_data["dhcp_rate_limit"] != '0':
         ctx.fail("{} has DHCP rate limit configured. \nRemove it to add new DHCP rate limit.".format(interface_name))
-    
+
     if packet_rate <= 0:
         ctx.fail("DHCP rate limit is not valid. \nIt must be greater than 0.")
-    
+
     try:
         config_db.set_entry('PORT', interface_name, {"dhcp_rate_limit": "{}".format(str(packet_rate))})
     except ValueError:
@@ -4832,6 +4834,7 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 #
 # 'del' subcommand
 #
+
 @dhcp_mitigation_rate.command(name='del')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('packet_rate', metavar='<DHCP packet rate>', required=True, type=int)
@@ -4845,7 +4848,7 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-    
+
     if clicommon.is_valid_port(config_db, interface_name):
         pass
     elif clicommon.is_valid_portchannel(config_db, interface_name):
@@ -4854,10 +4857,10 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
         ctx.fail("{} does not exist".format(interface_name))
 
     port_data = config_db.get_entry('PORT', interface_name)
-    
+
     if port_data["dhcp_rate_limit"] != str(packet_rate):
         ctx.fail("{} DHCP rate limit does not exist on {}.".format(packet_rate, interface_name))
-    
+
     try:
         config_db.set_entry('PORT', interface_name, {"dhcp_rate_limit": "0"})
     except ValueError:

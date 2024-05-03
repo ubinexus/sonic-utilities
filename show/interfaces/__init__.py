@@ -172,6 +172,7 @@ def tpid(interfacename, namespace, display, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 @interfaces.command(name='dhcp-mitigation-rate')
 @click.argument('interfacename', required=False)
 @click.pass_context
@@ -197,7 +198,7 @@ def dhcp_mitigation_rate(ctx, interfacename):
             ctx.fail("{} does not exist".format(interfacename))
 
         keys.append(interfacename)
-    
+
     def get_interface_name_for_display(interface):
         if clicommon.get_interface_naming_mode() == 'alias':
             iface_alias_converter = clicommon.InterfaceAliasConverter(config_db)
@@ -211,7 +212,7 @@ def dhcp_mitigation_rate(ctx, interfacename):
             r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(config_db, key)]
             table.append(r)
         return table
-    
+
     header = ['Interface', 'DHCP Mitigation Rate']
     click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
 
