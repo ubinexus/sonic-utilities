@@ -16,7 +16,7 @@ import utilities_common.bgp_util as bgp_util
 IP_VERSION_PARAMS_MAP = {
     "ipv4": {
         "table": "VLAN"
-        
+
     },
     "ipv6": {
         "table": "DHCP_RELAY"
@@ -619,6 +619,7 @@ class TestVlan(object):
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
 
     def test_show_port_switchport_etp33_in_alias_mode(self):
+        runner = CliRunner()
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"],
                                ["routed", "etp33"])
@@ -628,7 +629,8 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: cannot find port name for alias etp33" in result.output
 
-    def test_show_port_vlan_etp33_in_alias_mode(self):
+    def test_show_port_vlan_etp33_in_alias_mode(self):        
+        runner = CliRunner()
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                                ["4000", "etp33"])
@@ -639,6 +641,7 @@ class TestVlan(object):
         assert "Error: cannot find port name for alias etp33" in result.output
 
     def test_show_port_vlan_del_etp33_in_alias_mode(self):
+        runner = CliRunner()
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
                                ["4000", "etp33"])
