@@ -90,7 +90,7 @@ show_vlan_brief_with_portchannel_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-show_vlan_config_output="""\
+show_vlan_config_output = """\
 Name        VID  Member           Mode
 --------  -----  ---------------  --------
 Vlan1000   1000  Ethernet4        untagged
@@ -746,13 +746,15 @@ class TestVlan(object):
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],["Vlan1000", "192.168.0.1/21"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                                   ["Vlan1000", "192.168.0.1/21"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
 
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],["Vlan1000", "fc02:1000::1/64"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                                   ["Vlan1000", "fc02:1000::1/64"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
@@ -763,7 +765,8 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
             assert result.exit_code != 0
-            assert "Error:VLAN ID 1000 can not be removed. First remove all members assigned to this VLAN." in result.output
+            assert ("Error:VLAN ID 1000 can not be removed."
+                    " First remove all members assigned to this VLAN.") in result.output
 
         with mock.patch("config.vlan.delete_db_entry") as delete_db_entry:
             vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
@@ -1238,7 +1241,8 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         error_message = result.output.splitlines()[-1]
-        assert error_message == "Ethernet64 is in trunk mode and have tagged member(s).\nRemove tagged member(s) to switch to access mode"
+        assert error_message == ("Ethernet64 is in trunk mode and have tagged member(s)."
+                                 "\nRemove tagged member(s) to switch to access mode")
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1293,7 +1297,8 @@ class TestVlan(object):
 
     def test_config_vlan_proxy_arp_enable(self):
         mock_cli_returns = [("running", 0), ("", 1)] + [("", 0)] * 4
-        with mock.patch("utilities_common.cli.run_command", mock.Mock(side_effect=mock_cli_returns)) as mock_run_command:
+        with mock.patch(
+                "utilities_common.cli.run_command", mock.Mock(side_effect=mock_cli_returns)) as mock_run_command:
             runner = CliRunner()
             db = Db()
 
@@ -1302,12 +1307,17 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
 
-            expected_calls = [mock.call(['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss'], return_cmd=True),
-                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True),
-                              mock.call(['docker', 'exec', '-i', 'swss', 'cp', '/usr/share/sonic/templates/ndppd.conf', '/etc/supervisor/conf.d/']),
+            expected_calls = [mock.call(['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss'],
+                                        return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'],
+                                        ignore_error=True, return_cmd=True),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'cp', '/usr/share/sonic/templates/ndppd.conf',
+                                         '/etc/supervisor/conf.d/']),
                               mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'update'], return_cmd=True),
-                              mock.call(['docker', 'exec', '-i', 'swss', 'sonic-cfggen', '-d', '-t', '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']),
-                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'restart', 'ndppd'], return_cmd=True)]
+                              mock.call(['docker', 'exec', '-i', 'swss', 'sonic-cfggen', '-d', '-t',
+                                         '/usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf']),
+                              mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'restart', 'ndppd'],
+                                        return_cmd=True)]
             mock_run_command.assert_has_calls(expected_calls)
 
             assert result.exit_code == 0

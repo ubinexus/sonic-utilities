@@ -14,7 +14,7 @@ Vlan3000         forward
 """
 
 class TestLoopbackAction(object):
-    @classmethodtest_config_loopback_action_on_non_ip_interface
+    @classmethodtest
     def setup_class(cls):
         print("\nSETUP")
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
