@@ -742,7 +742,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "VLAN 1000 cannot be removed" in result.output
+        assert "Error: Vlan1000 can not be removed. First remove IP addresses assigned to this VLAN\n" in result.output
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
