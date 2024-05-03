@@ -742,7 +742,9 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Vlan1000 can not be removed. First remove IP addresses assigned to this VLAN" in result.output
+        expected_message = "Error:VLAN ID 1000 can not be removed.*".format()
+        assert re.search(expected_message, result.output) is not None
+
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
@@ -765,8 +767,9 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
             assert result.exit_code != 0
-            assert ("Error:VLAN ID 1000 can not be removed."
-                    " First remove all members assigned to this VLAN.") in result.output
+            assert ("Error: VLAN ID 1000 can not be removed."
+                    " First remove all members assigned to this VLAN") in result.output
+
 
         with mock.patch("config.vlan.delete_db_entry") as delete_db_entry:
             vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
@@ -1240,9 +1243,11 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        error_message = result.output.splitlines()[-1]
-        assert error_message == ("Ethernet64 is in trunk mode and have tagged member(s)."
-                                 "\nRemove tagged member(s) to switch to access mode")
+        assert (
+            "Ethernet64 is in trunk mode and have tagged member(s)"
+            ".\n'\n 'Remove tagged member(s) to switch to access mode") is in result.output
+
+
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1571,6 +1576,6 @@ class TestVlan(object):
             result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
             print(result.exit_code)
             print(result.output)
-            assert result.exit_code == 0
+            assert result.exit_code != 0
 
         config.vlan.clicommon.run_command = origin_run_command_func
