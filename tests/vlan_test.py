@@ -90,8 +90,8 @@ show_vlan_brief_with_portchannel_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 
-show_vlan_config_output = """\
-Name        VID  Member          Mode
+show_vlan_config_output="""\
+Name        VID  Member           Mode
 --------  -----  ---------------  --------
 Vlan1000   1000  Ethernet4        untagged
 Vlan1000   1000  Ethernet8        untagged
@@ -274,7 +274,7 @@ test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output = """\
 """
 
 
-test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output = """\
+test_config_add_del_with_switchport_modes_changes_output = """\
 +-----------+-----------------+-----------------+----------------+-------------+
 |   VLAN ID | IP Address      | Ports           | Port Tagging   | Proxy ARP   |
 +===========+=================+=================+================+=============+
@@ -1189,7 +1189,7 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_output
 
-    def test_config_add_del_vlan_and_vlan_member_with_switchport_modes(
+    def test_config_add_del_with_switchport_modes_changes_output(
             self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
@@ -1236,8 +1236,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert ("Ethernet64 is in trunk mode and have tagged member(s). "
-                "\nRemove tagged member(s) from Ethernet64 to switch to access mode") in result.output
+        assert "Ethernet64 is in trunk mode and have tagged member(s).\nRemove tagged member(s) to switch to access mode" in result.output
 
         # remove vlan member
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
@@ -1259,7 +1258,7 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == (
-            test_config_add_del_vlan_and_vlan_member_with_switchport_modes_output)
+            test_config_add_del_with_switchport_modes_changes_output)
 
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
