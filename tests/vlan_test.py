@@ -742,7 +742,8 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error:VLAN ID 1000 can not be removed" in result.output
+        error_message = result.output.splitlines()[2]
+        assert "VLAN 1000" in error_message and "cannot be removed" in error_message
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
