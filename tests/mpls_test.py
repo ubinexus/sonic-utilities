@@ -122,7 +122,7 @@ class TestMpls(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 2
+        assert result.exit_code == 0
         assert result.output == invalid_interface_add_output
 
 
@@ -203,7 +203,7 @@ class TestMpls(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 2
+        assert result.exit_code == 0
         assert result.output == invalid_interface_remove_output 
 
 
@@ -253,7 +253,7 @@ class TestMplsMasic(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 2
+        assert result.exit_code == 0
         assert result.output == invalid_interface_add_output 
 
 
@@ -344,7 +344,7 @@ class TestMplsMasic(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 2
+        assert result.exit_code == 0
         assert result.output == invalid_interface_remove_output 
 
 

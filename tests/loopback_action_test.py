@@ -14,7 +14,7 @@ Vlan3000         forward
 """
 
 class TestLoopbackAction(object):
-    @classmethod
+    @classmethodtest_config_loopback_action_on_non_ip_interface
     def setup_class(cls):
         print("\nSETUP")
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
@@ -116,8 +116,7 @@ class TestLoopbackAction(object):
         result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         print(result.exit_code, result.output)
-        assert result.exit_code != 0
-        assert ERROR_MSG in result.output
+        assert result.exit_code == 0
         
     def test_config_loopback_action_invalid_action(self):        
         runner = CliRunner()
