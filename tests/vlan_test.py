@@ -379,7 +379,7 @@ class TestVlan(object):
     def test_show_switchport_status_in_alias_mode(self):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["status","etp33"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["etp33"])
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
@@ -390,7 +390,7 @@ class TestVlan(object):
     def test_show_switchport_config_in_alias_mode(self):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["config","etp33"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["etp33"])
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
