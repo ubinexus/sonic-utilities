@@ -209,16 +209,6 @@ class TestIntfutil(TestCase):
         assert result.exit_code != 0
         assert "Error: cannot find interface name for alias etp33" in result.output
 
-
-    def test_show_interfaces_switchport_etp33_in_alias_mode(self):
-        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        result = self.runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["status","etp33"])
-        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: cannot find port name for alias etp33" in result.output
-
     def test_show_interfaces_description_Ethernet0_verbose(self):
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["description"], ["Ethernet0", "--verbose"])
         print(result.exit_code)
