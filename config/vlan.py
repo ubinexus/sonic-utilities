@@ -278,7 +278,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
                 if port is None:
-                    ctx.fail("cannot find port name for alias {}".format(alias))
+                    ctx.fail("{} does not exist ".format(alias))
 
             if clicommon.is_port_mirror_dst_port(db.cfgdb, port):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is configured as mirror destination port".format(port))
@@ -371,7 +371,7 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
                 if port is None:
-                    ctx.fail("cannot find port name for alias {}".format(alias))
+                    ctx.fail("{} does not exist".format(alias))
 
             if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is not a member of {}".format(port, vlan))

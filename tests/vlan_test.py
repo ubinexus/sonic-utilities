@@ -6,7 +6,6 @@ from mock import patch
 from click.testing import CliRunner
 
 import config.main as config
-import config.vlan as vlan
 
 import show.main as show
 from utilities_common.db import Db
@@ -384,7 +383,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: cannot find port name for alias" in result.output
+        assert "Error: No such command etp33" in result.output
 
     
     def test_show_switchport_config_in_alias_mode(self):
@@ -395,7 +394,8 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: cannot find port name for alias" in result.output
+        assert "Error: No such command etp33" in result.output
+
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
         runner = CliRunner()
@@ -566,6 +566,24 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Invalid VLAN ID 4096 (2-4094)" in result.output
 
+
+    def test_config_vlan_add_member_with_invalid_port(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4097", "Ethernet4"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Vlan4097 invalid or does not exist, or is not a member of Ethernet4" in result.output
+
+    def test_config_vlan_del_member_with_invalid_port(self):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["4097", "Ethernet4"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Vlan4097 invalid or does not exist, or is not a member of Ethernet4" in result.output
+
+
     def test_config_vlan_add_member_with_nonexist_vlanid(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["1001", "Ethernet4"])
@@ -685,30 +703,30 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
     
-
+    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
-        vlan.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4000", "Ethernet20"], obj=db)
+                               ["4098", "Ethernet20"], obj=obj)
         print(result.exit_code)
-        assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+        assert "Error: Vlan4098 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+    
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
-        vlan.ADHOC_VALIDATION = True
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
-        db = Db()
+        db = Db()       
         obj = {'db':db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["1000", "Ethernet4"], obj=db)
+                               ["4098", "Ethernet4"], obj=obj)
         print(result.exit_code)
-        assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
+        assert "Error: Vlan4098 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
