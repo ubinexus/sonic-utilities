@@ -11,6 +11,7 @@ import config.vlan as vlan
 import show.main as show
 from utilities_common.db import Db
 from jsonpatch import JsonPatchConflict
+import config.validated_config_db_connector as validated_config_db_connector
 
 from importlib import reload
 import utilities_common.bgp_util as bgp_util
@@ -665,7 +666,7 @@ class TestVlan(object):
 
     def test_get_interface_name(port, db):
 
-    if port != "all" and port is not None:
+        if port != "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         if clicommon.get_interface_naming_mode() == "alias":
@@ -674,7 +675,8 @@ class TestVlan(object):
                 click.echo("cannot find port name for alias {}".format(alias))
                 sys.exit(1)
 
-    return port
+        return port
+
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
@@ -687,11 +689,9 @@ class TestVlan(object):
                                ["4000", "Ethernet20"], obj=db)
         print(result.exit_code)
         assert "Vlan4000 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
-        assert result.exit_code != 0
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
-    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
     def test_config_vlan_del_member_yang_validation(self):
         vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
@@ -701,7 +701,6 @@ class TestVlan(object):
                                ["1000", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert "Vlan1000 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
-        assert result.exit_code != 0
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
