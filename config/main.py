@@ -2338,13 +2338,13 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
                 port_mtu = port_entry.get(PORT_MTU)
                 portchannel_mtu = portchannel_entry.get(PORT_MTU)
                 # If portchannel MTU is not set, set it to the first port MTU
-                if not portchannel_mtu:
+                if (str(portchannel_mtu) == 'None'):
                     portchannel_mtu = port_mtu
                     db.mod_entry('PORTCHANNEL', portchannel_name, {PORT_MTU: port_mtu})
 
                 if (portchannel_mtu != port_mtu):  # TODO: MISSING CONSTRAINT IN YANG MODEL
-                    ctx.fail("Port MTU of {} is different than the {} MTU size "
-                             .format(port_name, portchannel_name))
+                    ctx.fail("Port MTU of {} is {} different than the {} MTU size which is {}"
+                             .format(port_name, port_mtu, portchannel_name, portchannel_mtu))
 
         # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
         # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
@@ -2406,8 +2406,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     try:
         db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
         # If this was the last port in the portchannel, set the portchannel MTU to None
-        portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
-        if (portchannel_list is None) or (portchannel_list == {}):
+        if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) == 0:
             db.mod_entry('PORTCHANNEL', portchannel_name, {PORT_MTU: None})
 
     except JsonPatchConflict:

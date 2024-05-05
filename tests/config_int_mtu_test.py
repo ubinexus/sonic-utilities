@@ -35,16 +35,16 @@ class TestConfigInterfaceMtu(object):
                             ["Ethernet32", "1000"], obj=obj)
         assert result.exit_code != 0
         # remove port from portchannel
-        result1 = runner.invoke(
+        result = runner.invoke(
                             config.config.commands["portchannel"].commands["member"].commands["del"],
                             ["PortChannel1001", "Ethernet32"], obj=obj)
-        assert result1.exit_code == 0
+        assert result.exit_code == 0
         # Set mtu for port interface
-        result2 = runner.invoke(config.config.commands["interface"].commands["mtu"], ["Ethernet32", "1000"], obj=obj)
-        assert result2.exit_code != 0
+        result = runner.invoke(config.config.commands["interface"].commands["mtu"], ["Ethernet32", "1000"], obj=obj)
+        assert result.exit_code != 0
         # Add port back to portchannel
-        result3 = runner.invoke(
+        result = runner.invoke(
                             config.config.commands["portchannel"].commands["member"].commands["add"],
                             ["PortChannel1001", "Ethernet32"], obj=obj)
-        print(result3.output)
-        assert result3.exit_code == 0
+        print(result.output)
+        assert result.exit_code == 0
