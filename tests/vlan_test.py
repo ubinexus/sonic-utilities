@@ -383,7 +383,7 @@ class TestVlan(object):
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
         assert "Error: cannot find port name for alias" in result.output
 
     
@@ -394,7 +394,7 @@ class TestVlan(object):
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
         assert "Error: cannot find port name for alias" in result.output
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
