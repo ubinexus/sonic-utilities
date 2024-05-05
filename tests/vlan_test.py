@@ -667,13 +667,13 @@ class TestVlan(object):
     def test_get_interface_name(port, db):
 
         if port != "all" and port is not None:
-        alias = port
-        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-        if clicommon.get_interface_naming_mode() == "alias":
-            port = iface_alias_converter.alias_to_name(alias)
-            if port is None:
-                click.echo("cannot find port name for alias {}".format(alias))
-                sys.exit(1)
+            alias = port
+            iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+            if clicommon.get_interface_naming_mode() == "alias":
+                port = iface_alias_converter.alias_to_name(alias)
+                if port is None:
+                    click.echo("cannot find port name for alias {}".format(alias))
+                    sys.exit(1)
 
         return port
 
