@@ -2336,15 +2336,15 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
             port_entry = db.get_entry('PORT', port_name)
             if port_entry and port_entry.get(PORT_MTU) is not None:
                 port_mtu = port_entry.get(PORT_MTU)
-                portchannel_mtu = portchannel_entry.get(PORT_MTU)                
+                portchannel_mtu = portchannel_entry.get(PORT_MTU)
                 # If portchannel MTU is not set, set it to the first port MTU
                 if not portchannel_mtu:
                     portchannel_mtu = port_mtu
                     db.mod_entry('PORTCHANNEL', portchannel_name, {PORT_MTU: port_mtu})
-                
+
                 if (portchannel_mtu != port_mtu):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                     ctx.fail("Port MTU of {} is different than the {} MTU size "
-                             .format(port_name, portchannel_name))                    
+                             .format(port_name, portchannel_name))
 
         # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
         # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
