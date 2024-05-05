@@ -627,7 +627,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: cannot find port name for alias etp33" in result.output
+        assert "Error: etp33 does not exist" in result.output
 
     def test_show_port_vlan_etp33_in_alias_mode(self):        
         runner = CliRunner()
@@ -638,7 +638,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: etp33 is not a member of Vlan4000" in result.output
+        assert "Error: etp33 does not exist" in result.output
 
     def test_show_port_vlan_del_etp33_in_alias_mode(self):
         runner = CliRunner()
@@ -649,7 +649,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: etp33 does not exist" in result.output
+        assert "Error: etp33 is not a member of Vlan4000" in result.output
     
 
     def test_config_switchport_mode_with_mirror_destintion_port(self):
