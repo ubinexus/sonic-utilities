@@ -30,18 +30,21 @@ class TestConfigInterfaceMtu(object):
         db = Db()
         obj = {'db': db.cfgdb, 'db_wrap': db, 'namespace': ''}
         # Ethernet32 is already member of PortChannel1001, try (fail) to change mtu
-        result = runner.invoke(config.config.commands["interface"].commands["mtu"],
-                               ["Ethernet32", "1000"], obj=obj)
+        result = runner.invoke(
+                            config.config.commands["interface"].commands["mtu"],
+                            ["Ethernet32", "1000"], obj=obj)
         assert result.exit_code != 0
         # remove port from portchannel
-        result1 = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["del"],
-                               ["PortChannel1001", "Ethernet32"], obj=obj)
+        result1 = runner.invoke(
+                            config.config.commands["portchannel"].commands["member"].commands["del"],
+                            ["PortChannel1001", "Ethernet32"], obj=obj)
         assert result1.exit_code == 0
         # Set mtu for port interface
         result2 = runner.invoke(config.config.commands["interface"].commands["mtu"], ["Ethernet32", "1000"], obj=obj)
         assert result2.exit_code != 0
         # Add port back to portchannel
-        result3 = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"],
-                               ["PortChannel1001", "Ethernet32"], obj=obj)
+        result3 = runner.invoke(
+                            config.config.commands["portchannel"].commands["member"].commands["add"],
+                            ["PortChannel1001", "Ethernet32"], obj=obj)
         print(result3.output)
         assert result3.exit_code == 0

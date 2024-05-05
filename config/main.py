@@ -2409,7 +2409,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
         portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
         if (portchannel_list is None) or (portchannel_list == {}):
             db.mod_entry('PORTCHANNEL', portchannel_name, {PORT_MTU: None})
-            
+
     except JsonPatchConflict:
         ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
