@@ -2,7 +2,6 @@ import pytest
 import config.main as config
 from click.testing import CliRunner
 from utilities_common.db import Db
-import time
 
 class TestConfigInterfaceMtu(object):
     def test_interface_mtu_check(self):
@@ -43,4 +42,5 @@ class TestConfigInterfaceMtu(object):
         # Add port back to portchannel
         result3 = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], 
                                ["PortChannel1001", "Ethernet32"], obj=obj)
+        print(result3.output)
         assert result3.exit_code==0

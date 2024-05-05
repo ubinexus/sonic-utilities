@@ -2342,7 +2342,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
                     portchannel_mtu = port_mtu
                     db.mod_entry('PORTCHANNEL', portchannel_name, {PORT_MTU: port_mtu})
                 
-                if (not isinstance(portchannel_mtu, type(port_mtu))) or (portchannel_mtu != port_mtu):  # TODO: MISSING CONSTRAINT IN YANG MODEL
+                if (portchannel_mtu != port_mtu):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                     ctx.fail("Port MTU of {} is different than the {} MTU size "
                              .format(port_name, portchannel_name))                    
 
