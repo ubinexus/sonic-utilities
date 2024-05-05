@@ -6,6 +6,8 @@ from mock import patch
 from click.testing import CliRunner
 
 import config.main as config
+import config.vlan as vlan
+
 import show.main as show
 from utilities_common.db import Db
 from jsonpatch import JsonPatchConflict
@@ -659,12 +661,25 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
+    
 
+    def test_get_interface_name(port, db):
+
+    if port != "all" and port is not None:
+        alias = port
+        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+        if clicommon.get_interface_naming_mode() == "alias":
+            port = iface_alias_converter.alias_to_name(alias)
+            if port is None:
+                click.echo("cannot find port name for alias {}".format(alias))
+                sys.exit(1)
+
+    return port
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -678,7 +693,7 @@ class TestVlan(object):
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
     def test_config_vlan_del_member_yang_validation(self):
-        config.ADHOC_VALIDATION = True
+        vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
