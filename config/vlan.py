@@ -311,7 +311,10 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
             elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
                 pass
-            config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
+            try:
+                config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
+            except ValueError:
+                ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
 
 
 @vlan_member.command('del')

@@ -704,9 +704,10 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4098", "Ethernet1"], obj=obj)
+                               ["4094", "Ethernet1"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
+        assert "Error: Vlan4094 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
@@ -717,9 +718,9 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["4098", "Ethernet4"], obj=obj)
+                               ["4094", "Ethernet1"], obj=obj)
         print(result.exit_code)
-        assert "Error: Invalid VLAN ID 4098 (2-4094)" in result.output
+        assert "Error: Vlan4094 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
