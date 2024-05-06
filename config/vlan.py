@@ -15,6 +15,8 @@ DHCPV6_SERVERS = "dhcpv6_servers"
 #
 # 'vlan' group ('config vlan ...')
 #
+
+
 @click.group(cls=clicommon.AbbreviationGroup, name='vlan')
 def vlan():
     """VLAN-related configuration tasks"""
@@ -51,7 +53,6 @@ def add_vlan(db, vid, multiple):
         if not vid.isdigit():
             ctx.fail("{} is not integer".format(vid))
         vid_list.append(int(vid))
-
 
     if ADHOC_VALIDATION:
 
@@ -182,6 +183,7 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                 docker_exec_cmd + ['rm', '-f', '/etc/supervisor/conf.d/ndppd.conf'], ignore_error=True, return_cmd=True)
             clicommon.run_command(docker_exec_cmd + ['supervisorctl', 'update'], return_cmd=True)
 
+
 def restart_ndppd():
     verify_swss_running_cmd = ['docker', 'container', 'inspect', '-f', '{{.State.Status}}', 'swss']
     docker_exec_cmd = ['docker', 'exec', '-i', 'swss']
@@ -209,6 +211,7 @@ def restart_ndppd():
     sleep(3)
     clicommon.run_command(docker_exec_cmd + ndppd_restart_cmd, return_cmd=True)
 
+
 @vlan.command('proxy_arp')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enabled", "disabled"]))
@@ -231,9 +234,12 @@ def config_proxy_arp(db, vid, mode):
 #
 # 'member' group ('config vlan member ...')
 #
+
+
 @vlan.group(cls=clicommon.AbbreviationGroup, name='member')
 def vlan_member():
     pass
+
 
 @vlan_member.command('add')
 @click.argument('vid', metavar='<vid>', required=True)
@@ -246,7 +252,6 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
     """Add VLAN member"""
 
     ctx = click.get_current_context()
-
 
     # parser will parse the vid input if there are syntax errors it will throw error
     vid_list = clicommon.vlan_member_input_parser(ctx, "add", db, except_flag, multiple, vid, port)
@@ -306,11 +311,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
             elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
                 pass
-            # in case of exception in list last added member will be shown to user
-            try:
-                config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
-            except ValueError:
-                ctx.fail("{} invalid VLAN ID , or {} invalid port , cannot add VLAN member".format(vlan, port))
+            config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
+
 
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True)
