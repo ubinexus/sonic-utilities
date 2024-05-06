@@ -30,8 +30,8 @@ def switchport_mode(db, type, port):
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         port = iface_alias_converter.alias_to_name(port)
-        if port is None:
-            ctx.fail("{} does not exist".format(alias))
+    if port is None:
+        ctx.fail("{} does not exist".format(alias))
 
     if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
         ctx.fail("{} is configured as mirror destination port".format(port))

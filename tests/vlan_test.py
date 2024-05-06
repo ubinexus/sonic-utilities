@@ -10,9 +10,9 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 from jsonpatch import JsonPatchConflict
-import config.validated_config_db_connector as validated_config_db_connector
 
 from importlib import reload
+from . import switchport 
 import utilities_common.bgp_util as bgp_util
 
 IP_VERSION_PARAMS_MAP = {
@@ -351,7 +351,6 @@ class TestVlan(object):
         assert result.output == show_vlan_brief_in_alias_mode_output
 
     def test_show_vlan_brief_explicit_proxy_arp_disable(self):
-        runner = CliRunner()
         db = Db()
 
         db.cfgdb.set_entry("VLAN_INTERFACE", "Vlan1000", {"proxy_arp": "disabled"})
@@ -374,6 +373,12 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_config_in_alias_mode_output
 
+    def test_switchport(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
     def test_show_switchport_status_in_alias_mode(self):
         runner = CliRunner()
@@ -384,7 +389,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: No such command \"etp33\"" in result.output
-
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
         runner = CliRunner()
@@ -555,7 +559,6 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Invalid VLAN ID 4096 (2-4094)" in result.output
 
-
     def test_config_vlan_add_member_with_invalid_port(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4097", "Ethernet4"])
@@ -653,14 +656,14 @@ class TestVlan(object):
         runner = CliRunner()
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = runner.invoke(config.config.commands["switchport"].commands["mode"],
-                                 ["trunk", "etp33"])
+                               ["trunk", "etp33"])
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
 
-    def test_show_port_vlan_etp33_in_alias_mode(self):        
+    def test_show_port_vlan_etp33_in_alias_mode(self):
         runner = CliRunner()
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
@@ -681,7 +684,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: etp33 is not a member of Vlan4000" in result.output
-    
 
     def test_config_switchport_mode_with_mirror_destintion_port(self):
         runner = CliRunner()
@@ -690,14 +692,14 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
-    
+
     @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_config_vlan_add_member_yang_validation(self):
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
-        obj = {'db':db.cfgdb}
+        obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                                ["4098", "Ethernet20"], obj=obj)
         print(result.exit_code)
@@ -709,7 +711,7 @@ class TestVlan(object):
     def test_config_vlan_del_member_yang_validation(self):
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
-        db = Db()       
+        db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
                                ["4098", "Ethernet4"], obj=obj)
@@ -1485,6 +1487,7 @@ class TestVlan(object):
 
             assert result.exit_code == 0
             assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
+            mock_handle_restart.assert_called_mock_handle_restartonce()
             assert "Restart service dhcp_relay failed with error" not in result.output
 
     @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
@@ -1510,7 +1513,7 @@ class TestVlan(object):
 
             assert result.exit_code == 0
             assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
-            mock_handle_restart.assert_called_once()
+            mock_handle_restart.assert_called_mock_handle_restartonce()
             assert "Restart service dhcp_relay failed with error" not in result.output
 
     @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
@@ -1588,36 +1591,6 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code != 0
         assert "DHCPv6 relay config for Vlan1001 already exists" in result.output
-
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
-           mock.Mock(side_effect=JsonPatchConflict))
-    def test_config_vlan_add_member_yang_validation(self):
-
-        config.ADHOC_VALIDATION = True
-        runner = CliRunner()
-        db = Db()
-        obj = {'db': db.cfgdb}
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4000", "Ethernet20"], obj=obj)
-        print(result.exit_code)
-        assert result.exit_code != 0
-
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
-           mock.Mock(side_effect=ValueError))
-    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
-    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'sample_key': 'sample_value'}))
-    def test_config_vlan_del_member_yang_validation(self):
-
-        config.ADHOC_VALIDATION = True
-        runner = CliRunner()
-        db = Db()
-        obj = {'db': db.cfgdb}
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["1000", "Ethernet4"], obj=obj)
-        print(result.exit_code)
-        assert result.exit_code != 0
 
     @classmethod
     def teardown_class(cls):
