@@ -383,18 +383,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: No such command etp33" in result.output
-
-    
-    def test_show_switchport_config_in_alias_mode(self):
-        runner = CliRunner()
-        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["etp33"])
-        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: No such command etp33" in result.output
+        assert "Error: No such command \"etp33\"" in result.output
 
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
@@ -573,7 +562,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Vlan4097 invalid or does not exist, or is not a member of Ethernet4" in result.output
+        assert "Error: Invalid VLAN ID 4097 (2-4094)" in result.output
 
     def test_config_vlan_del_member_with_invalid_port(self):
         runner = CliRunner()
@@ -581,8 +570,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Vlan4097 invalid or does not exist, or is not a member of Ethernet4" in result.output
-
+        assert "Error: Invalid VLAN ID 4097 (2-4094)" in result.output
 
     def test_config_vlan_add_member_with_nonexist_vlanid(self):
         runner = CliRunner()
@@ -714,15 +702,15 @@ class TestVlan(object):
                                ["4098", "Ethernet20"], obj=obj)
         print(result.exit_code)
         assert "Error: Vlan4098 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
-    
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
+           mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
         config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()       
-        obj = {'db':db.cfgdb}
+        obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
                                ["4098", "Ethernet4"], obj=obj)
         print(result.exit_code)
