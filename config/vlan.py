@@ -240,7 +240,6 @@ def config_proxy_arp(db, vid, mode):
 def vlan_member():
     pass
 
-
 @vlan_member.command('add')
 @click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='port', required=True)
