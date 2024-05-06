@@ -693,10 +693,9 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
 
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled",
-           mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
-           mock.Mock(side_effect=JsonPatchConflict))
+
+    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_config_vlan_add_member_yang_validation(self):
 
         config.ADHOC_VALIDATION = False
@@ -709,9 +708,8 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
 
+    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=ValueError))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
-           mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
         config.ADHOC_VALIDATION = False
         runner = CliRunner()
