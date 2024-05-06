@@ -176,8 +176,14 @@ class TestDHCPRate(object):
         assert result.exit_code == 0
 
         # show output
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == test_config_dhcp_rate_add_del_output
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        bgp_util.run_bgp_command = cls._old_run_bgp_command
+        print("TEARDOWN")
