@@ -75,6 +75,7 @@ def queue(namespace):
         cmd += ['-n', str(namespace)]
     clicommon.run_command(cmd)
 
+
 @counters.command()
 @multi_asic_util.multi_asic_click_option_namespace
 def rate(namespace):
