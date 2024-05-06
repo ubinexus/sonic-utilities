@@ -247,96 +247,70 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
 
     ctx = click.get_current_context()
 
+
     # parser will parse the vid input if there are syntax errors it will throw error
-
     vid_list = clicommon.vlan_member_input_parser(ctx, "add", db, except_flag, multiple, vid, port)
-
     # multiple vlan command cannot be used to add multiple untagged vlan members
     if untagged and (multiple or except_flag or vid == "all"):
         ctx.fail("{} cannot have more than one untagged Vlan.".format(port))
-
     config_db = ValidatedConfigDBConnector(db.cfgdb)
-
     if ADHOC_VALIDATION:
         for vid in vid_list:
-
             vlan = 'Vlan{}'.format(vid)
-
             # default vlan checker
             if vid == 1:
                 ctx.fail("{} is default VLAN".format(vlan))
-
             log.log_info("'vlan member add {} {}' executing...".format(vid, port))
-
             if not clicommon.is_vlanid_in_range(vid):
                 ctx.fail("Invalid VLAN ID {} (2-4094)".format(vid))
-
             if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) is False:
                 ctx.fail("{} does not exist".format(vlan))
             if clicommon.get_interface_naming_mode() == "alias":  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 alias = port
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
-            if port is None:
-                ctx.fail("{} does not exist ".format(alias))
-
             if clicommon.is_port_mirror_dst_port(db.cfgdb, port):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is configured as mirror destination port".format(port))
-
             if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is already a member of {}".format(port, vlan))
-
             if clicommon.is_valid_port(db.cfgdb, port):
                 is_port = True
             elif clicommon.is_valid_portchannel(db.cfgdb, port):
                 is_port = False
             else:
                 ctx.fail("{} does not exist".format(port))
-
             if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
                 (not is_port and clicommon.is_pc_router_interface(
                     db.cfgdb, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is a router interface!".format(port))
-
             portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
-
             if (is_port and clicommon.interface_is_in_portchannel(
                  portchannel_member_table, port)):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is part of portchannel!".format(port))
-
             if (clicommon.interface_is_untagged_member(
                     db.cfgdb, port) and untagged):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is already untagged member!".format(port))
-
             # checking mode status of port if its access, trunk or routed
             if is_port:
                 port_data = config_db.get_entry('PORT', port)
-
             # if not port then is a port channel
             elif not is_port:
                 port_data = config_db.get_entry('PORTCHANNEL', port)
-
             existing_mode = None
-
             if "mode" in port_data:
                 existing_mode = port_data["mode"]
-
             if existing_mode == "routed":
                 ctx.fail("{} is in routed mode!\nUse switchport mode command to change port mode".format(port))
-
             mode_type = "access" if untagged else "trunk"
             if existing_mode == "access" and mode_type == "trunk":  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is in access mode! Tagged Members cannot be added".format(port))
-
             elif existing_mode == mode_type or (existing_mode == "trunk" and mode_type == "access"):
                 pass
-
             # in case of exception in list last added member will be shown to user
-
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
             except ValueError:
-                ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
+                ctx.fail("{} invalid VLAN ID , or {} invalid port , cannot add VLAN member".format(vlan, port))
 
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True)

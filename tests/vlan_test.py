@@ -704,9 +704,10 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["4000", "Ethernet20"], obj=obj)
+                               ["4098", "Ethernet1"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
+        assert "Error: Vlan4098 invalid VLAN ID , or Ethernet1 invalid port , cannot add VLAN member" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
