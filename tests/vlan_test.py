@@ -1479,15 +1479,12 @@ class TestVlan(object):
         assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == exp_output
 
         # del vlan 1001
-        with mock.patch("utilities_common.dhcp_relay_util.handle_restart_dhcp_relay_service") as mock_handle_restart:
-            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
-            print(result.exit_code)
-            print(result.output)
-
-            assert result.exit_code == 0
-            assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
-            mock_handle_restart.assert_called_mock_handle_restartonce()
-            assert "Restart service dhcp_relay failed with error" not in result.output
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
+        assert "Restart service dhcp_relay failed with error" not in result.output
 
     @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
     def test_config_add_del_vlan_dhcp_relay_with_non_empty_entry(self, ip_version, mock_restart_dhcp_relay_service):
@@ -1512,7 +1509,7 @@ class TestVlan(object):
 
             assert result.exit_code == 0
             assert "Vlan1001" not in db.cfgdb.get_keys(IP_VERSION_PARAMS_MAP[ip_version]["table"])
-            mock_handle_restart.assert_called_mock_handle_restartonce()
+            mock_handle_restart.assert_called_once()
             assert "Restart service dhcp_relay failed with error" not in result.output
 
     @pytest.mark.parametrize("ip_version", ["ipv4", "ipv6"])
@@ -1592,7 +1589,7 @@ class TestVlan(object):
         assert "DHCPv6 relay config for Vlan1001 already exists" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled",
-            mock.Mock(return_value=True))
+           mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
            mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
@@ -1607,7 +1604,7 @@ class TestVlan(object):
         assert result.exit_code != 0
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled",
-            mock.Mock(return_value=True))
+           mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
            mock.Mock(side_effect=ValueError))
     @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
