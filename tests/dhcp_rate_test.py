@@ -42,7 +42,9 @@ Ethernet116  300
 Ethernet124  300
 """
 
+
 class TestDHCPRate(object):
+
     _old_run_bgp_command = None
     @classmethod
     def setup_class(cls):
@@ -118,7 +120,8 @@ class TestDHCPRate(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Ethernet0 has DHCP rate limit configured. \nRemove it to add new DHCP rate limit." in result.output
+        assert "Error: Ethernet0 has DHCP rate limit configured. \nRemove it to add new DHCP rate limit." \
+            in result.output
 
     def test_config_dhcp_rate_del_rate_with_nonexist_rate(self):
         runner = CliRunner()
