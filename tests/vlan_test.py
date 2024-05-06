@@ -374,10 +374,11 @@ class TestVlan(object):
 
     def test_switchport(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], [])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["switchport"], ["etp33"])
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
+        assert "Error: No such command etp33" in result.output
 
     def test_show_switchport_status_in_alias_mode(self):
         runner = CliRunner()
