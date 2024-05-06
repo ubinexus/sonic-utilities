@@ -9,37 +9,40 @@ from utilities_common.db import Db
 import utilities_common.bgp_util as bgp_util
 
 test_config_dhcp_rate_add_del_output = """\
-Interface    DHCP Mitigation Rate
------------  --------------------
-Ethernet0    300
-Ethernet4    300
-Ethernet8    300
-Ethernet12   300
-Ethernet16   300
-Ethernet20   300
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+Ethernet0                       300
+Ethernet4                       300
+Ethernet8                       300
+Ethernet12                      300
+Ethernet16                      300
+Ethernet20                      300
 Ethernet24
-Ethernet28   300
-Ethernet36   45
-Ethernet40   300
-Ethernet44   300
-Ethernet48   300
-Ethernet52   300
-Ethernet56   300
-Ethernet60   300
-Ethernet64   300
-Ethernet68   300
-Ethernet72   300
-Ethernet76   300
-Ethernet80   300
-Ethernet84   300
-Ethernet88   300
-Ethernet92   300
-Ethernet96   300
-Ethernet100  300
-Ethernet104  300
-Ethernet108  300
-Ethernet116  300
-Ethernet124  300
+Ethernet28                      300
+Ethernet32                       45
+Ethernet36                      300
+Ethernet40                      300
+Ethernet44                      300
+Ethernet48                      300
+Ethernet52                      300
+Ethernet56                      300
+Ethernet60                      300
+Ethernet64                      300
+Ethernet68                      300
+Ethernet72                      300
+Ethernet76                      300
+Ethernet80                      300
+Ethernet84                      300
+Ethernet88                      300
+Ethernet92                      300
+Ethernet96                      300
+Ethernet100                     300
+Ethernet104                     300
+Ethernet108                     300
+Ethernet112                     300
+Ethernet116                     300
+Ethernet120                     300
+Ethernet124                     300
 """
 
 
@@ -176,7 +179,7 @@ class TestDHCPRate(object):
         assert result.exit_code == 0
 
         # show output
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
