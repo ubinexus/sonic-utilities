@@ -176,7 +176,7 @@ class TestDHCPRate(object):
         assert result.exit_code == 0
 
         # show output
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], obj=obj)
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0

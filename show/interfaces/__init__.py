@@ -185,7 +185,7 @@ def dhcp_mitigation_rate(ctx, interfacename):
 
     keys = []
 
-    if interfacename is not None:
+    if interfacename is None:
         port_data = list(config_db.get_table('PORT').keys())
         keys = port_data
 
