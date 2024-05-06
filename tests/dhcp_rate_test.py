@@ -155,31 +155,30 @@ class TestDHCPRate(object):
     def test_config_dhcp_rate_add_del(self):
         db = Db()
         runner = CliRunner()
-        obj = {'config_db': db.cfgdb}
 
         # Remove default DHCP rate limit from Ethernet24
         result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                               ["Ethernet24", "300"], obj=obj)
+                               ["Ethernet24", "300"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
         # Remove default DHCP rate limit from Ethernet32
         result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                               ["Ethernet32", "300"], obj=obj)
+                               ["Ethernet32", "300"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
         # Add DHCP rate limit 45 on Ethernet32
         result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
-                               ["Ethernet32", "45"], obj=obj)
+                               ["Ethernet32", "45"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
         # show output
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
