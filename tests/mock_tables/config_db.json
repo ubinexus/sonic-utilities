@@ -788,7 +788,9 @@
     "KDUMP|config": {
         "enabled": "false",
         "memory": "256MB",
-        "num_dumps": "3"
+        "num_dumps": "3",
+        "connection_string": "",
+        "private_key": "/root/.ssh/kdump_id_rsa"
     },
     "FEATURE|bgp": {
         "state": "enabled",
