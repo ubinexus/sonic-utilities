@@ -423,7 +423,7 @@ class FabricRate(FabricStat):
         asic = "asic0"
         if self.namespace:
             asic = self.namespace
-        header = ["ASIC", "Link ID", "RX", "TX"]
+        header = ["ASIC", "Link ID", "Rx Data Mbps", "Tx Data Mbps"]
         body = []
         for port_number in sorted(port_dict.keys()):
             port_data = port_dict[port_number]

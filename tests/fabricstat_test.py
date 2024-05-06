@@ -202,41 +202,41 @@ asic0
 
 multi_asic_fabric_rate = """\
 
-  ASIC    Link ID    RX    TX
-------  ---------  ----  ----
- asic0          0     0  19.8
- asic0          1     0  19.8
- asic0          2     0  39.8
- asic0          3     0  39.8
- asic0          4     0  39.8
- asic0          5     0  39.8
- asic0          6     0  39.3
- asic0          7     0  39.3
+  ASIC    Link ID    Rx Data Mbps    Tx Data Mbps
+------  ---------  --------------  --------------
+ asic0          0               0            19.8
+ asic0          1               0            19.8
+ asic0          2               0            39.8
+ asic0          3               0            39.8
+ asic0          4               0            39.8
+ asic0          5               0            39.8
+ asic0          6               0            39.3
+ asic0          7               0            39.3
 
-  ASIC    Link ID    RX    TX
-------  ---------  ----  ----
- asic1          0     0     0
- asic1          1     0     0
- asic1          2     0     0
- asic1          3     0     0
- asic1          4     0     0
- asic1          5     0     0
- asic1          6     0     0
- asic1          7     0     0
+  ASIC    Link ID    Rx Data Mbps    Tx Data Mbps
+------  ---------  --------------  --------------
+ asic1          0               0               0
+ asic1          1               0               0
+ asic1          2               0               0
+ asic1          3               0               0
+ asic1          4               0               0
+ asic1          5               0               0
+ asic1          6               0               0
+ asic1          7               0               0
 """
 
 multi_asic_fabric_rate_asic0 = """\
 
-  ASIC    Link ID    RX    TX
-------  ---------  ----  ----
- asic0          0     0  19.8
- asic0          1     0  19.8
- asic0          2     0  39.8
- asic0          3     0  39.8
- asic0          4     0  39.8
- asic0          5     0  39.8
- asic0          6     0  39.3
- asic0          7     0  39.3
+  ASIC    Link ID    Rx Data Mbps    Tx Data Mbps
+------  ---------  --------------  --------------
+ asic0          0               0            19.8
+ asic0          1               0            19.8
+ asic0          2               0            39.8
+ asic0          3               0            39.8
+ asic0          4               0            39.8
+ asic0          5               0            39.8
+ asic0          6               0            39.3
+ asic0          7               0            39.3
 """
 
 class TestFabricStat(object):
