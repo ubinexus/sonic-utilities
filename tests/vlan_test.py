@@ -703,7 +703,7 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                                ["4098", "Ethernet20"], obj=obj)
         print(result.exit_code)
-        assert "Error: Vlan4098 invalid or does not exist, or Ethernet20 invalid or does not exist" in result.output
+        assert "Error: Invalid VLAN ID 4098 (2-4094)" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
@@ -716,7 +716,7 @@ class TestVlan(object):
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
                                ["4098", "Ethernet4"], obj=obj)
         print(result.exit_code)
-        assert "Error: Vlan4098 invalid or does not exist, or Ethernet4 invalid or does not exist" in result.output
+        assert "Error: Invalid VLAN ID 4098 (2-4094)" in result.output
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
