@@ -16,6 +16,7 @@ from sonic_package_manager.metadata import Metadata, MetadataResolver
 from sonic_package_manager.registry import RegistryResolver
 from sonic_package_manager.version import Version
 from sonic_package_manager.service_creator.creator import *
+from sonic_package_manager.service_creator.creator import ETC_SYSTEMD_LOCATION
 
 
 @pytest.fixture
