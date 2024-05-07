@@ -616,6 +616,8 @@ def get_interface_dhcp_mitigation_rate(config_db, interface):
 
     if "dhcp_rate_limit" in port_data:
         rate = port_data["dhcp_rate_limit"]
+    else:
+        rate = "0"
 
     if rate == "0":
         return ""
