@@ -203,7 +203,7 @@ def add_vlan_member(db, vid, port, untagged):
     vlan = 'Vlan{}'.format(vid)
     
     config_db = ValidatedConfigDBConnector(db.cfgdb)
-    if ADHOC_VALIDATION is True:
+    if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -259,7 +259,7 @@ def del_vlan_member(db, vid, port):
     vlan = 'Vlan{}'.format(vid)
     
     config_db = ValidatedConfigDBConnector(db.cfgdb)
-    if ADHOC_VALIDATION is True:
+    if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
