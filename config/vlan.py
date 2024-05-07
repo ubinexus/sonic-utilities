@@ -8,7 +8,7 @@ from time import sleep
 from .utils import log
 from .validated_config_db_connector import ValidatedConfigDBConnector
 
-ADHOC_VALIDATION = False
+ADHOC_VALIDATION = True
 DHCP_RELAY_TABLE = "DHCP_RELAY"
 DHCPV6_SERVERS = "dhcpv6_servers"
 
