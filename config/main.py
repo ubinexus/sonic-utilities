@@ -4826,15 +4826,15 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
     port_data = config_db.get_entry('PORT', interface_name)
 
     if 'dhcp_rate_limit' in port_data:
-        rate = port_data["dhcp_rate_limit"]
+        pass
     else:
-        rate = '0'
+        port_data["dhcp_rate_limit"] = "0"
 
-    if rate != '0':
+    if port_data["dhcp_rate_limit"] != "0":
         ctx.fail("{} has DHCP rate limit configured. \nRemove it to add new DHCP rate limit.".format(interface_name))
 
     try:
-        config_db.set_entry('PORT', interface_name, {"dhcp_rate_limit": "{}".format(str(packet_rate))})
+        config_db.set_entry('PORT', interface_name, port_data)
     except ValueError:
         ctx.fail("{} invalid or does not exist".format(interface_name))
 
@@ -4870,15 +4870,17 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
     port_data = config_db.get_entry('PORT', interface_name)
 
     if 'dhcp_rate_limit' in port_data:
-        rate = port_data["dhcp_rate_limit"]
+        pass
     else:
-        rate = '0'
+        port_data["dhcp_rate_limit"] = "0"
 
     if rate != str(packet_rate):
         ctx.fail("{} DHCP rate limit does not exist on {}.".format(packet_rate, interface_name))
 
+    port_data["dhcp_rate_limit"] = "0"
+
     try:
-        config_db.set_entry('PORT', interface_name, {"dhcp_rate_limit": "0"})
+        config_db.set_entry('PORT', interface_name, port_data)
     except ValueError:
         ctx.fail("{} invalid or does not exist".format(interface_name))
 
