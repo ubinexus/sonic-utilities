@@ -8,7 +8,7 @@ from time import sleep
 from .utils import log
 from .validated_config_db_connector import ValidatedConfigDBConnector
 
-ADHOC_VALIDATION = True
+ADHOC_VALIDATION = False
 DHCP_RELAY_TABLE = "DHCP_RELAY"
 DHCPV6_SERVERS = "dhcpv6_servers"
 
@@ -203,7 +203,7 @@ def add_vlan_member(db, vid, port, untagged):
     vlan = 'Vlan{}'.format(vid)
     
     config_db = ValidatedConfigDBConnector(db.cfgdb)
-    if ADHOC_VALIDATION:
+    if ADHOC_VALIDATION is True:
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -259,7 +259,7 @@ def del_vlan_member(db, vid, port):
     vlan = 'Vlan{}'.format(vid)
     
     config_db = ValidatedConfigDBConnector(db.cfgdb)
-    if ADHOC_VALIDATION:
+    if ADHOC_VALIDATION is True:
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
