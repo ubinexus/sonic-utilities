@@ -699,7 +699,7 @@ class TestVlan(object):
     def test_config_vlan_add_member_yang_validation(self):
 
         config.ADHOC_VALIDATION = False
-        runner = CliRunner()validated_set_entry
+        runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
