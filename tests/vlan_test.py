@@ -6,6 +6,7 @@ from mock import patch
 from click.testing import CliRunner
 
 import config.main as config
+import config.vlan as vlan
 
 import show.main as show
 from utilities_common.db import Db
@@ -693,12 +694,11 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
 
-
     @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_config_vlan_add_member_yang_validation(self):
 
-        config.ADHOC_VALIDATION = False
+        vlan.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
@@ -711,7 +711,7 @@ class TestVlan(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
-        config.ADHOC_VALIDATION = False
+        vlan.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
