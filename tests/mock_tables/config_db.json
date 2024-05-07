@@ -789,7 +789,7 @@
         "enabled": "false",
         "memory": "256MB",
         "num_dumps": "3",
-        "connection_string": "",
+        "connection_string": "user@ip/hostname(please-specify)",
         "private_key": "/root/.ssh/kdump_id_rsa"
     },
     "FEATURE|bgp": {
