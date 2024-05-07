@@ -698,7 +698,7 @@ class TestVlan(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_config_vlan_add_member_yang_validation(self):
 
-        vlan.ADHOC_VALIDATION = False
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
@@ -711,7 +711,7 @@ class TestVlan(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
-        vlan.ADHOC_VALIDATION = False
+        config.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
