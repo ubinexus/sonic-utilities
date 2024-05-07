@@ -831,7 +831,7 @@ class TestVlan(object):
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["1000", "Ethernet1"], obj=obj)
+                               ["1000", "Ethernet1"].commands["tagged"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
         assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
