@@ -12,6 +12,7 @@ from sonic_package_manager.manifest import Manifest
 from sonic_package_manager.metadata import Metadata
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator.creator import *
+from sonic_package_manager.service_creator.creator import ETC_SYSTEMD_LOCATION
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 
 
