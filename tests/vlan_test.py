@@ -826,7 +826,7 @@ class TestVlan(object):
            mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
 
-        config.ADHOC_VALIDATION = False
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
@@ -840,7 +840,7 @@ class TestVlan(object):
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
            mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
-        config.ADHOC_VALIDATION = False
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
