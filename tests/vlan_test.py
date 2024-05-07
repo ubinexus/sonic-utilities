@@ -369,13 +369,15 @@ class TestVlan(object):
 
         # remove vlan IP`s
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "192.168.0.1/21"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                                   ["Vlan1000", "192.168.0.1/21"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
 
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "fc02:1000::1/64"], obj=obj)
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                                   ["Vlan1000", "fc02:1000::1/64"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
@@ -390,7 +392,7 @@ class TestVlan(object):
         with mock.patch("config.vlan.delete_db_entry") as delete_db_entry:
             vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
             keys = [ (k, v) for k, v in vlan_member if k == 'Vlan{}'.format(1000) ]
-            for k,v in keys:    
+            for k,v in keys:
                 result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
                 print(result.exit_code)
                 print(result.output)
@@ -590,7 +592,7 @@ class TestVlan(object):
                               mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'restart', 'ndppd'], return_cmd=True)]
             mock_run_command.assert_has_calls(expected_calls)
 
-            assert result.exit_code == 0 
+            assert result.exit_code == 0
             assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
 
     def test_config_vlan_proxy_arp_disable(self):
@@ -604,35 +606,35 @@ class TestVlan(object):
 
         assert result.exit_code == 0
         assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan2000") == {"proxy_arp": "disabled"}
-        
+
     def test_config_2_untagged_vlan_on_same_interface(self):
         runner = CliRunner()
         db = Db()
-        
+
         # add Ethernet4 to vlan 2000 as untagged - should fail as ethrnet4 is already untagged member in 1000
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["2000", "Ethernet4", "--untagged"], obj=db)
         print(result.exit_code)
         assert result.exit_code != 0
-        
+
         # add Ethernet4 to vlan 2000 as tagged - should succeed
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
                 ["2000", "Ethernet4" ], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        
-    def test_config_set_router_port_on_member_interface(self):        
+
+    def test_config_set_router_port_on_member_interface(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
-        
+
         # intf enable
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"],
-                               ["Ethernet4", "10.10.10.1/24"], obj=obj)        
+                               ["Ethernet4", "10.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert 'Interface Ethernet4 is a member of vlan' in result.output
-        
+
     def test_config_vlan_add_member_of_portchannel(self):
         runner = CliRunner()
         db = Db()
@@ -813,3 +815,33 @@ class TestVlan(object):
         assert result.exit_code == 0
 
         config.vlan.clicommon.run_command = origin_run_command_func
+
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled",
+           mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
+           mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_vlan_add_member_yang_validation(self):
+
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db': db.cfgdb}
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                               ["1000", "Ethernet1"], obj=obj)
+        print(result.exit_code)
+        assert result.exit_code != 0
+        assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
+           mock.Mock(side_effect=ValueError))
+    def test_config_vlan_del_member_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db': db.cfgdb}
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
+                               ["1000", "Ethernet1"], obj=obj)
+        print(result.exit_code)
+        assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
