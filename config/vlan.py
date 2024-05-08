@@ -246,8 +246,8 @@ def add_vlan_member(db, vid, port, untagged):
 
     try:
         config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
-    except ValueError:
-        ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -282,6 +282,5 @@ def del_vlan_member(db, vid, port):
         config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
         delete_db_entry("DHCPv6_COUNTER_TABLE|{}".format(port), db.db, db.db.STATE_DB)
         delete_db_entry("DHCP_COUNTER_TABLE|{}".format(port), db.db, db.db.STATE_DB)
-    except JsonPatchConflict:
-        ctx.fail("{} invalid or does not exist, or {} is not a member of {}".format(vlan, port, vlan))
-
+    except JsonPatchConflict as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
