@@ -12,7 +12,6 @@ ADHOC_VALIDATION = True
 DHCP_RELAY_TABLE = "DHCP_RELAY"
 DHCPV6_SERVERS = "dhcpv6_servers"
 
-CFG_VLAN_RANGE="<2-4095>"
 
 
 #
@@ -248,7 +247,7 @@ def add_vlan_member(db, vid, port, untagged):
     try:
         config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
     except ValueError:
-        ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(CFG_VLAN_RANGE, port))
+        ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
 
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)

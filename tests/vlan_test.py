@@ -5,6 +5,8 @@ from unittest import mock
 from mock import patch
 
 from click.testing import CliRunner
+import config.validated_config_db_connector as validated_config_db_connector
+
 
 import config.main as config
 import config.vlan as vlan
@@ -827,25 +829,25 @@ class TestVlan(object):
            mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
 
-        vlan.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
-        obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["1000", "Ethernet1"], obj=obj)
+                               ["1000", "Ethernet1"], obj=db)
         print(result.exit_code)
         assert result.exit_code != 0
         assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
 
+
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
-           mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'sample_key': 'sample_value'}))
     def test_config_vlan_del_member_yang_validation(self):
-        vlan.ADHOC_VALIDATION = False
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["1000", "Ethernet259"], obj=obj)
+                               ["1000", "Ethernet1"], obj=db)
         print(result.exit_code)
-        assert "Error: Vlan1000 invalid or does not exist, or Ethernet259 invalid or does not exist" in result.output
+        assert result.exit_code != 0
+        assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
