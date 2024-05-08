@@ -28,8 +28,8 @@ def read_reboot_cause_file():
 # Function to fetch reboot cause data from database
 def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     if use_chassis_db:
-        redis_host = '169.254.28.2'
-        redis_port = 6385
+        redis_host = 'redis_chassis.server'
+        redis_port = 6380
         redis_idx = CHASSIS_STATE_DB
     else:
         redis_host = '127.0.0.1'

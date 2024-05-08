@@ -5,10 +5,12 @@ import click
 from tabulate import tabulate
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector
+from natsort import natsorted
 
 DPU_STATE = 'DPU_STATE'
 CHASSIS_SERVER='redis_chassis.server'
 CHASSIS_SERVER_PORT=6380
+CHASSIS_STATE_DB=13
 
 def get_system_health_status():
     if os.environ.get("UTILITIES_UNIT_TESTING") == "1":
@@ -67,59 +69,68 @@ def show_module_health_all(mode):
 def show_module_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
     chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
-
-    key_pattern = '*' if not module_name else '|' + module_name
-
-    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, DPU_STATE + key_pattern)
+    key = 'DPU_STATE|'
+    suffix = '*' if not module_name or module_name == 'all' else module_name
+    key = key + suffix
+    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
     if not keys:
-        print('Key {} not found in {} table'.format(key_pattern, DPU_STATE))
         return
 
     table = []
     for dbkey in natsorted(keys):
         key_list = dbkey.split('|')
         if len(key_list) != 2:  # error data in DB, log it and ignore
-            print('Warn: Invalid Key {} in {} table'.format(dbkey, DPU_STATE))
             continue
 
         state_info = chassis_state_db.get_all(chassis_state_db.CHASSIS_STATE_DB, dbkey)
 
         # Determine operational status
-        dpu_states = [value for key, value in state_info.items() if key.startswith('dpu')]
-        if all(state == "up" for state in dpu_states):
-            oper_status = "Online"
-        elif any(state == "up" for state in dpu_states):
-            oper_status = "Partial Online"
-        else:
-            oper_status = "Offline"
+        dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
 
-        row = [module_name, state_info.get('id', ''), oper_status, "", "", "", ""]
+        midplanedown = False
+        up_cnt = 0
         for key, value in state_info.items():
-            if key.startswith('dpu'):
-                if key.endswith('_time'):
-                    row[5] = value
-                elif key.endswith('_reason'):
-                    row[6] = value
-                if not key.endswith('_state'):
-                    row[0] = ""
-                    row[1] = ""
-                    row[2] = ""
-                    table.append(row)
+            if  key.endswith('_state'):
+                if value.lower() == 'up':
+                    up_cnt = up_cnt + 1
+                if 'midplane' in key and value.lower() == 'down':
+                    midplanedown = True
+
+        if midplanedown:
+            oper_status = "Offline"
+        elif up_cnt == 3:
+            oper_status = "Online"
+        else:
+            oper_status = "Partial Online"
+
+        for dpustates in range(3):
+            if dpustates == 0:
+                row = [key_list[1], state_info.get('id', ''), oper_status, "", "", "", ""]
             else:
-                state_detail = key
-                row[3] = state_detail
-                row[4] = value
-        table.append(row)
+                row = [ "", "", "", "", "", "", ""]
+            for key, value in state_info.items():
+                if dpustates == 0 and 'midplane' in key:
+                    populate_row(row, key, value, table)
+                elif dpustates == 1 and 'control' in key:
+                    populate_row(row, key, value, table)
+                elif dpustates == 2 and 'data' in key:
+                    populate_row(row, key, value, table)
 
     headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
     click.echo(tabulate(table, headers=headers))
 
-def show_module_state_all():
-    _, chassis, _ = get_system_health_status()
-    for index, mod in enumerate(chassis._module_list):
-        module_name = mod.get_name()
-        if "DPU" in module_name:
-            show_module_state(module_name)
+def populate_row(row, key, value, table):
+        if key.endswith('_state'):
+            row[3] = key
+            row[4] = value
+            if "up" in row[4]:
+                row[6] = ""
+            table.append(row)
+        elif key.endswith('_time'):
+            row[5] = value
+        elif key.endswith('_reason'):
+            if not "up" in row[4]:
+                row[6] = value
 
 def display_system_health_summary(stat, led):
     click.echo("System status summary\n\n  System status LED  " + led)
@@ -247,12 +258,7 @@ def monitor_list(module_name):
 @click.argument('module_name', required=False)
 def dpu(module_name):
     """Show system-health dpu information"""
-    if module_name.startswith("DPU"):
-        show_module_state(module_name)
-    elif module_name == "all":
-        show_module_state_all()
-    else:
-        click.echo("Valid module-names are DPU0, DPU1, ...")
+    show_module_state(module_name)
 
 @system_health.group('sysready-status',invoke_without_command=True)
 @click.pass_context
