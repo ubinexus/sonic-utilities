@@ -829,7 +829,7 @@ class TestVlan(object):
            mock.Mock(side_effect=JsonPatchConflict))
     def test_config_vlan_add_member_yang_validation(self):
        
-        vlan.ADHOC_VALIDATION = False
+        vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
@@ -838,21 +838,16 @@ class TestVlan(object):
         print(result.exit_code)
         assert "Invalid ConfigDB. Error" in result.output
 
-
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
-    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Vlan Data"))
     def test_config_vlan_del_member_yang_validation(self):
         vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
-
-        runner = CliRunner()
-        db = Db()
-        obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["1000", "Ethernet1"], obj=obj)
+                               ["4096", "Ethernet1"], obj=obj)
         print(result.exit_code)
         assert "Invalid ConfigDB. Error" in result.output
 
