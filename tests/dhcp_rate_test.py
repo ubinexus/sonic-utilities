@@ -6,8 +6,6 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
-from importlib import reload
-import utilities_common.bgp_util as bgp_util
 
 
 test_config_dhcp_rate_add_del_output = """\
