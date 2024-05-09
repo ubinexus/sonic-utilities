@@ -2,15 +2,12 @@ import os
 import traceback
 import pytest
 from unittest import mock
-from mock import patch
 from click.testing import CliRunner
 
 import config.main as config
-import config.vlan as vlan
 
 import show.main as show
 from utilities_common.db import Db
-from jsonpatch import JsonPatchConflict
 
 
 from importlib import reload
