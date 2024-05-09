@@ -9,6 +9,7 @@ from utilities_common.db import Db
 from importlib import reload
 import utilities_common.bgp_util as bgp_util
 
+
 test_config_dhcp_rate_add_del_output = """\
 Interface      DHCP Mitigation Rate
 -----------  ----------------------
