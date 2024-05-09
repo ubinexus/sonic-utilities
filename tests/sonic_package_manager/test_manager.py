@@ -354,10 +354,10 @@ def test_manager_migration(package_manager, fake_db_for_migration):
         call('test-package-3=1.6.0'),
         # test-package-4 was not present in DB at all, but it is present and installed in
         # fake_db_for_migration, thus asserting that it is going to be installed.
-        call('test-package-4=1.5.0'),
+        call(None, 'Azure/docker-test-4:1.5.0', name='test-package-4'),
         # test-package-5 1.5.0 was installed in fake_db_for_migration but the default
         # in current db is 1.9.0, assert that migration will install the newer version.
-        call('test-package-5=1.9.0'),
+        call(None, 'Azure/docker-test-5:1.9.0', name='test-package-5'),
         # test-package-6 2.0.0 was installed in fake_db_for_migration but the default
         # in current db is 1.5.0, assert that migration will install the newer version.
         call('test-package-6=2.0.0')],
@@ -385,12 +385,12 @@ def mock_get_docker_client(dockerd_sock):
     return DockerClient(dockerd_sock)
 
 
-#def test_manager_migration_dockerd(package_manager, fake_db_for_migration, mock_docker_api):
-    #package_manager.install = Mock()
-    #package_manager.get_docker_client = Mock(side_effect=mock_get_docker_client)
-    #package_manager.migrate_packages(fake_db_for_migration, '/var/run/docker.sock')
-    #package_manager.get_docker_client.assert_has_calls([
-        #call('/var/run/docker.sock')], any_order=True)
+def test_manager_migration_dockerd(package_manager, fake_db_for_migration, mock_docker_api):
+    package_manager.install = Mock()
+    package_manager.get_docker_client = Mock(side_effect=mock_get_docker_client)
+    package_manager.migrate_packages(fake_db_for_migration, '/var/run/docker.sock')
+    package_manager.get_docker_client.assert_has_calls([
+        call('/var/run/docker.sock')], any_order=True)
 
 
 def test_create_package_manifest_default_manifest(package_manager):
@@ -478,29 +478,18 @@ def test_manifests_update_command(package_manager):
         mock_echo.assert_called_with("Manifest 'test_manifest' updated successfully.")
 
 
-def test_check_manifests_directory_existence(package_manager):
-    with patch('click.echo') as mock_echo, \
-         patch('os.path.exists') as mock_exists:
-
-        mock_exists.return_value = False
-        result = package_manager.check_manifests_directory_existence()
-        mock_echo.assert_called_with("Manifests files directory empty")
-        assert result == False
 
 def test_delete_package_manifest(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('click.prompt') as mock_prompt, \
          patch('os.path.exists') as mock_exists, \
-         patch('os.remove') as mock_remove, \
-         patch.object(package_manager, 'check_manifests_directory_existence') as mock_check_manifests:
-
+         patch('os.remove') as mock_remove:
 
         # Test case 1: deleting default manifest
         package_manager.delete_package_manifest("default_manifest")
         mock_echo.assert_called_with("Default Manifest deletion is not allowed")
         mock_echo.reset_mock()  # Reset the mock for the next test case
 
-        mock_check_manifests.return_value = True
         # Test case 2: manifest file doesn't exist
         mock_exists.return_value = True
         mock_exists.side_effect = lambda x: False if x.endswith("test_manifest") else True
@@ -526,7 +515,6 @@ def test_show_package_manifest(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('os.path.exists') as mock_exists, \
          patch('builtins.open', unittest.mock.mock_open()) as mock_open, \
-         patch.object(package_manager, 'check_manifests_directory_existence') as mock_check_manifests, \
          patch('json.load') as mock_json_load:
 
         mock_exists.return_value = True
@@ -543,18 +531,13 @@ def test_list_package_manifest(package_manager):
          patch('os.path.exists') as mock_exists, \
          patch('os.listdir') as mock_listdir:
 
-        # Test case 1: manifest directory doesn't exist
-        mock_exists.return_value = False
-        package_manager.list_package_manifest()
-        mock_echo.assert_called_with("Manifests files directory empty")
-
-        # Test case 2: no custom local manifest files found
+        # Test case 1: no custom local manifest files found
         mock_exists.return_value = True
         mock_listdir.return_value = []
         package_manager.list_package_manifest()
         mock_echo.assert_called_with("No custom local manifest files found.")
 
-        # Test case 3: custom local manifest files found
+        # Test case 2: custom local manifest files found
         mock_listdir.return_value = ["manifest1.json", "manifest2.json"]
         package_manager.list_package_manifest()
         mock_echo.assert_any_call("Custom Local Manifest files:")

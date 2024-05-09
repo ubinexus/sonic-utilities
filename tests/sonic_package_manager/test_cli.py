@@ -113,7 +113,7 @@ def test_manifests_update_command_error_handling(package_manager):
          patch('os.geteuid', return_value=0):
         
         result = runner.invoke(main.manifests.commands['update'], ['non-existent-manifest', '--from-json', 'fake_json_path'], obj=package_manager)
-        assert 'Manifests files directory empty\n' in result.output
+        assert 'Local Manifest file for non-existent-manifest does not exists to update\n' in result.output
         assert result.exit_code == 0
 
 def test_manifests_delete_command_deletion_cancelled(package_manager):
@@ -140,7 +140,7 @@ def test_manifests_list_command_no_manifests(package_manager):
         result = runner.invoke(main.manifests.commands['list'], [], obj=package_manager)
 
         # Check if the appropriate message is present in the result output
-        assert 'Manifests files directory empty\n' in result.output
+        assert 'No custom local manifest files found.\n' in result.output
 
 def test_manifests_show_command_file_not_found(package_manager):
     runner = CliRunner()
@@ -151,7 +151,7 @@ def test_manifests_show_command_file_not_found(package_manager):
         result = runner.invoke(main.manifests.commands['show'], ['nonexistent-manifest'], obj=package_manager)
 
         # Check if the appropriate error message is present in the result output
-        assert 'Manifests files directory empty\n' in result.output
+        assert 'No custom local manifest files found.\n' in result.output
 
 def test_manifests_command():
     """ Test case for "sonic-package-manager manifests" """

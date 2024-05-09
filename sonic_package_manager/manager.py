@@ -73,7 +73,7 @@ import getpass
 import paramiko
 import urllib.parse
 from scp import SCPClient
-from sonic_package_manager.manifest import Manifest, DEFAULT_MANIFEST, MANIFESTS_LOCATION, DEFAULT_MANIFEST_FILE
+from sonic_package_manager.manifest import Manifest, MANIFESTS_LOCATION, DEFAULT_MANIFEST_FILE
 LOCAL_JSON="/tmp/local_json"
 
 @contextlib.contextmanager
@@ -813,14 +813,16 @@ class PackageManager:
                 package_source = self.get_package_source(package_ref=new_package_ref)
                 package = package_source.get_package()
                 new_package_default_version = package.manifest['package']['version']
-                if old_package.version >= new_package_default_version:
+                if old_package.version > new_package_default_version:
                     log.info(f'{old_package.name} package version is lower '
-                             f'then or equal to the default in new image: '
-                             f'{old_package.version} >= {new_package_default_version}')
+                             f'then the default in new image: '
+                             f'{old_package.version} > {new_package_default_version}')
                     new_package.version = old_package.version
                     migrate_package(old_package, new_package)
                 else:
-                    self.install(f'{new_package.name}={new_package_default_version}')
+                    #self.install(f'{new_package.name}={new_package_default_version}')
+                    repo_tag_formed="{}:{}".format(new_package.repository, new_package.default_reference)
+                    self.install(None,repo_tag_formed,name=new_package.name)
             else:
                 # No default version and package is not installed.
                 # Migrate old package same version.
@@ -870,7 +872,7 @@ class PackageManager:
 
         if package_expression:
             ref = parse_reference_expression(package_expression)
-            return self.get_package_source(package_ref=ref)
+            return self.get_package_source(package_ref=ref, name=name)
         elif repository_reference:
             repo_ref = utils.DockerReference.parse(repository_reference)
             repository = repo_ref['name']
@@ -1189,12 +1191,6 @@ class PackageManager:
             click.echo("Error: Manifest file '{}' already exists.".format(name))
             return
 
-        #Creation of default  manifest file in case the file does not exist
-        if not os.path.exists(MANIFESTS_LOCATION):
-            os.mkdir(MANIFESTS_LOCATION)
-        if not os.path.exists(DEFAULT_MANIFEST_FILE):
-            with open(DEFAULT_MANIFEST_FILE, 'w') as file:
-                json.dump(DEFAULT_MANIFEST, file, indent=4)
 
         if from_json:
             ret = self.download_file(from_json, LOCAL_JSON)
@@ -1217,19 +1213,12 @@ class PackageManager:
                 json.dump(data, file, indent=4)
         click.echo(f"Manifest '{name}' created successfully.")
 
-    def check_manifests_directory_existence(self):
-        if not os.path.exists(MANIFESTS_LOCATION):
-            click.echo("Manifests files directory empty")
-            return False
 
     def update_package_manifest(self, name, from_json):
         if name == "default_manifest":
             click.echo("Default Manifest updation is not allowed")
             return
 
-        ret = self.check_manifests_directory_existence()
-        if ret is False:
-            return
         original_file = os.path.join(MANIFESTS_LOCATION, name)
         if not os.path.exists(original_file):
             click.echo(f'Local Manifest file for {name} does not exists to update')
@@ -1267,11 +1256,8 @@ class PackageManager:
         if name == "default_manifest":
             click.echo("Default Manifest deletion is not allowed")
             return
-        ret = self.check_manifests_directory_existence()
-        if ret is False:
-            return
         # Check if the manifest file exists
-        mfile_name = "{}{}".format(MANIFESTS_LOCATION, name)
+        mfile_name = "{}/{}".format(MANIFESTS_LOCATION, name)
         if not os.path.exists(mfile_name):
             click.echo("Error: Manifest file '{}' not found.".format(name))
             return
@@ -1285,10 +1271,7 @@ class PackageManager:
             return
 
     def show_package_manifest(self, name):
-        ret = self.check_manifests_directory_existence()
-        if ret is False:
-            return
-        mfile_name = "{}{}".format(MANIFESTS_LOCATION, name)
+        mfile_name = "{}/{}".format(MANIFESTS_LOCATION, name)
         edit_file_name = "{}.edit".format(mfile_name)
         if os.path.exists(edit_file_name):
             mfile_name = edit_file_name
@@ -1298,9 +1281,6 @@ class PackageManager:
             click.echo(json.dumps(data, indent=4))
 
     def list_package_manifest(self):
-        ret = self.check_manifests_directory_existence()
-        if ret is False:
-            return
         # Get all files in the manifest location
         manifest_files = os.listdir(MANIFESTS_LOCATION)
         if not manifest_files:

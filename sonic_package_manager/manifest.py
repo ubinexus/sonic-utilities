@@ -10,73 +10,12 @@ from sonic_package_manager.constraint import (
 )
 from sonic_package_manager.errors import ManifestError
 from sonic_package_manager.version import Version
-
+from sonic_package_manager.database import BASE_LIBRARY_PATH
 import os
 import json
 
-DEFAULT_MANIFEST = {
-    "version": "1.0.0",
-    "package": {
-        "version": "1.0.0",
-        "name": "default_manifest",
-        "description": "",
-        "base-os": {},
-        "depends": [],
-        "breaks": [],
-        "init-cfg": {},
-        "changelog": {},
-        "debug-dump": ""
-    },
-    "service": {
-        "name": "default_manifest",
-        "requires": [],
-        "requisite": [],
-        "wanted-by": [],
-        "after": [],
-        "before": [],
-        "dependent": [],
-        "dependent-of": [],
-        "post-start-action": "",
-        "pre-shutdown-action": "",
-        "asic-service": False,
-        "host-service": True,
-        "delayed": False,
-        "check_up_status": False,
-        "warm-shutdown": {
-            "after": [],
-            "before": []
-        },
-        "fast-shutdown": {
-            "after": [],
-            "before": []
-        },
-        "syslog": {
-            "support-rate-limit": False
-        }
-    },
-    "container": {
-        "privileged": False,
-        "entrypoint": "",
-        "volumes": [],
-        "mounts": [],
-        "environment": {},
-        "tmpfs": []
-    },
-    "processes": [],
-    "cli": {
-        "mandatory": False,
-        "show": [],
-        "config": [],
-        "clear": [],
-        "auto-generate-show": False,
-        "auto-generate-config": False,
-        "auto-generate-show-source-yang-modules": [],
-        "auto-generate-config-source-yang-modules": []
-    }
-}
-MANIFESTS_LOCATION = "/var/lib/sonic-package-manager/manifests/"
-DEFAULT_MANIFEST_NAME = "default_manifest"
-DEFAULT_MANIFEST_FILE = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
+MANIFESTS_LOCATION = os.path.join(BASE_LIBRARY_PATH, "manifests")
+DEFAULT_MANIFEST_FILE = os.path.join(BASE_LIBRARY_PATH, "default_manifest")
 
 class ManifestSchema:
     """ ManifestSchema class describes and provides marshalling
@@ -318,12 +257,6 @@ class Manifest(dict):
 
     def get_manifest_from_local_file(name):
 
-        if not os.path.exists(MANIFESTS_LOCATION):
-            os.mkdir(MANIFESTS_LOCATION)
-        if not os.path.exists(DEFAULT_MANIFEST_FILE):
-            with open(DEFAULT_MANIFEST_FILE, 'w') as file:
-                json.dump(DEFAULT_MANIFEST, file, indent=4)
-        
         if '.edit' in name:
             actual_name = name.split('.edit')[0]
         else:
@@ -351,9 +284,9 @@ class Manifest(dict):
                 'azure': {
                     'sonic': {
                         'manifest': json_str
-                            }
                         }
                     }
                 }
+            }
         return desired_dict
 

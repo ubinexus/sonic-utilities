@@ -9,7 +9,7 @@ import pytest
 
 from sonic_package_manager.database import PackageEntry
 from sonic_package_manager.errors import MetadataError
-from sonic_package_manager.manifest import Manifest, MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME
+from sonic_package_manager.manifest import Manifest, MANIFESTS_LOCATION, DEFAULT_MANIFEST_FILE
 from sonic_package_manager.metadata import MetadataResolver
 from sonic_package_manager.version import Version
 
@@ -157,8 +157,7 @@ def test_metadata_resolver_local_with_name_and_use_edit(mock_registry_resolver, 
         mock_json_loads.side_effect = ValueError  # Simulate ValueError when parsing JSON
 
         # Create the default manifest file
-        default_manifest_path = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
-        sonic_fs.create_file(default_manifest_path)
+        sonic_fs.create_file(DEFAULT_MANIFEST_FILE)
         sonic_fs.create_file(os.path.join(MANIFESTS_LOCATION, "test_manifest.edit"))
 
         metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
@@ -176,14 +175,13 @@ def test_metadata_resolver_local_with_name_and_default_manifest(mock_registry_re
         mock_json_loads.side_effect = ValueError  # Simulate ValueError when parsing JSON
 
         # Create the default manifest file
-        default_manifest_path = os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME)
-        sonic_fs.create_file(default_manifest_path)
+        sonic_fs.create_file(DEFAULT_MANIFEST_FILE)
 
         metadata_resolver = MetadataResolver(mock_docker_api, mock_registry_resolver)
         with pytest.raises(FileNotFoundError):
             metadata = metadata_resolver.from_local('image', use_local_manifest=False, name='test_manifest', use_edit=True)
 
-    mock_open.assert_called_with(os.path.join(MANIFESTS_LOCATION, DEFAULT_MANIFEST_NAME), 'r')
+    mock_open.assert_called_with(DEFAULT_MANIFEST_FILE, 'r')
     mock_json_loads.assert_not_called()  # Ensure json.loads is not called
 
 
