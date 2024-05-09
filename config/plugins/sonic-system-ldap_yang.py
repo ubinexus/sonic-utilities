@@ -147,7 +147,6 @@ def LDAP_SERVER():
     nargs=1,
     required=True,
 )
-
 @click.option(
     "--priority",
     help="Server priority",
@@ -169,13 +168,11 @@ def LDAP_SERVER_add(db, hostname, priority):
 
 
 @LDAP_SERVER.command(name="update")
-
 @click.argument(
     "hostname",
     nargs=1,
     required=True,
 )
-
 @click.option(
     "--priority",
     help="Server priority",
@@ -197,7 +194,6 @@ def LDAP_SERVER_update(db, hostname, priority):
 
 
 @LDAP_SERVER.command(name="delete")
-
 @click.argument(
     "hostname",
     nargs=1,
@@ -223,8 +219,7 @@ def LDAP():
     pass
 
 
-@LDAP.group(name="global",
-                        cls=clicommon.AliasedGroup)
+@LDAP.group(name="global", cls=clicommon.AliasedGroup)
 @clicommon.pass_db
 def LDAP_global(db):
     """  """
@@ -233,7 +228,6 @@ def LDAP_global(db):
 
 
 @LDAP_global.command(name="bind-dn")
-
 @click.argument(
     "bind-dn",
     nargs=1,
@@ -255,7 +249,6 @@ def LDAP_global_bind_dn(db, bind_dn):
 
 
 @LDAP_global.command(name="bind-password")
-
 @click.argument(
     "bind-password",
     nargs=1,
@@ -277,7 +270,6 @@ def LDAP_global_bind_password(db, bind_password):
 
 
 @LDAP_global.command(name="bind-timeout")
-
 @click.argument(
     "bind-timeout",
     nargs=1,
@@ -299,7 +291,6 @@ def LDAP_global_bind_timeout(db, bind_timeout):
 
 
 @LDAP_global.command(name="version")
-
 @click.argument(
     "version",
     nargs=1,
@@ -321,7 +312,6 @@ def LDAP_global_version(db, version):
 
 
 @LDAP_global.command(name="base-dn")
-
 @click.argument(
     "base-dn",
     nargs=1,
@@ -343,7 +333,6 @@ def LDAP_global_base_dn(db, base_dn):
 
 
 @LDAP_global.command(name="port")
-
 @click.argument(
     "port",
     nargs=1,
@@ -365,7 +354,6 @@ def LDAP_global_port(db, port):
 
 
 @LDAP_global.command(name="timeout")
-
 @click.argument(
     "timeout",
     nargs=1,

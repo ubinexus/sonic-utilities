@@ -20,12 +20,12 @@ INVALID_VALUE = 'INVALID'
 EXP_GOOD_FLOW = 1
 EXP_BAD_FLOW = 0
 
+
 class TestLdap:
     @classmethod
     def setup_class(cls):
         logger.info("SETUP")
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
-
 
     @classmethod
     def teardown_class(cls):
@@ -41,10 +41,10 @@ class TestLdap:
         logger.info("\n" + result.output)
         logger.info(result.exit_code)
 
-        if expected: # good flow expected (default)
+        if expected:  # good flow expected (default)
             assert result.exit_code == SUCCESS
             assert result.output == output
-        else: # bad flow expected
+        else:  # bad flow expected
             assert result.exit_code == ERROR
 
     def verify_ldap_server_output(self, db, runner, output, expected=EXP_GOOD_FLOW):
@@ -54,10 +54,10 @@ class TestLdap:
         logger.info("\n" + result.output)
         logger.info(result.exit_code)
 
-        if expected: # good flow expected (default)
+        if expected:  # good flow expected (default)
             assert result.exit_code == SUCCESS
             assert result.output == output
-        else: # bad flow expected
+        else:  # bad flow expected
             assert result.exit_code == ERROR
 
     def ldap_global_set_policy(self, runner, db, attr, value, expected=EXP_GOOD_FLOW):
@@ -65,11 +65,11 @@ class TestLdap:
             config.config.commands["ldap"].commands["global"].commands[attr],
             [value], obj=db
         )
-        if expected: # good flow expected (default)
+        if expected:  # good flow expected (default)
             logger.debug("\n" + result.output)
             logger.debug(result.exit_code)
             assert result.exit_code == SUCCESS
-        else: # bad flow expected
+        else:  # bad flow expected
             assert result.exit_code == ERROR
 
     def ldap_server_set_policy(self, runner, db, value, expected=EXP_GOOD_FLOW):
@@ -78,11 +78,11 @@ class TestLdap:
             value, obj=db
         )
 
-        if expected: # good flow expected (default)
+        if expected:  # good flow expected (default)
             logger.debug("\n" + result.output)
             logger.debug(result.exit_code)
             assert result.exit_code == SUCCESS
-        else: # bad flow expected
+        else:  # bad flow expected
             assert result.exit_code == ERROR
 
     def ldap_server_del_policy(self, runner, db, value, expected=EXP_GOOD_FLOW):
@@ -90,14 +90,14 @@ class TestLdap:
             config.config.commands["ldap-server"].commands["delete"],
             value, obj=db
         )
-        if expected: # good flow expected (default)
+        if expected:  # good flow expected (default)
             logger.debug("\n" + result.output)
             logger.debug(result.exit_code)
             assert result.exit_code == SUCCESS
-        else: # bad flow expected
+        else:  # bad flow expected
             assert result.exit_code == ERROR
 
-    ######### LDAP #########
+    # LDAP
 
     def test_ldap_global_feature_enabled(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db.json')
@@ -124,5 +124,3 @@ class TestLdap:
 
         self.ldap_server_del_policy(runner, db, ["10.0.0.1"])
         self.verify_ldap_server_output(db, runner, assert_show_output.show_ldap_server_deleted)
-
-
