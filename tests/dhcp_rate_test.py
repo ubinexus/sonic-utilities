@@ -6,6 +6,7 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from importlib import reload
 import utilities_common.bgp_util as bgp_util
 
 test_config_dhcp_rate_add_del_output = """\
@@ -53,9 +54,14 @@ class TestDHCPRate(object):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        # ensure that we are working with single asic config
         cls._old_run_bgp_command = bgp_util.run_bgp_command
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=cls.mock_run_bgp_command())
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        reload(mock_single_asic)
+        dbconnector.load_namespace_config()
         print("SETUP")
 
     def mock_run_bgp_command():
