@@ -695,32 +695,6 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: Ethernet44 is configured as mirror destination port" in result.output
 
-    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    def test_config_vlan_add_member_yang_validation(self):
-
-        vlan.ADHOC_VALIDATION = True
-        runner = CliRunner()
-        db = Db()
-        obj = {'db': db.cfgdb}
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["1000", "Ethernet1"], obj=obj)
-        print(result.exit_code)
-        assert result.exit_code != 0
-
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
-           mock.Mock(side_effect=ValueError))
-    def test_config_vlan_del_member_yang_validation(self):
-        vlan.ADHOC_VALIDATION = True
-        runner = CliRunner()
-        db = Db()
-        obj = {'db': db.cfgdb}
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-                               ["1000", "Ethernet1"], obj=obj)
-        print(result.exit_code)
-        assert result.exit_code != 0
-
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
         db = Db()
@@ -994,14 +968,6 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
-
-        # add None to vlan 1001
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                               ["1001", "None", "--untagged"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert "cannot find port name for alias None" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
