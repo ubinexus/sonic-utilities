@@ -71,6 +71,7 @@ from . import dns
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
+BMP_STATE_DB = 'STATE_DB'
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -2100,14 +2101,14 @@ def bmp_neighbor_table(db):
                    "Local_Address", "Local_ASN", "Local_Port", "Advertised_Capabilities", "Received_Capabilities"]
 
     # BGP_NEIGHBOR_TABLE|10.0.1.2
-    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_NEIGHBOR_TABLE|*")
+    bmp_keys = db.db.keys(BMP_STATE_DB, "BGP_NEIGHBOR_TABLE|*")
 
     click.echo("Total number of bmp neighbors: {}".format(0 if bmp_keys is None else len(bmp_keys)))
 
     bmp_body = []
     if bmp_keys is not None:
         for key in bmp_keys:
-            values = db.db.get_all(db.db.STATE_DB, key)
+            values = db.db.get_all(BMP_STATE_DB, key)
             bmp_body.append([
                 values["peer_addr"],  # Neighbor_Address
                 values["peer_addr"],
@@ -2132,9 +2133,9 @@ def bmp_rib_out_table(db):
     bmp_headers = ["Neighbor_Address", "NLRI", "Origin", "AS_Path", "Origin_AS", "Next_Hop", "Local_Pref",
                    "Originator_ID",  "Community_List", "Ext_Community_List"]
 
-    # BGP_RIB_OUT_TABLE|192.181.168.0/25|BGP_NEIGHBOR|10.0.0.59
-    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_RIB_OUT_TABLE|*")
-    delimiter = db.db.get_db_separator(db.db.STATE_DB)
+    # BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59
+    bmp_keys = db.db.keys(BMP_STATE_DB, "BGP_RIB_OUT_TABLE|*")
+    delimiter = db.db.get_db_separator(BMP_STATE_DB)
 
     click.echo("Total number of bmp bgp-rib-out-table: {}".format(0 if bmp_keys is None else len(bmp_keys)))
 
@@ -2142,9 +2143,11 @@ def bmp_rib_out_table(db):
     if bmp_keys is not None:
         for key in bmp_keys:
             key_values = key.split(delimiter)
-            values = db.db.get_all(db.db.STATE_DB, key)
+            if len(key_values) < 3:
+                continue
+            values = db.db.get_all(BMP_STATE_DB, key)
             bmp_body.append([
-                key_values[3],  # Neighbor_Address
+                key_values[2],  # Neighbor_Address
                 key_values[1],  # NLRI
                 values["origin"],
                 values["as_path"],
@@ -2167,9 +2170,9 @@ def bmp_rib_in_table(db):
     bmp_headers = ["Neighbor_Address", "NLRI", "Origin", "AS_Path", "Origin_AS", "Next_Hop", "Local_Pref",
                    "Originator_ID",  "Community_List", "Ext_Community_List"]
 
-    # BGP_RIB_IN_TABLE|20c0:ef50::/64|BGP_NEIGHBOR|10.0.0.57
-    bmp_keys = db.db.keys(db.db.STATE_DB, "BGP_RIB_IN_TABLE|*")
-    delimiter = db.db.get_db_separator(db.db.STATE_DB)
+    # BGP_RIB_IN_TABLE|20c0:ef50::/64|10.0.0.57
+    bmp_keys = db.db.keys(BMP_STATE_DB, "BGP_RIB_IN_TABLE|*")
+    delimiter = db.db.get_db_separator(BMP_STATE_DB)
 
     click.echo("Total number of bmp bgp-rib-in-table: {}".format(0 if bmp_keys is None else len(bmp_keys)))
 
@@ -2177,9 +2180,11 @@ def bmp_rib_in_table(db):
     if bmp_keys is not None:
         for key in bmp_keys:
             key_values = key.split(delimiter)
-            values = db.db.get_all(db.db.STATE_DB, key)
+            if len(key_values) < 3:
+                continue
+            values = db.db.get_all(BMP_STATE_DB, key)
             bmp_body.append([
-                key_values[3],  # Neighbor_Address
+                key_values[2],  # Neighbor_Address
                 key_values[1],  # NLRI
                 values["origin"],
                 values["as_path"],
