@@ -4,7 +4,6 @@ import imp
 from click.testing import CliRunner
 
 import config.main as config
-import show.main as show
 from utilities_common.db import Db
 
 
