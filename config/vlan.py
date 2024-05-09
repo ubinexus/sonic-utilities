@@ -1,7 +1,6 @@
 import click
 import utilities_common.cli as clicommon
 import utilities_common.dhcp_relay_util as dhcp_relay_util
-from swsscommon.swsscommon import SonicV2Connector
 
 from jsonpatch import JsonPatchConflict
 from time import sleep
@@ -240,6 +239,7 @@ def config_proxy_arp(db, vid, mode):
 def vlan_member():
     pass
 
+
 @vlan_member.command('add')
 @click.argument('vid', metavar='<vid>', required=True)
 @click.argument('port', metavar='port', required=True)
@@ -273,6 +273,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 alias = port
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
+                if port is None:
+                    ctx.fail("cannot find port name for alias {}".format(alias))
             if clicommon.is_port_mirror_dst_port(db.cfgdb, port):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is configured as mirror destination port".format(port))
             if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):  # TODO: MISSING CONSTRAINT IN YANG MODEL
@@ -348,8 +350,8 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
                 alias = port
                 iface_alias_converter = clicommon.InterfaceAliasConverter(db)
                 port = iface_alias_converter.alias_to_name(alias)
-            if port is None:
-                ctx.fail("{} does not exist".format(alias))
+                if port is None:
+                    ctx.fail("cannot find port name for alias {}".format(alias))
 
             if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):  # TODO: MISSING CONSTRAINT IN YANG MODEL
                 ctx.fail("{} is not a member of {}".format(port, vlan))

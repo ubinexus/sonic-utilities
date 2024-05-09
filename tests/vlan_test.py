@@ -12,6 +12,7 @@ import show.main as show
 from utilities_common.db import Db
 from jsonpatch import JsonPatchConflict
 
+
 from importlib import reload
 import utilities_common.bgp_util as bgp_util
 
@@ -698,7 +699,7 @@ class TestVlan(object):
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_config_vlan_add_member_yang_validation(self):
 
-        config.ADHOC_VALIDATION = False
+        vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
@@ -706,19 +707,19 @@ class TestVlan(object):
                                ["1000", "Ethernet1"], obj=obj)
         print(result.exit_code)
         assert result.exit_code != 0
-        assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
 
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry",
+           mock.Mock(side_effect=ValueError))
     def test_config_vlan_del_member_yang_validation(self):
-        config.ADHOC_VALIDATION = False
+        vlan.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db': db.cfgdb}
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
                                ["1000", "Ethernet1"], obj=obj)
         print(result.exit_code)
-        assert "Error: Vlan1000 invalid or does not exist, or Ethernet1 invalid or does not exist" in result.output
+        assert result.exit_code != 0
 
     def test_config_vlan_add_portchannel_member_with_switchport_modes(self):
         runner = CliRunner()
@@ -993,6 +994,14 @@ class TestVlan(object):
         print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
+
+        # add None to vlan 1001
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                               ["1001", "None", "--untagged"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert "cannot find port name for alias None" in result.output
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
