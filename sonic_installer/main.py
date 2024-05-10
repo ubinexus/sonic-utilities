@@ -375,7 +375,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             docker_started = True
             run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, TMP_DIR, packages_file)])
             run_command_or_raise(["mkdir", "-p", custom_manifests_path])
-            run_command_or_raise(["cp", "-arf", custom_manifests_path , new_image_package_directory_path])
+            run_command_or_raise(["cp", "-arf", custom_manifests_path, new_image_package_directory_path])
             run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
             run_command_or_raise(["mount", "--bind",
                                 os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),

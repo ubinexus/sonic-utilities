@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 import json
 import tarfile
 from typing import Dict, List, Optional
-import os
 from sonic_package_manager import utils
 from sonic_package_manager.errors import MetadataError
 from sonic_package_manager.logger import log
@@ -64,7 +63,8 @@ class MetadataResolver:
         self.docker = docker
         self.registry_resolver = registry_resolver
 
-    def from_local(self, image: str, use_local_manifest: bool = False, name: Optional[str] = None, use_edit: bool = False) -> Metadata:
+    def from_local(self, image: str, use_local_manifest: bool = False,
+                   name: Optional[str] = None, use_edit: bool = False) -> Metadata:
         """ Reads manifest from locally installed docker image.
 
         Args:
@@ -88,7 +88,7 @@ class MetadataResolver:
             if name:
                 labels = Manifest.get_manifest_from_local_file(name)
                 if labels is None:
-                    raise MetadataError('No manifest found in image labels')    
+                    raise MetadataError('No manifest found in image labels')
             else:
                 raise MetadataError('No manifest found in image labels')
 
@@ -125,7 +125,7 @@ class MetadataResolver:
                 raise MetadataError('The name(custom) option is required as there is no metadata found in image labels')
             labels = Manifest.get_manifest_from_local_file(name)
         if labels is None:
-            raise MetadataError('No manifest found in image labels')    
+            raise MetadataError('No manifest found in image labels')
         return self.from_labels(labels)
 
     def from_tarball(self, image_path: str, use_local_manifest: bool = False, name: Optional[str] = None) -> Metadata:
@@ -149,10 +149,11 @@ class MetadataResolver:
             labels = image_config['config'].get('Labels')
             if labels is None or len(labels) == 0 or 'com.azure.sonic.manifest' not in labels:
                 if name is None:
-                    raise MetadataError('The name(custom) option is required as there is no metadata found in image labels')
+                    raise MetadataError('The name(custom) option is \
+                            required as there is no metadata found in image labels')
                 labels = Manifest.get_manifest_from_local_file(name)
                 if labels is None:
-                    raise MetadataError('No manifest found in image labels')    
+                    raise MetadataError('No manifest found in image labels')
             return self.from_labels(labels)
 
     @classmethod
@@ -202,5 +203,5 @@ class MetadataResolver:
             log.debug(f"Found YANG modules: {labels_yang_modules.keys()}")
         else:
             log.debug("No YANG modules found")
-    
+
         return Metadata(Manifest.marshal(manifest_dict), components, yang_modules)

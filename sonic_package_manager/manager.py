@@ -67,14 +67,13 @@ from sonic_package_manager.version import (
 )
 import click
 import json
-import os
 import requests
 import getpass
 import paramiko
 import urllib.parse
 from scp import SCPClient
 from sonic_package_manager.manifest import Manifest, MANIFESTS_LOCATION, DEFAULT_MANIFEST_FILE
-LOCAL_JSON="/tmp/local_json"
+LOCAL_JSON = "/tmp/local_json"
 
 @contextlib.contextmanager
 def failure_ignore(ignore: bool):
@@ -458,9 +457,9 @@ class PackageManager:
         self.database.commit()
 
     @under_lock
-    def update(self, 
-                name: str,
-                **kwargs):
+    def update(self,
+               name: str,
+               **kwargs):
         """ Update SONiC Package referenced by name. The update
         can be forced if force argument is True.
 
@@ -481,7 +480,6 @@ class PackageManager:
             click.echo("Package {} is not installed".format(name))
             return
 
-    
     def remove_unused_docker_image(self, package):
         image_id_used = any(entry.image_id == package.image_id for entry in self.database if entry.name != package.name)
         if not image_id_used:
@@ -579,7 +577,7 @@ class PackageManager:
         Raises:
             PackageManagerError
         """
-    
+
         if update_only:
             new_package = self.get_installed_package(name, use_edit=True)
         else:
@@ -679,10 +677,10 @@ class PackageManager:
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
                     exits.callback(rollback(self._uninstall_cli_plugin, new_package))
-                
+
                 if old_package.image_id != new_package.image_id:
                     self.remove_unused_docker_image(old_package)
-                
+
                 exits.pop_all()
         except Exception as err:
             raise PackageUpgradeError(f'Failed to upgrade {new_package.name}: {err}')
@@ -697,7 +695,7 @@ class PackageManager:
         if update_only:
             manifest_path = os.path.join(MANIFESTS_LOCATION, name)
             edit_path = os.path.join(MANIFESTS_LOCATION, name + ".edit")
-            os.rename(edit_path,manifest_path)
+            os.rename(edit_path, manifest_path)
 
     @under_lock
     @opt_check
@@ -820,9 +818,9 @@ class PackageManager:
                     new_package.version = old_package.version
                     migrate_package(old_package, new_package)
                 else:
-                    #self.install(f'{new_package.name}={new_package_default_version}')
-                    repo_tag_formed="{}:{}".format(new_package.repository, new_package.default_reference)
-                    self.install(None,repo_tag_formed,name=new_package.name)
+                    # self.install(f'{new_package.name}={new_package_default_version}')
+                    repo_tag_formed = "{}:{}".format(new_package.repository, new_package.default_reference)
+                    self.install(None, repo_tag_formed, name=new_package.name)
             else:
                 # No default version and package is not installed.
                 # Migrate old package same version.
@@ -1108,12 +1106,12 @@ class PackageManager:
         remote_path = parsed_url.path
         supported_protocols = ['http', 'https', 'scp', 'sftp']
 
-        #clear the temporary local file
+        # clear the temporary local file
         if os.path.exists(local_path):
             os.remove(local_path)
 
         if not protocol:
-            #check for local file
+            # check for local file
             if os.path.exists(url):
                 os.rename(url, local_path)
                 return True
@@ -1191,7 +1189,6 @@ class PackageManager:
             click.echo("Error: Manifest file '{}' already exists.".format(name))
             return
 
-
         if from_json:
             ret = self.download_file(from_json, LOCAL_JSON)
             if ret is False:
@@ -1202,17 +1199,16 @@ class PackageManager:
         data = {}
         with open(from_json, 'r') as file:
             data = json.load(file)
-            #Validate with manifest scheme
+            # Validate with manifest scheme
             Manifest.marshal(data)
 
-            #Make sure the 'name' is overwritten into the dict
+            # Make sure the 'name' is overwritten into the dict
             data['package']['name'] = name
             data['service']['name'] = name
 
             with open(mfile_name, 'w') as file:
                 json.dump(data, file, indent=4)
         click.echo(f"Manifest '{name}' created successfully.")
-
 
     def update_package_manifest(self, name, from_json):
         if name == "default_manifest":
@@ -1223,7 +1219,7 @@ class PackageManager:
         if not os.path.exists(original_file):
             click.echo(f'Local Manifest file for {name} does not exists to update')
             return
-        #download json file from remote/local path
+        # download json file from remote/local path
         ret = self.download_file(from_json, LOCAL_JSON)
         if ret is False:
             return
@@ -1232,10 +1228,10 @@ class PackageManager:
         with open(from_json, 'r') as file:
             data = json.load(file)
 
-        #Validate with manifest scheme
+        # Validate with manifest scheme
         Manifest.marshal(data)
 
-        #Make sure the 'name' is overwritten into the dict
+        # Make sure the 'name' is overwritten into the dict
         data['package']['name'] = name
         data['service']['name'] = name
 
@@ -1246,8 +1242,8 @@ class PackageManager:
                 json.dump(data, edit_file, indent=4)
             click.echo(f"Manifest '{name}' updated successfully.")
         else:
-            #If package is not installed,
-            ## update the name file directly
+            # If package is not installed,
+            # update the name file directly
             with open(original_file, 'w') as orig_file:
                 json.dump(data, orig_file, indent=4)
             click.echo(f"Manifest '{name}' updated successfully.")

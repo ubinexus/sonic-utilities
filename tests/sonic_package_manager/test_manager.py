@@ -2,13 +2,12 @@
 
 import re
 import unittest
-from unittest.mock import Mock, call, patch, mock_open, MagicMock
+from unittest.mock import Mock, call, patch, mock_open
 import pytest
 
 import sonic_package_manager
 from sonic_package_manager.errors import *
 from sonic_package_manager.version import Version
-from sonic_package_manager.manifest import Manifest
 import json
 
 @pytest.fixture(autouse=True)
@@ -405,6 +404,7 @@ def test_create_package_manifest_default_manifest(package_manager):
 
     mock_echo.assert_called_once_with("Default Manifest creation is not allowed by user")
 
+
 def test_create_package_manifest_existing_package(package_manager):
     """Test case for creating a manifest with an existing package."""
 
@@ -416,6 +416,7 @@ def test_create_package_manifest_existing_package(package_manager):
 
     mock_echo.assert_called_once_with("Error: A package with the same name test-package is already installed")
 
+
 def test_create_package_manifest_existing_manifest(package_manager):
     """Test case for creating a manifest with an existing manifest file."""
 
@@ -426,12 +427,13 @@ def test_create_package_manifest_existing_manifest(package_manager):
 
     mock_echo.assert_called_once_with("Error: Manifest file 'test-manifest' already exists.")
 
+
 def test_manifests_create_command(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('os.path.exists') as mock_exists, \
-         patch('os.mkdir') as mock_mkdir, \
+         patch('os.mkdir'), \
          patch('builtins.open', new_callable=mock_open()), \
-         patch('json.dump') as mock_json_dump, \
+         patch('json.dump'), \
          patch('json.load') as mock_json_load, \
          patch('sonic_package_manager.manifest.Manifest.marshal') as mock_marshal, \
          patch('sonic_package_manager.manager.PackageManager.is_installed') as mock_is_installed, \
@@ -455,9 +457,9 @@ def test_manifests_create_command(package_manager):
 def test_manifests_update_command(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('os.path.exists') as mock_exists, \
-         patch('os.mkdir') as mock_mkdir, \
-         patch('builtins.open', new_callable=unittest.mock.mock_open) as mock_open, \
-         patch('json.dump') as mock_json_dump, \
+         patch('os.mkdir'), \
+         patch('builtins.open', new_callable=unittest.mock.mock_open), \
+         patch('json.dump'), \
          patch('json.load') as mock_json_load, \
          patch('sonic_package_manager.manifest.Manifest.marshal') as mock_marshal, \
          patch('sonic_package_manager.manager.PackageManager.is_installed') as mock_is_installed, \
@@ -478,12 +480,11 @@ def test_manifests_update_command(package_manager):
         mock_echo.assert_called_with("Manifest 'test_manifest' updated successfully.")
 
 
-
 def test_delete_package_manifest(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('click.prompt') as mock_prompt, \
          patch('os.path.exists') as mock_exists, \
-         patch('os.remove') as mock_remove:
+         patch('os.remove'):
 
         # Test case 1: deleting default manifest
         package_manager.delete_package_manifest("default_manifest")
@@ -501,7 +502,6 @@ def test_delete_package_manifest(package_manager):
         mock_exists.side_effect = lambda x: True if x.endswith("test_manifest") else False
         mock_prompt.return_value = "y"
         package_manager.delete_package_manifest("test_manifest")
-        #mock_remove.assert_called_with("MANIFEST_LOCATION/test_manifest")
         mock_echo.assert_called_with("Manifest 'test_manifest' deleted successfully.")
         mock_echo.reset_mock()
 
@@ -511,10 +511,11 @@ def test_delete_package_manifest(package_manager):
         mock_echo.assert_called_with("Deletion cancelled.")
         mock_echo.reset_mock()
 
+
 def test_show_package_manifest(package_manager):
     with patch('click.echo') as mock_echo, \
          patch('os.path.exists') as mock_exists, \
-         patch('builtins.open', unittest.mock.mock_open()) as mock_open, \
+         patch('builtins.open', unittest.mock.mock_open()), \
          patch('json.load') as mock_json_load:
 
         mock_exists.return_value = True
@@ -525,6 +526,7 @@ def test_show_package_manifest(package_manager):
 
         package_manager.show_package_manifest("test_manifest")
         mock_echo.assert_called_with(json.dumps(dummy_json, indent=4))
+
 
 def test_list_package_manifest(package_manager):
     with patch('click.echo') as mock_echo, \
@@ -560,31 +562,7 @@ def test_download_file_scp(package_manager):
     fake_local_path = "local_path"
 
     with patch("paramiko.SSHClient") as mock_ssh_client:
-        with patch("paramiko.AutoAddPolicy"):
-            with patch("paramiko.SCPClient") as mock_scp_client:
-                package_manager.download_file(fake_remote_url, fake_local_path)
-
-    mock_ssh_client.assert_called_once()
-    mock_ssh_client.return_value.set_missing_host_key_policy.assert_called_once()
-    mock_ssh_client.return_value.connect.assert_called_once_with(
-        "10.x.x.x.",
-        username="admin",
-        password=None
-    )
-    mock_scp_client.assert_called_once_with(mock_ssh_client.return_value.get_transport())
-    mock_scp_client.return_value.get.assert_called_once_with(
-        "/home/admin/sec_update.json",
-        "local_path"
-    )
-
-
-def test_download_file_scp(package_manager):
-    fake_remote_url = "scp://admin@10.x.x.x:/home/admin/sec_update.json"
-    fake_local_path = "local_path"
-
-    with patch("paramiko.SSHClient") as mock_ssh_client:
-        mock_transport = mock_ssh_client.return_value.get_transport.return_value
-        with patch("scp.SCPClient") as mock_scp_client:
+        with patch("scp.SCPClient"):
             with patch("getpass.getpass", return_value="test_password"):
                 package_manager.download_file(fake_remote_url, fake_local_path)
 
@@ -596,12 +574,13 @@ def test_download_file_scp(package_manager):
         password="test_password"
     )
 
+
 def test_download_file_sftp(package_manager):
     fake_remote_url = "sftp://admin@10.x.x.x:/home/admin/sec_update.json"
     fake_local_path = "local_path"
 
     with patch("paramiko.SSHClient") as mock_ssh_client:
-        with patch("paramiko.SFTPClient.from_transport") as mock_sftp_from_transport:
+        with patch("paramiko.SFTPClient.from_transport"):
             with patch("getpass.getpass", return_value="test_password"):
                 package_manager.download_file(fake_remote_url, fake_local_path)
 

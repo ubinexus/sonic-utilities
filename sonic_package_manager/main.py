@@ -9,10 +9,6 @@ import typing
 import click
 import click_log
 import tabulate
-from urllib.parse import urlparse
-import paramiko
-import requests
-import getpass
 from natsort import natsorted
 
 from sonic_package_manager.database import PackageEntry, PackageDatabase
@@ -166,7 +162,7 @@ def repository(ctx):
 @click.pass_context
 def manifests(ctx):
     """ Custom local Manifest management commands. """
-    
+
     pass
 
 @cli.group()
@@ -292,13 +288,12 @@ def changelog(ctx,
         exit_cli(f'Failed to print package changelog: {err}', fg='red')
 
 
-
 @manifests.command('create')
 @click.pass_context
 @click.argument('name', type=click.Path())
 @click.option('--from-json', type=str, help='specify manifest json file')
 @root_privileges_required
-def create(ctx, name, from_json):
+def create_manifest(ctx, name, from_json):
     """Create a new custom local manifest file."""
 
     manager: PackageManager = ctx.obj
@@ -307,17 +302,14 @@ def create(ctx, name, from_json):
     except Exception as e:
         click.echo("Error: Manifest {} creation failed - {}".format(name, str(e)))
         return
-        
-#At the end of sonic-package-manager install, a new manifest file is created with the name.
-#At the end of sonic-package-manager uninstall name, this manifest file name and name.edit will be deleted.
-#At the end of sonic-package-manager update, we need to mv maniests name.edit to name in case of success, else keep it as such.
-#So during sonic-package-manager update, we could take old package from name and new package from edit and at the end, follow 3rd point
+
+
 @manifests.command('update')
 @click.pass_context
 @click.argument('name', type=click.Path())
 @click.option('--from-json', type=str, required=True)
 @root_privileges_required
-def update(ctx, name, from_json):
+def update_manifest(ctx, name, from_json):
     """Update an existing custom local manifest file with new one."""
 
     manager: PackageManager = ctx.obj
@@ -327,11 +319,12 @@ def update(ctx, name, from_json):
         click.echo(f"Error occurred while updating manifest '{name}': {e}")
         return
 
+
 @manifests.command('delete')
 @click.pass_context
 @click.argument('name', type=click.Path())
 @root_privileges_required
-def delete(ctx, name):
+def delete_manifest(ctx, name):
     """Delete a custom local manifest file."""
     manager: PackageManager = ctx.obj
     try:
@@ -351,6 +344,7 @@ def show_manifest(ctx, name):
         manager.show_package_manifest(name)
     except FileNotFoundError:
         click.echo("Manifest file '{}' not found.".format(name))
+
 
 @manifests.command('list')
 @click.pass_context
@@ -421,8 +415,8 @@ def remove(ctx, name):
               help='Use locally created custom manifest file. ',
               hidden=True)
 @click.option('--name',
-                 type=str,
-                 help='custom name for the package')
+              type=str,
+              help='custom name for the package')
 @add_options(PACKAGE_SOURCE_OPTIONS)
 @add_options(PACKAGE_COMMON_OPERATION_OPTIONS)
 @add_options(PACKAGE_COMMON_INSTALL_OPTIONS)
@@ -471,13 +465,13 @@ def install(ctx,
 
     if use_local_manifest:
         if not name:
-            click.echo(f'name argument is not provided to use local manifest')
+            click.echo('name argument is not provided to use local manifest')
             return
         original_file = os.path.join(MANIFESTS_LOCATION, name)
         if not os.path.exists(original_file):
             click.echo(f'Local Manifest file for {name} does not exists to install')
             return
-        
+
     try:
         manager.install(package_expr,
                         from_repository,
@@ -489,6 +483,14 @@ def install(ctx,
         exit_cli(f'Failed to install {package_source}: {err}', fg='red')
     except KeyboardInterrupt:
         exit_cli('Operation canceled by user', fg='red')
+
+# At the end of sonic-package-manager install, a new manifest file is created with the name.
+# At the end of sonic-package-manager uninstall name,
+# this manifest file name and name.edit will be deleted.
+# At the end of sonic-package-manager update,
+# we need to mv maniests name.edit to name in case of success, else keep it as such.
+# So during sonic-package-manager update,
+# we could take old package from name and new package from edit and at the end, follow 3rd point
 
 
 @cli.command()

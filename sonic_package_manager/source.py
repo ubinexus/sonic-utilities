@@ -117,7 +117,9 @@ class TarballSource(PackageSource):
 
     def get_metadata(self) -> Metadata:
         """ Returns manifest read from tarball. """
-        return self.metadata_resolver.from_tarball(self.tarball_path, use_local_manifest=self.use_local_manifest, name=self.name)
+        return self.metadata_resolver.from_tarball(self.tarball_path,
+                                                   use_local_manifest=self.use_local_manifest,
+                                                   name=self.name)
 
     def install_image(self, package: Package):
         """ Installs image from local tarball source. """

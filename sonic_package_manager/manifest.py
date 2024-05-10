@@ -289,4 +289,3 @@ class Manifest(dict):
                 }
             }
         return desired_dict
-

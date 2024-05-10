@@ -88,6 +88,7 @@ def test_manifest_v1_unmarshal():
         for field, value in section.items():
             assert manifest_json[key][field] == value
 
+
 @patch("sonic_package_manager.manifest.open", new_callable=mock_open)
 def test_get_manifest_from_local_file_existing_manifest(mock_open, sonic_fs):
     # Create a mock manifest file
@@ -100,7 +101,19 @@ def test_get_manifest_from_local_file_existing_manifest(mock_open, sonic_fs):
     # Call the function
     desired_dict = Manifest.get_manifest_from_local_file(manifest_name)
 
-    desired_output = {'Tag': 'master', 'com': {'azure': {'sonic': {'manifest': '{\n    "package": {\n        "name": "test_manifest.json",\n        "version": "1.0.0"\n    },\n    "service": {\n        "name": "test_manifest.json"\n    }\n}'}}}}
+    exp_manifest_content = {"package": {"name": "test_manifest.json", "version": "1.0.0"},
+                            "service": {"name": "test_manifest.json"}}
+    manifest_string = json.dumps(exp_manifest_content, indent=4)
+    desired_output = {
+        'Tag': 'master',
+        'com': {
+            'azure': {
+                'sonic': {
+                    'manifest': manifest_string
+                }
+            }
+        }
+    }
 
     # Check if the returned dictionary matches the expected structure
     assert desired_dict == desired_output
