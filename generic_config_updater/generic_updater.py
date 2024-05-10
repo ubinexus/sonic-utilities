@@ -84,7 +84,7 @@ class PatchApplier:
         self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
-        self.logger.log_notice(f"{scope}: alidating target config does not have empty tables, " \
+        self.logger.log_notice(f"{scope}: validating target config does not have empty tables, " \
                                "since they do not show up in ConfigDb.")
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables: # if there are empty tables
@@ -104,9 +104,6 @@ class PatchApplier:
         changes_len = len(changes)
         self.logger.log_notice(f"The {scope} patch was converted into {changes_len} " \
                           f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
-
-        for change in changes:
-            self.logger.log_notice(f"  * {change}")
 
         # Apply changes in order
         self.logger.log_notice(f"{scope}: applying {changes_len} change{'s' if changes_len != 1 else ''} " \

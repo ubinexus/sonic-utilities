@@ -27,6 +27,7 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.general import getstatusoutput_noshell
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
+from sonic_yang_cfg_generator import SonicYangCfgDbGenerator
 from utilities_common import util_base
 from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -1163,13 +1164,50 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     scope_for_log = scope if scope else "localhost"
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        GenericUpdater(scope==scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
+def validate_patch(patches):
+    command = "show runningconfiguration all"
+    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+    all_running_config, returncode = proc.communicate()
+    if returncode:
+        log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
+        return False
+    
+    try:
+        # Duplicate check
+        resource_usage = {}
+        for patch in patches:
+            resource_path = patch['path']
+            if resource_path in resource_usage:
+                log.log_notice(f"Conflict detected: multiple patches modify {resource_path}")
+                return False
+            resource_usage[resource_path] = patch
+
+        # Structure validation and simulate apply patch.
+        all_target_config = patches.apply(json.loads(all_running_config))
+        
+        # Verify target config by YANG models
+        target_config = all_target_config.pop("localhost") if multi_asic.is_multi_asic() else all_target_config
+        if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+            return False
+        
+        if multi_asic.is_multi_asic():
+            for asic in multi_asic.get_namespace_list():
+                target_config = all_target_config.pop(asic)
+                target_config.pop("bgpraw")
+
+                if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+                    return False
+            
+        return True
+    except:
+        return False
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1375,6 +1413,10 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
+        if not validate_patch(patch):
+            click.secho(f"Failed to apply patch. Due to : {patch} validating failed.", fg="red", underline=True, err=True)
+            ctx.fail(ex)
+
         results = {}
         config_format = ConfigFormat[format.upper()]
         # Initialize a dictionary to hold changes categorized by scope
@@ -1397,7 +1439,8 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
         # Empty case to force validate YANG model.
         if not changes_by_scope:
             asic_list = [multi_asic.DEFAULT_NAMESPACE]
-            asic_list.extend(multi_asic.get_namespace_list())
+            if multi_asic.is_multi_asic():
+                asic_list.extend(multi_asic.get_namespace_list())
             for asic in asic_list:
                 changes_by_scope[asic] = []
 
