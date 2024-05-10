@@ -66,7 +66,10 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
                     append = True
                     d.append(entry['device'])
             r.append(entry['device'] if 'device' in entry else "SWITCH")
-        r.append(tk.replace(prefix, ""))
+        suffix=""
+        if append and "DPU" in entry['device']:
+            suffix='|' + entry['device']
+        r.append(tk.replace(prefix, "").replace(suffix, ""))
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
         r.append(entry['user'] if 'user' in entry else "")
@@ -88,11 +91,13 @@ def fetch_reboot_cause_from_db(module_name):
     # Read the previous reboot cause
     if module_name == "all" or module_name == "SWITCH":
         reboot_cause_dict = read_reboot_cause_file()
+        reboot_gen_time = reboot_cause_dict.get("gen_time", "N/A")
         reboot_cause = reboot_cause_dict.get("cause", "Unknown")
-        reboot_user = reboot_cause_dict.get("user", "N/A")
         reboot_time = reboot_cause_dict.get("time", "N/A")
+        reboot_user = reboot_cause_dict.get("user", "N/A")
 
         r.append("SWITCH")
+        r.append(reboot_gen_time if reboot_gen_time else "")
         r.append(reboot_cause if reboot_cause else "")
         r.append(reboot_time if reboot_time else "")
         r.append(reboot_user if reboot_user else "")
