@@ -2718,7 +2718,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 "value": "9200"
             }
         ]
-        
+
         test_config = copy.deepcopy(config_temp)
         data = test_config.pop("scope")
         self.all_config = {}
@@ -2826,7 +2826,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     "type": "L3"
                 }
             })
-        
+
         # Mock open to simulate file reading
         with patch('builtins.open', mock_open(read_data=json.dumps(duplicate_patch)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application

@@ -1153,14 +1153,14 @@ def validate_gre_type(ctx, _, value):
         return gre_type_value
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
-    
+
 # Function to apply patch for a single ASIC.
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
     if scope.lower() == "localhost" or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
-        
+
     scope_for_log = scope if scope else "localhost"
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
@@ -1178,7 +1178,7 @@ def validate_patch(patches):
     if returncode:
         log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
         return False
-    
+
     try:
         # Duplicate check
         resource_usage = {}
@@ -1196,7 +1196,7 @@ def validate_patch(patches):
         target_config = all_target_config.pop("localhost") if multi_asic.is_multi_asic() else all_target_config
         if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
             return False
-        
+
         if multi_asic.is_multi_asic():
             for asic in multi_asic.get_namespace_list():
                 target_config = all_target_config.pop(asic)
@@ -1204,9 +1204,10 @@ def validate_patch(patches):
 
                 if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
                     return False
-            
+
         return True
-    except:
+    except Exception as e:
+        log.log_notice(f"Simulate apply patch failed due to:{e}")
         return False
 
 # This is our main entrypoint - the main 'config' command
@@ -1414,8 +1415,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch = jsonpatch.JsonPatch(patch_as_json)
 
         if not validate_patch(patch):
-            click.secho(f"Failed to apply patch. Due to : {patch} validating failed.", fg="red", underline=True, err=True)
-            ctx.fail(ex)
+            raise Exception(f"Failed validating patch:{patch}")
 
         results = {}
         config_format = ConfigFormat[format.upper()]
