@@ -251,7 +251,7 @@ setup(
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',
-        'tabulate==0.9.0',
+        'tabulate>=0.8.2,<=0.9.0',
         'toposort==1.6',
         'www-authenticate==0.9.2',
         'xmltodict==0.12.0',
