@@ -98,23 +98,23 @@ def kdump_num_dumps(db, kdump_num_dumps):
 #
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
-@click.option("-c", "--ssh-connection-string", help="SSH user and host", required=False)
-@click.option("-k", "--ssh-private-key-path", help="Path to private key", default="/root/.ssh/kdump_id_rsa", required=False)
+@click.option("-c", "--ssh-connection-string", metavar='<kdump_ssh_connection_string>', help="SSH user and host. e.g user@hostname/ip")
+@click.option("-k", "--ssh-private-key-path", metavar='<kdump_ssh_private_key_file_path>', help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
 @pass_db
-def kdump_remote(action, conn_str, pr_key):
+def kdump_remote(action, kdump_ssh_connection_string, kdump_ssh_private_key_file_path):
     """Configure remote KDUMP mechanism"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
     
     if action == "ssh":
-        if conn_str is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": conn_str})
+        if kdump_ssh_connection_string is not None:
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": kdump_ssh_connection_string})
             
-        if pr_key is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": pr_key})
+        if kdump_ssh_private_key_file_path is not None:
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": kdump_ssh_private_key_file_path})
 
-        if conn_str is None or pr_key is None:
+        if kdump_ssh_connection_string is None or kdump_ssh_private_key_file_path is None:
             click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path are required for SSH configuration.")
             sys.exit(1)
         
