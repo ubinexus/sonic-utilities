@@ -98,8 +98,8 @@ def kdump_num_dumps(db, kdump_num_dumps):
 #
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
-@click.option("-c", "--connection-string", help="SSH user and host", required=True)
-@click.option("-k", "--private-key", help="Path to private key", default="/root/.ssh/kdump_id_rsa", required=True)
+@click.option("-c", "--ssh-connection-string", help="SSH user and host", required=False)
+@click.option("-k", "--ssh-private-key-path", help="Path to private key", default="/root/.ssh/kdump_id_rsa", required=False)
 @pass_db
 def kdump_remote(action, conn_str, pr_key):
     """Configure remote KDUMP mechanism"""
@@ -109,20 +109,22 @@ def kdump_remote(action, conn_str, pr_key):
     
     if action == "ssh":
         if conn_str is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"connection_string": conn_str})
-
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": conn_str})
+            
         if pr_key is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"private_key": pr_key})
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": pr_key})
 
         if conn_str is None or pr_key is None:
-            click.echo("Error: Both --connection_string and --private-key are required for SSH configuration.")
+            click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path are required for SSH configuration.")
             sys.exit(1)
-        # Enable (uncomment) SSH comand in config file
-        pass
+        
+        # Edit running config in the config database and later, Enable (uncomment) SSH command in config file
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
+            
     elif action == "disable":
         # Execute disable command
-        pass
-
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "false"})
+ 
     click.echo("KDUMP configuration changes may require a reboot to take effect.")    
     click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
 
