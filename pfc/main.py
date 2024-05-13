@@ -5,8 +5,6 @@ import click
 from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 from natsort import natsorted
-from importlib import reload
-from utilities_common import multi_asic as multi_asic_util
 
 ALL_PRIORITIES = [str(x) for x in range(8)]
 PRIORITY_STATUS = ['on', 'off']
@@ -22,10 +20,10 @@ except KeyError:
     pass
 
 class Pfc(object):
+
     def __init__(self, db=None):
         self.db = None
         self.cfgdb = db
-        self.multi_asic = multi_asic_util.MultiAsic()
 
     def configPfcAsym(self, interface, pfc_asym):
         """
@@ -34,10 +32,7 @@ class Pfc(object):
 
         configdb = self.cfgdb
         if configdb is None:
-            # Get the namespace list
-            namespaces = multi_asic.get_namespace_list()
-
-            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector()
             configdb.connect()
 
         configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
@@ -53,10 +48,7 @@ class Pfc(object):
 
         configdb = self.cfgdb
         if configdb is None:
-            # Get the namespace list
-            namespaces = multi_asic.get_namespace_list()
-
-            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector()
             configdb.connect()
 
         if interface:
@@ -84,10 +76,7 @@ class Pfc(object):
     def configPfcPrio(self, status, interface, priority):
         configdb = self.cfgdb
         if configdb is None:
-            # Get the namespace list
-            namespaces = multi_asic.get_namespace_list()
-
-            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector()
             configdb.connect()
 
         if interface not in configdb.get_keys('PORT_QOS_MAP'):
@@ -130,10 +119,7 @@ class Pfc(object):
 
         configdb = self.cfgdb
         if configdb is None:
-            # Get the namespace list
-            namespaces = multi_asic.get_namespace_list()
-
-            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector()
             configdb.connect()
 
         """Get all the interfaces with QoS map information"""
@@ -162,7 +148,7 @@ def cli(ctx):
     # Use the db object if given as input.
     db = None if ctx.obj is None else ctx.obj.cfgdb
     """PFC Command Line"""
-    ctx.obj = { 'pfc': Pfc(db) }
+    ctx.obj = {'pfc': Pfc(db)}
 
 @cli.group()
 @click.pass_context

@@ -1,7 +1,7 @@
 import os
 import sys
 import pfc.main as pfc
-from pfc_input.assert_show_output import *
+from pfc_input.assert_show_output import pfc_cannot_find_intf, pfc_show_asymmetric_all, pfc_show_asymmetric_intf, pfc_show_priority_all, pfc_show_priority_intf, pfc_config_asymmetric, pfc_config_priority_on
 from utilities_common.db import Db
 
 from click.testing import CliRunner
@@ -14,6 +14,7 @@ sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
 class TestPfcBase(object):
+
     @classmethod
     def setup_class(cls):
         print("SETUP")
@@ -22,7 +23,6 @@ class TestPfcBase(object):
 
     def executor(self, command, args, expected_rc=0, expected_output=None, runner=CliRunner()):
         db = Db()
-        obj = {'config_db':db.cfgdb}
         result = runner.invoke(command, args, obj=db)
         print(result.exit_code)
         print(result.output)
@@ -41,6 +41,7 @@ class TestPfcBase(object):
         print("TEARDOWN")
 
 class TestPfc(TestPfcBase):
+
     @classmethod
     def setup_class(cls):
         super().setup_class()
@@ -69,7 +70,7 @@ class TestPfc(TestPfcBase):
         self.executor(pfc.cli, ['show', 'priority', 'Ethernet0'],
                       expected_output=pfc_show_priority_intf)
 
-    def test_pfc_show_asymmetric_intf_fake(self):
+    def test_pfc_show_priority_intf_fake(self):
         self.executor(pfc.cli, ['show', 'priority', 'Ethernet1234'],
                       expected_output=pfc_cannot_find_intf)
 
