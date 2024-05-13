@@ -94,7 +94,6 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
 #
 # 'remote' command ('sudo config kdump remote ssh -c ... -k ...')
-# 'remote' command ('sudo config kdump remote disable ...')
 #
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
