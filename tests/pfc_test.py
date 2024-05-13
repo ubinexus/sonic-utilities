@@ -1,7 +1,9 @@
 import os
 import sys
 import pfc.main as pfc
-from pfc_input.assert_show_output import pfc_cannot_find_intf, pfc_show_asymmetric_all, pfc_show_asymmetric_intf, pfc_show_priority_all, pfc_show_priority_intf, pfc_config_asymmetric, pfc_config_priority_on
+from pfc_input.assert_show_output import pfc_cannot_find_intf, pfc_show_asymmetric_all, \
+   pfc_show_asymmetric_intf, pfc_show_priority_all, pfc_show_priority_intf, \
+   pfc_config_asymmetric, pfc_config_priority_on
 from utilities_common.db import Db
 
 from click.testing import CliRunner
@@ -14,6 +16,7 @@ sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
 class TestPfcBase(object):
+
 
     @classmethod
     def setup_class(cls):
@@ -41,6 +44,7 @@ class TestPfcBase(object):
         print("TEARDOWN")
 
 class TestPfc(TestPfcBase):
+
 
     @classmethod
     def setup_class(cls):

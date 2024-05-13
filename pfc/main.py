@@ -21,6 +21,7 @@ except KeyError:
 
 class Pfc(object):
 
+
     def __init__(self, db=None):
         self.db = None
         self.cfgdb = db
