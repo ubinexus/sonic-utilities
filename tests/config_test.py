@@ -2812,6 +2812,43 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
     @patch('config.main.subprocess.Popen')
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    def test_apply_patch_validate_patch_with_badpath_multiasic(self, mock_subprocess_popen):
+        mock_instance = MagicMock()
+        mock_instance.communicate.return_value = (json.dumps(self.all_config), 0)
+        mock_subprocess_popen.return_value = mock_instance
+
+        bad_patch = copy.deepcopy(self.patch_content)
+        bad_patch.append({
+                "value": {
+                    "policy_desc": "New ACL Table",
+                    "ports": ["Ethernet3", "Ethernet4"],
+                    "stage": "ingress",
+                    "type": "L3"
+                }
+            })
+
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(bad_patch)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.patch_file_path],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertNotEqual(result.exit_code, 0, "Command should failed.")
+                self.assertIn("Failed to apply patch", result.output)
+
+                # Verify mocked_open was called as expected
+                mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+    @patch('config.main.subprocess.Popen')
+    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
     def test_apply_patch_validate_patch_with_duplicatepath_multiasic(self, mock_subprocess_popen):
         mock_instance = MagicMock()
         mock_instance.communicate.return_value = (json.dumps(self.all_config), 0)
@@ -2831,6 +2868,33 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
         # Mock open to simulate file reading
         with patch('builtins.open', mock_open(read_data=json.dumps(duplicate_patch)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.patch_file_path],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertNotEqual(result.exit_code, 0, "Command should failed.")
+                self.assertIn("Failed to apply patch", result.output)
+
+                # Verify mocked_open was called as expected
+                mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+    @patch('config.main.subprocess.Popen')
+    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    def test_apply_patch_validate_patch_with_wrong_fetch_config(self, mock_subprocess_popen):
+        mock_instance = MagicMock()
+        mock_instance.communicate.return_value = (json.dumps(self.all_config), 2)
+        mock_subprocess_popen.return_value = mock_instance
+
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
             with patch('config.main.GenericUpdater') as mock_generic_updater:
                 mock_generic_updater.return_value.apply_patch = MagicMock()
