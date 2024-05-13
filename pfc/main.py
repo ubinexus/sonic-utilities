@@ -6,6 +6,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 from natsort import natsorted
 from importlib import reload
+from utilities_common import multi_asic as multi_asic_util
 
 ALL_PRIORITIES = [str(x) for x in range(8)]
 PRIORITY_STATUS = ['on', 'off']
@@ -21,12 +22,23 @@ except KeyError:
     pass
 
 class Pfc(object):
+    def __init__(self, db=None):
+        self.db = None
+        self.cfgdb = db
+        self.multi_asic = multi_asic_util.MultiAsic()
+
     def configPfcAsym(self, interface, pfc_asym):
         """
-        PFC handler to configure asymmentric PFC.
+        PFC handler to configure asymmetric PFC.
         """
-        configdb = ConfigDBConnector()
-        configdb.connect()
+
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
 
@@ -39,8 +51,13 @@ class Pfc(object):
         """
         header = ('Interface', 'Asymmetric')
 
-        configdb = ConfigDBConnector()
-        configdb.connect()
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         if interface:
             db_keys = configdb.keys(configdb.CONFIG_DB, 'PORT|{0}'.format(interface))
@@ -65,8 +82,13 @@ class Pfc(object):
         click.echo()
 
     def configPfcPrio(self, status, interface, priority):
-        configdb = ConfigDBConnector()
-        configdb.connect()
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         if interface not in configdb.get_keys('PORT_QOS_MAP'):
             click.echo('Cannot find interface {0}'.format(interface))
@@ -106,8 +128,13 @@ class Pfc(object):
         header = ('Interface', 'Lossless priorities')
         table = []
 
-        configdb = ConfigDBConnector()
-        configdb.connect()
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         """Get all the interfaces with QoS map information"""
         intfs = configdb.get_keys('PORT_QOS_MAP')
@@ -132,8 +159,10 @@ class Pfc(object):
 @click.group()
 @click.pass_context
 def cli(ctx):
+    # Use the db object if given as input.
+    db = None if ctx.obj is None else ctx.obj.cfgdb
     """PFC Command Line"""
-    ctx.obj = { 'pfc': Pfc() }
+    ctx.obj = { 'pfc': Pfc(db) }
 
 @cli.group()
 @click.pass_context

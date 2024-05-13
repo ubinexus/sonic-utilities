@@ -2,6 +2,7 @@ import os
 import sys
 import pfc.main as pfc
 from pfc_input.assert_show_output import *
+from utilities_common.db import Db
 
 from click.testing import CliRunner
 from importlib import reload
@@ -20,7 +21,9 @@ class TestPfcBase(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
     def executor(self, command, args, expected_rc=0, expected_output=None, runner=CliRunner()):
-        result = runner.invoke(command, args)
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+        result = runner.invoke(command, args, obj=db)
         print(result.exit_code)
         print(result.output)
 
