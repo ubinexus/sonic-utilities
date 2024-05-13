@@ -15,8 +15,8 @@ scripts_path = os.path.join(modules_path, "pfc")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-class TestPfcBase(object):
 
+class TestPfcBase(object):
 
     @classmethod
     def setup_class(cls):
@@ -43,8 +43,8 @@ class TestPfcBase(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         print("TEARDOWN")
 
-class TestPfc(TestPfcBase):
 
+class TestPfc(TestPfcBase):
 
     @classmethod
     def setup_class(cls):
