@@ -54,10 +54,6 @@ class TestDHCPRate(object):
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
-        import config.main
-        imp.reload(config.main)
-        import show.main
-        imp.reload(show.main)
 
     def test_config_dhcp_rate_add_on_portchannel(self):
         db = Db()
