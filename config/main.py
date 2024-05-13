@@ -1164,12 +1164,18 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     scope_for_log = scope if scope else "localhost"
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(scope==scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
+                                                config_format,
+                                                verbose,
+                                                dry_run,
+                                                ignore_non_yang_tables,
+                                                ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
+
 
 def validate_patch(patches):
     command = "show runningconfiguration all"
@@ -1191,7 +1197,7 @@ def validate_patch(patches):
 
         # Structure validation and simulate apply patch.
         all_target_config = patches.apply(json.loads(all_running_config))
-        
+
         # Verify target config by YANG models
         target_config = all_target_config.pop("localhost") if multi_asic.is_multi_asic() else all_target_config
         if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):

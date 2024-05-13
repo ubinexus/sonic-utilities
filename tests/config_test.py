@@ -2798,7 +2798,9 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
                 print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
                 # Invocation of the command with the CliRunner
-                result = self.runner.invoke(config.config.commands["apply-patch"], [self.patch_file_path], catch_exceptions=True)
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.patch_file_path],
+                                            catch_exceptions=True)
 
                 print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
                 # Assertions and verifications
@@ -2835,12 +2837,14 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
                 print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
                 # Invocation of the command with the CliRunner
-                result = self.runner.invoke(config.config.commands["apply-patch"], [self.patch_file_path], catch_exceptions=True)
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.patch_file_path],
+                                            catch_exceptions=True)
 
                 print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
                 # Assertions and verifications
                 self.assertNotEqual(result.exit_code, 0, "Command should failed.")
-                self.assertIn("Failed to apply patch.", result.output)
+                self.assertIn("Failed to apply patch", result.output)
 
                 # Verify mocked_open was called as expected
                 mocked_open.assert_called_with(self.patch_file_path, 'r')
