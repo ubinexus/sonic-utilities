@@ -84,8 +84,8 @@ class PatchApplier:
         self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
-        self.logger.log_notice(f"{scope}: validating target config does not have empty tables, 
-                               since they do not show up in ConfigDb.")
+        self.logger.log_notice(f"""{scope}: validating target config does not have empty tables,
+                               since they do not show up in ConfigDb.""")
         empty_tables = self.config_wrapper.get_empty_tables(target_config)
         if empty_tables:  # if there are empty tables
             empty_tables_txt = ", ".join(empty_tables)
