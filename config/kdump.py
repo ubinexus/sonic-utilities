@@ -99,7 +99,7 @@ def kdump_num_dumps(db, kdump_num_dumps):
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
 @click.option("-c", "--ssh-connection-string", metavar='<kdump_ssh_connection_string>', help="SSH user and host. e.g user@hostname/ip")
-@click.option("-k", "--ssh-private-key-path", metavar='<kdump_ssh_private_key_file_path>', help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
+@click.option("-p", "--ssh-private-key-path", metavar='<kdump_ssh_private_key_file_path>', help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
 @pass_db
 def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_file_path):
     """Configure remote KDUMP mechanism"""
@@ -127,3 +127,7 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
 
     click.echo("KDUMP configuration changes may require a reboot to take effect.")
     click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
+ 
+
+
+
