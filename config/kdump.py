@@ -128,4 +128,3 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
 
     click.echo("KDUMP configuration changes may require a reboot to take effect.")
     click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
-    
