@@ -82,7 +82,7 @@ def config():
 
     num_files_config = get_kdump_config("num_dumps")
     click.echo("Maximum number of Kdump files: {}".format(num_files_config))
-    
+
     # remote SSH configs
     if get_kdump_config("remote_enabled") == "true":
         ssh_conn_str = get_kdump_config("ssh_connection_string")
