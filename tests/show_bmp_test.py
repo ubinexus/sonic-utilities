@@ -67,7 +67,7 @@ supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-rest
         db = Db()
         dbconnector = db.db
         self.set_db_values(dbconnector,
-                           "BGP_RIB_OUT_TABLE|20c0:ef50::/64|BGP_NEIGHBOR|10.0.0.57",
+                           "BGP_RIB_OUT_TABLE|20c0:ef50::/64|10.0.0.57",
                            {"origin": "igp",
                             "as_path": "65100 64600",
                             "origin_as": "64915",
@@ -77,7 +77,7 @@ supports-mpbgp,supports-graceful-restart   supports-mpbgp,supports-graceful-rest
                             "community_list": "residential",
                             "ext_community_list": "traffic_engineering"})
         self.set_db_values(dbconnector,
-                           "BGP_RIB_OUT_TABLE|192.181.168.0/25|BGP_NEIGHBOR|10.0.0.59",
+                           "BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59",
                            {"origin": "igp",
                             "as_path": "65100 64600",
                             "origin_as": "64915",
@@ -109,7 +109,7 @@ Originator_ID  Community_List            Ext_Community_List
         db = Db()
         dbconnector = db.db
         self.set_db_values(dbconnector,
-                           "BGP_RIB_IN_TABLE|20c0:ef50::/64|BGP_NEIGHBOR|10.0.0.57",
+                           "BGP_RIB_IN_TABLE|20c0:ef50::/64|10.0.0.57",
                            {"origin": "igp",
                             "as_path": "65100 64600",
                             "origin_as": "64915",
@@ -119,7 +119,7 @@ Originator_ID  Community_List            Ext_Community_List
                             "community_list": "residential",
                             "ext_community_list": "traffic_engineering"})
         self.set_db_values(dbconnector,
-                           "BGP_RIB_IN_TABLE|192.181.168.0/25|BGP_NEIGHBOR|10.0.0.59",
+                           "BGP_RIB_IN_TABLE|192.181.168.0/25|10.0.0.59",
                            {"origin": "igp",
                             "as_path": "65100 64600",
                             "origin_as": "64915",
