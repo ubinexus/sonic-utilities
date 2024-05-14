@@ -2,8 +2,11 @@ import sys
 
 import click
 from utilities_common.cli import AbbreviationGroup, pass_db
+from .validated_config_db_connector import ValidatedConfigDBConnector
 
 
+
+config_db = ValidatedConfigDBConnector(db.cfgdb)
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -92,6 +95,20 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
 
 
+def check_kdump_attributes():
+    """Check if required KDUMP attributes exist in ConfigDB"""
+    kdump_attributes = ['ssh-connection-string', 'ssh-private-key-path', 'remote-enabled']
+    missing_attributes = [attr for attr in kdump_attributes if not config_db.get_entry('KDUMP', 'config', attr)]
+    if missing_attributes:
+        default_values = {
+            'ssh-connection-string': 'dummy_connection_string',
+            'ssh-private-key-path': 'dummy_private_key_path',
+            'remote-enabled': 'disabled'
+        }
+        for attr in missing_attributes:
+            config_db.mod_entry('KDUMP', 'config', {attr: default_values[attr]})
+
+
 #
 # 'remote' command ('sudo config kdump remote ssh -c ... -k ...')
 #
@@ -112,8 +129,8 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
     if action == "ssh":
         if kdump_ssh_connection_string is None or\
                 kdump_ssh_private_key_path is None:
-            click.echo("Error: Both --ssh-connection-string\
-                       \and --ssh-private-key-path are required for SSH configuration.")
+            click.echo("Error: Both --ssh-connection-string \
+                       \ and --ssh-private-key-path are required for SSH configuration.")
             sys.exit(1)
         # Edit running config in the config database and later, Enable (uncomment) SSH command in config file
         db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
