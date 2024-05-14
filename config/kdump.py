@@ -2,7 +2,6 @@ import sys
 
 import click
 from utilities_common.cli import AbbreviationGroup, pass_db
-from .validated_config_db_connector import ValidatedConfigDBConnector
 
 
 #
