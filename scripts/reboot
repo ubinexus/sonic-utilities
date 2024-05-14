@@ -210,6 +210,8 @@ debug "User requested rebooting device ..."
 
 check_conflict_boot_in_fw_update
 
+sync_fsio_rw
+
 setup_reboot_variables
 reboot_pre_check
 
@@ -225,8 +227,6 @@ if [[ x"$ASAN" == x"yes" ]]; then
 fi
 
 clear_warm_boot
-
-sync_fsio_rw
 
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the

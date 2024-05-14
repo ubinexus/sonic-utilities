@@ -508,6 +508,7 @@ function sync_fsio_rw()
         rc=$?
         VERBOSE=yes debug "fsio-rw-sync returned $rc"
         sleep 1
+        return $rc
     fi
 }
 
@@ -566,6 +567,8 @@ case "$REBOOT_TYPE" in
         exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
+
+sync_fsio_rw
 
 save_counters_folder
 
@@ -803,8 +806,6 @@ echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: $
 sync
 sleep 1
 sync
-
-sync_fsio_rw
 
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
