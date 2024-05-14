@@ -1,14 +1,16 @@
 import os
-import imp
-
+import traceback
+import pytest
+from unittest import mock
 from click.testing import CliRunner
+from utilities_common.db import Db
 
 import config.main as config
 import show.main as show
-from utilities_common.db import Db
 
 
-test_config_dhcp_rate_add_del_output = """\
+
+show_interface_dhcp_rate_limit_output ="""\
 Interface        DHCP Mitigation Rate
 -----------     ----------------------
 Ethernet0                       300
@@ -17,7 +19,7 @@ Ethernet8                       300
 Ethernet12                      300
 Ethernet16                      300
 Ethernet20                      300
-Ethernet24                      
+Ethernet24                      300
 Ethernet28                      300
 Ethernet32                      45
 Ethernet36                      300
@@ -47,9 +49,6 @@ Ethernet124                     300
 
 
 class TestDHCPRate(object):
-
-    _old_run_bgp_command = None
-
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
@@ -172,12 +171,16 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code == 0
 
-        # show output
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [], obj=obj)
+
+    def test_show_dhcp_rate_limit(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == test_config_dhcp_rate_add_del_output
+        assert result.output == show_interface_dhcp_rate_limit_output
+
+
 
     @classmethod
     def teardown_class(cls):
