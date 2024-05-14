@@ -3,7 +3,8 @@ import sys
 import click
 from utilities_common.cli import AbbreviationGroup, pass_db
 from .validated_config_db_connector import ValidatedConfigDBConnector
-config_db = ValidatedConfigDBConnector(db.cfgdb)
+
+
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -92,10 +93,10 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
 
 
-def check_kdump_attributes():
+def check_kdump_attributes(db):
     """Check if required KDUMP attributes exist in ConfigDB"""
     kdump_attributes = ['ssh-connection-string', 'ssh-private-key-path', 'remote-enabled']
-    missing_attributes = [attr for attr in kdump_attributes if not config_db.get_entry('KDUMP', 'config', attr)]
+    missing_attributes = [attr for attr in kdump_attributes if not db.get_entry('KDUMP', 'config', attr)]
     if missing_attributes:
         default_values = {
             'ssh-connection-string': 'dummy_connection_string',
@@ -103,7 +104,7 @@ def check_kdump_attributes():
             'remote-enabled': 'disabled'
         }
         for attr in missing_attributes:
-            config_db.mod_entry('KDUMP', 'config', {attr: default_values[attr]})
+            db.cfgdb.mod_entry('KDUMP', 'config', {attr: default_values[attr]})
 
 
 #
