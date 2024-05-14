@@ -851,8 +851,10 @@ class DBMigrator():
         else:
             # If no passkey, setup per-command authorization will block remote user command
             log.log_info('TACACS passkey does not exist, disable per-command authorization.')
-            authorization_new = {}
-            self.configDB.set_entry("AAA", "authorization", authorization_new)
+            authorization_key = "AAA|authorization"
+            keys = self.configDB.keys(self.configDB.CONFIG_DB, authorization_key)
+            if keys:
+                self.configDB.delete(self.configDB.CONFIG_DB, authorization_key)
 
     def version_unknown(self):
         """
