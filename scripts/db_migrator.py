@@ -850,7 +850,9 @@ class DBMigrator():
                 log.log_info('Migrate AAA authorization: {}'.format(authorization_new))
         else:
             # If no passkey, setup per-command authorization will block remote user command
-            log.log_info('TACACS passkey does not exist, ignore setup per-command authorization.')
+            log.log_info('TACACS passkey does not exist, disable per-command authorization.')
+            authorization_new = {}
+            self.configDB.set_entry("AAA", "authorization", authorization_new)
 
     def version_unknown(self):
         """
