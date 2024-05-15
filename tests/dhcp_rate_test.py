@@ -9,8 +9,7 @@ import config.main as config
 import show.main as show
 
 
-
-show_interface_dhcp_rate_limit_output ="""\
+show_interface_dhcp_rate_limit_output="""\
 Interface        DHCP Mitigation Rate
 -----------     ----------------------
 Ethernet0                       300
@@ -175,11 +174,8 @@ class TestDHCPRate(object):
     def test_show_dhcp_rate_limit(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interface_dhcp_rate_limit_output
-
 
 
     @classmethod

@@ -179,14 +179,11 @@ def tpid(interfacename, namespace, display, verbose):
 def dhcp_mitigation_rate(ctx, interfacename):
     """Show Interface DHCP mitigation rate information"""
 
-    # Reading data from Redis configDb
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    ctx = click.get_current_context()
+    port_data = list(config_db.get_table('PORT').keys())
 
-    keys = []
 
     if interfacename is None:
-        port_data = list(config_db.get_table('PORT').keys())
         keys = port_data
 
     else:
