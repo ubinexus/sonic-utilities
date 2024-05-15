@@ -3,7 +3,7 @@ import sys
 import pfc.main as pfc
 from pfc_input.assert_show_output import pfc_cannot_find_intf, pfc_show_asymmetric_all, \
    pfc_show_asymmetric_intf, pfc_show_priority_all, pfc_show_priority_intf, \
-   pfc_config_asymmetric, pfc_config_priority_on
+   pfc_config_asymmetric, pfc_config_priority_on, pfc_asym_cannot_find_intf
 from utilities_common.db import Db
 
 from click.testing import CliRunner
