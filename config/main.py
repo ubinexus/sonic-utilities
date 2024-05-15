@@ -4630,13 +4630,13 @@ def validate_vlan_exists(db,text):
 # 'add' subcommand
 #
 
-@ip.command()
+@ip.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.argument('gw', metavar='<default gateway IP address>', required=False)
 @click.option('--secondary', "-s", is_flag=True, default=False)
 @click.pass_context
-def add(ctx, interface_name, ip_addr, gw, secondary):
+def add_interface_ip(ctx, interface_name, ip_addr, gw, secondary):
     """Add an IP address towards the interface"""
     # Get the config_db connector
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
