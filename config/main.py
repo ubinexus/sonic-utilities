@@ -4630,6 +4630,7 @@ def validate_vlan_exists(db,text):
 # 'add' subcommand
 #
 
+
 @ip.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
