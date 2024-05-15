@@ -2,7 +2,7 @@ import json
 import jsonpointer
 import os
 from enum import Enum
-from .gu_common import GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
+from .gu_common import HOST_NAMESPACE, GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                           TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
@@ -16,27 +16,37 @@ def extract_scope(path):
     if not path:
         raise Exception("Wrong patch with empty path.")
 
-    try:
-        pointer = jsonpointer.JsonPointer(path)
-        parts = pointer.parts
-    except Exception as e:
-        raise Exception(f"Error resolving path: '{path}' due to {e}")
+    pointer = jsonpointer.JsonPointer(path)
+    parts = pointer.parts
 
     if not parts:
-        raise Exception("Wrong patch with empty path.")
+        raise GenericConfigUpdaterError("Wrong patch with empty path.")
     if parts[0].startswith("asic"):
         if not parts[0][len("asic"):].isnumeric():
-            raise Exception(f"Error resolving path: '{path}' due to incorrect ASIC number.")
+            raise GenericConfigUpdaterError(f"Error resolving path: '{path}' due to incorrect ASIC number.")
         scope = parts[0]
         remainder = "/" + "/".join(parts[1:])
-    elif parts[0] == "localhost":
-        scope = "localhost"
+    elif parts[0] == HOST_NAMESPACE:
+        scope = HOST_NAMESPACE
         remainder = "/" + "/".join(parts[1:])
     else:
         scope = ""
         remainder = path
 
     return scope, remainder
+
+def get_all_running_configs(db):
+    all_running_config = {}
+    cfgdb_clients = db.cfgdb_clients
+
+    for ns, config_db in cfgdb_clients.items():
+        current_config = config_db.get_config()
+        sonic_cfggen.FormatConverter.to_serialized(current_config)
+        asic_name = HOST_NAMESPACE if ns == multi_asic.DEFAULT_NAMESPACE else ns
+        all_running_config[asic_name] = sort_dict(current_config)
+
+    return all_running_config
+
 
 class ConfigLock:
     def acquire_lock(self):
@@ -67,7 +77,7 @@ class PatchApplier:
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier(namespace=self.namespace)
 
     def apply(self, patch, sort=True):
-        scope = self.namespace if self.namespace else 'localhost'
+        scope = self.namespace if self.namespace else HOST_NAMESPACE
         self.logger.log_notice(f"{scope}: Patch application starting.")
         self.logger.log_notice(f"{scope}: Patch: {patch}")
 

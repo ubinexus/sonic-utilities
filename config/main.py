@@ -20,6 +20,7 @@ from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
+from generic_config_updater.gu_common import HOST_NAMESPACE, GenericConfigUpdaterError
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
@@ -1158,10 +1159,10 @@ def validate_gre_type(ctx, _, value):
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
-    if scope.lower() == "localhost" or scope == "":
+    if scope.lower() == HOST_NAMESPACE or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
 
-    scope_for_log = scope if scope else "localhost"
+    scope_for_log = scope if scope else HOST_NAMESPACE
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
@@ -1177,44 +1178,42 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
 
-def validate_patch(patches):
-    command = "show runningconfiguration all"
-    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
-    all_running_config, returncode = proc.communicate()
-    if returncode:
-        log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
-        return False
-
+def validate_patch(patch):
     try:
+        command = ["show", "runningconfiguration", "all"]
+        proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+        all_running_config, returncode = proc.communicate()
+        if returncode:
+            log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
+            return False
+
         # Duplicate check
         resource_usage = {}
-        for patch in patches:
-            resource_path = patch['path']
+        for operation in patch:
+            resource_path = operation['path']
             if resource_path in resource_usage:
                 log.log_notice(f"Conflict detected: multiple patches modify {resource_path}")
                 return False
-            resource_usage[resource_path] = patch
+            resource_usage[resource_path] = operation
 
         # Structure validation and simulate apply patch.
-        all_target_config = patches.apply(json.loads(all_running_config))
+        all_target_config = patch.apply(json.loads(all_running_config))
 
         # Verify target config by YANG models
-        target_config = all_target_config.pop("localhost") if multi_asic.is_multi_asic() else all_target_config
+        target_config = all_target_config.pop(HOST_NAMESPACE) if multi_asic.is_multi_asic() else all_target_config
         if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
             return False
 
         if multi_asic.is_multi_asic():
             for asic in multi_asic.get_namespace_list():
                 target_config = all_target_config.pop(asic)
-                target_config.pop("bgpraw")
 
                 if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
                     return False
 
         return True
     except Exception as e:
-        log.log_notice(f"Simulate apply patch failed due to:{e}")
-        return False
+        raise GenericConfigUpdaterError(f"Validate json patch: {patch} failed due to:{e}")
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1421,7 +1420,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch = jsonpatch.JsonPatch(patch_as_json)
 
         if not validate_patch(patch):
-            raise Exception(f"Failed validating patch:{patch}")
+            raise GenericConfigUpdaterError(f"Failed validating patch:{patch}")
 
         results = {}
         config_format = ConfigFormat[format.upper()]
@@ -1459,7 +1458,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
         if failures:
             failure_messages = '\n'.join([f"- {failed_scope}: {results[failed_scope]['message']}" for failed_scope in failures])
-            raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
+            raise GenericConfigUpdaterError(f"Failed to apply patch on the following scopes:\n{failure_messages}")
 
         log.log_notice(f"Patch applied successfully for {patch}.")
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
@@ -1663,9 +1662,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             file_input = read_json_file(file)
 
             platform = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("platform")
+                get(HOST_NAMESPACE, {}).get("platform")
             mac = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("mac")
+                get(HOST_NAMESPACE, {}).get("mac")
 
             if not platform or not mac:
                 log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
@@ -2038,8 +2037,8 @@ def override_config_table(db, input_config_db, dry_run):
         if multi_asic.is_multi_asic() and len(config_input):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
-                if "localhost" in config_input.keys():
-                    ns_config_input = config_input["localhost"]
+                if HOST_NAMESPACE in config_input.keys():
+                    ns_config_input = config_input[HOST_NAMESPACE]
                 else:
                     click.secho("Wrong config format! 'localhost' not found in host config! cannot override.. abort")
                     sys.exit(1)
