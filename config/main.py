@@ -4733,10 +4733,11 @@ def add(ctx, interface_name, ip_addr, gw, secondary):
                 name, prefix = key
                 if name == interface_name and "secondary" not in value:
                     contains_primary = True
-            if contains_primary == True:
+            if contains_primary:
                 config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
             else:
-                ctx.fail("Primary for the interface {} is not set, so skipping adding the interface".format(interface_name))
+                ctx.fail("Primary for the interface {} is not set, so skipping adding the interface"
+                         .format(interface_name))
     else:
         config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
 
