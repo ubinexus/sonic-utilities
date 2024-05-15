@@ -133,20 +133,20 @@ def fake_metadata_resolver():
             self.add('Azure/docker-test-6', '2.0.0', 'test-package-6', '2.0.0')
             self.add('Azure/docker-test-6', 'latest', 'test-package-6', '1.5.0')
 
-        def from_registry(self, repository: str, reference: str):
+        def from_registry(self, repository: str, reference: str, use_local_manifest=None, name=None):
             manifest = Manifest.marshal(self.metadata_store[repository][reference]['manifest'])
             components = self.metadata_store[repository][reference]['components']
             yang = self.metadata_store[repository][reference]['yang']
             return Metadata(manifest, components, yang)
 
-        def from_local(self, image: str):
+        def from_local(self, image: str, use_local_manfiest=None, name=None, use_edit=None):
             ref = Reference.parse(image)
             manifest = Manifest.marshal(self.metadata_store[ref['name']][ref['tag']]['manifest'])
             components = self.metadata_store[ref['name']][ref['tag']]['components']
             yang = self.metadata_store[ref['name']][ref['tag']]['yang']
             return Metadata(manifest, components, yang)
 
-        def from_tarball(self, filepath: str) -> Manifest:
+        def from_tarball(self, filepath: str, use_local_manifest=None, name=None) -> Manifest:
             path, ref = filepath.split(':')
             manifest = Manifest.marshal(self.metadata_store[path][ref]['manifest'])
             components = self.metadata_store[path][ref]['components']
@@ -408,6 +408,7 @@ def sonic_fs(fs):
     fs.create_dir(SYSTEMD_LOCATION)
     fs.create_dir(DOCKER_CTL_SCRIPT_LOCATION)
     fs.create_dir(SERVICE_MGMT_SCRIPT_LOCATION)
+    fs.create_file(GENERATED_SERVICES_CONF_FILE)
     fs.create_file(os.path.join(TEMPLATES_PATH, SERVICE_FILE_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, TIMER_UNIT_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, SERVICE_MGMT_SCRIPT_TEMPLATE))
