@@ -35,18 +35,6 @@ def extract_scope(path):
 
     return scope, remainder
 
-def get_all_running_configs(db):
-    all_running_config = {}
-    cfgdb_clients = db.cfgdb_clients
-
-    for ns, config_db in cfgdb_clients.items():
-        current_config = config_db.get_config()
-        sonic_cfggen.FormatConverter.to_serialized(current_config)
-        asic_name = HOST_NAMESPACE if ns == multi_asic.DEFAULT_NAMESPACE else ns
-        all_running_config[asic_name] = sort_dict(current_config)
-
-    return all_running_config
-
 
 class ConfigLock:
     def acquire_lock(self):
