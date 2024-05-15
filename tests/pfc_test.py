@@ -64,7 +64,7 @@ class TestPfc(TestPfcBase):
 
     def test_pfc_show_asymmetric_intf_fake(self):
         self.executor(pfc.cli, ['show', 'asymmetric', 'Ethernet1234'],
-                      expected_output=pfc_cannot_find_intf)
+                      expected_output=pfc_asym_cannot_find_intf)
 
     def test_pfc_show_priority_all(self):
         self.executor(pfc.cli, ['show', 'priority'],

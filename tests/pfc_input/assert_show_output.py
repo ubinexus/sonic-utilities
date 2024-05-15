@@ -1,3 +1,10 @@
+pfc_asym_cannot_find_intf = """\
+
+Interface    Asymmetric
+-----------  ------------
+
+"""
+
 pfc_cannot_find_intf = """\
 Cannot find interface Ethernet1234
 """
