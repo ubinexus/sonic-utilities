@@ -149,6 +149,8 @@ class TestConfigIP(object):
         assert ('Vlan4000', '10.16.20.1/24') in db.cfgdb.get_table('VLAN_INTERFACE')
         assert 'secondary' not in db.cfgdb.get_table('VLAN_INTERFACE')[('Vlan4000', '10.16.20.1/24')]
 
+        # create vlan 500
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["500"], obj=db)
         # config int ip add vlan500 10.21.20.1/24 as secondary - should fail as vlan500 is not added in table
         ERR_MSG = "Error: Primary for the interface Vlan500 is not set, so skipping adding the interface"
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan500", "10.21.20.1/24", "--secondary"], obj=obj)
