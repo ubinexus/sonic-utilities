@@ -43,6 +43,7 @@ DEBUG_COUNTER_PORT_STAT_MAP = 'COUNTERS_DEBUG_NAME_PORT_STAT_MAP'
 DEBUG_COUNTER_SWITCH_STAT_MAP = 'COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP'
 COUNTERS_PORT_NAME_MAP = 'COUNTERS_PORT_NAME_MAP'
 COUNTER_TABLE_PREFIX = 'COUNTERS:'
+SWITCH_LEVEL_COUNTER_PREFIX = 'SWITCH_ID'
 
 # ASIC_DB Tables
 ASIC_SWITCH_INFO_PREFIX = 'ASIC_STATE:SAI_OBJECT_TYPE_SWITCH:'
@@ -114,7 +115,6 @@ class DropStat(object):
         """
 
         self.show_voq_drop_counts(group, counter_type)
-        print('')
         self.show_port_drop_counts(group, counter_type)
         print('')
         self.show_switch_drop_counts(group, counter_type)
@@ -148,8 +148,10 @@ class DropStat(object):
         if os.path.isfile(self.switch_voq_drop_stats_file):
             switch_voq_drop_ckpt = json.load(open(self.switch_voq_drop_stats_file, 'r'))
 
-        counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP)
+        counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP, False)
         if not counters:
+            return
+        if not SWITCH_LEVEL_COUNTER_PREFIX in counters:
             return
         switch_id = self.get_switch_id()
         switch_voq_stats = self.get_counts(std_switch_voq_drop_counters, switch_id)
@@ -164,6 +166,7 @@ class DropStat(object):
         for counter in std_switch_voq_drop_counters:
             if counter in std_voq_drop_headers_map:
                print("  ", counter," : ", (switch_voq_stats.get(counter,0) - switch_voq_drop_ckpt.get(counter,0)))
+        print('')
 
     def show_port_drop_counts(self, group, counter_type):
         """
@@ -228,7 +231,7 @@ class DropStat(object):
             the group or not the right counter type.
         """
 
-        configured_counters = self.get_configured_counters(object_stat_map)
+        configured_counters = self.get_configured_counters(object_stat_map, True)
         counters = std_counters + configured_counters
         return [ctr for ctr in counters
                 if self.in_group(ctr, object_stat_map, group) and
@@ -321,7 +324,7 @@ class DropStat(object):
 
         return self.reverse_stat_lookup[object_stat_map]
 
-    def get_configured_counters(self, object_stat_map):
+    def get_configured_counters(self, object_stat_map, remove_cntr=False):
         """
             Returns the list of counters that have been configured to
             track packet drops.
@@ -332,6 +335,12 @@ class DropStat(object):
         configured_counters = []
         if not counters:
             return configured_counters
+
+        #Switch level standard drop counters are added by default and added to DEBUG_COUNTER_SWITCH_STAT_MAP table,
+        #so remove it from configrued counters
+        if remove_cntr and object_stat_map == DEBUG_COUNTER_SWITCH_STAT_MAP:
+           if SWITCH_LEVEL_COUNTER_PREFIX in counters:
+              del counters[SWITCH_LEVEL_COUNTER_PREFIX]
 
         return list(counters.values())
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 #####################################################################
 #
@@ -274,26 +274,39 @@ class Queuestat(object):
             old_cntr = None
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
-
             if old_cntr is not None:
-                if not non_zero or ns_diff(cntr['totalpacket'], old_cntr['totalpacket']) != '0' or \
+                if self.voq:
+                   if not non_zero or ns_diff(cntr['totalpacket'], old_cntr['totalpacket']) != '0' or \
                                    ns_diff(cntr['totalbytes'], old_cntr['totalbytes']) != '0' or \
                                    ns_diff(cntr['droppacket'], old_cntr['droppacket']) != '0' or \
                                    ns_diff(cntr['dropbytes'], old_cntr['dropbytes']) != '0' or \
-                                   ((self.voq) and ns_diff(cntr['creditWDpkts'], old_cntr['creditWDpkts']) != '0'):
-                    table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                                ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
-                                ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
-                                ns_diff(cntr['droppacket'], old_cntr['droppacket']),
-                                ns_diff(cntr['dropbytes'], old_cntr['dropbytes'])))
-                    if self.voq:
-                       table.append(ns_diff(cntr['creditWDpkts'], old_cntr['creditWDpkts']))
-                elif not non_zero or cntr['totalpacket'] != '0' or cntr['totalbytes'] != '0' or \
-                                     cntr['droppacket'] != '0' or cntr['dropbytes'] != '0' or \
-                                     ((self.voq) and cntr['creditWDpkts'] != '0'):
-                    table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                            cntr['totalpacket'], cntr['totalbytes'],
-                            cntr['droppacket'], cntr['dropbytes'], cntr['creditWDpkts']))
+                                   ns_diff(cntr['creditWDpkts'], old_cntr['creditWDpkts']) != '0':
+                       table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                                   ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
+                                   ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
+                                   ns_diff(cntr['droppacket'], old_cntr['droppacket']),
+                                   ns_diff(cntr['dropbytes'], old_cntr['dropbytes']),
+                                   ns_diff(cntr['creditWDpkts'], old_cntr['creditWDpkts'])))
+                   elif not non_zero or cntr['totalpacket'] != '0' or cntr['totalbytes'] != '0' or \
+                                  cntr['droppacket'] != '0' or cntr['dropbytes'] != '0' or cntr['creditWDpkts'] != '0':
+                       table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                                  cntr['totalpacket'], cntr['totalbytes'],
+                                  cntr['droppacket'], cntr['dropbytes'], cntr['creditWDpkts']))
+                else:
+                   if not non_zero or ns_diff(cntr['totalpacket'], old_cntr['totalpacket']) != '0' or \
+                                   ns_diff(cntr['totalbytes'], old_cntr['totalbytes']) != '0' or \
+                                   ns_diff(cntr['droppacket'], old_cntr['droppacket']) != '0' or \
+                                   ns_diff(cntr['dropbytes'], old_cntr['dropbytes']) != '0':
+                      table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                                  ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
+                                  ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
+                                  ns_diff(cntr['droppacket'], old_cntr['droppacket']),
+                                  ns_diff(cntr['dropbytes'], old_cntr['dropbytes'])))
+                   elif not non_zero or cntr['totalpacket'] != '0' or cntr['totalbytes'] != '0' or \
+                                     cntr['droppacket'] != '0' or cntr['dropbytes'] != '0':
+                      table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                               cntr['totalpacket'], cntr['totalbytes'],
+                               cntr['droppacket'], cntr['dropbytes']))
 
         if json_opt:
             json_output[port].update(build_json(port, table, self.voq))
