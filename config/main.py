@@ -1187,15 +1187,6 @@ def validate_patch(patch):
             log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
             return False
 
-        # Duplicate check
-        resource_usage = {}
-        for operation in patch:
-            resource_path = operation['path']
-            if resource_path in resource_usage:
-                log.log_notice(f"Conflict detected: multiple patches modify {resource_path}")
-                return False
-            resource_usage[resource_path] = operation
-
         # Structure validation and simulate apply patch.
         all_target_config = patch.apply(json.loads(all_running_config))
 
