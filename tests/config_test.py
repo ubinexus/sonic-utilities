@@ -398,10 +398,15 @@ class TestConfigReload(object):
 class TestBMPConfig(object):
     @classmethod
     def setup_class(cls):
-        os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
-        import config.main
-        importlib.reload(config.main)
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        import config.main as config
+        reload(config)
+        yield
+        print("TEARDOWN")
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs = {}
 
     def test_enable_bgp_neighbor_table(
             self,
@@ -547,12 +552,6 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    @classmethod
-    def teardown_class(cls):
-        os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        from .mock_tables import dbconnector
-        dbconnector.dedicated_dbs = {}
-        print("TEARDOWN")
 
 class TestLoadMinigraph(object):
     @classmethod
