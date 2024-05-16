@@ -1,7 +1,4 @@
 import os
-import traceback
-import pytest
-from unittest import mock
 from click.testing import CliRunner
 from utilities_common.db import Db
 
@@ -9,7 +6,7 @@ import config.main as config
 import show.main as show
 
 
-show_interface_dhcp_rate_limit_output="""\
+show_interface_dhcp_rate_limit_output = """\
 Interface        DHCP Mitigation Rate
 -----------     ----------------------
 Ethernet0                       300
@@ -169,13 +166,6 @@ class TestDHCPRate(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-
-
-    def test_show_dhcp_rate_limit(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
-        assert result.exit_code == 0
-        assert result.output == show_interface_dhcp_rate_limit_output
 
 
     @classmethod

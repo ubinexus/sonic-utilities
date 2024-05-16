@@ -20,6 +20,7 @@ HWSKU_JSON = 'hwsku.json'
 
 # Read given JSON file
 def readJsonFile(fileName):
+
     try:
         with open(fileName) as f:
             result = json.load(f)
@@ -33,6 +34,7 @@ def readJsonFile(fileName):
         click.echo("{}\n{}".format(type(e), str(e)), err=True)
         raise click.Abort()
     return result
+
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
@@ -50,10 +52,12 @@ def try_convert_interfacename_from_alias(ctx, interfacename):
 #
 # 'interfaces' group ("show interfaces ...")
 #
+
 @click.group(cls=clicommon.AliasedGroup)
 def interfaces():
     """Show details of the network interfaces"""
     pass
+
 
 # 'alias' subcommand ("show interfaces alias")
 @interfaces.command()
@@ -92,6 +96,7 @@ def alias(interfacename, namespace, display):
             else:
                 body.append([port_name, port_name])
 
+
     click.echo(tabulate(body, header))
 
 @interfaces.command()
@@ -100,6 +105,7 @@ def alias(interfacename, namespace, display):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def description(interfacename, namespace, display, verbose):
     """Show interface status, protocol and description"""
+
 
     ctx = click.get_current_context()
 
@@ -113,12 +119,15 @@ def description(interfacename, namespace, display, verbose):
     else:
         cmd += ['-d', str(display)]
 
+
     if namespace is not None:
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
 # 'naming_mode' subcommand ("show interfaces naming_mode")
+
+
 @interfaces.command('naming_mode')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def naming_mode(verbose):
@@ -141,6 +150,7 @@ def status(interfacename, namespace, display, verbose):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         cmd += ['-i', str(interfacename)]
+
     else:
         cmd += ['-d', str(display)]
 
@@ -180,10 +190,14 @@ def dhcp_mitigation_rate(ctx, interfacename):
     """Show Interface DHCP mitigation rate information"""
 
     ctx = click.get_current_context()
-    port_data = list(config_db.get_table('PORT').keys())
+    # Reading data from Redis configDb
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
+    keys = []
 
     if interfacename is None:
+        port_data = list(config_db.get_table('PORT').keys())
         keys = port_data
 
     else:
