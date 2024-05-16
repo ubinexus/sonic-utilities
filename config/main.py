@@ -1165,7 +1165,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     scope_for_log = scope if scope else HOST_NAMESPACE
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
+        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes),
                                                 config_format,
                                                 verbose,
                                                 dry_run,
@@ -1201,13 +1201,14 @@ def validate_patch(patch):
 
         # Verify target config by YANG models
         target_config = all_target_config.pop(HOST_NAMESPACE) if multi_asic.is_multi_asic() else all_target_config
+        target_config.pop("bgpraw", None)
         if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
             return False
 
         if multi_asic.is_multi_asic():
             for asic in multi_asic.get_namespace_list():
                 target_config = all_target_config.pop(asic)
-
+                target_config.pop("bgpraw", None)
                 if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
                     return False
 
