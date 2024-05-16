@@ -408,7 +408,7 @@ class TestBMPConfig(object):
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
@@ -424,12 +424,12 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    def test_disable_bgp_neighbor_table(
+    def test_enable_disable_bgp_neighbor_table(
             self,
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
@@ -456,7 +456,7 @@ class TestBMPConfig(object):
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
@@ -472,12 +472,12 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    def test_disable_bgp_rib_in_table(
+    def test_enable_disable_bgp_rib_in_table(
             self,
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
@@ -504,7 +504,7 @@ class TestBMPConfig(object):
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
@@ -520,12 +520,12 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    def test_disable_bgp_rib_out_table(
+    def test_enable_disable_bgp_rib_out_table(
             self,
             get_cmd_module,
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "config_db.json")
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
 
