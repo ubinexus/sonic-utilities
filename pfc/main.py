@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import click
 import os
 import sys
-import click
 from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 from natsort import natsorted
