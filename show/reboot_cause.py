@@ -49,22 +49,22 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
 
     table = []
     d = []
-    append = False
     for tk in table_keys:
         r = []
-
+        append = False
         entry = rdb.hgetall(tk)
 
         if not module_name is None:
             if 'device' in entry:
                 if module_name != entry['device'] and module_name != "all":
                     continue
-                if entry['device'] in d:
+                if entry['device'] in d and history == False:
                     append = False
                     continue
-                else:
+                elif not entry['device'] in d or entry['device'] in d and history == True:
                     append = True
-                    d.append(entry['device'])
+                    if not entry['device'] in d:
+                        d.append(entry['device'])
             r.append(entry['device'] if 'device' in entry else "SWITCH")
         suffix=""
         if append and "DPU" in entry['device']:
