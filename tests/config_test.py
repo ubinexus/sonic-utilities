@@ -454,7 +454,6 @@ class TestBMPConfig(object):
             assert result.exit_code == 0
             assert mock_run_command1.call_count == 1
 
-
     def test_enable_bgp_rib_in_table(
             self,
             get_cmd_module,
@@ -476,7 +475,6 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
-
 
     def test_disable_bgp_rib_in_table(
             self,
@@ -506,7 +504,6 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
             assert mock_run_command1.call_count == 1
-
 
     def test_enable_bgp_rib_out_table(
             self,

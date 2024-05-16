@@ -4009,7 +4009,7 @@ def enable_bgp_neighbor_table(ctx):
     try:
         bmp_table = config_db.get_table('BMP')
         if not bmp_table:
-            bmp_table =  {'table': {'bgp_neighbor_table': 'true'}}
+            bmp_table = {'table': {'bgp_neighbor_table': 'true'}}
         else:
             bmp_table['table']['bgp_neighbor_table'] = 'true'
 
