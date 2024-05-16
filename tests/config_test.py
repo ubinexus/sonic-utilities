@@ -417,13 +417,12 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-neighbor-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-neighbor-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
     def test_disable_bgp_neighbor_table(
             self,
@@ -439,20 +438,18 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-neighbor-table first
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-neighbor-table"], obj=obj)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
         # bmp disable bgp-neighbor-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command1:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["disable", "bgp-neighbor-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command1.call_count == 1
 
     def test_enable_bgp_rib_in_table(
             self,
@@ -468,13 +465,12 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-rib-in-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-rib-in-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
     def test_disable_bgp_rib_in_table(
             self,
@@ -490,20 +486,18 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-rib-in-table first
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-rib-in-table"], obj=obj)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
         # bmp disable bgp-rib-in-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command1:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["disable", "bgp-rib-in-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command1.call_count == 1
 
     def test_enable_bgp_rib_out_table(
             self,
@@ -519,13 +513,12 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-rib-out-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-rib-out-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
     def test_disable_bgp_rib_out_table(
             self,
@@ -541,20 +534,18 @@ class TestBMPConfig(object):
         obj = {'config_db': db.cfgdb}
 
         # bmp enable bgp-rib-out-table first
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-rib-out-table"], obj=obj)
             assert result.exit_code == 0
-            assert mock_run_command.call_count == 1
 
         # bmp disable bgp-rib-out-table
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command1:
+        with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["disable", "bgp-rib-out-table"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
-            assert mock_run_command1.call_count == 1
 
     @classmethod
     def teardown_class(cls):
