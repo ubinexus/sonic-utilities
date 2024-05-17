@@ -20,6 +20,7 @@ from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
+from generic_config_updater.gu_common import HOST_NAMESPACE, GenericConfigUpdaterError
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
@@ -27,6 +28,7 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.general import getstatusoutput_noshell
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
+from sonic_yang_cfg_generator import SonicYangCfgDbGenerator
 from utilities_common import util_base
 from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -57,7 +59,9 @@ from . import plugins
 from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
+from . import switchport
 from . import dns
+
 
 # mock masic APIs for unit test
 try:
@@ -105,6 +109,7 @@ PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
+PORT_MODE = "switchport_mode"
 
 DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
 
@@ -1152,24 +1157,58 @@ def validate_gre_type(ctx, _, value):
         return gre_type_value
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
-    
+
 # Function to apply patch for a single ASIC.
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
-    if scope.lower() == "localhost" or scope == "":
+    if scope.lower() == HOST_NAMESPACE or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
-        
-    scope_for_log = scope if scope else "localhost"
+
+    scope_for_log = scope if scope else HOST_NAMESPACE
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes),
+                                                    config_format,
+                                                    verbose,
+                                                    dry_run,
+                                                    ignore_non_yang_tables,
+                                                    ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_warning(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
+
+def validate_patch(patch):
+    try:
+        command = ["show", "runningconfiguration", "all"]
+        proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+        all_running_config, returncode = proc.communicate()
+        if returncode:
+            log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
+            return False
+
+        # Structure validation and simulate apply patch.
+        all_target_config = patch.apply(json.loads(all_running_config))
+
+        # Verify target config by YANG models
+        target_config = all_target_config.pop(HOST_NAMESPACE) if multi_asic.is_multi_asic() else all_target_config
+        target_config.pop("bgpraw", None)
+        if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+            return False
+
+        if multi_asic.is_multi_asic():
+            for asic in multi_asic.get_namespace_list():
+                target_config = all_target_config.pop(asic)
+                target_config.pop("bgpraw", None)
+                if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+                    return False
+
+        return True
+    except Exception as e:
+        raise GenericConfigUpdaterError(f"Validate json patch: {patch} failed due to:{e}")
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1230,6 +1269,9 @@ config.add_command(syslog.syslog)
 
 # DNS module
 config.add_command(dns.dns)
+
+# Switchport module
+config.add_command(switchport.switchport)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1375,6 +1417,9 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
+        if not validate_patch(patch):
+            raise GenericConfigUpdaterError(f"Failed validating patch:{patch}")
+
         results = {}
         config_format = ConfigFormat[format.upper()]
         # Initialize a dictionary to hold changes categorized by scope
@@ -1411,7 +1456,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
         if failures:
             failure_messages = '\n'.join([f"- {failed_scope}: {results[failed_scope]['message']}" for failed_scope in failures])
-            raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
+            raise GenericConfigUpdaterError(f"Failed to apply patch on the following scopes:\n{failure_messages}")
 
         log.log_notice(f"Patch applied successfully for {patch}.")
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
@@ -1641,9 +1686,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             file_input = read_json_file(file)
 
             platform = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("platform")
+                get(HOST_NAMESPACE, {}).get("platform")
             mac = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("mac")
+                get(HOST_NAMESPACE, {}).get("mac")
 
             if not platform or not mac:
                 log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
@@ -2016,8 +2061,8 @@ def override_config_table(db, input_config_db, dry_run):
         if multi_asic.is_multi_asic() and len(config_input):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
-                if "localhost" in config_input.keys():
-                    ns_config_input = config_input["localhost"]
+                if HOST_NAMESPACE in config_input.keys():
+                    ns_config_input = config_input[HOST_NAMESPACE]
                 else:
                     click.secho("Wrong config format! 'localhost' not found in host config! cannot override.. abort")
                     sys.exit(1)
@@ -4651,12 +4696,14 @@ def validate_vlan_exists(db,text):
 # 'add' subcommand
 #
 
-@ip.command()
+
+@ip.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.argument('gw', metavar='<default gateway IP address>', required=False)
+@click.option('--secondary', "-s", is_flag=True, default=False)
 @click.pass_context
-def add(ctx, interface_name, ip_addr, gw):
+def add_interface_ip(ctx, interface_name, ip_addr, gw, secondary):
     """Add an IP address towards the interface"""
     # Get the config_db connector
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
@@ -4666,19 +4713,38 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before
-    # changing it to a router port
-    vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if (interface_is_in_vlan(vlan_member_table, interface_name)):
-        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-        return
-
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
 
+    # Add a validation to check this interface is in routed mode before
+    # assigning an IP address to it
+
+    sub_intf = False
+
+    if clicommon.is_valid_port(config_db, interface_name):
+        is_port = True
+    elif clicommon.is_valid_portchannel(config_db, interface_name):
+        is_port = False
+    else:
+        sub_intf = True
+
+    if not sub_intf:
+        interface_mode = None
+        if is_port:
+            interface_data = config_db.get_entry('PORT', interface_name)
+        else:
+            interface_data = config_db.get_entry('PORTCHANNEL', interface_name)
+
+        if "mode" in interface_data:
+            interface_mode = interface_data["mode"]
+
+        if interface_mode == "trunk" or interface_mode == "access":
+            click.echo("Interface {} is in {} mode and needs to be in routed mode!".format(
+                interface_name, interface_mode))
+            return
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:
@@ -4722,7 +4788,25 @@ def add(ctx, interface_name, ip_addr, gw):
             config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
         else:
             config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
-    config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
+
+    if secondary:
+        # We update the secondary flag only in case of VLAN Interface.
+        if table_name == "VLAN_INTERFACE":
+            vlan_interface_table = config_db.get_table(table_name)
+            contains_primary = False
+            for key, value in vlan_interface_table.items():
+                if not isinstance(key, tuple):
+                    continue
+                name, prefix = key
+                if name == interface_name and "secondary" not in value:
+                    contains_primary = True
+            if contains_primary:
+                config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
+            else:
+                ctx.fail("Primary for the interface {} is not set, so skipping adding the interface"
+                         .format(interface_name))
+    else:
+        config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
 
 #
 # 'del' subcommand
@@ -4772,17 +4856,16 @@ def remove(ctx, interface_name, ip_addr):
             if output != "":
                 if any(interface_name in output_line for output_line in output.splitlines()):
                     ctx.fail("Cannot remove the last IP entry of interface {}. A static {} route is still bound to the RIF.".format(interface_name, ip_ver))
-    remove_router_interface_ip_address(config_db, interface_name, ip_address)
-    interface_addresses = get_interface_ipaddresses(config_db, interface_name)
-    if len(interface_addresses) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False and get_intf_ipv6_link_local_mode(ctx, interface_name, table_name) != "enable":
-        if table_name != "VLAN_SUB_INTERFACE":
-            config_db.set_entry(table_name, interface_name, None)
-
     if multi_asic.is_multi_asic():
         command = ['sudo', 'ip', 'netns', 'exec', str(ctx.obj['namespace']), 'ip', 'neigh', 'flush', 'dev', str(interface_name), str(ip_address)]
     else:
         command = ['ip', 'neigh', 'flush', 'dev', str(interface_name), str(ip_address)]
     clicommon.run_command(command)
+    remove_router_interface_ip_address(config_db, interface_name, ip_address)
+    interface_addresses = get_interface_ipaddresses(config_db, interface_name)
+    if len(interface_addresses) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False and get_intf_ipv6_link_local_mode(ctx, interface_name, table_name) != "enable":
+        if table_name != "VLAN_SUB_INTERFACE":
+            config_db.set_entry(table_name, interface_name, None)
 
 #
 # 'loopback-action' subcommand
@@ -7549,6 +7632,125 @@ def date(date, time):
 
     date_time = f'{date} {time}'
     clicommon.run_command(['timedatectl', 'set-time', date_time])
+
+
+#
+# 'asic-sdk-health-event' group ('config asic-sdk-health-event ...')
+#
+@config.group()
+def asic_sdk_health_event():
+    """Configuring asic-sdk-health-event"""
+    pass
+
+
+@asic_sdk_health_event.group()
+def suppress():
+    """Suppress ASIC/SDK health event"""
+    pass
+
+
+def handle_asic_sdk_health_suppress(db, severity, category_list, max_events, namespace):
+    ctx = click.get_current_context()
+
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+    else:
+        namespace_list = [DEFAULT_NAMESPACE]
+
+    severityCapabilities = {
+        "fatal": "REG_FATAL_ASIC_SDK_HEALTH_CATEGORY",
+        "warning": "REG_WARNING_ASIC_SDK_HEALTH_CATEGORY",
+        "notice": "REG_NOTICE_ASIC_SDK_HEALTH_CATEGORY"
+    }
+
+    if category_list:
+        categories = {"software", "firmware", "cpu_hw", "asic_hw"}
+
+        if category_list == 'none':
+            suppressedCategoriesList = []
+        elif category_list == 'all':
+            suppressedCategoriesList = list(categories)
+        else:
+            suppressedCategoriesList = category_list.split(',')
+
+            unsupportCategories = set(suppressedCategoriesList) - categories
+            if unsupportCategories:
+                ctx.fail("Invalid category(ies): {}".format(unsupportCategories))
+
+    for ns in namespace_list:
+        if namespace and namespace != ns:
+            continue
+
+        config_db = db.cfgdb_clients[ns]
+        state_db = db.db_clients[ns]
+
+        entry_name = "SWITCH_CAPABILITY|switch"
+        if "true" != state_db.get(state_db.STATE_DB, entry_name, "ASIC_SDK_HEALTH_EVENT"):
+            ctx.fail("ASIC/SDK health event is not supported on the platform")
+
+        if "true" != state_db.get(state_db.STATE_DB, entry_name, severityCapabilities[severity]):
+            ctx.fail("Suppressing ASIC/SDK health {} event is not supported on the platform".format(severity))
+
+        entry = config_db.get_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity)
+        need_remove = False
+        noarg = True
+
+        if category_list:
+            noarg = False
+            if suppressedCategoriesList:
+                entry["categories"] = suppressedCategoriesList
+            elif entry.get("categories"):
+                entry.pop("categories")
+                need_remove = True
+
+        if max_events is not None:
+            noarg = False
+            if max_events > 0:
+                entry["max_events"] = max_events
+            elif entry.get("max_events"):
+                entry.pop("max_events")
+                need_remove = True
+
+        if noarg:
+            ctx.fail("At least one argument should be provided!")
+
+        if entry:
+            config_db.set_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, entry)
+        elif need_remove:
+            config_db.set_entry("SUPPRESS_ASIC_SDK_HEALTH_EVENT", severity, None)
+
+
+@suppress.command()
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
+@clicommon.pass_db
+def fatal(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'fatal', category_list, max_events, namespace)
+
+
+@suppress.command()
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
+@clicommon.pass_db
+def warning(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'warning', category_list, max_events, namespace)
+
+
+@suppress.command()
+@click.option('--category-list', metavar='<category_list>', type=str, help="Categories to be suppressed")
+@click.option('--max-events', metavar='<max_events>', type=click.IntRange(0), help="Maximum number of received events")
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()))
+@clicommon.pass_db
+def notice(db, category_list, max_events, namespace):
+    handle_asic_sdk_health_suppress(db, 'notice', category_list, max_events, namespace)
 
 
 if __name__ == '__main__':

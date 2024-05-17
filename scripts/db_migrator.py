@@ -8,10 +8,9 @@ import traceback
 import re
 
 from sonic_py_common import device_info, logger
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from minigraph import parse_xml
 from utilities_common.helper import update_config
-from utilities_common.general import load_db_config
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
@@ -808,6 +807,55 @@ class DBMigrator():
                 sflow_key = "SFLOW_SESSION_TABLE:{}".format(key)
                 self.appDB.set(self.appDB.APPL_DB, sflow_key, 'sample_direction','rx')
 
+    def migrate_tacplus(self):
+        if not self.config_src_data or 'TACPLUS' not in self.config_src_data:
+            return
+
+        tacplus_new = self.config_src_data['TACPLUS']
+        log.log_notice('Migrate TACPLUS configuration')
+
+        global_old = self.configDB.get_entry('TACPLUS', 'global')
+        if not global_old:
+            global_new = tacplus_new.get("global")
+            self.configDB.set_entry("TACPLUS", "global", global_new)
+            log.log_info('Migrate TACPLUS global: {}'.format(global_new))
+
+    def migrate_aaa(self):
+        if not self.config_src_data or 'AAA' not in self.config_src_data:
+            return
+
+        aaa_new = self.config_src_data['AAA']
+        log.log_notice('Migrate AAA configuration')
+
+        authentication = self.configDB.get_entry('AAA', 'authentication')
+        if not authentication:
+            authentication_new = aaa_new.get("authentication")
+            self.configDB.set_entry("AAA", "authentication", authentication_new)
+            log.log_info('Migrate AAA authentication: {}'.format(authentication_new))
+
+        # setup per-command accounting
+        accounting = self.configDB.get_entry('AAA', 'accounting')
+        if not accounting:
+            accounting_new = aaa_new.get("accounting")
+            self.configDB.set_entry("AAA", "accounting", accounting_new)
+            log.log_info('Migrate AAA accounting: {}'.format(accounting_new))
+
+        # setup per-command authorization
+        tacplus_config = self.configDB.get_entry('TACPLUS', 'global')
+        if 'passkey' in tacplus_config and '' != tacplus_config.get('passkey'):
+            authorization = self.configDB.get_entry('AAA', 'authorization')
+            if not authorization:
+                authorization_new = aaa_new.get("authorization")
+                self.configDB.set_entry("AAA", "authorization", authorization_new)
+                log.log_info('Migrate AAA authorization: {}'.format(authorization_new))
+        else:
+            # If no passkey, setup per-command authorization will block remote user command
+            log.log_info('TACACS passkey does not exist, disable per-command authorization.')
+            authorization_key = "AAA|authorization"
+            keys = self.configDB.keys(self.configDB.CONFIG_DB, authorization_key)
+            if keys:
+                self.configDB.delete(self.configDB.CONFIG_DB, authorization_key)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -1235,6 +1283,9 @@ class DBMigrator():
         # update FRR config mode based on minigraph parser on target image
         self.migrate_routing_config_mode()
 
+        self.migrate_tacplus()
+        self.migrate_aaa()
+
     def migrate(self):
         version = self.get_version()
         log.log_info('Upgrading from version ' + version)
@@ -1277,7 +1328,14 @@ def main():
         socket_path = args.socket
         namespace = args.namespace
 
-        load_db_config()
+        # Can't load global config base on the result of is_multi_asic(), because on multi-asic device, when db_migrate.py
+        # run on the local database, ASIC instance will have not created the /var/run/redis0/sonic-db/database-config.json
+        if args.namespace is not None:
+            if not SonicDBConfig.isGlobalInit():
+                SonicDBConfig.initializeGlobalConfig()
+        else:
+            if not SonicDBConfig.isInit():
+                SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
