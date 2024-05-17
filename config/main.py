@@ -1178,7 +1178,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
         log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
-        log.log_warning(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
+        log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
 
 
 def validate_patch(patch):
@@ -1466,11 +1466,6 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
 @config.command()
 @click.argument('target-file-path', type=str, required=True)
-@click.option('-s', '--scope',
-              help='Specify the namespace for Multi-ASIC environments. For Single-ASIC environments, \
-                specifying the namespace is not required.',
-              required=True if multi_asic.is_multi_asic() else False,
-              type=click.Choice(multi_asic.get_namespace_list() + ['localhost']))
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
                help='format of target config is either ConfigDb(ABNF) or SonicYang',
@@ -1480,7 +1475,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
+def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
        if ACL config is different between current and target config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
@@ -1500,13 +1495,27 @@ def replace(ctx, target_file_path, scope, format, dry_run, ignore_non_yang_table
 
         config_format = ConfigFormat[format.upper()]
         if multi_asic.is_multi_asic():
-            if scope not in (multi_asic.get_namespace_list() + ["localhost"]):
-                raise Exception(f"Failed to replace config due to wrong namespace:{scope}")
-            scope = scope if scope != "localhost" else multi_asic.DEFAULT_NAMESPACE
+            config_keys = set(target_config.keys())
+            scope_set = set(multi_asic.get_namespace_list() + [HOST_NAMESPACE])
+            missing_scopes = scope_set - config_keys
+            if missing_scopes:
+                raise GenericConfigUpdaterError(f"To be replace config: {target_file_path} is missing these namespaces: {missing_scopes}")
+
+            for scope in scope_set:
+                scope_config = target_config.pop("scope")
+                if not SonicYangCfgDbGenerator().validate_config_db_json(scope_config):
+                    raise GenericConfigUpdaterError(f"Invalid config for {scope} in {target_file_path}")
+
+                if scope.lower() == HOST_NAMESPACE:
+                    scope = multi_asic.DEFAULT_NAMESPACE
+                GenericUpdater(namespace=scope).replace(scope_config, config_format, verbose, dry_run,
+                                                        ignore_non_yang_tables, ignore_path)
         else:
+            if not SonicYangCfgDbGenerator().validate_config_db_json(scope_config):
+                raise GenericConfigUpdaterError(f"Invalid config in {target_file_path}")
             scope = multi_asic.DEFAULT_NAMESPACE
-        GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run,
-                                                ignore_non_yang_tables, ignore_path)
+            GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run,
+                                                        ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
