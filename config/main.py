@@ -1499,10 +1499,11 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
             scope_set = set(multi_asic.get_namespace_list() + [HOST_NAMESPACE])
             missing_scopes = scope_set - config_keys
             if missing_scopes:
-                raise GenericConfigUpdaterError(f"To be replace config: {target_file_path} is missing these namespaces: {missing_scopes}")
+                raise GenericConfigUpdaterError(f"""To be replace config: {target_file_path} is missing 
+                                                these namespaces: {missing_scopes}""")
 
             for scope in scope_set:
-                scope_config = target_config.pop("scope")
+                scope_config = target_config.pop(scope)
                 if not SonicYangCfgDbGenerator().validate_config_db_json(scope_config):
                     raise GenericConfigUpdaterError(f"Invalid config for {scope} in {target_file_path}")
 
@@ -1515,7 +1516,7 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
                 raise GenericConfigUpdaterError(f"Invalid config in {target_file_path}")
             scope = multi_asic.DEFAULT_NAMESPACE
             GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run,
-                                                        ignore_non_yang_tables, ignore_path)
+                                                    ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
