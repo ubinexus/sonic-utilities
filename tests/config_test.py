@@ -2868,7 +2868,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                                             catch_exceptions=True)
 
                 print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
-                # Assertions and verifications                
+                # Assertions and verifications
                 self.assertNotEqual(result.exit_code, 0, "Command should failed.")
                 self.assertIn("Failed to apply patch", result.output)
 

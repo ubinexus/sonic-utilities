@@ -1499,7 +1499,7 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
             scope_set = set(multi_asic.get_namespace_list() + [HOST_NAMESPACE])
             missing_scopes = scope_set - config_keys
             if missing_scopes:
-                raise GenericConfigUpdaterError(f"""To be replace config: {target_file_path} is missing 
+                raise GenericConfigUpdaterError(f"""To be replace config: {target_file_path} is missing
                                                 these namespaces: {missing_scopes}""")
 
             for scope in scope_set:
@@ -1522,6 +1522,7 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
     except Exception as ex:
         click.secho("Failed to replace config", fg="red", underline=True, err=True)
         ctx.fail(ex)
+
 
 @config.command()
 @click.argument('checkpoint-name', type=str, required=True)
