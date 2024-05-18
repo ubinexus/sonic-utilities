@@ -45,6 +45,11 @@ DEBUG_1    SWITCH_DROPS  PACKET_DROPS  SWITCH_EGRESS_DROPS  None       Outgoing 
 """
 
 expected_counts = """\
+SWITCH LEVEL COUNTERS:
+       SWITCH-ID    PKT_INTEGRITY_ERR
+----------------  -------------------
+sonic_drops_test                  500
+
     IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
 ---------  -------  --------  ----------  --------  ----------  ---------  ---------
 Ethernet0        D        10         100         0           0         80         20
@@ -71,6 +76,11 @@ Ethernet8      N/A       100          10         10          0
 """
 
 expected_counts_with_clear = """\
+SWITCH LEVEL COUNTERS:
+       SWITCH-ID    PKT_INTEGRITY_ERR
+----------------  -------------------
+sonic_drops_test                    0
+
     IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
 ---------  -------  --------  ----------  --------  ----------  ---------  ---------
 Ethernet0        D         0           0         0           0          0          0

@@ -43,7 +43,7 @@ DEBUG_COUNTER_PORT_STAT_MAP = 'COUNTERS_DEBUG_NAME_PORT_STAT_MAP'
 DEBUG_COUNTER_SWITCH_STAT_MAP = 'COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP'
 COUNTERS_PORT_NAME_MAP = 'COUNTERS_PORT_NAME_MAP'
 COUNTER_TABLE_PREFIX = 'COUNTERS:'
-SWITCH_LEVEL_COUNTER_PREFIX = 'SWITCH_ID'
+SWITCH_LEVEL_COUNTER_PREFIX = 'SWITCH_STD_DROP_COUNTER-'
 
 # ASIC_DB Tables
 ASIC_SWITCH_INFO_PREFIX = 'ASIC_STATE:SAI_OBJECT_TYPE_SWITCH:'
@@ -67,7 +67,6 @@ DEBUG_COUNTER_CONFIG_TABLE = 'DEBUG_COUNTER'
 # Standard Port-Level Counters
 std_port_rx_counters = ['SAI_PORT_STAT_IF_IN_ERRORS', 'SAI_PORT_STAT_IF_IN_DISCARDS']
 std_port_tx_counters = ['SAI_PORT_STAT_IF_OUT_ERRORS', 'SAI_PORT_STAT_IF_OUT_DISCARDS']
-std_switch_voq_drop_counters = ['SAI_SWITCH_STAT_PACKET_INTEGRITY_DROP']
 
 # Standard Port-Level Headers
 std_port_description_header = ['IFACE', 'STATE']
@@ -81,7 +80,8 @@ std_port_headers_map = {
 # Standard Switch-Level Headers
 std_switch_description_header = ['DEVICE']
 
-std_voq_drop_headers_map = {
+std_switch_dflt_drop_headers= [ 'SWITCH-ID']
+std_switch_drop_headers_map = {
     'SAI_SWITCH_STAT_PACKET_INTEGRITY_DROP':    'PKT_INTEGRITY_ERR'
 }
 
@@ -103,7 +103,7 @@ class DropStat(object):
         dropstat_dir = get_dropstat_dir()
         self.port_drop_stats_file = os.path.join(dropstat_dir, 'port-stats')
         self.switch_drop_stats_file = os.path.join(dropstat_dir + 'switch-stats')
-        self.switch_voq_drop_stats_file = os.path.join(dropstat_dir + 'switch-voq-stats')
+        self.switch_std_drop_stats_file = os.path.join(dropstat_dir,  'switch-std-drop-stats')
 
         self.stat_lookup = {}
         self.reverse_stat_lookup = {}
@@ -114,7 +114,7 @@ class DropStat(object):
             switch-level.
         """
 
-        self.show_voq_drop_counts(group, counter_type)
+        self.show_switch_std_drop_counts(group, counter_type)
         self.show_port_drop_counts(group, counter_type)
         print('')
         self.show_switch_drop_counts(group, counter_type)
@@ -129,44 +129,54 @@ class DropStat(object):
                         open(self.port_drop_stats_file, 'w+'))
             counters = self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP)
             if counters:
-                json.dump(self.get_counts(counters, self.get_switch_id()), open(self.switch_drop_stats_file, 'w+'))
-                json.dump(self.get_counts(std_switch_voq_drop_counters, self.get_switch_id()),
-                          open(self.switch_voq_drop_stats_file, 'w+'))
+               json.dump(self.get_counts(counters, self.get_switch_id()), open(self.switch_drop_stats_file, 'w+'))
+
+            counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP, True)
+            if counters:
+               json.dump(self.get_counts(counters, self.get_switch_id()), open(self.switch_std_drop_stats_file, 'w+'))
         except IOError as e:
             print(e)
             sys.exit(e.errno)
         print("Cleared drop counters")
 
-    def show_voq_drop_counts(self, group, counter_type):
+    def show_switch_std_drop_counts(self, group, counter_type):
         """
-            Prints out the voq drop counts at the switch level, if such counts exist.
+            Prints out the standard drop counts (packet integrity drop etc) at the switch level, if such counts exist.
         """
 
-        switch_voq_drop_ckpt = {}
+        if group is not None or counter_type is not None:
+            return
+
+        switch_std_drop_ckpt = {}
 
         # Grab the latest clear checkpoint, if it exists
-        if os.path.isfile(self.switch_voq_drop_stats_file):
-            switch_voq_drop_ckpt = json.load(open(self.switch_voq_drop_stats_file, 'r'))
+        if os.path.isfile(self.switch_std_drop_stats_file):
+            switch_std_drop_ckpt = json.load(open(self.switch_std_drop_stats_file, 'r'))
 
-        counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP, False)
+        counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP, True)
         if not counters:
             return
-        if not SWITCH_LEVEL_COUNTER_PREFIX in counters:
-            return
         switch_id = self.get_switch_id()
-        switch_voq_stats = self.get_counts(std_switch_voq_drop_counters, switch_id)
+        switch_std_stats = self.get_counts(counters, switch_id)
 
-        if not switch_voq_stats:
+        if not switch_std_stats:
             return
 
-        cfg_switch_id = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_id")
+        if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "1":
+           row = [socket.gethostname()]
+        else:
+           cfg_switch_id = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_id")
+           row = [cfg_switch_id]
 
         print("SWITCH LEVEL COUNTERS:")
-        print("  switch_id:",format(cfg_switch_id))
-        for counter in std_switch_voq_drop_counters:
-            if counter in std_voq_drop_headers_map:
-               print("  ", counter," : ", (switch_voq_stats.get(counter,0) - switch_voq_drop_ckpt.get(counter,0)))
-        print('')
+        headers = std_switch_dflt_drop_headers
+        for cntr in counters:
+            if cntr in std_switch_drop_headers_map:
+               row.append(switch_std_stats.get(cntr, 0) - switch_std_drop_ckpt.get(cntr, 0))
+               headers.append(std_switch_drop_headers_map[cntr])
+        if row:
+            print(tabulate([row], headers, tablefmt='simple', stralign='right'))
+            print('')
 
     def show_port_drop_counts(self, group, counter_type):
         """
@@ -231,7 +241,7 @@ class DropStat(object):
             the group or not the right counter type.
         """
 
-        configured_counters = self.get_configured_counters(object_stat_map, True)
+        configured_counters = self.get_configured_counters(object_stat_map, False)
         counters = std_counters + configured_counters
         return [ctr for ctr in counters
                 if self.in_group(ctr, object_stat_map, group) and
@@ -324,7 +334,7 @@ class DropStat(object):
 
         return self.reverse_stat_lookup[object_stat_map]
 
-    def get_configured_counters(self, object_stat_map, remove_cntr=False):
+    def get_configured_counters(self, object_stat_map, std_switch_cntr=False):
         """
             Returns the list of counters that have been configured to
             track packet drops.
@@ -338,9 +348,12 @@ class DropStat(object):
 
         #Switch level standard drop counters are added by default and added to DEBUG_COUNTER_SWITCH_STAT_MAP table,
         #so remove it from configrued counters
-        if remove_cntr and object_stat_map == DEBUG_COUNTER_SWITCH_STAT_MAP:
-           if SWITCH_LEVEL_COUNTER_PREFIX in counters:
-              del counters[SWITCH_LEVEL_COUNTER_PREFIX]
+        if object_stat_map == DEBUG_COUNTER_SWITCH_STAT_MAP:
+           if std_switch_cntr:
+              new_cntrs = {k:counters[k] for k in counters if SWITCH_LEVEL_COUNTER_PREFIX in k}
+           else:
+              new_cntrs = {k:counters[k] for k in counters if not SWITCH_LEVEL_COUNTER_PREFIX in k}
+           return list(new_cntrs.values())
 
         return list(counters.values())
 
