@@ -17,10 +17,11 @@ TACPLUS_SECRET_PASSWORD = "ktbSJeed7apq9dZHOD1O5wW9cvSaRWjW767qLyFEurDTSNEvHdYsp
 
 
 def encrypt_data(secret):
-    cmd = [ 'openssl', 'enc', '-aes-128-cbc', '-A',  '-a', '-salt', '-pbkdf2', '-pass', 'pass:' + TACPLUS_SECRET_PASSWORD ]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    cmd = ['openssl', 'enc', '-aes-128-cbc', '-A',  '-a', '-salt', '-pbkdf2', '-pass', 'pass:' + TACPLUS_SECRET_PASSWORD]
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, universal_newlines=True)
     outsecret, errs = p.communicate(input=secret)
-    return outsecret,errs
+    return outsecret, errs
 
 
 def is_secret(secret):
