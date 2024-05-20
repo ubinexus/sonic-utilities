@@ -877,6 +877,19 @@ class TestSNMPConfigCommands(object):
         assert result.exit_code != 0
         assert 'SNMP community configuration failed' in result.output
 
+    @patch('netifaces.interfaces', mock.Mock(return_value=['eth0']))
+    @patch('netifaces.ifaddresses', mock.Mock(return_value={2: [{'addr': '10.1.0.32', 'netmask': '255.255.255.0', 'broadcast': '10.1.0.255'}], 10: [{'addr': 'fe80::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]}))
+    @patch('os.system', mock.Mock(return_value=0))
+    def test_config_snmpagentaddress_add_linklocal(self):
+        db = Db()
+        obj = {'db':db.cfgdb}
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["snmpagentaddress"].commands["add"], ["fe80::1"], obj=obj)
+        print(result.exit_code)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("SNMP_AGENT_ADDRESS_CONFIG", "fe80::1%eth0|161|") == {}
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
