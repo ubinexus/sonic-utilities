@@ -253,6 +253,7 @@ function backup_database()
                                           and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
                                           and not string.match(k, 'VXLAN_TUNNEL_TABLE|') \
                                           and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') \
+                                          and not string.match(k, 'STORAGE_INFO|') \
                                           and not string.match(k, 'FAST_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
@@ -500,18 +501,6 @@ function check_conflict_boot_in_fw_update() {
     fi
 }
 
-function sync_fsio_rw()
-{
-    if [ -x /usr/local/bin/fsio-rw-sync ]; then
-        VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
-        /usr/local/bin/fsio-rw-sync
-        rc=$?
-        VERBOSE=yes debug "fsio-rw-sync returned $rc"
-        sleep 1
-        return $rc
-    fi
-}
-
 # main starts here
 parseOptions $@
 
@@ -567,8 +556,6 @@ case "$REBOOT_TYPE" in
         exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
-
-sync_fsio_rw
 
 save_counters_folder
 

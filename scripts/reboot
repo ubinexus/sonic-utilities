@@ -57,8 +57,8 @@ function stop_pmon_service()
 {
      CONTAINER_STOP_RC=0
      debug "Stopping pmon docker"
-     docker kill pmon &> /dev/null || CONTAINER_STOP_RC=$?
      systemctl stop pmon || debug "Ignore stopping pmon error $?"
+     docker kill pmon &> /dev/null || CONTAINER_STOP_RC=$?
      if [[ CONTAINER_STOP_RC -ne 0 ]]; then
         debug "Failed killing container pmon RC $CONTAINER_STOP_RC ."
      fi
@@ -170,17 +170,6 @@ function check_conflict_boot_in_fw_update()
     fi
 }
 
-function sync_fsio_rw()
-{
-    if [ -x /usr/local/bin/fsio-rw-sync ]; then
-        VERBOSE=yes debug "Syncing FS I/O reads and writes to disk"
-        /usr/local/bin/fsio-rw-sync
-        rc=$?
-        VERBOSE=yes debug "fsio-rw-sync returned $rc"
-        sleep 1
-    fi
-}
-
 function parse_options()
 {
     while getopts "h?vf" opt; do
@@ -209,8 +198,6 @@ fi
 debug "User requested rebooting device ..."
 
 check_conflict_boot_in_fw_update
-
-sync_fsio_rw
 
 setup_reboot_variables
 reboot_pre_check
