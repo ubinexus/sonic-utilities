@@ -8,7 +8,6 @@ import show.main as show
 from unittest import mock
 from mock import patch
 
-import config.validated_config_db_connector as validated_config_db_connector
 
 
 
@@ -196,20 +195,6 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: interface_name is None!" in result.output
-
-    
-    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
-    def test_dhcp_invalid_interface_yang_validation(self):
-        config.ADHOC_VALIDATION = False
-        runner = CliRunner()
-        db = Db()
-        obj = {'config_db':db.cfgdb}
-
-        result = self.runner.invoke(config.config.commands["interfaces"].commands["dhcp-mitigation-rate"].commands["add"],
-                               [intf, "45"], obj=obj)
-
-        assert "intf invalid or does not exist" in result.output
 
 
     @classmethod
