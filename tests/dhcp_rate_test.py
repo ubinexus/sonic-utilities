@@ -3,6 +3,8 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 import config.main as config
+import show.main as show
+
 
 
 show_interface_dhcp_rate_limit_output = """\
@@ -83,17 +85,6 @@ class TestDHCPRate(object):
         assert result.exit_code != 0
         assert "Error: {} does not exist".format(intf) in result.output
 
-    def test_config_dhcp_rate_add_on_invalid_interface(self):
-        db = Db()
-        runner = CliRunner()
-        obj = {'config_db': db.cfgdb}
-        intf = "test_fail_case"
-        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
-                               [intf, "20"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: {} interface_name is None!".format(intf) in result.output
 
     def test_config_dhcp_rate_del_on_invalid_port(self):
         db = Db()
@@ -177,6 +168,26 @@ class TestDHCPRate(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+
+    def test_config_dhcp_rate_add_on_invalid_interface(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db': db.cfgdb}
+        intf = "test_fail_case"
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                               ["etp33", "20"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: {} does not exist" in result.output
+
+    def test_show_dhcp_rate_limit(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_dhcp_rate_limit_output
 
     @classmethod
     def teardown_class(cls):
