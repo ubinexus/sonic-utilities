@@ -18,6 +18,7 @@ from collections import OrderedDict
 
 HWSKU_JSON = 'hwsku.json'
 
+
 # Read given JSON file
 def readJsonFile(fileName):
 
@@ -52,6 +53,7 @@ def try_convert_interfacename_from_alias(ctx, interfacename):
 #
 # 'interfaces' group ("show interfaces ...")
 #
+
 
 @click.group(cls=clicommon.AliasedGroup)
 def interfaces():
@@ -96,8 +98,8 @@ def alias(interfacename, namespace, display):
             else:
                 body.append([port_name, port_name])
 
-
     click.echo(tabulate(body, header))
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -106,19 +108,17 @@ def alias(interfacename, namespace, display):
 def description(interfacename, namespace, display, verbose):
     """Show interface status, protocol and description"""
 
-
     ctx = click.get_current_context()
 
     cmd = ['intfutil', '-c', 'description']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         cmd += ['-i', str(interfacename)]
     else:
         cmd += ['-d', str(display)]
-
 
     if namespace is not None:
         cmd += ['-n', str(namespace)]
@@ -134,6 +134,7 @@ def naming_mode(verbose):
     """Show interface naming_mode status"""
 
     click.echo(clicommon.get_interface_naming_mode())
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -158,6 +159,7 @@ def status(interfacename, namespace, display, verbose):
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -189,7 +191,6 @@ def tpid(interfacename, namespace, display, verbose):
 def dhcp_mitigation_rate(ctx, interfacename):
     """Show Interface DHCP mitigation rate information"""
 
-    ctx = click.get_current_context()
     # Reading data from Redis configDb
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -226,6 +227,7 @@ def dhcp_mitigation_rate(ctx, interfacename):
 
     header = ['Interface', 'DHCP Mitigation Rate']
     click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
+
 
 #
 # 'breakout' group ###
@@ -287,8 +289,10 @@ def breakout(ctx):
             platform_dict[port_name]["child port speeds"] = ",".join(speeds)
 
         # Sorted keys by name in natural sort Order for human readability
+
         parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(list(platform_dict.keys())))
         click.echo(json.dumps(parsed, indent=4))
+
 
 # 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
 @breakout.command('current-mode')
@@ -323,6 +327,7 @@ def currrent_mode(ctx, interface):
         body.append([name, str(cur_brkout_tbl[name]['brkout_mode'])])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
+
 #
 # 'neighbor' group ###
 #
@@ -354,7 +359,8 @@ def expected(db, interfacename):
             port = clicommon.InterfaceAliasConverter().name_to_alias(port)
             neighbor_dict[port] = neighbor_dict.pop(temp_port)
 
-    header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
+    header = ['LocalPort', 'Neighbor', 'NeighborPort', 
+              'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
         try:
@@ -362,9 +368,12 @@ def expected(db, interfacename):
             body.append([interfacename,
                          device,
                          neighbor_dict[interfacename]['port'],
-                         neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' in neighbor_metadata_dict[device] else 'None',
-                         neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' in neighbor_metadata_dict[device] else 'None',
-                         neighbor_metadata_dict[device]['type'] if 'type' in neighbor_metadata_dict[device] else 'None'])
+                         neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' 
+                         in neighbor_metadata_dict[device] else 'None',
+                         neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr'  
+                         in neighbor_metadata_dict[device] else 'None',
+                         neighbor_metadata_dict[device]['type'] if 'type' 
+                         in neighbor_metadata_dict[device] else 'None'])
         except KeyError:
             click.echo("No neighbor information available for interface {}".format(interfacename))
             return
@@ -375,13 +384,17 @@ def expected(db, interfacename):
                 body.append([port,
                              device,
                              neighbor_dict[port]['port'],
-                             neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' in neighbor_metadata_dict[device] else 'None',
-                             neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' in neighbor_metadata_dict[device] else 'None',
-                             neighbor_metadata_dict[device]['type'] if 'type' in neighbor_metadata_dict[device] else 'None'])
+                             neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' 
+                             in neighbor_metadata_dict[device] else 'None',
+                             neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' 
+                             in neighbor_metadata_dict[device] else 'None',
+                             neighbor_metadata_dict[device]['type'] if 'type' 
+                             in neighbor_metadata_dict[device] else 'None'])
             except KeyError:
                 pass
 
     click.echo(tabulate(body, header))
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -394,7 +407,7 @@ def expected(db, interfacename):
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
 
-    #Edge case: Force show frontend interfaces on single asic
+    # Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
        if (display == 'frontend' or display == 'all' or display is None):
            display = None
@@ -465,7 +478,9 @@ def mpls(ctx, interfacename, namespace, display):
 
     click.echo(tabulate(body, header))
 
+
 interfaces.add_command(portchannel.portchannel)
+
 
 #
 # transceiver group (show interfaces trasceiver ...)
@@ -494,12 +509,14 @@ def eeprom(interfacename, dump_dom, namespace, verbose):
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
+
         cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
@@ -524,6 +541,7 @@ def pm(interfacename, namespace, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 @transceiver.command('status') # 'status' is the actual sub-command name under 'transceiver' command
 @click.argument('interfacename', required=False)
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
@@ -547,6 +565,7 @@ def transceiver_status(interfacename, namespace, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
@@ -569,6 +588,7 @@ def info(interfacename, namespace, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -585,6 +605,7 @@ def lpmode(interfacename, verbose):
         cmd += ['-p', str(interfacename)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
@@ -667,6 +688,7 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
 
         clicommon.run_command(cmd, display_cmd=verbose)
 
+
 # 'errors' subcommand ("show interfaces counters errors")
 @counters.command()
 @click.option('-p', '--period')
@@ -683,6 +705,7 @@ def errors(verbose, period, namespace, display):
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 # 'fec-stats' subcommand ("show interfaces counters errors")
 @counters.command('fec-stats')
@@ -701,6 +724,7 @@ def fec_stats(verbose, period, namespace, display):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 # 'rates' subcommand ("show interfaces counters rates")
 @counters.command()
 @click.option('-p', '--period')
@@ -715,6 +739,7 @@ def rates(verbose, period, namespace, display):
     if namespace is not None:
         cmd += ['-n', str(namespace)]
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 # 'counters' subcommand ("show interfaces counters rif")
 @counters.command()
@@ -733,6 +758,7 @@ def rif(interface, period, verbose):
         cmd += ['-i', str(interface)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 
 # 'counters' subcommand ("show interfaces counters detailed")
 @counters.command()
@@ -787,6 +813,7 @@ def autoneg_status(interfacename, namespace, display, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
 #
 # link-training group (show interfaces link-training ...)
 #
@@ -819,6 +846,7 @@ def link_training_status(interfacename, namespace, display, verbose):
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
 #
 # fec group (show interfaces fec ...)
 #
