@@ -3,12 +3,6 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 import config.main as config
-import show.main as show
-
-from unittest import mock
-from mock import patch
-
-
 
 
 show_interface_dhcp_rate_limit_output = """\
@@ -88,6 +82,18 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: {} does not exist".format(intf) in result.output
+
+    def test_config_dhcp_rate_add_on_invalid_interface(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db': db.cfgdb}
+        intf = "test_fail_case"
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                               [intf, "20"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: {} interface_name is None!".format(intf) in result.output
 
     def test_config_dhcp_rate_del_on_invalid_port(self):
         db = Db()
@@ -171,31 +177,6 @@ class TestDHCPRate(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-
-
-    def test_add_interfaces_invalid_in_alias_mode(self):
-        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        
-        result = self.runner.invoke(config.config.commands["interfaces"].commands["dhcp-mitigation-rate"].commands["add"],
-                               ["etp33", "45"], obj=obj)
-        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: interface_name is None!" in result.output
-   
-
-    def test_del_interfaces_invalid_in_alias_mode(self):
-        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        
-        result = self.runner.invoke(config.config.commands["interfaces"].commands["dhcp-mitigation-rate"].commands["del"],
-                               ["etp33", "45"], obj=obj)
-        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: interface_name is None!" in result.output
-
 
     @classmethod
     def teardown_class(cls):

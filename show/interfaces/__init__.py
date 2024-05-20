@@ -336,6 +336,7 @@ def neighbor():
     """Show neighbor related information"""
     pass
 
+
 # 'expected' subcommand ("show interface neighbor expected")
 @neighbor.command()
 @click.argument('interfacename', required=False)
@@ -358,8 +359,7 @@ def expected(db, interfacename):
         if clicommon.get_interface_naming_mode() == "alias":
             port = clicommon.InterfaceAliasConverter().name_to_alias(port)
             neighbor_dict[port] = neighbor_dict.pop(temp_port)
-
-    header = ['LocalPort', 'Neighbor', 'NeighborPort', 
+    header = ['LocalPort', 'Neighbor', 'NeighborPort',
               'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
@@ -409,11 +409,12 @@ def mpls(ctx, interfacename, namespace, display):
 
     # Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
-       if (display == 'frontend' or display == 'all' or display is None):
-           display = None
-       else:
-           print("Error: Invalid display option command for single asic")
-           return
+        if (display == 'frontend' or 
+                display == 'all' or display is None):
+            display = None
+        else:
+            print("Error: Invalid display option command for single asic")
+            return
 
     display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
@@ -453,7 +454,6 @@ def mpls(ctx, interfacename, namespace, display):
                 if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
                     continue
 
-
             mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
 
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
@@ -490,6 +490,7 @@ def transceiver():
     """Show SFP Transceiver information"""
     pass
 
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
@@ -508,7 +509,6 @@ def eeprom(interfacename, dump_dom, namespace, verbose):
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
-
 
         cmd += ['-p', str(interfacename)]
 
@@ -542,7 +542,7 @@ def pm(interfacename, namespace, verbose):
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
-@transceiver.command('status') # 'status' is the actual sub-command name under 'transceiver' command
+@transceiver.command('status')  # 'status' is the actual sub-command name under 'transceiver' command
 @click.argument('interfacename', required=False)
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
@@ -800,7 +800,7 @@ def autoneg_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'autoneg']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
@@ -822,6 +822,7 @@ def link_training():
     """Show interface link-training information"""
     pass
 
+
 # 'link-training status' subcommand ("show interfaces link-training status")
 @link_training.command(name='status')
 @click.argument('interfacename', required=False)
@@ -834,7 +835,7 @@ def link_training_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'link_training']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
@@ -850,6 +851,8 @@ def link_training_status(interfacename, namespace, display, verbose):
 #
 # fec group (show interfaces fec ...)
 #
+
+
 @interfaces.group(name='fec', cls=clicommon.AliasedGroup)
 def fec():
     """Show interface fec information"""
@@ -868,7 +871,7 @@ def fec_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'fec']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
