@@ -7772,7 +7772,7 @@ def logrotate(ctx, file):
 @click.argument('disk_percentage', metavar='<disk-percentage>',
                 required=True,  type=float)
 def disk_percentage(ctx, disk_percentage):
-    """Configuring logrotate disk-precentage file <syslog|debug> <disk_percentage>"""
+    """Configuring logrotate disk-precentage"""
     file = ctx.parent.params.get('file')
     if 0 > disk_percentage > 100:
         click.echo(f'Disk percentage {disk_percentage} is not in range [0 - 100]')
@@ -7784,13 +7784,13 @@ def disk_percentage(ctx, disk_percentage):
                         {'disk_percentage': disk_percentage})
 
 
-@logrotate.command()
+@logrotate.command(name='frequency')
 @click.pass_context
 @click.argument('frequency', metavar='<daily|weekly|monthly|yearly>',
                 required=True,
                 type=click.Choice(['daily', 'weekly', 'monthly', 'yearly']))
-def frequency(ctx, frequency):
-    """Configuring logrotate frequency file <syslog|debug> <frequency>"""
+def logrotate_frequency(ctx, frequency):
+    """Configuring logrotate rotation frequency"""
     file = ctx.parent.params.get('file')
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -7803,7 +7803,7 @@ def frequency(ctx, frequency):
 @click.argument('max_number', metavar='<max-number>',
                 type=click.IntRange(0, 999999), required=True)
 def max_number(ctx, max_number):
-    """Configuring logrotate max-number file <syslog|debug> <max_number>"""
+    """Configuring logrotate max-number of files"""
     file = ctx.parent.params.get('file')
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -7811,11 +7811,11 @@ def max_number(ctx, max_number):
                         {'max_number': max_number})
 
 
-@logrotate.command()
+@logrotate.command(name='size')
 @click.pass_context
 @click.argument('size', metavar='<size>', type=float, required=True)
-def size(ctx, size):
-    """Configuring logrotate size file <syslog|debug> <size>"""
+def logrotate_size(ctx, size):
+    """Configuring logrotate size of file"""
     file = ctx.parent.params.get('file')
     if 0.001 > size > 3500.0:
         click.echo(f'Size {disk_percentage} is not in range [0.001 - 3500.0]')

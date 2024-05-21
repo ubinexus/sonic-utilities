@@ -2273,7 +2273,7 @@ def logrotate(db):
 
         table.append((key, disk_percentage, frequency, max_number, size))
 
-    hdrs =  ['file', 'disk-percentage', 'frequency', 'max-number', 'size']
+    hdrs = ['file', 'disk-percentage', 'frequency', 'max-number', 'size']
     click.echo(tabulate(table, headers=hdrs, tablefmt='simple', missingval=''))
 
 
