@@ -20,13 +20,13 @@ PORT_INGRESS_DROPS         4
 SWITCH_EGRESS_DROPS        2
 
 PORT_INGRESS_DROPS
-	IP_HEADER_ERROR
-	NO_L3_HEADER
+        IP_HEADER_ERROR
+        NO_L3_HEADER
 
 SWITCH_EGRESS_DROPS
-	ACL_ANY
-	L2_ANY
-	L3_ANY
+        ACL_ANY
+        L2_ANY
+        L3_ANY
 """
 
 expected_counter_configuration = """\
