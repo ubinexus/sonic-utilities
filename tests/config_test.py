@@ -11,6 +11,7 @@ import ipaddress
 import shutil
 from unittest import mock
 from jsonpatch import JsonPatchConflict
+from importlib import reload
 
 import click
 from click.testing import CliRunner
