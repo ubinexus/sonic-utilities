@@ -7794,7 +7794,7 @@ def ssh():
 
 @ssh.command('inactivity-timeout')
 @click.argument('inactivity_timeout', metavar='<timeout>', required=True,
-                type=click.IntRange(0,35000))
+                type=click.IntRange(0, 35000))
 def inactivity_timeout_ssh(inactivity_timeout):
     """Set ssh inactivity timeout"""
 
