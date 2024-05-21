@@ -7760,7 +7760,7 @@ def serial_console():
 
 
 @serial_console.command('sysrq-capabilities')
-@click.argument('sysrq_capabilities', metavar='<enabled|disabled>', required=True, 
+@click.argument('sysrq_capabilities', metavar='<enabled|disabled>', required=True,
                 type=click.Choice(['enabled', 'disabled']))
 def sysrq_capabilities(sysrq_capabilities):
     """Set serial console sysrq-capabilities state"""
@@ -7772,8 +7772,8 @@ def sysrq_capabilities(sysrq_capabilities):
 
 
 @serial_console.command('inactivity-timeout')
-@click.argument('inactivity_timeout', metavar='<timeout>', required=True, 
-                type=click.IntRange(0,35000))
+@click.argument('inactivity_timeout', metavar='<timeout>', required=True,
+                type=click.IntRange(0, 35000))
 def inactivity_timeout_serial(inactivity_timeout):
     """Set serial console inactivity timeout"""
 
@@ -7791,8 +7791,9 @@ def ssh():
     """Configuring system ssh behavior"""
     pass
 
+
 @ssh.command('inactivity-timeout')
-@click.argument('inactivity_timeout', metavar='<timeout>', required=True, 
+@click.argument('inactivity_timeout', metavar='<timeout>', required=True,
                 type=click.IntRange(0,35000))
 def inactivity_timeout_ssh(inactivity_timeout):
     """Set ssh inactivity timeout"""
@@ -7802,9 +7803,10 @@ def inactivity_timeout_ssh(inactivity_timeout):
     config_db.mod_entry("SSH_SERVER", 'POLICIES',
                         {'inactivity_timeout': inactivity_timeout})
 
+
 @ssh.command('max-sessions')
-@click.argument('max-sessions', metavar='<max-sessions>', required=True, 
-                type=click.IntRange(0,100))
+@click.argument('max-sessions', metavar='<max-sessions>', required=True,
+                type=click.IntRange(0, 100))
 def max_sessions(max_sessions):
     """Set max number of concurrent logins"""
 

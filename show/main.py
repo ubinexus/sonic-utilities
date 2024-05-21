@@ -2268,10 +2268,11 @@ def serial_console(db):
     data = []
 
     data.append(serial_console_table.get('inactivity_timeout', '900 <default>'))
-    data.append(serial_console_table.get('sysrq_capabilities', 'disabled <default>'))    
-    
+    data.append(serial_console_table.get('sysrq_capabilities', 'disabled <default>'))
+
     configuration = [data]
     click.echo(tabulate(configuration, headers=hdrs, tablefmt='simple', missingval=''))
+
 
 #
 # 'ssh' command group ("show ssh ...")
@@ -2287,8 +2288,8 @@ def ssh(db):
     data = []
 
     data.append(serial_console_table.get('inactivity_timeout', '900 <default>'))
-    data.append(serial_console_table.get('max_session', '0 <default>'))    
-    
+    data.append(serial_console_table.get('max_session', '0 <default>'))
+
     configuration = [data]
     click.echo(tabulate(configuration, headers=hdrs, tablefmt='simple', missingval=''))
 
