@@ -7753,20 +7753,27 @@ def notice(db, category_list, max_events, namespace):
 #
 # 'logrotate' group ('config logrotate ...')
 #
-@config.group()
-def logrotate():
+@config.group(invoke_without_command=True)
+@click.pass_context
+@click.argument('file', required=True, type=click.Choice(['syslog', 'debug']))
+def logrotate(ctx, file):
     """Configuring logrotate"""
-    pass
+    # If invoking subcomand, no need to do anything
+    if ctx.invoked_subcommand is not None:
+        return
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file, None)
 
 
 @logrotate.command()
-@click.argument('file', metavar='<syslog|debug>', required=True,
-                type=click.Choice(['syslog', 'debug']))
+@click.pass_context
 @click.argument('disk_percentage', metavar='<disk-percentage>',
                 required=True,  type=float)
-def disk_percentage(file, disk_percentage):
+def disk_percentage(ctx, disk_percentage):
     """Configuring logrotate disk-precentage file <syslog|debug> <disk_percentage>"""
-
+    file = ctx.parent.params.get('file')
     if 0 > disk_percentage > 100:
         click.echo(f'Disk percentage {disk_percentage} is not in range [0 - 100]')
         pass
@@ -7778,13 +7785,13 @@ def disk_percentage(file, disk_percentage):
 
 
 @logrotate.command()
-@click.argument('file', metavar='<syslog|debug>', required=True,
-                type=click.Choice(['syslog', 'debug']))
+@click.pass_context
 @click.argument('frequency', metavar='<daily|weekly|monthly|yearly>',
                 required=True,
                 type=click.Choice(['daily', 'weekly', 'monthly', 'yearly']))
-def frequency(file, frequency):
+def frequency(ctx, frequency):
     """Configuring logrotate frequency file <syslog|debug> <frequency>"""
+    file = ctx.parent.params.get('file')
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
@@ -7792,12 +7799,12 @@ def frequency(file, frequency):
 
 
 @logrotate.command()
-@click.argument('file', metavar='<syslog|debug>', required=True,
-                type=click.Choice(['syslog', 'debug']))
+@click.pass_context
 @click.argument('max_number', metavar='<max-number>',
                 type=click.IntRange(0, 999999), required=True)
-def max_number(file, max_number):
+def max_number(ctx, max_number):
     """Configuring logrotate max-number file <syslog|debug> <max_number>"""
+    file = ctx.parent.params.get('file')
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.mod_entry(swsscommon.CFG_LOGGING_TABLE_NAME, file,
@@ -7805,12 +7812,11 @@ def max_number(file, max_number):
 
 
 @logrotate.command()
-@click.argument('file', metavar='<syslog|debug>', required=True,
-                type=click.Choice(['syslog', 'debug']))
+@click.pass_context
 @click.argument('size', metavar='<size>', type=float, required=True)
-def size(file, size):
+def size(ctx, size):
     """Configuring logrotate size file <syslog|debug> <size>"""
-
+    file = ctx.parent.params.get('file')
     if 0.001 > size > 3500.0:
         click.echo(f'Size {disk_percentage} is not in range [0.001 - 3500.0]')
         pass

@@ -3109,8 +3109,8 @@ class TestConfigLogrotate(object):
         obj = {'db': Db().cfgdb}
 
         result = runner.invoke(
-            config.config.commands['logrotate'].commands['disk-percentage'],
-            ['debug', '24.25'], obj=obj)
+            config.config.commands['logrotate'].commands['debug'],
+            ['disk-percentage', '24.25'], obj=obj)
 
         assert result.exit_code == 0
 
@@ -3121,8 +3121,8 @@ class TestConfigLogrotate(object):
         obj = {'db': Db().cfgdb}
 
         result = runner.invoke(
-            config.config.commands['logrotate'].commands['frequency'],
-            ['debug', 'daily'], obj=obj)
+            config.config.commands['logrotate'].commands['debug'],
+            ['frequency', 'daily'], obj=obj)
 
         assert result.exit_code == 0
 
@@ -3133,8 +3133,8 @@ class TestConfigLogrotate(object):
         obj = {'db': Db().cfgdb}
 
         result = runner.invoke(
-            config.config.commands['logrotate'].commands['max-number'],
-            ['debug', '2024'], obj=obj)
+            config.config.commands['logrotate'].commands['syslog'],
+            ['max-number', '2024'], obj=obj)
 
         assert result.exit_code == 0
 
@@ -3145,8 +3145,8 @@ class TestConfigLogrotate(object):
         obj = {'db': Db().cfgdb}
 
         result = runner.invoke(
-            config.config.commands['logrotate'].commands['size'],
-            ['debug', '30.0'], obj=obj)
+            config.config.commands['logrotate'].commands['syslog'],
+            ['size', '30.0'], obj=obj)
 
         assert result.exit_code == 0
 
