@@ -1902,7 +1902,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
                 cfggen_namespace_option = ['-n', str(namespace)]
             clicommon.run_command([db_migrator, '-o', 'set_version'] + cfggen_namespace_option)
 
-    # Keep device isolated with TSA 
+    # Keep device isolated with TSA
     if traffic_shift_away:
         clicommon.run_command(["TSA"], display_cmd=True)
         if override_config:
@@ -2216,7 +2216,7 @@ def synchronous_mode(sync_mode):
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')
-# 
+#
 @config.command('yang_config_validation')
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):
