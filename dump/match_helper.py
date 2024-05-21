@@ -112,3 +112,18 @@ def fetch_acl_counter_oid(match_engine, acl_table_name, acl_rule_name, ns):
     counters = counters_db.hgetall("COUNTERS_DB", "ACL_COUNTER_RULE_MAP")
     counter_oid = counters.get(f"{acl_table_name}{counters_db.get_separator('COUNTERS_DB')}{acl_rule_name}")
     return counter_oid
+
+# VNET Helpers
+def fetch_vnet_oid(match_engine, vnet_vni, ns):
+    """
+    Fetches thr relevant SAI_OBJECT_TYPE_PORT given port name
+    """
+    req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET", key_pattern="*", field="SAI_VNET_ATTR_VNI",
+                       value=vnet_vni, return_fields=["SAI_HOSTIF_ATTR_OBJ_ID"], ns=ns)
+    ret = match_engine.fetch(req)
+    asic_port_obj_id = ""
+    if not ret["error"] and len(ret["keys"]) != 0:
+        sai_vnet_obj_key = ret["keys"][-1]
+        if sai_vnet_obj_key in ret["return_values"]:
+            vnet_oid = sai_vnet_obj_key.split(":")[-1]
+    return req, vnet_oid, ret
