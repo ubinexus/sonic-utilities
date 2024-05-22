@@ -878,11 +878,13 @@ class TestSNMPConfigCommands(object):
         assert 'SNMP community configuration failed' in result.output
 
     @patch('netifaces.interfaces', mock.Mock(return_value=['eth0']))
-    @patch('netifaces.ifaddresses', mock.Mock(return_value={2: [{'addr': '10.1.0.32', 'netmask': '255.255.255.0', 'broadcast': '10.1.0.255'}], 10: [{'addr': 'fe80::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]}))
+    @patch('netifaces.ifaddresses', mock.Mock(return_value={2:\
+            [{'addr': '10.1.0.32', 'netmask': '255.255.255.0', 'broadcast': '10.1.0.255'}], \
+            10: [{'addr': 'fe80::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]}))
     @patch('os.system', mock.Mock(return_value=0))
     def test_config_snmpagentaddress_add_linklocal(self):
         db = Db()
-        obj = {'db':db.cfgdb}
+        obj = {'db': db.cfgdb}
         runner = CliRunner()
         runner.invoke(config.config.commands["snmpagentaddress"].commands["add"], ["fe80::1"], obj=obj)
         assert ('fe80::1%eth0', '', '') in db.cfgdb.get_keys('SNMP_AGENT_ADDRESS_CONFIG')
