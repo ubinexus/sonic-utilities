@@ -88,9 +88,9 @@ def fabric_module_set_admin_status(db, chassis_module_name, state):
         # Start the services in case of the users just execute issue command "systemctl stop swss@/syncd@"
         # without bring down the hardware
         for asic in asic_list:
-            click.echo("Start swss@{} and peer services".format(asic))
             # To address systemd service restart limit by resetting the count
             clicommon.run_command('sudo systemctl reset-failed swss@{}.service'.format(asic))
+            click.echo("Start swss@{} and peer services".format(asic))
             clicommon.run_command('sudo systemctl start swss@{}.service'.format(asic))
     elif state == "up":
         for asic in asic_list:
