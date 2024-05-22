@@ -1,4 +1,5 @@
 import json
+import subprocess
 import jsonpointer
 import os
 from enum import Enum
@@ -35,6 +36,118 @@ def extract_scope(path):
 
     return scope, remainder
 
+
+def get_cmd_output(cmd):
+    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
+    return proc.communicate()[0], proc.returncode
+
+
+def get_config_json_by_namespace(namespace):
+    cmd = ['sonic-cfggen', '-d', '--print-data']
+    if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
+        cmd += ['-n', namespace]
+
+    stdout, rc = get_cmd_output(cmd)
+    if rc:
+        raise GenericConfigUpdaterError("Failed to get cmd output '{}':rc {}".format(cmd, rc))
+
+    try:
+        config_json = json.loads(stdout)
+    except json.JSONDecodeError as e:
+        raise GenericConfigUpdaterError("Failed to get config by '{}' due to {}".format(cmd, e))
+
+    return config_json
+
+
+class MultiASICConfigRollbacker:
+    def __init__(self, scopelist, checkpoints_dir=CHECKPOINTS_DIR):
+        self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigRollbacker",
+                                                       print_all_to_console=True)
+        self.scopelist = scopelist
+        self.checkpoints_dir = checkpoints_dir
+        self.util = Util(checkpoints_dir=checkpoints_dir)
+
+    def replace_all(self, target_config):
+        config_keys = set(target_config.keys())
+        missing_scopes = set(self.scopelist) - config_keys
+        if missing_scopes:
+            raise GenericConfigUpdaterError(f"To be replace config is missing scope: {missing_scopes}")
+
+        for scope in self.scopelist:
+            scope_config = target_config.pop(scope)
+            if scope.lower() == HOST_NAMESPACE:
+                scope = multi_asic.DEFAULT_NAMESPACE
+            ConfigReplacer(namespace=scope).replace(scope_config)
+
+    def rollback_all(self, checkpoint_name):
+        self.logger.log_notice("Config rollbacking starting.")
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
+        self.logger.log_notice(f"Verifying '{checkpoint_name}' exists.")
+        if not self.util.check_checkpoint_exists(checkpoint_name):
+            raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
+        self.logger.log_notice(f"Loading checkpoint into memory.")
+        target_config = self.util.get_checkpoint_content(checkpoint_name)
+        self.logger.log_notice(f"Replacing config using 'Config Replacer'.")
+        for scope in self.scopelist:
+            if scope.lower() == multi_asic.DEFAULT_NAMESPACE:
+                config = target_config.pop(HOST_NAMESPACE)
+            else:
+                config = target_config.pop(scope)
+            ConfigReplacer(namespace=scope).replace(config)
+        self.logger.log_notice("Config rollbacking completed.")
+
+    def checkpoint_all(self, checkpoint_name):
+        all_configs = {}
+        self.logger.log_notice("Config checkpoint starting.")
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
+        for scope in self.scopelist:
+            self.logger.log_notice(f"Getting current {scope} config db.")
+            config = get_config_json_by_namespace(scope)
+            if scope.lower() == multi_asic.DEFAULT_NAMESPACE:
+                scope = HOST_NAMESPACE
+            all_configs[scope] = config
+
+        self.logger.log_notice("Getting checkpoint full-path.")
+        path = self.util.get_checkpoint_full_path(checkpoint_name)
+        self.logger.log_notice("Ensuring checkpoint directory exist.")
+        self.util.ensure_checkpoints_dir_exists()
+        self.logger.log_notice(f"Saving config db content to {path}.")
+
+        self.util.save_json_file(path, all_configs)
+        self.logger.log_notice("Config checkpoint completed.")
+
+    def list_checkpoints(self):
+        self.logger.log_info("Listing checkpoints starting.")
+
+        self.logger.log_info(f"Verifying checkpoints directory '{self.checkpoints_dir}' exists.")
+        if not self.util.checkpoints_dir_exist():
+            self.logger.log_info("Checkpoints directory is empty, returning empty checkpoints list.")
+            return []
+
+        self.logger.log_info("Getting checkpoints in checkpoints directory.")
+        checkpoint_names = self.util.get_checkpoint_names()
+
+        checkpoints_len = len(checkpoint_names)
+        self.logger.log_info(f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}")
+        for checkpoint_name in checkpoint_names:
+            self.logger.log_info(f"  * {checkpoint_name}")
+
+        self.logger.log_info("Listing checkpoints completed.")
+
+        return checkpoint_names
+
+    def delete_checkpoint(self, checkpoint_name):
+        self.logger.log_notice("Deleting checkpoint starting.")
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
+
+        self.logger.log_notice(f"Checking checkpoint exists.")
+        if not self.util.check_checkpoint_exists(checkpoint_name):
+            raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
+
+        self.logger.log_notice(f"Deleting checkpoint.")
+        self.util.delete_checkpoint(checkpoint_name)
+
+        self.logger.log_notice("Deleting checkpoint completed.")
 
 class ConfigLock:
     def acquire_lock(self):
@@ -160,21 +273,21 @@ class FileSystemConfigRollbacker:
                  namespace=multi_asic.DEFAULT_NAMESPACE):
         self.namespace = namespace
         self.logger = genericUpdaterLogging.get_logger(title="Config Rollbacker", print_all_to_console=True)
+        self.util = Util(checkpoints_dir=checkpoints_dir)
         self.checkpoints_dir = checkpoints_dir
         self.config_replacer = config_replacer if config_replacer is not None else ConfigReplacer(namespace=self.namespace)
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper(namespace=self.namespace)
 
     def rollback(self, checkpoint_name):
-        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Config rollbacking starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
         self.logger.log_notice(f"Verifying '{checkpoint_name}' exists.")
-        if not self._check_checkpoint_exists(checkpoint_name):
+        if not self.util.check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
         self.logger.log_notice(f"Loading checkpoint into memory.")
-        target_config = self._get_checkpoint_content(checkpoint_name)
+        target_config = self.util.get_checkpoint_content(checkpoint_name)
 
         self.logger.log_notice(f"Replacing config using 'Config Replacer'.")
         self.config_replacer.replace(target_config)
@@ -182,7 +295,6 @@ class FileSystemConfigRollbacker:
         self.logger.log_notice("Config rollbacking completed.")
 
     def checkpoint(self, checkpoint_name):
-        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Config checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
@@ -190,13 +302,13 @@ class FileSystemConfigRollbacker:
         json_content = self.config_wrapper.get_config_db_as_json()
 
         self.logger.log_notice("Getting checkpoint full-path.")
-        path = self._get_checkpoint_full_path(checkpoint_name)
+        path = self.util.get_checkpoint_full_path(checkpoint_name)
 
         self.logger.log_notice("Ensuring checkpoint directory exist.")
-        self._ensure_checkpoints_dir_exists()
+        self.util.ensure_checkpoints_dir_exists()
 
         self.logger.log_notice(f"Saving config db content to {path}.")
-        self._save_json_file(path, json_content)
+        self.util.save_json_file(path, json_content)
 
         self.logger.log_notice("Config checkpoint completed.")
 
@@ -204,12 +316,12 @@ class FileSystemConfigRollbacker:
         self.logger.log_info("Listing checkpoints starting.")
 
         self.logger.log_info(f"Verifying checkpoints directory '{self.checkpoints_dir}' exists.")
-        if not self._checkpoints_dir_exist():
+        if not self.util.checkpoints_dir_exist():
             self.logger.log_info("Checkpoints directory is empty, returning empty checkpoints list.")
             return []
 
         self.logger.log_info("Getting checkpoints in checkpoints directory.")
-        checkpoint_names = self._get_checkpoint_names()
+        checkpoint_names = self.util.get_checkpoint_names()
 
         checkpoints_len = len(checkpoint_names)
         self.logger.log_info(f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}")
@@ -221,36 +333,40 @@ class FileSystemConfigRollbacker:
         return checkpoint_names
 
     def delete_checkpoint(self, checkpoint_name):
-        checkpoint_name = checkpoint_name + self.namespace
         self.logger.log_notice("Deleting checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
         self.logger.log_notice(f"Checking checkpoint exists.")
-        if not self._check_checkpoint_exists(checkpoint_name):
+        if not self.util.check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
         self.logger.log_notice(f"Deleting checkpoint.")
-        self._delete_checkpoint(checkpoint_name)
+        self.util.delete_checkpoint(checkpoint_name)
 
         self.logger.log_notice("Deleting checkpoint completed.")
 
-    def _ensure_checkpoints_dir_exists(self):
+
+class Util:
+    def __init__(self, checkpoints_dir=CHECKPOINTS_DIR):
+        self.checkpoints_dir = checkpoints_dir
+
+    def ensure_checkpoints_dir_exists(self):
         os.makedirs(self.checkpoints_dir, exist_ok=True)
 
-    def _save_json_file(self, path, json_content):
+    def save_json_file(self, path, json_content):
         with open(path, "w") as fh:
             fh.write(json.dumps(json_content))
 
-    def _get_checkpoint_content(self, checkpoint_name):
-        path = self._get_checkpoint_full_path(checkpoint_name)
+    def get_checkpoint_content(self, checkpoint_name):
+        path = self.get_checkpoint_full_path(checkpoint_name)
         with open(path) as fh:
             text = fh.read()
             return json.loads(text)
 
-    def _get_checkpoint_full_path(self, name):
+    def get_checkpoint_full_path(self, name):
         return os.path.join(self.checkpoints_dir, f"{name}{CHECKPOINT_EXT}")
 
-    def _get_checkpoint_names(self):
+    def get_checkpoint_names(self):
         file_names = []
         for file_name in os.listdir(self.checkpoints_dir):
             if file_name.endswith(CHECKPOINT_EXT):
@@ -260,15 +376,15 @@ class FileSystemConfigRollbacker:
 
         return file_names
 
-    def _checkpoints_dir_exist(self):
+    def checkpoints_dir_exist(self):
         return os.path.isdir(self.checkpoints_dir)
 
-    def _check_checkpoint_exists(self, name):
-        path = self._get_checkpoint_full_path(name)
+    def check_checkpoint_exists(self, name):
+        path = self.get_checkpoint_full_path(name)
         return os.path.isfile(path)
 
-    def _delete_checkpoint(self, name):
-        path = self._get_checkpoint_full_path(name)
+    def delete_checkpoint(self, name):
+        path = self.get_checkpoint_full_path(name)
         return os.remove(path)
 
 

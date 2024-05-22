@@ -5,6 +5,7 @@ import sys
 import re
 
 import click
+from generic_config_updater.generic_updater import get_config_json_by_namespace
 import lazy_object_proxy
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
@@ -137,28 +138,6 @@ def run_command(command, display_cmd=False, return_cmd=False, shell=False):
     rc = proc.poll()
     if rc != 0:
         sys.exit(rc)
-
-def get_cmd_output(cmd):
-    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
-    return proc.communicate()[0], proc.returncode
-
-def get_config_json_by_namespace(namespace):
-    cmd = ['sonic-cfggen', '-d', '--print-data']
-    if namespace is not None and namespace != multi_asic.DEFAULT_NAMESPACE:
-        cmd += ['-n', namespace]
-
-    stdout, rc = get_cmd_output(cmd)
-    if rc:
-        click.echo("Failed to get cmd output '{}':rc {}".format(cmd, rc))
-        raise click.Abort()
-
-    try:
-        config_json = json.loads(stdout)
-    except JSONDecodeError as e:
-        click.echo("Failed to load output '{}':{}".format(cmd, e))
-        raise click.Abort()
-
-    return config_json
 
 # Lazy global class instance for SONiC interface name to alias conversion
 iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
