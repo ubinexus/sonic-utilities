@@ -27,7 +27,6 @@ class Dash_Vnet_mapping(Executor):
         req = MatchRequest(db="APPL_DB", table="DASH_VNET_MAPPING_TABLE", key_pattern="*", ns=ns)
         ret = self.match_engine.fetch(req)
         appliance_tables = ret["keys"]
-        print(appliance_tables)
         return [key.split(APPL_DB_SEPARATOR, 1)[1] for key in appliance_tables]
 
     def execute(self, params):

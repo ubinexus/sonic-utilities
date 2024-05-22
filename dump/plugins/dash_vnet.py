@@ -21,12 +21,12 @@ class Dash_Vnet(Executor):
     def __init__(self, match_engine=None):
         super().__init__(match_engine)
         self.is_dash_object = True
+        self.dash_keys = None
 
     def get_all_args(self, ns=""):
         req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern="*", ns=ns)
         ret = self.match_engine.fetch(req)
         appliance_tables = ret["keys"]
-        print(appliance_tables)
         return [key.split(APPL_DB_SEPARATOR, 1)[1] for key in appliance_tables]
 
     def execute(self, params):
@@ -40,12 +40,17 @@ class Dash_Vnet(Executor):
     def init_dash_vnet_table_appl_info(self, dash_app_table_name):
         req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern=dash_app_table_name, return_fields=["type"], ns=self.ns)
         ret = self.match_engine.fetch(req)
+        self.dash_keys = ret["keys"]
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
 
     def init_dash_vnet_table_asic_info(self, dash_vnet_table_name):
         req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern=dash_vnet_table_name, return_fields=["vni"],  ns=self.ns,pb = Vnet())
         ret = self.match_engine.fetch(req)
+        if not len(ret['keys']):
+            if self.dash_keys:
+                self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_VNET")
+            return
         vni = ret['return_values'][ret['keys'][0]]['vni']
         req = MatchRequest(db="ASIC_DB", table="ASIC_STATE", key_pattern="SAI_OBJECT_TYPE_VNET:*",field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
         ret = self.match_engine.fetch(req)

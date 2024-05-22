@@ -315,9 +315,15 @@ class ConnectionPool:
         elif namespace in self.cache:
             del self.cache[namespace]
 
-    def fill(self, ns, conn, connected_to):
+    def fill(self, ns, conn, connected_to, dash_object = False):
         """ Update internal cache """
-        self.cache[ns] = {CONN: conn, CONN_TO: set(connected_to)}
+        if ns not in self.cache:
+            self.cache[ns] = {}
+        if dash_object:
+            self.cache[ns]["DASH_"+CONN] = conn
+            return
+        self.cache[ns][CONN] = conn
+        self.cache[ns][CONN_TO] = set(connected_to)
 
 
 class MatchEngine:
