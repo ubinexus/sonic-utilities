@@ -9,9 +9,11 @@ from utilities_common.bgp import (
     to_str,
 )
 
+
 #
 # BGP helpers ---------------------------------------------------------------------------------------------------------
 #
+
 
 def format_attr_value(entry, attr):
     """ Helper that formats attribute to be presented in the table output.
@@ -29,9 +31,11 @@ def format_attr_value(entry, attr):
         return "\n".join(value) if value else "N/A"
     return entry.get(attr["name"], "N/A")
 
+
 #
 # BGP CLI -------------------------------------------------------------------------------------------------------------
 #
+
 
 @click.group(
     name="bgp",
@@ -42,9 +46,11 @@ def BGP():
 
     pass
 
+
 #
 # BGP device-global ---------------------------------------------------------------------------------------------------
 #
+
 
 @BGP.command(
     name="device-global"

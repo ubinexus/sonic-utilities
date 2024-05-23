@@ -13,9 +13,11 @@ from utilities_common.bgp import (
 log = logger.Logger(SYSLOG_IDENTIFIER)
 log.set_min_log_priority_info()
 
+
 #
 # BGP DB interface ----------------------------------------------------------------------------------------------------
 #
+
 
 def update_entry_validated(db, table, key, data, create_if_not_exists=False):
     """ Update entry in table and validate configuration.
@@ -61,9 +63,11 @@ def update_entry_validated(db, table, key, data, create_if_not_exists=False):
 
     db.set_entry(table, key, cfg[table][key])
 
+
 #
 # BGP handlers --------------------------------------------------------------------------------------------------------
 #
+
 
 def tsa_handler(ctx, db, state):
     """ Handle config updates for Traffic-Shift-Away (TSA) feature """
@@ -81,6 +85,7 @@ def tsa_handler(ctx, db, state):
         log.log_error("Failed to configure TSA state: {}".format(str(e)))
         ctx.fail(str(e))
 
+
 def wcmp_handler(ctx, db, state):
     """ Handle config updates for Weighted-Cost Multi-Path (W-ECMP) feature """
 
@@ -97,9 +102,11 @@ def wcmp_handler(ctx, db, state):
         log.log_error("Failed to configure W-ECMP state: {}".format(str(e)))
         ctx.fail(str(e))
 
+
 #
 # BGP device-global ---------------------------------------------------------------------------------------------------
 #
+
 
 @click.group(
     name="device-global",
@@ -110,9 +117,11 @@ def DEVICE_GLOBAL():
 
     pass
 
+
 #
 # BGP device-global tsa -----------------------------------------------------------------------------------------------
 #
+
 
 @DEVICE_GLOBAL.group(
     name="tsa",
@@ -122,6 +131,7 @@ def DEVICE_GLOBAL_TSA():
     """ Configure Traffic-Shift-Away (TSA) feature """
 
     pass
+
 
 @DEVICE_GLOBAL_TSA.command(
     name="enabled"
@@ -133,6 +143,7 @@ def DEVICE_GLOBAL_TSA_ENABLED(ctx, db):
 
     tsa_handler(ctx, db, "true")
 
+
 @DEVICE_GLOBAL_TSA.command(
     name="disabled"
 )
@@ -143,9 +154,11 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 
     tsa_handler(ctx, db, "false")
 
+
 #
 # BGP device-global w-ecmp --------------------------------------------------------------------------------------------
 #
+
 
 @DEVICE_GLOBAL.group(
     name="w-ecmp",
@@ -156,6 +169,7 @@ def DEVICE_GLOBAL_WCMP():
 
     pass
 
+
 @DEVICE_GLOBAL_WCMP.command(
     name="enabled"
 )
@@ -165,6 +179,7 @@ def DEVICE_GLOBAL_WCMP_ENABLED(ctx, db):
     """ Enable Weighted-Cost Multi-Path (W-ECMP) feature """
 
     wcmp_handler(ctx, db, "true")
+
 
 @DEVICE_GLOBAL_WCMP.command(
     name="disabled"

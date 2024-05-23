@@ -4048,6 +4048,7 @@ def bgp():
     """BGP-related configuration tasks"""
     pass
 
+
 # BGP module extensions
 config.commands['bgp'].add_command(bgp_cli.DEVICE_GLOBAL)
 

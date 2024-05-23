@@ -32,14 +32,12 @@ class TestBgp:
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs.clear()
 
-
-    ########## CONFIG BGP ##########
-
+    # ---------- CONFIG BGP ---------- #
 
     @pytest.mark.parametrize(
         "feature", [
             "tsa",
-            "wcmp"
+            "w-ecmp"
         ]
     )
     @pytest.mark.parametrize(
@@ -62,9 +60,7 @@ class TestBgp:
 
         assert result.exit_code == SUCCESS
 
-
-    ########## SHOW BGP ##########
-
+    # ---------- SHOW BGP ---------- #
 
     @pytest.mark.parametrize(
         "cfgdb,output", [
