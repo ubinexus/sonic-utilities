@@ -2462,7 +2462,7 @@ This command displays BGP device global configuration.
 - Example:
   ```bash
   admin@sonic:~$ show bgp device-global
-  TSA      WCMP
+  TSA      W-ECMP
   -------  -------
   enabled  enabled
   ```
@@ -2559,24 +2559,24 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
   ```
 
-**config bgp device-global tsa/wcmp**
+**config bgp device-global tsa/w-ecmp**
 
 This command is used to manage BGP device global configuration.
 
 Feature list:
 1. TSA - Traffic-Shift-Away
-2. WCMP - Weighted-Cost Multi-Path
+2. W-ECMP - Weighted-Cost Multi-Path
 
 - Usage:
   ```bash
   config bgp device-global tsa <enabled|disabled>
-  config bgp device-global wcmp <enabled|disabled>
+  config bgp device-global w-ecmp <enabled|disabled>
   ```
 
 - Examples:
   ```bash
   admin@sonic:~$ config bgp device-global tsa enabled
-  admin@sonic:~$ config bgp device-global wcmp enabled
+  admin@sonic:~$ config bgp device-global w-ecmp enabled
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
