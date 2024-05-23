@@ -85,9 +85,9 @@ class MultiASICConfigRollbacker:
         self.logger.log_notice(f"Verifying '{checkpoint_name}' exists.")
         if not self.util.check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
-        self.logger.log_notice(f"Loading checkpoint into memory.")
+        self.logger.log_notice(f"Loading checkpoint '{checkpoint_name}' into memory.")
         target_config = self.util.get_checkpoint_content(checkpoint_name)
-        self.logger.log_notice(f"Replacing config using 'Config Replacer'.")
+        self.logger.log_notice(f"Replacing config '{checkpoint_name}' using 'Config Replacer'.")
         for scope in self.scopelist:
             if scope.lower() == multi_asic.DEFAULT_NAMESPACE:
                 config = target_config.pop(HOST_NAMESPACE)
@@ -128,7 +128,8 @@ class MultiASICConfigRollbacker:
         checkpoint_names = self.util.get_checkpoint_names()
 
         checkpoints_len = len(checkpoint_names)
-        self.logger.log_info(f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}")
+        self.logger.log_info(
+            f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}")
         for checkpoint_name in checkpoint_names:
             self.logger.log_info(f"  * {checkpoint_name}")
 
@@ -140,14 +141,14 @@ class MultiASICConfigRollbacker:
         self.logger.log_notice("Deleting checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
-        self.logger.log_notice(f"Checking checkpoint exists.")
+        self.logger.log_notice(f"Checking checkpoint: {checkpoint_name} exists.")
         if not self.util.check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
-        self.logger.log_notice(f"Deleting checkpoint.")
+        self.logger.log_notice(f"Deleting checkpoint: {checkpoint_name}.")
         self.util.delete_checkpoint(checkpoint_name)
 
-        self.logger.log_notice("Deleting checkpoint completed.")
+        self.logger.log_notice(f"Deleting checkpoint: {checkpoint_name} completed.")
 
 class ConfigLock:
     def acquire_lock(self):
