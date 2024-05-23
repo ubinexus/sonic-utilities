@@ -7,49 +7,49 @@ No configuration is present in CONFIG DB
 """
 
 show_device_global_all_disabled="""\
-TSA       WCMP
+TSA       W-ECMP
 --------  --------
 disabled  disabled
 """
 show_device_global_all_disabled_json="""\
 {
     "tsa": "disabled",
-    "wcmp": "disabled"
+    "w-ecmp": "disabled"
 }
 """
 
 show_device_global_all_enabled="""\
-TSA      WCMP
--------  -------
+TSA      W-ECMP
+-------  --------
 enabled  enabled
 """
 show_device_global_all_enabled_json="""\
 {
     "tsa": "enabled",
-    "wcmp": "enabled"
+    "w-ecmp": "enabled"
 }
 """
 
 show_device_global_tsa_enabled="""\
-TSA      WCMP
+TSA      W-ECMP
 -------  --------
 enabled  disabled
 """
 show_device_global_tsa_enabled_json="""\
 {
     "tsa": "enabled",
-    "wcmp": "disabled"
+    "w-ecmp": "disabled"
 }
 """
 
 show_device_global_wcmp_enabled="""\
-TSA       WCMP
---------  -------
+TSA       W-ECMP
+--------  --------
 disabled  enabled
 """
 show_device_global_wcmp_enabled_json="""\
 {
     "tsa": "disabled",
-    "wcmp": "enabled"
+    "w-ecmp": "enabled"
 }
 """

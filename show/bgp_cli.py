@@ -62,7 +62,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
 
     header = [
         "TSA",
-        "WCMP",
+        "W-ECMP",
     ]
     body = []
 
@@ -84,7 +84,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                     }
                 )
             ),
-            "wcmp": to_str(
+            "w-ecmp": to_str(
                 format_attr_value(
                     entry,
                     {

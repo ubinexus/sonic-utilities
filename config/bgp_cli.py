@@ -82,7 +82,7 @@ def tsa_handler(ctx, db, state):
         ctx.fail(str(e))
 
 def wcmp_handler(ctx, db, state):
-    """ Handle config updates for Weighted-Cost Multi-Path (WCMP) feature """
+    """ Handle config updates for Weighted-Cost Multi-Path (W-ECMP) feature """
 
     table = CFG_BGP_DEVICE_GLOBAL
     key = BGP_DEVICE_GLOBAL_KEY
@@ -92,9 +92,9 @@ def wcmp_handler(ctx, db, state):
 
     try:
         update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
-        log.log_notice("Configured WCMP state: {}".format(to_str(state)))
+        log.log_notice("Configured W-ECMP state: {}".format(to_str(state)))
     except Exception as e:
-        log.log_error("Failed to configure WCMP state: {}".format(str(e)))
+        log.log_error("Failed to configure W-ECMP state: {}".format(str(e)))
         ctx.fail(str(e))
 
 #
@@ -144,15 +144,15 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
     tsa_handler(ctx, db, "false")
 
 #
-# BGP device-global wcmp ----------------------------------------------------------------------------------------------
+# BGP device-global w-ecmp --------------------------------------------------------------------------------------------
 #
 
 @DEVICE_GLOBAL.group(
-    name="wcmp",
+    name="w-ecmp",
     cls=clicommon.AliasedGroup
 )
 def DEVICE_GLOBAL_WCMP():
-    """ Configure Weighted-Cost Multi-Path (WCMP) feature """
+    """ Configure Weighted-Cost Multi-Path (W-ECMP) feature """
 
     pass
 
@@ -162,7 +162,7 @@ def DEVICE_GLOBAL_WCMP():
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_ENABLED(ctx, db):
-    """ Enable Weighted-Cost Multi-Path (WCMP) feature """
+    """ Enable Weighted-Cost Multi-Path (W-ECMP) feature """
 
     wcmp_handler(ctx, db, "true")
 
@@ -172,6 +172,6 @@ def DEVICE_GLOBAL_WCMP_ENABLED(ctx, db):
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
-    """ Disable Weighted-Cost Multi-Path (WCMP) feature """
+    """ Disable Weighted-Cost Multi-Path (W-ECMP) feature """
 
     wcmp_handler(ctx, db, "false")

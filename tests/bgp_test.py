@@ -106,7 +106,7 @@ class TestBgp:
                     "plain": assert_show_output.show_device_global_wcmp_enabled,
                     "json": assert_show_output.show_device_global_wcmp_enabled_json
                 },
-                id="wcmp-enabled"
+                id="w-ecmp-enabled"
             )
         ]
     )
