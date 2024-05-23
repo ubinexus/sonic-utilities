@@ -129,7 +129,9 @@ class MultiASICConfigRollbacker:
 
         checkpoints_len = len(checkpoint_names)
         self.logger.log_info(
-            f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}")
+            f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}"
+            f"{':' if checkpoints_len > 0 else '.'}"
+        )
         for checkpoint_name in checkpoint_names:
             self.logger.log_info(f"  * {checkpoint_name}")
 
