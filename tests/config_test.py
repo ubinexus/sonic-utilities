@@ -652,6 +652,67 @@ class TestBMPConfig(object):
         from .mock_tables import dbconnector
         dbconnector.dedicated_dbs = {}
 
+    def test_disable_bgp_neighbor_table(
+            self,
+            get_cmd_module,
+            setup_single_broadcom_asic):
+        (config, show) = get_cmd_module
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+
+        # bmp disable bgp-neighbor-table
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["disable", "bgp-neighbor-table"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+    def test_disable_bgp_rib_in_table(
+            self,
+            get_cmd_module,
+            setup_single_broadcom_asic):
+        (config, show) = get_cmd_module
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+
+        # bmp disable bgp-rib-in-table
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["disable", "bgp-rib-in-table"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+    def test_disable_bgp_rib_out_table(
+            self,
+            get_cmd_module,
+            setup_single_broadcom_asic):
+        (config, show) = get_cmd_module
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+
+        # bmp disable bgp-rib-out-table
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["disable", "bgp-rib-out-table"], obj=db)
+
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
     def test_enable_bgp_neighbor_table(
             self,
             get_cmd_module,
@@ -668,6 +729,47 @@ class TestBMPConfig(object):
         with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
                                    ["enable", "bgp-neighbor-table"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+    def test_enable_bgp_rib_in_table(
+            self,
+            get_cmd_module,
+            setup_single_broadcom_asic):
+        (config, show) = get_cmd_module
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+
+        # bmp enable bgp-rib-in-table
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["enable", "bgp-rib-in-table"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+    def test_enable_bgp_rib_out_table(
+            self,
+            get_cmd_module,
+            setup_single_broadcom_asic):
+        (config, show) = get_cmd_module
+        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+
+        # bmp enable bgp-rib-out-table
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["enable", "bgp-rib-out-table"], obj=db)
+
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -698,24 +800,10 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    def test_enable_bgp_rib_in_table(
-            self,
-            get_cmd_module,
-            setup_single_broadcom_asic):
-        (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        from .mock_tables import dbconnector
-        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
-
-        runner = CliRunner()
-        db = Db()
-
-        # bmp enable bgp-rib-in-table
+        # bmp enable bgp-neighbor-table
         with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
-                                   ["enable", "bgp-rib-in-table"], obj=db)
-            print(result.exit_code)
-            print(result.output)
+                                   ["enable", "bgp-neighbor-table"], obj=db)
             assert result.exit_code == 0
 
     def test_enable_disable_bgp_rib_in_table(
@@ -744,25 +832,10 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
-    def test_enable_bgp_rib_out_table(
-            self,
-            get_cmd_module,
-            setup_single_broadcom_asic):
-        (config, show) = get_cmd_module
-        jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        from .mock_tables import dbconnector
-        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
-
-        runner = CliRunner()
-        db = Db()
-
-        # bmp enable bgp-rib-out-table
+        # bmp enable bgp-rib-in-table first
         with mock.patch('utilities_common.cli.run_command'):
             result = runner.invoke(config.config.commands["bmp"],
-                                   ["enable", "bgp-rib-out-table"], obj=db)
-
-            print(result.exit_code)
-            print(result.output)
+                                   ["enable", "bgp-rib-in-table"], obj=db)
             assert result.exit_code == 0
 
     def test_enable_disable_bgp_rib_out_table(
@@ -791,6 +864,11 @@ class TestBMPConfig(object):
             print(result.output)
             assert result.exit_code == 0
 
+        # bmp enable bgp-rib-out-table first
+        with mock.patch('utilities_common.cli.run_command'):
+            result = runner.invoke(config.config.commands["bmp"],
+                                   ["enable", "bgp-rib-out-table"], obj=db)
+            assert result.exit_code == 0
 
 class TestLoadMinigraph(object):
     @classmethod
