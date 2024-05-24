@@ -7753,7 +7753,7 @@ def notice(db, category_list, max_events, namespace):
 #
 # 'serial_console' group ('config  serial_console')
 #
-@config.group()
+@config.group(cls=clicommon.AbbreviationGroup, name='serial_console')
 def serial_console():
     """Configuring system serial-console behavior"""
     pass
@@ -7786,7 +7786,7 @@ def inactivity_timeout_serial(inactivity_timeout):
 #
 # 'ssh' group ('config  ssh')
 #
-@config.group()
+@config.group(cls=clicommon.AbbreviationGroup, name='ssh')
 def ssh():
     """Configuring system ssh behavior"""
     pass
