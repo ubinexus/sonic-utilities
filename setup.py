@@ -13,6 +13,7 @@ from setuptools import setup
 import pkg_resources
 from packaging import version
 
+
 # sonic_dependencies, version requirement only supports '>='
 sonic_dependencies = [
     'sonic-config-engine',
