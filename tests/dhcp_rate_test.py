@@ -181,6 +181,16 @@ class TestDHCPRate(object):
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
 
+
+    def test_show_dhcp_rate_limit(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_dhcp_rate_limit_output
+
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
