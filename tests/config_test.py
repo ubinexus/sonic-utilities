@@ -3089,6 +3089,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 mocked_open.assert_called_with(self.patch_file_path, 'r')
 
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     def test_repalce_multiasic(self):
         # Mock open to simulate file reading
         mock_replace_content = copy.deepcopy(self.all_config)
@@ -3112,6 +3113,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 mocked_open.assert_called_with(self.replace_file_path, 'r')
 
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     def test_repalce_multiasic_missing_scope(self):
         # Mock open to simulate file reading
         mock_replace_content = copy.deepcopy(self.all_config)
@@ -3174,8 +3176,8 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
         mock_get_checkpoint_content.return_value = copy.deepcopy(self.all_config)
         checkpointname = "checkpointname"
         # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.GenericUpdater') as mock_generic_updater:
-            mock_generic_updater.return_value.rollback = MagicMock()
+        with patch('config.main.MultiASICConfigRollbacker') as mock_generic_updater:
+            mock_generic_updater.return_value.rollback_all = MagicMock()
 
             print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
             # Invocation of the command with the CliRunner
