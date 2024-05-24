@@ -3175,28 +3175,38 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
     def test_rollback_multiasic(self, mock_get_checkpoint_content):
         mock_get_checkpoint_content.return_value = copy.deepcopy(self.all_config)
         checkpointname = "checkpointname"
-        # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.MultiASICConfigRollbacker') as mock_generic_updater:
-            mock_generic_updater.return_value.rollback_all = MagicMock()
+        print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+        # Invocation of the command with the CliRunner
+        result = self.runner.invoke(config.config.commands["rollback"],
+                                    [checkpointname],
+                                    catch_exceptions=True)
 
-            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
-            # Invocation of the command with the CliRunner
-            result = self.runner.invoke(config.config.commands["rollback"],
-                                        [checkpointname],
-                                        catch_exceptions=True)
+        print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+        # Assertions and verifications
+        self.assertEqual(result.exit_code, 0, "Command should succeed")
+        self.assertIn("Config rolled back successfully.", result.output)
 
-            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
-            # Assertions and verifications
-            self.assertEqual(result.exit_code, 0, "Command should succeed")
-            self.assertIn("Config rolled back successfully.", result.output)
+
+    @patch('generic_config_updater.generic_updater.Util.checkpoints_dir_exist', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.Util.get_checkpoint_names', mock.Mock(return_value=["checkpointname"]))
+    def test_list_checkpoint_multiasic(self):
+        print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+        # Invocation of the command with the CliRunner
+        result = self.runner.invoke(config.config.commands["list-checkpoints"],
+                                    catch_exceptions=True)
+
+        print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+        # Assertions and verifications
+        self.assertEqual(result.exit_code, 0, "Command should succeed")
+        self.assertIn("checkpointname", result.output)
 
     @patch('generic_config_updater.generic_updater.Util.delete_checkpoint', MagicMock())
     @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
     def test_delete_checkpoint_multiasic(self):
         checkpointname = "checkpointname"
         # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.GenericUpdater') as mock_generic_updater:
-            mock_generic_updater.return_value.deletecheckpoint = MagicMock()
+        with patch('config.main.MultiASICConfigRollbacker') as mock_generic_updater:
+            mock_generic_updater.return_value.delete_checkpoint = MagicMock()
 
             print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
             # Invocation of the command with the CliRunner
