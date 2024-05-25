@@ -242,6 +242,7 @@ class TestChangeApplier(unittest.TestCase):
         running_config = copy.deepcopy(read_data["running_data"])
         json_changes = copy.deepcopy(read_data["json_changes"])
 
+        generic_config_updater.change_applier.ChangeApplier.updater_conf = None
         generic_config_updater.change_applier.UPDATER_CONF_FILE = CONF_FILE
         generic_config_updater.change_applier.set_verbose(True)
         generic_config_updater.services_validator.set_verbose(True)
