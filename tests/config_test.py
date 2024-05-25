@@ -3169,8 +3169,8 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             self.assertEqual(result.exit_code, 0, "Command should succeed")
             self.assertIn("Checkpoint created successfully.", result.output)
 
-    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     @patch('generic_config_updater.generic_updater.Util.get_checkpoint_content')
     def test_rollback_multiasic(self, mock_get_checkpoint_content):
         mock_get_checkpoint_content.return_value = copy.deepcopy(self.all_config)
