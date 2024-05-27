@@ -108,7 +108,8 @@ setup(
                   'pfcwd_input/*',
                   'wm_input/*',
                   'ecn_input/*',
-                  'dump_input/*']
+                  'dump_input/*',
+                  'bmp_input/*']
     },
     scripts=[
         'scripts/aclshow',
