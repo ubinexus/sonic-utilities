@@ -3108,10 +3108,8 @@ class TestConfigLogrotate(object):
         runner = CliRunner()
         obj = {'db': Db().cfgdb}
 
-        result = runner.invoke(
-            config.config.commands['logrotate'].commands['debug'],
-            ['disk-percentage', '24.25'], obj=obj)
-
+        result = runner.invoke(config.config.commands['logrotate'],
+                               ['debug', 'disk-percentage', '24.25'], obj=obj)
         assert result.exit_code == 0
 
     @patch('utilities_common.cli.run_command',
@@ -3120,10 +3118,8 @@ class TestConfigLogrotate(object):
         runner = CliRunner()
         obj = {'db': Db().cfgdb}
 
-        result = runner.invoke(
-            config.config.commands['logrotate'].commands['debug'],
-            ['frequency', 'daily'], obj=obj)
-
+        result = runner.invoke(config.config.commands['logrotate'],
+                               ['debug', 'frequency', 'daily'], obj=obj)
         assert result.exit_code == 0
 
     @patch('utilities_common.cli.run_command',
@@ -3132,10 +3128,8 @@ class TestConfigLogrotate(object):
         runner = CliRunner()
         obj = {'db': Db().cfgdb}
 
-        result = runner.invoke(
-            config.config.commands['logrotate'].commands['syslog'],
-            ['max-number', '2024'], obj=obj)
-
+        result = runner.invoke(config.config.commands['logrotate'],
+                               ['syslog', 'max-number', '2024'], obj=obj)
         assert result.exit_code == 0
 
     @patch('utilities_common.cli.run_command',
@@ -3144,10 +3138,8 @@ class TestConfigLogrotate(object):
         runner = CliRunner()
         obj = {'db': Db().cfgdb}
 
-        result = runner.invoke(
-            config.config.commands['logrotate'].commands['syslog'],
-            ['size', '30.0'], obj=obj)
-
+        result = runner.invoke(config.config.commands['logrotate'],
+            ['syslog', 'size', '30.0'], obj=obj)
         assert result.exit_code == 0
 
     @classmethod
