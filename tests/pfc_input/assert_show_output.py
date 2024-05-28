@@ -73,14 +73,6 @@ Ethernet0    3,4
 
 """
 
-pfc_config_asymmetric = """\
-
-Interface    Asymmetric
------------  ------------
-Ethernet0    on
-
-"""
-
 pfc_config_priority_on = """\
 
 Interface    Lossless priorities
