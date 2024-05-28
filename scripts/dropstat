@@ -147,6 +147,13 @@ class DropStat(object):
         if group is not None or counter_type is not None:
             return
 
+        #Currently the switch drop counter (packet integrity) is supported only for chassis.
+        switch_type = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_type")
+        if switch_type is None:
+            return
+        if switch_type != "fabric" and switch_type != "voq":
+            return
+
         switch_std_drop_ckpt = {}
 
         # Grab the latest clear checkpoint, if it exists
