@@ -24,9 +24,9 @@ class TestPfcBase(object):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
-    def executor(self, command, args, expected_rc=0, expected_output=None, runner=CliRunner()):
+    def executor(self, cliobj, command, expected_rc=0, expected_output=None, runner=CliRunner()):
         db = Db()
-        result = runner.invoke(command, args, obj=db)
+        result = runner.invoke(cliobj, command, obj=db)
         print(result.exit_code)
         print(result.output)
 

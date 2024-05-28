@@ -21,20 +21,15 @@ except KeyError:
 
 
 class Pfc(object):
-
-    def __init__(self, db=None):
-        self.db = None
-        self.cfgdb = db
+    def __init__(self, cfgdb=None):
+        self.cfgdb = cfgdb
 
     def configPfcAsym(self, interface, pfc_asym):
         """
         PFC handler to configure asymmetric PFC.
         """
-
-        configdb = self.cfgdb
-        if configdb is None:
-            configdb = ConfigDBConnector()
-            configdb.connect()
+        configdb = ConfigDBConnector() if self.cfgdb is None else self.cfgdb
+        configdb.connect()
 
         configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
 
@@ -47,10 +42,8 @@ class Pfc(object):
         """
         header = ('Interface', 'Asymmetric')
 
-        configdb = self.cfgdb
-        if configdb is None:
-            configdb = ConfigDBConnector()
-            configdb.connect()
+        configdb = ConfigDBConnector() if self.cfgdb is None else self.cfgdb
+        configdb.connect()
 
         if interface:
             db_keys = configdb.keys(configdb.CONFIG_DB, 'PORT|{0}'.format(interface))
@@ -75,10 +68,8 @@ class Pfc(object):
         click.echo()
 
     def configPfcPrio(self, status, interface, priority):
-        configdb = self.cfgdb
-        if configdb is None:
-            configdb = ConfigDBConnector()
-            configdb.connect()
+        configdb = ConfigDBConnector() if self.cfgdb is None else self.cfgdb
+        configdb.connect()
 
         if interface not in configdb.get_keys('PORT_QOS_MAP'):
             click.echo('Cannot find interface {0}'.format(interface))
@@ -118,10 +109,8 @@ class Pfc(object):
         header = ('Interface', 'Lossless priorities')
         table = []
 
-        configdb = self.cfgdb
-        if configdb is None:
-            configdb = ConfigDBConnector()
-            configdb.connect()
+        configdb = ConfigDBConnector() if self.cfgdb is None else self.cfgdb
+        configdb.connect()
 
         """Get all the interfaces with QoS map information"""
         intfs = configdb.get_keys('PORT_QOS_MAP')
@@ -146,10 +135,11 @@ class Pfc(object):
 @click.group()
 @click.pass_context
 def cli(ctx):
-    # Use the db object if given as input.
-    db = None if ctx.obj is None else ctx.obj.cfgdb
     """PFC Command Line"""
-    ctx.obj = {'pfc': Pfc(db)}
+    # Use the cfgdb object if given as input.
+    cfgdb = None if ctx.obj is None else ctx.obj.cfgdb
+
+    ctx.obj = {'pfc': Pfc(cfgdb)}
 
 @cli.group()
 @click.pass_context
