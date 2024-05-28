@@ -12,7 +12,6 @@ import ipaddress
 import shutil
 from unittest import mock
 from jsonpatch import JsonPatchConflict
-from importlib import reload
 
 import click
 from click.testing import CliRunner
@@ -654,7 +653,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -671,7 +670,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -688,7 +687,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -706,7 +705,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -723,7 +722,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -740,7 +739,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp_invalid.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -758,7 +757,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -785,7 +784,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -812,7 +811,7 @@ class TestBMPConfig(object):
             setup_single_broadcom_asic):
         (config, show) = get_cmd_module
         jsonfile_config = os.path.join(mock_bmp_db_path, "bmp.json")
-        config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config
         runner = CliRunner()
         db = Db()
 
@@ -830,7 +829,7 @@ class TestBMPConfig(object):
 
         # bmp enable bgp-rib-out-table first
         result = runner.invoke(config.config.commands["bmp"].commands["enable"],
-                                ["bgp-rib-out-table"], obj=db)
+                               ["bgp-rib-out-table"], obj=db)
         assert result.exit_code == 0
 
 
