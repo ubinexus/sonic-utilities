@@ -1,14 +1,11 @@
 from dump.helper import create_template_dict
 from dump.match_infra import MatchRequest
 from swsscommon.swsscommon import SonicDBConfig
-import dash_api
 from dash_api.route_pb2 import Route
-from dump.match_helper import fetch_acl_counter_oid
 from .executor import Executor
-from dump.match_infra import JsonSource, MatchEngine, CONN
-
 
 APPL_DB_SEPARATOR = SonicDBConfig.getSeparator("APPL_DB")
+
 
 class Dash_Route(Executor):
     """

@@ -83,7 +83,7 @@ class MatchRequest:
             except Exception as e:
                 return EXCEP_DICT["FILE_R_EXEP"] + str(e)
 
-        if not self.file and self.db not in SonicDBConfig.getDbList() and not self.db.startswith("DASH_"):
+        if not self.file and self.db not in SonicDBConfig.getDbList():
             return EXCEP_DICT["INV_DB"]
 
         if not self.table:

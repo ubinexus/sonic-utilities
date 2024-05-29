@@ -28,6 +28,7 @@ from ..mock_tables import dbconnector
 test_path = os.path.join(os.path.dirname(__file__), "../")
 dump_test_input = os.path.join(test_path, "dump_input")
 
+
 @pytest.fixture(scope="module", autouse=True)
 def match_engine():
     print("SETUP")
@@ -45,18 +46,17 @@ def match_engine():
         populate_mock(conn, db_names, dedicated_dbs)
     except Exception as e:
         assert False, "Mock initialization failed: " + str(e)
-
     conn_pool = ConnectionPool()
-    
     dedicated_dbs['APPL_DB'] = os.path.join(dump_input, "dash/appl_db.json")
-    dedicated_dbs['ASIC_DB'] =  os.path.join(dump_input, "dash/asic_db.json")
+    dedicated_dbs['ASIC_DB'] = os.path.join(dump_input, "dash/asic_db.json")
     redisMock.load_file(dedicated_dbs['APPL_DB'])
     conn_pool.fill(DEFAULT_NAMESPACE, conn_pool.initialize_connector(DEFAULT_NAMESPACE), list(dedicated_dbs.keys()))
-    conn_pool.fill(DEFAULT_NAMESPACE,redisMock,None,dash_object = True)
+    conn_pool.fill(DEFAULT_NAMESPACE, redisMock, None, dash_object=True)
     populate_mock(conn_pool.cache[DEFAULT_NAMESPACE][CONN], list(dedicated_dbs.keys()), dedicated_dbs)
     match_engine = MatchEngine(conn_pool)
     yield match_engine
     print("TEARDOWN")
+
 
 @pytest.mark.usefixtures("match_engine")
 class TestMatchEngineDash:
@@ -74,12 +74,11 @@ class TestMatchEngineDash:
                     {
                         "APPL_DB":
                             {"keys":
-                                [
-                                    {"DASH_ACL_OUT_TABLE:ENI0:1":
-                                        {"v4_acl_group_id": "group1"}}],
+                                [{"DASH_ACL_OUT_TABLE:ENI0:1":
+                                    {"v4_acl_group_id": "group1"}}],
                                 "tables_not_found": []
-                                }
-                     }
+                             }
+                    }
                     }
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff
@@ -98,14 +97,13 @@ class TestMatchEngineDash:
                     {
                         "APPL_DB":
                             {"keys":
-                                [
-                                    {"DASH_ACL_GROUP_TABLE:group1":
-                                        {"ip_version": "IP_VERSION_IPV4",
-                                         "guid": "eaba0709-2664-43d1-8832-39aaa5613f21"
-                                         }}],
+                                [{"DASH_ACL_GROUP_TABLE:group1":
+                                 {"ip_version": "IP_VERSION_IPV4",
+                                  "guid": "eaba0709-2664-43d1-8832-39aaa5613f21"
+                                  }}],
                                 "tables_not_found": []
-                                }
-                     }
+                             }
+                    }
                     }
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff
@@ -123,19 +121,23 @@ class TestMatchEngineDash:
         expected = {"group1:rule1":
                     {
                         "APPL_DB":
-                            {"keys":
+                            {
+                                "keys":
                                 [
                                     {"DASH_ACL_RULE_TABLE:group1:rule1":
-                                        {"action": "ACTION_PERMIT",
-                                         "terminating": True,
-                                         "src_addr": ["0.0.0.0/0"],
-                                         "dst_addr": ["0.0.0.0/0"],
-                                         "src_port": [{"value":80}],
-                                         "dst_port": [{"value":5355}],
-                                         }}],
+                                        {
+                                            "action": "ACTION_PERMIT",
+                                            "terminating": True,
+                                            "src_addr": ["0.0.0.0/0"],
+                                            "dst_addr": ["0.0.0.0/0"],
+                                            "src_port": [{"value": 80}],
+                                            "dst_port": [{"value": 5355}],
+                                            }
+                                    }
+                                ],
                                 "tables_not_found": []
-                                }
-                     }
+                            }
+                    }
                     }
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff
@@ -165,7 +167,7 @@ class TestMatchEngineDash:
                     }
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff
-        
+
     def test_eni(self, match_engine):
         req = MatchRequest(db="APPL_DB", table="DASH_ENI_TABLE", key_pattern="*", pb=Dash_Eni())
         ret = match_engine.fetch(req)
@@ -323,8 +325,8 @@ class TestMatchEngineDash:
                                  "vidtorid": {
                                     "oid:0x7a000000000021": "Real ID Not Found"
                                  }
-                                }
+                            }
                      }
-                    }
+        }
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff

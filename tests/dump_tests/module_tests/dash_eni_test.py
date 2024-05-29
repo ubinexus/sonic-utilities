@@ -31,7 +31,7 @@ def match_engine():
     # Monkey Patch the SonicV2Connector Object
     from ...mock_tables import dbconnector
     db = SonicV2Connector()
-    from  ...dump_tests import mock_redis
+    from ...dump_tests import mock_redis
     redis_obj = mock_redis.RedisMock()
     redis_obj.load_file(dedicated_dbs['APPL_DB'])
 
@@ -45,7 +45,7 @@ def match_engine():
     # Initialize connection pool
     conn_pool = ConnectionPool()
     conn_pool.fill(DEFAULT_NAMESPACE, db, db_names)
-    conn_pool.fill(DEFAULT_NAMESPACE,redis_obj,None,dash_object = True)
+    conn_pool.fill(DEFAULT_NAMESPACE, redis_obj, None, dash_object=True)
 
     # Initialize match_engine
     match_engine = MatchEngine(conn_pool)

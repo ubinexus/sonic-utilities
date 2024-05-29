@@ -31,7 +31,7 @@ def match_engine():
     # Monkey Patch the SonicV2Connector Object
     from ...mock_tables import dbconnector
     db = SonicV2Connector()
-    from  ...dump_tests import mock_redis
+    from ...dump_tests import mock_redis
     redis.Redis = mock_redis.RedisMock
 
     # popualate the db with mock data
