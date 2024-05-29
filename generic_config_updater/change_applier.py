@@ -168,7 +168,7 @@ class ChangeApplier:
 
     def _get_running_config(self):
         _, fname = tempfile.mkstemp(suffix="_changeApplier")
-        
+
         if self.scope:
             cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.scope]
         else:
@@ -181,7 +181,8 @@ class ChangeApplier:
         return_code = result.returncode
         if return_code:
             os.remove(fname)
-            raise GenericConfigUpdaterError(f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(
+                f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
 
         run_data = {}
         try:

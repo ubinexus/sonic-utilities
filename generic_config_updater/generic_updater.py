@@ -120,7 +120,7 @@ class PatchApplier:
 
         changes_len = len(changes)
         self.logger.log_notice(f"The {scope} patch was converted into {changes_len} " \
-                        f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+                          f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
 
         # Apply changes in order
         self.logger.log_notice(f"{scope}: applying {changes_len} change{'s' if changes_len != 1 else ''} " \
@@ -367,7 +367,11 @@ class Util:
 
 
 class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
-    def __init__(self, decorated_patch_applier=None, decorated_config_replacer=None, decorated_config_rollbacker=None, scope=multi_asic.DEFAULT_NAMESPACE):
+    def __init__(self,
+                 decorated_patch_applier=None,
+                 decorated_config_replacer=None,
+                 decorated_config_rollbacker=None,
+                 scope=multi_asic.DEFAULT_NAMESPACE):
         # initing base classes to make LGTM happy
         PatchApplier.__init__(self, scope=scope)
         ConfigReplacer.__init__(self, scope=scope)
@@ -396,7 +400,12 @@ class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
 
 
 class SonicYangDecorator(Decorator):
-    def __init__(self, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None, scope=multi_asic.DEFAULT_NAMESPACE):
+    def __init__(self,
+                 patch_wrapper,
+                 config_wrapper,
+                 decorated_patch_applier=None,
+                 decorated_config_replacer=None,
+                 scope=multi_asic.DEFAULT_NAMESPACE):
         Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, scope=scope)
         self.scope = scope
         self.patch_wrapper = patch_wrapper
@@ -418,7 +427,11 @@ class ConfigLockDecorator(Decorator):
                  decorated_config_rollbacker=None,
                  config_lock=ConfigLock(),
                  scope=multi_asic.DEFAULT_NAMESPACE):
-        Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, decorated_config_rollbacker, scope=scope)
+        Decorator.__init__(self,
+                           decorated_patch_applier,
+                           decorated_config_replacer,
+                           decorated_config_rollbacker,
+                           scope=scope)
         self.config_lock = config_lock
 
     def apply(self, patch, sort=True):

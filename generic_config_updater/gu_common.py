@@ -74,7 +74,8 @@ class ConfigWrapper:
         text, err = result.communicate()
         return_code = result.returncode
         if return_code: # non-zero means failure
-            raise GenericConfigUpdaterError(f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(
+                f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
         return text
 
     def get_sonic_yang_as_json(self):
@@ -301,7 +302,7 @@ class ConfigWrapper:
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    def __init__(self, initial_imitated_config_db = None, scope=multi_asic.DEFAULT_NAMESPACE):
+    def __init__(self, initial_imitated_config_db=None, scope=multi_asic.DEFAULT_NAMESPACE):
         super().__init__(scope=scope)
         self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
         self.imitated_config_db = copy.deepcopy(initial_imitated_config_db)
