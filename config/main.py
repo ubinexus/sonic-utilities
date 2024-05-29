@@ -4046,6 +4046,7 @@ def del_user(db, user):
 @clicommon.pass_db
 def bmp(db):
     """BMP-related configuration"""
+    pass
 
 
 #
@@ -4055,6 +4056,7 @@ def bmp(db):
 @clicommon.pass_db
 def enable(db):
     """Enable BMP table dump """
+    pass
 
 
 #
@@ -4118,6 +4120,7 @@ def enable_bgp_rib_in_table(db):
 @clicommon.pass_db
 def disable(db):
     """Disable BMP table dump """
+    pass
 
 
 #
