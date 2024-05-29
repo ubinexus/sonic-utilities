@@ -56,6 +56,22 @@ Ethernet8      N/A       100          10         0           0         10       
 sonic_drops_test            1000                    0
 """
 
+expected_counts_voq = """\
+SWITCH LEVEL COUNTERS:
+       SWITCH-ID    PKT_INTEGRITY_ERR
+----------------  -------------------
+sonic_drops_test                  500
+
+    IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
+---------  -------  --------  ----------  --------  ----------  ---------  ---------
+Ethernet0        D        10         100         0           0         80         20
+Ethernet4      N/A         0        1000         0           0        800        100
+Ethernet8      N/A       100          10         0           0         10          0
+
+          DEVICE    SWITCH_DROPS    lowercase_counter
+----------------  --------------  -------------------
+sonic_drops_test            1000                    0
+"""
 expected_counts_with_group = """
           DEVICE    SWITCH_DROPS
 ----------------  --------------
@@ -116,6 +132,14 @@ class TestDropCounters(object):
         result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], [])
         print(result.output)
         assert result.output == expected_counts
+
+    def test_show_counts_voq(self):
+        runner = CliRunner()
+        os.environ["VOQ_DROP_COUNTER_TESTING"] = "1"
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], [])
+        os.environ["VOQ_DROP_COUNTER_TESTING"] = "0"
+        print(result.output)
+        assert result.output == expected_counts_voq
 
     def test_show_counts_with_group(self):
         runner = CliRunner()

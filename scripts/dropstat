@@ -148,7 +148,12 @@ class DropStat(object):
             return
 
         #Currently the switch drop counter (packet integrity) is supported only for chassis.
-        switch_type = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_type")
+        if os.environ.get("VOQ_DROP_COUNTER_TESTING", "0") == "1":
+           #fake the switch_type for mock-test code coverage
+           switch_type = "voq"
+        else:
+           switch_type = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_type")
+
         if switch_type is None:
             return
         if switch_type != "fabric" and switch_type != "voq":
@@ -169,7 +174,7 @@ class DropStat(object):
         if not switch_std_stats:
             return
 
-        if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "1":
+        if os.environ.get("VOQ_DROP_COUNTER_TESTING", "0") == "1":
            row = [socket.gethostname()]
         else:
            cfg_switch_id = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_id")
