@@ -34,8 +34,8 @@ def log_error(m):
     logger.log(logger.LOG_PRIORITY_ERROR, m, print_to_console)
 
 
-def get_config_db(namespace=multi_asic.DEFAULT_NAMESPACE):
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+def get_config_db(scope=multi_asic.DEFAULT_NAMESPACE):
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=scope)
     config_db.connect()
     return config_db
 
@@ -74,9 +74,9 @@ class ChangeApplier:
 
     updater_conf = None
 
-    def __init__(self, namespace=multi_asic.DEFAULT_NAMESPACE):
-        self.namespace = namespace
-        self.config_db = get_config_db(self.namespace)
+    def __init__(self, scope=multi_asic.DEFAULT_NAMESPACE):
+        self.scope = scope
+        self.config_db = get_config_db(self.scope)
         self.backend_tables = [
             "BUFFER_PG",
             "BUFFER_PROFILE",
@@ -169,8 +169,8 @@ class ChangeApplier:
     def _get_running_config(self):
         _, fname = tempfile.mkstemp(suffix="_changeApplier")
         
-        if self.namespace:
-            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
+        if self.scope:
+            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.scope]
         else:
             cmd = ['sonic-cfggen', '-d', '--print-data']
 
@@ -181,7 +181,7 @@ class ChangeApplier:
         return_code = result.returncode
         if return_code:
             os.remove(fname)
-            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.namespace}, Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
 
         run_data = {}
         try:

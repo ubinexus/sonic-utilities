@@ -2885,7 +2885,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
         mock_replace_content = copy.deepcopy(self.all_config)
         with patch('builtins.open', mock_open(read_data=json.dumps(mock_replace_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
-            with patch('config.main.MultiASICConfigRollbacker') as mock_generic_updater:
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
                 mock_generic_updater.return_value.replace_all = MagicMock()
 
                 print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
@@ -2978,25 +2978,6 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             # Assertions and verifications
             self.assertEqual(result.exit_code, 0, "Command should succeed")
             self.assertIn("Config rolled back successfully.", result.output)
-
-    @patch('generic_config_updater.generic_updater.Util.delete_checkpoint', MagicMock())
-    @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
-    def test_delete_checkpoint_multiasic(self):
-        checkpointname = "checkpointname"
-        # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.GenericUpdater') as mock_generic_updater:
-            mock_generic_updater.return_value.deletecheckpoint = MagicMock()
-
-            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
-            # Invocation of the command with the CliRunner
-            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
-                                        [checkpointname],
-                                        catch_exceptions=True)
-
-            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
-            # Assertions and verifications
-            self.assertEqual(result.exit_code, 0, "Command should succeed")
-            self.assertIn("Checkpoint deleted successfully.", result.output)
 
     @classmethod
     def teardown_class(cls):

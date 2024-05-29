@@ -19,8 +19,7 @@ import tempfile
 from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from collections import OrderedDict
-from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
-from generic_config_updater.generic_updater import MultiASICConfigRollbacker, extract_scope
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
 from generic_config_updater.gu_common import HOST_NAMESPACE, GenericConfigUpdaterError
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
@@ -1169,7 +1168,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
     scope_for_log = scope if scope else HOST_NAMESPACE
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes),
+        GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
                                                     config_format,
                                                     verbose,
                                                     dry_run,
@@ -1493,22 +1492,7 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
 
         config_format = ConfigFormat[format.upper()]
 
-        if multi_asic.is_multi_asic():
-            scope_list = [HOST_NAMESPACE]
-            scope_list.extend(multi_asic.get_namespace_list())
-            tobevalidated = copy.deepcopy(target_config)
-            for scope in scope_list:
-                scope_config = tobevalidated.pop(scope)
-                if not SonicYangCfgDbGenerator().validate_config_db_json(scope_config):
-                    raise GenericConfigUpdaterError(f"Invalid config for {scope} in {target_file_path}")
-            config_rollbacker = MultiASICConfigRollbacker(scopelist=scope_list)
-            config_rollbacker.replace_all(target_config)
-        else:
-            if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
-                raise GenericConfigUpdaterError(f"Invalid config in {target_file_path}")
-            scope = multi_asic.DEFAULT_NAMESPACE
-            GenericUpdater(namespace=scope).replace(target_config, config_format, verbose, dry_run,
-                                                    ignore_non_yang_tables, ignore_path)
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1531,14 +1515,8 @@ def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path,
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
         print_dry_run_message(dry_run)
-        if multi_asic.is_multi_asic():
-            scope_list = [multi_asic.DEFAULT_NAMESPACE]
-            scope_list.extend(multi_asic.get_namespace_list())
-            config_rollbacker = MultiASICConfigRollbacker(scopelist=scope_list)
-            config_rollbacker.rollback_all(checkpoint_name)
-        else:
-            GenericUpdater(namespace=multi_asic.DEFAULT_NAMESPACE).rollback(checkpoint_name, verbose, dry_run,
-                                                                            ignore_non_yang_tables, ignore_path)
+
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1554,13 +1532,7 @@ def checkpoint(ctx, checkpoint_name, verbose):
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        if multi_asic.is_multi_asic():
-            scope_list = [multi_asic.DEFAULT_NAMESPACE]
-            scope_list.extend(multi_asic.get_namespace_list())
-            config_rollbacker = MultiASICConfigRollbacker(scopelist=scope_list)
-            config_rollbacker.checkpoint_all(checkpoint_name)
-        else:
-            GenericUpdater(namespace=multi_asic.DEFAULT_NAMESPACE).checkpoint(checkpoint_name, verbose)
+        GenericUpdater().checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1576,13 +1548,7 @@ def delete_checkpoint(ctx, checkpoint_name, verbose):
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        if multi_asic.is_multi_asic():
-            scope_list = [multi_asic.DEFAULT_NAMESPACE]
-            scope_list.extend(multi_asic.get_namespace_list())
-            config_rollbacker = MultiASICConfigRollbacker(scopelist=scope_list)
-            config_rollbacker.delete_checkpoint(checkpoint_name)
-        else:
-            GenericUpdater(namespace=multi_asic.DEFAULT_NAMESPACE).delete_checkpoint(checkpoint_name, verbose)
+        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1595,14 +1561,7 @@ def delete_checkpoint(ctx, checkpoint_name, verbose):
 def list_checkpoints(ctx, verbose):
     """List the config checkpoints available."""
     try:
-        if multi_asic.is_multi_asic():
-            scope_list = [multi_asic.DEFAULT_NAMESPACE]
-            scope_list.extend(multi_asic.get_namespace_list())
-            config_rollbacker = MultiASICConfigRollbacker(scopelist=scope_list)
-            checkpoints_list = config_rollbacker.list_checkpoints()
-        else:
-            checkpoints_list = GenericUpdater().list_checkpoints(verbose)
-
+        checkpoints_list = GenericUpdater().list_checkpoints(verbose)
         formatted_output = json.dumps(checkpoints_list, indent=4)
         click.echo(formatted_output)
     except Exception as ex:
