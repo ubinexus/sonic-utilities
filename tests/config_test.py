@@ -168,6 +168,30 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
+save_config_output = """\
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+"""
+
+save_config_filename_output = """\
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /tmp/config_db.json
+"""
+
+save_config_masic_output = """\
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+Running command: /usr/local/bin/sonic-cfggen -n asic0 -d --print-data > /etc/sonic/config_db0.json
+Running command: /usr/local/bin/sonic-cfggen -n asic1 -d --print-data > /etc/sonic/config_db1.json
+"""
+
+save_config_filename_masic_output = """\
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > config_db.json
+Running command: /usr/local/bin/sonic-cfggen -n asic0 -d --print-data > config_db0.json
+Running command: /usr/local/bin/sonic-cfggen -n asic1 -d --print-data > config_db1.json
+"""
+
+save_config_onefile_masic_output = """\
+Integrate each ASIC's config into a single JSON file /tmp/all_config_db.json.
+"""
+
 config_temp = {
         "scope": {
             "ACL_TABLE": {
@@ -332,6 +356,191 @@ class TestConfig(object):
         result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['update'], ['update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
         assert result.exit_code == 0
         mock_check_call.assert_called_with(["fwutil", "update", 'update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
+
+
+class TestConfigSave(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    def test_config_save(self, get_cmd_module, setup_single_broadcom_asic):
+        def read_json_file_side_effect(filename):
+            return {}
+
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)),\
+            mock.patch('config.main.read_json_file',
+                       mock.MagicMock(side_effect=read_json_file_side_effect)),\
+            mock.patch('config.main.open',
+                       mock.MagicMock()):
+            (config, show) = get_cmd_module
+
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["save"], ["-y"])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == save_config_output
+
+    def test_config_save_filename(self, get_cmd_module, setup_single_broadcom_asic):
+        def read_json_file_side_effect(filename):
+            return {}
+
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)),\
+            mock.patch('config.main.read_json_file',
+                       mock.MagicMock(side_effect=read_json_file_side_effect)),\
+            mock.patch('config.main.open',
+                       mock.MagicMock()):
+
+            (config, show) = get_cmd_module
+
+            runner = CliRunner()
+
+            output_file = os.path.join(os.sep, "tmp", "config_db.json")
+            result = runner.invoke(config.config.commands["save"], ["-y", output_file])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == save_config_filename_output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+
+class TestConfigSaveMasic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import config.main
+        importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+
+    def test_config_save_masic(self):
+        def read_json_file_side_effect(filename):
+            return {}
+
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)),\
+            mock.patch('config.main.read_json_file',
+                       mock.MagicMock(side_effect=read_json_file_side_effect)),\
+            mock.patch('config.main.open',
+                       mock.MagicMock()):
+
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["save"], ["-y"])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == save_config_masic_output
+
+    def test_config_save_filename_masic(self):
+        def read_json_file_side_effect(filename):
+            return {}
+
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)),\
+            mock.patch('config.main.read_json_file',
+                       mock.MagicMock(side_effect=read_json_file_side_effect)),\
+            mock.patch('config.main.open',
+                       mock.MagicMock()):
+
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["save"],
+                ["-y", "config_db.json,config_db0.json,config_db1.json"]
+            )
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == save_config_filename_masic_output
+
+    def test_config_save_filename_wrong_cnt_masic(self):
+        def read_json_file_side_effect(filename):
+            return {}
+
+        with mock.patch('config.main.read_json_file', mock.MagicMock(side_effect=read_json_file_side_effect)):
+
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["save"],
+                ["-y", "config_db.json,config_db0.json"]
+            )
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert "Input 3 config file(s) separated by comma for multiple files" in result.output
+
+    def test_config_save_onefile_masic(self):
+        def get_config_side_effect():
+            return {}
+
+        with mock.patch('swsscommon.swsscommon.ConfigDBConnector.get_config',
+                        mock.MagicMock(side_effect=get_config_side_effect)):
+            runner = CliRunner()
+
+            output_file = os.path.join(os.sep, "tmp", "all_config_db.json")
+            print("Saving output in {}".format(output_file))
+            try:
+                os.remove(output_file)
+            except OSError:
+                pass
+            result = runner.invoke(
+                config.config.commands["save"],
+                ["-y", output_file]
+            )
+
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == save_config_onefile_masic_output
+
+            cwd = os.path.dirname(os.path.realpath(__file__))
+            expected_result = os.path.join(
+                cwd, "config_save_output", "all_config_db.json"
+            )
+            assert filecmp.cmp(output_file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
+
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
@@ -2880,6 +3089,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 mocked_open.assert_called_with(self.patch_file_path, 'r')
 
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     def test_repalce_multiasic(self):
         # Mock open to simulate file reading
         mock_replace_content = copy.deepcopy(self.all_config)
@@ -2903,6 +3113,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 mocked_open.assert_called_with(self.replace_file_path, 'r')
 
     @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     def test_repalce_multiasic_missing_scope(self):
         # Mock open to simulate file reading
         mock_replace_content = copy.deepcopy(self.all_config)
@@ -2958,26 +3169,55 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             self.assertEqual(result.exit_code, 0, "Command should succeed")
             self.assertIn("Checkpoint created successfully.", result.output)
 
-    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
     @patch('generic_config_updater.generic_updater.Util.get_checkpoint_content')
     def test_rollback_multiasic(self, mock_get_checkpoint_content):
         mock_get_checkpoint_content.return_value = copy.deepcopy(self.all_config)
         checkpointname = "checkpointname"
+        print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+        # Invocation of the command with the CliRunner
+        result = self.runner.invoke(config.config.commands["rollback"],
+                                    [checkpointname],
+                                    catch_exceptions=True)
+
+        print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+        # Assertions and verifications
+        self.assertEqual(result.exit_code, 0, "Command should succeed")
+        self.assertIn("Config rolled back successfully.", result.output)
+
+    @patch('generic_config_updater.generic_updater.Util.checkpoints_dir_exist', mock.Mock(return_value=True))
+    @patch('generic_config_updater.generic_updater.Util.get_checkpoint_names',
+           mock.Mock(return_value=["checkpointname"]))
+    def test_list_checkpoint_multiasic(self):
+        print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+        # Invocation of the command with the CliRunner
+        result = self.runner.invoke(config.config.commands["list-checkpoints"],
+                                    catch_exceptions=True)
+
+        print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+        # Assertions and verifications
+        self.assertEqual(result.exit_code, 0, "Command should succeed")
+        self.assertIn("checkpointname", result.output)
+
+    @patch('generic_config_updater.generic_updater.Util.delete_checkpoint', MagicMock())
+    @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
+    def test_delete_checkpoint_multiasic(self):
+        checkpointname = "checkpointname"
         # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.GenericUpdater') as mock_generic_updater:
-            mock_generic_updater.return_value.rollback = MagicMock()
+        with patch('config.main.MultiASICConfigRollbacker') as mock_generic_updater:
+            mock_generic_updater.return_value.delete_checkpoint = MagicMock()
 
             print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
             # Invocation of the command with the CliRunner
-            result = self.runner.invoke(config.config.commands["rollback"],
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
                                         [checkpointname],
                                         catch_exceptions=True)
 
             print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
             # Assertions and verifications
             self.assertEqual(result.exit_code, 0, "Command should succeed")
-            self.assertIn("Config rolled back successfully.", result.output)
+            self.assertIn("Checkpoint deleted successfully.", result.output)
 
     @classmethod
     def teardown_class(cls):
