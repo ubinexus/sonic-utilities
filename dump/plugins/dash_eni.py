@@ -29,27 +29,26 @@ class Dash_Eni(Executor):
         self.ret_temp = create_template_dict(dbs=["APPL_DB", "ASIC_DB"])
         dash_eni_table_name = params[self.ARG_NAME]
         self.ns = params["namespace"]
-        self.init_dash_eni_table_appl_info(dash_eni_table_name)
-        self.init_dash_eni_table_asic_info(dash_eni_table_name)
+        mr_output = self.init_dash_eni_table_appl_info(dash_eni_table_name)
+        self.init_dash_eni_table_asic_info(mr_output)
         return self.ret_temp
 
     def init_dash_eni_table_appl_info(self, dash_eni_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_ENI_TABLE", key_pattern=dash_eni_table_name, ns=self.ns,)
-        ret = self.match_engine.fetch(req)
-        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
-
-    def init_dash_eni_table_asic_info(self, dash_eni_table_name):
         req = MatchRequest(db="APPL_DB", table="DASH_ENI_TABLE", key_pattern=dash_eni_table_name, return_fields=["vnet"], ns=self.ns, pb=Eni())
         ret = self.match_engine.fetch(req)
-        if not (len(ret['keys'])):
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
+        return ret
+
+    def init_dash_eni_table_asic_info(self, match_output):
+        if not (len(match_output['keys'])):
             return
-        vnet = ret['return_values'][ret['keys'][0]]['vnet']
+        vnet = match_output['return_values'][match_output['keys'][0]]['vnet']
         req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern=vnet, return_fields=["vni"], ns=self.ns, pb=Vnet())
         ret = self.match_engine.fetch(req)
         if not (len(ret['keys'])):
             return
         vni = ret['return_values'][ret['keys'][0]]['vni']
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE", key_pattern="SAI_OBJECT_TYPE_VNET:*", field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
+        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET", key_pattern="*", field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
         ret = self.match_engine.fetch(req)
         if not (len(ret['keys'])):
             return

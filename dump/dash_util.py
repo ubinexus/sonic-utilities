@@ -53,30 +53,39 @@ decode_fn = {'IpAddress': format_ip_address_dict,
 
 def find_known_types_sec(pb2_obj, pb2_dict):
 
+    def process_msg_field(obj, proto_dict, field_name):
+        class_name = obj.__name__
+        if isinstance(obj, decode_types):
+            proto_dict[field_name] = decode_fn[class_name](proto_dict[field_name])
+        else:
+            find_index(obj, proto_dict[field_name])
+    
+    def process_rep_field(obj, proto_dict, field_name):
+        final_list = []
+        requires_change = False
+        for ind, value in enumerate(obj):
+            if isinstance(value, Message):
+                if isinstance(value, decode_types):
+                    requires_change = True
+                    class_name = value.__name__
+                    final_list.append(decode_fn[class_name](proto_dict[field_name][ind]))
+                else:
+                    find_index(value, pb2_dict[field_name][ind])
+        if requires_change:
+            proto_dict[field_name] = final_list
+
     def find_index(proto_obj, proto_dict=pb2_dict):
         for field_descriptor, value in proto_obj.ListFields():
             field_name = field_descriptor.name
             field_type = field_descriptor.type
             if field_type == field_descriptor.TYPE_MESSAGE:
                 obj = getattr(proto_obj, field_name)
-                if isinstance(obj, decode_types):
-                    class_name = obj.__name__
-                    proto_dict[field_name] = decode_fn[class_name](proto_dict[field_name])
-                elif field_descriptor.label == field_descriptor.LABEL_REPEATED:
-                    final_list = []
-                    requires_change = False
-                    for ind, value in enumerate(obj):
-                        if isinstance(value, Message) and isinstance(value, decode_types):
-                            requires_change = True
-                            class_name = value.__name__
-                            final_list.append(decode_fn[class_name](proto_dict[field_name][ind]))
-                        else:
-                            find_index(value, proto_dict[field_name][ind])
-                    if requires_change:
-                        proto_dict[field_name] = final_list
+                if field_descriptor.label == field_descriptor.LABEL_REPEATED:
+                    process_rep_field(obj, proto_dict, field_name)
                 else:
-                    find_index(obj, proto_dict[field_name])
+                    process_msg_field(obj, proto_dict, field_name)
             elif field_name in decode_fn:
                 proto_dict[field_name] = decode_fn[field_name](proto_dict[field_name])
+
     find_index(pb2_obj)
     return pb2_dict

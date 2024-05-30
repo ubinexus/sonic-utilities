@@ -47,7 +47,7 @@ class Dash_Vnet(Executor):
                 self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_VNET")
             return
         vni = ret['return_values'][ret['keys'][0]]['vni']
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE", key_pattern="SAI_OBJECT_TYPE_VNET:*", field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
+        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET", key_pattern="*", field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
