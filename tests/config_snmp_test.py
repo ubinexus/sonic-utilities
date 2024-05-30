@@ -887,7 +887,7 @@ class TestSNMPConfigCommands(object):
         db = Db()
         obj = {'db': db.cfgdb}
         runner = CliRunner()
-        runner.invoke(config.config.commands["snmpagentaddress"].commands["add"], ["fe80::1"], obj=obj)
+        runner.invoke(config.config.commands["snmpagentaddress"].commands["add"], ["fe80::1%eth0"], obj=obj)
         assert ('fe80::1%eth0', '', '') in db.cfgdb.get_keys('SNMP_AGENT_ADDRESS_CONFIG')
         assert db.cfgdb.get_entry("SNMP_AGENT_ADDRESS_CONFIG", "fe80::1%eth0||") == {}
 
