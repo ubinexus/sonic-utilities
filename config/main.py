@@ -1683,9 +1683,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             file_input = read_json_file(file)
 
             platform = file_input.get("DEVICE_METADATA", {}).\
-                get(HOST_NAMESPACE, {}).get("platform").strip()
+                get(HOST_NAMESPACE, {}).get("platform").rstrip('\n')
             mac = file_input.get("DEVICE_METADATA", {}).\
-                get(HOST_NAMESPACE, {}).get("mac").strip()
+                get(HOST_NAMESPACE, {}).get("mac").rstrip('\n')
 
             if not platform or not mac:
                 log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
@@ -1995,13 +1995,13 @@ def generate_sysinfo(cur_config, config_input, ns=None):
 
     # Reuse current config's mac and platform. Generate if absent
     if cur_device_metadata is not None:
-        mac = cur_device_metadata.get('localhost', {}).get('mac').strip()
-        platform = cur_device_metadata.get('localhost', {}).get('platform').strip()
+        mac = cur_device_metadata.get('localhost', {}).get('mac').rstrip('\n')
+        platform = cur_device_metadata.get('localhost', {}).get('platform').rstrip('\n')
 
     if not mac:
         if ns:
-            asic_role = device_metadata.get('localhost', {}).get('sub_role').strip()
-            switch_type = device_metadata.get('localhost', {}).get('switch_type').strip()
+            asic_role = device_metadata.get('localhost', {}).get('sub_role').rstrip('\n')
+            switch_type = device_metadata.get('localhost', {}).get('switch_type').rstrip('\n')
 
             if ((switch_type is not None and switch_type.lower() == "chassis-packet") or
                     (asic_role is not None and asic_role.lower() == "backend")):
