@@ -140,7 +140,7 @@ class ChangeApplier:
             str(jsondiff.diff(run_data, upd_data))[0:40]))
 
     def apply(self, change):
-        run_data = self._get_running_config(self.scope)
+        run_data = self._get_running_config()
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
@@ -149,7 +149,7 @@ class ChangeApplier:
 
         ret = self._services_validate(run_data, upd_data, upd_keys)
         if not ret:
-            run_data = self._get_running_config(self.scope)
+            run_data = self._get_running_config()
             self.remove_backend_tables_from_config(upd_data)
             self.remove_backend_tables_from_config(run_data)
             if upd_data != run_data:
@@ -166,8 +166,8 @@ class ChangeApplier:
     def _get_running_config(self):
         _, fname = tempfile.mkstemp(suffix="_changeApplier")
 
-        if self.namespace:
-            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
+        if self.scope:
+            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.scope]
         else:
             cmd = ['sonic-cfggen', '-d', '--print-data']
 
@@ -179,7 +179,7 @@ class ChangeApplier:
         if return_code:
             os.remove(fname)
             raise GenericConfigUpdaterError(
-                f"Failed to get running config for namespace: {self.scope}," +
+                f"Failed to get running config for scope: {self.scope}," +
                 f"Return code: {return_code}, Error: {err}")
 
         run_data = {}
