@@ -1,6 +1,9 @@
 
 class SsdUtil():
 
+    def __init__(self, diskdev):
+        pass
+
     def get_model(self):
         return 'SkyNet'
 

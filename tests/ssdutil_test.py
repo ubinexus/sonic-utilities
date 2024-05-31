@@ -56,11 +56,8 @@ class Ssd():
 
 class TestSsdutil:
 
-    @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
-           MagicMock(return_value=("test_path", "")))
+    @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', MagicMock(return_value=("test_path", "")))  # noqa: E501
     @patch('os.geteuid', MagicMock(return_value=0))
-    @patch('sonic_platform_base.sonic_ssd.ssd_generic.SsdUtil', MagicMock(return_value=Ssd()))  # noqa: E501
-    @patch('sonic_platform_base.sonic_storage.ssd.SsdUtil', MagicMock(return_value=Ssd()))  # noqa: E501
     def test_happy_path(self):
 
         ssdutil.ssdutil()
