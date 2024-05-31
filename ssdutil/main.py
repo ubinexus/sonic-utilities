@@ -41,8 +41,11 @@ def import_ssd_api(diskdev):
         try:
             from sonic_platform_base.sonic_storage.ssd import SsdUtil
         except ImportError as e:
-            log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
-            raise e
+            try:
+                from sonic_platform_base.sonic_ssd.ssd_generic import SsdUtil
+            except ImportError as e:
+                log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
+                raise e
 
     return SsdUtil(diskdev)
 
