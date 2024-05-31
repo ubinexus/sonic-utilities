@@ -218,7 +218,7 @@ def dhcp_mitigation_rate(db, ctx, interfacename):
     def tablelize(keys):
         table = []
         for key in natsorted(keys):
-            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(config_db, key)]
+            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(db.cfgdb, key)]
             table.append(r)
         return table
 
