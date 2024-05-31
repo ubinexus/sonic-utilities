@@ -89,22 +89,18 @@ def fetch_reboot_cause_from_db(module_name):
     r = []
 
     # Read the previous reboot cause
-    if module_name == "all" or module_name == "SWITCH":
-        reboot_cause_dict = read_reboot_cause_file()
-        reboot_gen_time = reboot_cause_dict.get("gen_time", "N/A")
-        reboot_cause = reboot_cause_dict.get("cause", "Unknown")
-        reboot_time = reboot_cause_dict.get("time", "N/A")
-        reboot_user = reboot_cause_dict.get("user", "N/A")
+    reboot_cause_dict = read_reboot_cause_file()
+    reboot_gen_time = reboot_cause_dict.get("gen_time", "N/A")
+    reboot_cause = reboot_cause_dict.get("cause", "Unknown")
+    reboot_time = reboot_cause_dict.get("time", "N/A")
+    reboot_user = reboot_cause_dict.get("user", "N/A")
 
-        r.append("SWITCH")
-        r.append(reboot_gen_time if reboot_gen_time else "")
-        r.append(reboot_cause if reboot_cause else "")
-        r.append(reboot_time if reboot_time else "")
-        r.append(reboot_user if reboot_user else "")
-        table.append(r)
-
-        if module_name == "SWITCH":
-            return table
+    r.append("SWITCH")
+    r.append(reboot_gen_time if reboot_gen_time else "")
+    r.append(reboot_cause if reboot_cause else "")
+    r.append(reboot_time if reboot_time else "")
+    r.append(reboot_user if reboot_user else "")
+    table.append(r)
 
     table += fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=True)
     return table
