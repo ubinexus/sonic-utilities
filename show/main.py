@@ -5,7 +5,7 @@ import sys
 import re
 
 import click
-from generic_config_updater.generic_updater import get_config_json_by_namespace
+from generic_config_updater.gu_common import get_config_json_by_namespace
 import lazy_object_proxy
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
