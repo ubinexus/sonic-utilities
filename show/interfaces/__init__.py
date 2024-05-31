@@ -188,23 +188,20 @@ def tpid(interfacename, namespace, display, verbose):
 @interfaces.command(name='dhcp-mitigation-rate')
 @click.argument('interfacename', required=False)
 @click.pass_context
-def dhcp_mitigation_rate(ctx, interfacename):
+@clicommon.pass_db
+def dhcp_mitigation_rate(db, ctx, interfacename):
     """Show Interface DHCP mitigation rate information"""
-
-    # Reading data from Redis configDb
-    config_db = ConfigDBConnector()
-    config_db.connect()
 
     keys = []
 
     if interfacename is None:
-        port_data = list(config_db.get_table('PORT').keys())
+        port_data = list(db.cfgdb.get_table('PORT').keys())
         keys = port_data
 
     else:
-        if clicommon.is_valid_port(config_db, interfacename):
+        if clicommon.is_valid_port(db.cfgdb, interfacename):
             pass
-        elif clicommon.is_valid_portchannel(config_db, interfacename):
+        elif clicommon.is_valid_portchannel(db.cfgdb, interfacename):
             ctx.fail("{} is a PortChannel!".format(interfacename))
         else:
             ctx.fail("{} does not exist".format(interfacename))
@@ -213,7 +210,7 @@ def dhcp_mitigation_rate(ctx, interfacename):
 
     def get_interface_name_for_display(interface):
         if clicommon.get_interface_naming_mode() == 'alias':
-            iface_alias_converter = clicommon.InterfaceAliasConverter(config_db)
+            iface_alias_converter = clicommon.InterfaceAliasConverter(db.cfgdb)
             alias = iface_alias_converter.name_to_alias(interface)
             return alias
         return interface
