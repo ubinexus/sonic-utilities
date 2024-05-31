@@ -87,7 +87,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         config_wrapper = self.config_wrapper
         config_wrapper.get_config_db_as_json = MagicMock(side_effect=get_running_config)
         change_applier = generic_config_updater.change_applier.ChangeApplier()
-        change_applier._get_running_config = MagicMock(side_effect=get_running_config)
+        gu.get_config_json = MagicMock(side_effect=get_running_config)
         patch_wrapper = PatchWrapper(config_wrapper)
         return gu.PatchApplier(config_wrapper=config_wrapper, patch_wrapper=patch_wrapper, changeapplier=change_applier)
     

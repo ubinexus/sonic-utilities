@@ -5,7 +5,7 @@ import subprocess
 
 from enum import Enum
 from .gu_common import HOST_NAMESPACE, GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
-                    DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
+                    DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging, get_config_json
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                         TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
 from .change_applier import ChangeApplier, DryRunChangeApplier
@@ -34,25 +34,6 @@ def extract_scope(path):
         scope = ""
         remainder = path
     return scope, remainder
-
-
-def get_cmd_output(cmd):
-    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
-    return proc.communicate()[0], proc.returncode
-
-
-def get_config_json_by_namespace(scope):
-    cmd = ['sonic-cfggen', '-d', '--print-data']
-    if scope is not None and scope != multi_asic.DEFAULT_NAMESPACE:
-        cmd += ['-n', scope]
-    stdout, rc = get_cmd_output(cmd)
-    if rc:
-        raise GenericConfigUpdaterError("Failed to get cmd output '{}':rc {}".format(cmd, rc))
-    try:
-        config_json = json.loads(stdout)
-    except json.JSONDecodeError as e:
-        raise GenericConfigUpdaterError("Failed to get config by '{}' due to {}".format(cmd, e))
-    return config_json
 
 
 class ConfigLock:
@@ -204,7 +185,7 @@ class FileSystemConfigRollbacker:
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
 
         self.logger.log_notice("Getting current config db.")
-        json_content = self.config_wrapper.get_config_db_as_json()
+        json_content = get_config_json()
 
         self.logger.log_notice("Getting checkpoint full-path.")
         path = self.util.get_checkpoint_full_path(checkpoint_name)
@@ -252,12 +233,10 @@ class FileSystemConfigRollbacker:
 
 
 class MultiASICConfigReplacer:
-    def __init__(self, checkpoints_dir=CHECKPOINTS_DIR):
+    def __init__(self):
         self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigReplacer",
                                                        print_all_to_console=True)
-        self.scopelist = [HOST_NAMESPACE].extend(multi_asic.get_namespace_list())
-        self.checkpoints_dir = checkpoints_dir
-        self.util = Util(checkpoints_dir=checkpoints_dir)
+        self.scopelist = [HOST_NAMESPACE, *multi_asic.get_namespace_list()]
 
     def replace(self, target_config):
         config_keys = set(target_config.keys())
@@ -269,14 +248,14 @@ class MultiASICConfigReplacer:
             scope_config = target_config.pop(scope)
             if scope.lower() == HOST_NAMESPACE:
                 scope = multi_asic.DEFAULT_NAMESPACE
-            ConfigReplacer(namespace=scope).replace(scope_config)
+            ConfigReplacer(scope=scope).replace(scope_config)
 
 
 class MultiASICConfigRollbacker(FileSystemConfigRollbacker):
     def __init__(self, checkpoints_dir=CHECKPOINTS_DIR):
         self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigRollbacker",
                                                        print_all_to_console=True)
-        self.scopelist = [HOST_NAMESPACE].extend(multi_asic.get_namespace_list())
+        self.scopelist = [HOST_NAMESPACE, *multi_asic.get_namespace_list()]
         self.checkpoints_dir = checkpoints_dir
         self.util = Util(checkpoints_dir=checkpoints_dir)
 
@@ -293,25 +272,17 @@ class MultiASICConfigRollbacker(FileSystemConfigRollbacker):
         self.logger.log_notice(f"Replacing config '{checkpoint_name}' using 'Config Replacer'.")
 
         for scope in self.scopelist:
-            if scope.lower() == multi_asic.DEFAULT_NAMESPACE:
-                config = target_config.pop(HOST_NAMESPACE)
-            else:
-                config = target_config.pop(scope)
-            ConfigReplacer(namespace=scope).replace(config)
+            config = target_config.pop(scope)
+            if scope.lower() == HOST_NAMESPACE:
+                scope = multi_asic.DEFAULT_NAMESPACE
+            ConfigReplacer(scope=scope).replace(config)
 
         self.logger.log_notice("Config rollbacking completed.")
 
     def checkpoint(self, checkpoint_name):
-        all_configs = {}
+        all_configs = get_config_json()
         self.logger.log_notice("Config checkpoint starting.")
         self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.")
-
-        for scope in self.scopelist:
-            self.logger.log_notice(f"Getting current {scope} config db.")
-            config = get_config_json_by_namespace(scope)
-            if scope.lower() == multi_asic.DEFAULT_NAMESPACE:
-                scope = HOST_NAMESPACE
-            all_configs[scope] = config
 
         self.logger.log_notice("Getting checkpoint full-path.")
         path = self.util.get_checkpoint_full_path(checkpoint_name)

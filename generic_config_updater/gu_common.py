@@ -18,6 +18,42 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json"
 HOST_NAMESPACE = "localhost"
 
+
+def get_cmd_output(cmd):
+    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
+    return proc.communicate()[0], proc.returncode
+
+
+def get_config_json():
+    command = ["show", "runningconfiguration", "all"]
+    all_running_config_text, returncode = stdout, rc = get_cmd_output(command)
+    if returncode:
+        raise GenericConfigUpdaterError(
+            f"Fetch all runningconfiguration failed as output:{all_running_config_text}")
+    all_running_config = json.loads(all_running_config_text)
+
+    if multi_asic.is_multi_asic():
+        for asic in [HOST_NAMESPACE, *multi_asic.get_namespace_list()]:
+            all_running_config[asic].pop("bgpraw", None)
+    else:
+        all_running_config.pop("bgpraw", None)
+    return all_running_config
+
+
+def get_config_json_by_namespace(scope):
+    cmd = ['sonic-cfggen', '-d', '--print-data']
+    if scope is not None and scope != multi_asic.DEFAULT_NAMESPACE:
+        cmd += ['-n', scope]
+    stdout, rc = get_cmd_output(cmd)
+    if rc:
+        raise GenericConfigUpdaterError("Failed to get cmd output '{}':rc {}".format(cmd, rc))
+    try:
+        config_json = json.loads(stdout)
+    except json.JSONDecodeError as e:
+        raise GenericConfigUpdaterError("Failed to get config by '{}' due to {}".format(cmd, e))
+    return config_json
+
+
 class GenericConfigUpdaterError(Exception):
     pass
 
@@ -59,24 +95,7 @@ class ConfigWrapper:
         self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
-        text = self._get_config_db_as_text()
-        config_db_json = json.loads(text)
-        config_db_json.pop("bgpraw", None)
-        return config_db_json
-
-    def _get_config_db_as_text(self):
-        if self.scope is not None and self.scope != multi_asic.DEFAULT_NAMESPACE:
-            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.scope]
-        else:
-            cmd = ['sonic-cfggen', '-d', '--print-data']
-
-        result = subprocess.Popen(cmd, shell=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        text, err = result.communicate()
-        return_code = result.returncode
-        if return_code: # non-zero means failure
-            raise GenericConfigUpdaterError(
-                f"Failed to get running config for scope: {self.scope}, Return code: {return_code}, Error: {err}")
-        return text
+        return get_config_json_by_namespace(self.scope)
 
     def get_sonic_yang_as_json(self):
         config_db_json = self.get_config_db_as_json()

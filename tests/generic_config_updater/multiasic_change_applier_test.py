@@ -38,9 +38,9 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
             except Exception as e:
                 assert(result == False)
 
-    @patch('generic_config_updater.change_applier.ChangeApplier._get_running_config', autospec=True)
+    @patch('generic_config_updater.change_applier.get_config_json_by_namespace', autospec=True)
     @patch('generic_config_updater.change_applier.ConfigDBConnector', autospec=True)
-    def test_apply_change_default_namespace(self, mock_ConfigDBConnector, mock_get_running_config):
+    def test_apply_change_default_scope(self, mock_ConfigDBConnector, mock_get_running_config):
         # Setup mock for ConfigDBConnector
         mock_db = MagicMock()
         mock_ConfigDBConnector.return_value = mock_db
@@ -67,7 +67,7 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
             }
         }
 
-        # Instantiate ChangeApplier with the default namespace
+        # Instantiate ChangeApplier with the default scope
         applier = generic_config_updater.change_applier.ChangeApplier()
 
         # Prepare a change object or data that applier.apply would use
@@ -79,9 +79,9 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
         # Assert ConfigDBConnector called with the correct namespace
         mock_ConfigDBConnector.assert_called_once_with(use_unix_socket_path=True, namespace="")
 
-    @patch('generic_config_updater.change_applier.ChangeApplier._get_running_config', autospec=True)
+    @patch('generic_config_updater.change_applier.get_config_json_by_namespace', autospec=True)
     @patch('generic_config_updater.change_applier.ConfigDBConnector', autospec=True)
-    def test_apply_change_given_namespace(self, mock_ConfigDBConnector, mock_get_running_config):
+    def test_apply_change_given_scope(self, mock_ConfigDBConnector, mock_get_running_config):
         # Setup mock for ConfigDBConnector
         mock_db = MagicMock()
         mock_ConfigDBConnector.return_value = mock_db
@@ -108,8 +108,8 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
             }
         }
 
-        # Instantiate ChangeApplier with the default namespace
-        applier = generic_config_updater.change_applier.ChangeApplier(namespace="asic0")
+        # Instantiate ChangeApplier with the default scope
+        applier = generic_config_updater.change_applier.ChangeApplier(scope="asic0")
 
         # Prepare a change object or data that applier.apply would use
         change = MagicMock()
@@ -117,10 +117,10 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
         # Call the apply method with the change object
         applier.apply(change)
 
-        # Assert ConfigDBConnector called with the correct namespace
+        # Assert ConfigDBConnector called with the correct scope
         mock_ConfigDBConnector.assert_called_once_with(use_unix_socket_path=True, namespace="asic0")
 
-    @patch('generic_config_updater.change_applier.ChangeApplier._get_running_config', autospec=True)
+    @patch('generic_config_updater.change_applier.get_config_json_by_namespace', autospec=True)
     @patch('generic_config_updater.change_applier.ConfigDBConnector', autospec=True)
     def test_apply_change_failure(self, mock_ConfigDBConnector, mock_get_running_config):
         # Setup mock for ConfigDBConnector
@@ -129,9 +129,9 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
 
         # Setup mock for json.load to return some running configuration
         mock_get_running_config.side_effect = Exception("Failed to get running config")
-        # Instantiate ChangeApplier with a specific namespace to simulate applying changes in a multi-asic environment
-        namespace = "asic0"
-        applier = generic_config_updater.change_applier.ChangeApplier(namespace=namespace)
+        # Instantiate ChangeApplier with a specific scope to simulate applying changes in a multi-asic environment
+        scope = "asic0"
+        applier = generic_config_updater.change_applier.ChangeApplier(scope=scope)
 
         # Prepare a change object or data that applier.apply would use
         change = MagicMock()
@@ -142,7 +142,7 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
 
         self.assertTrue('Failed to get running config' in str(context.exception))
 
-    @patch('generic_config_updater.change_applier.ChangeApplier._get_running_config', autospec=True)
+    @patch('generic_config_updater.change_applier.get_config_json_by_namespace', autospec=True)
     @patch('generic_config_updater.change_applier.ConfigDBConnector', autospec=True)
     def test_apply_patch_with_empty_tables_failure(self, mock_ConfigDBConnector, mock_get_running_config):
         # Setup mock for ConfigDBConnector
@@ -159,8 +159,8 @@ class TestMultiAsicChangeApplier(unittest.TestCase):
             }
         }
 
-        # Instantiate ChangeApplier with a specific namespace to simulate applying changes in a multi-asic environment
-        applier = generic_config_updater.change_applier.ChangeApplier(namespace="asic0")
+        # Instantiate ChangeApplier with a specific scope to simulate applying changes in a multi-asic environment
+        applier = generic_config_updater.change_applier.ChangeApplier(scope="asic0")
 
         # Prepare a change object or data that applier.apply would use, simulating a patch that requires non-empty tables
         change = MagicMock()
