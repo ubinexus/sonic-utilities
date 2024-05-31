@@ -69,16 +69,33 @@ json_change_index = 0
 
 DB_HANDLE = "config_db"
 
-
 def debug_print(msg):
     print(msg)
 
 
 # Mimics os.system call for sonic-cfggen -d --print-data > filename
-def mock_get_running_config_json(*args):
-    print(f"Get running config {args}")
+def subprocess_Popen_cfggen(cmd, *args, **kwargs):
     global running_config
-    return running_config
+
+    # Extract file name from kwargs if 'stdout' is a file object
+    stdout = kwargs.get('stdout')
+    if hasattr(stdout, 'name'):
+        fname = stdout.name
+    else:
+        raise ValueError("stdout is not a file")
+
+    # Write the running configuration to the file specified in stdout
+    with open(fname, "w") as s:
+        json.dump(running_config, s, indent=4)
+    
+    class MockPopen:
+        def __init__(self):
+            self.returncode = 0  # Simulate successful command execution
+
+        def communicate(self):
+            return "", ""  # Simulate empty stdout and stderr
+
+    return MockPopen()
 
 
 # mimics config_db.set_entry
@@ -172,8 +189,13 @@ def _validate_keys(keys):
             assert key in chg_tbl
             assert key in keys_tbl
 
-
+        
 def _validate_svc(svc_name, old_cfg, new_cfg, keys):
+    if old_cfg != start_running_config:
+        debug_print("validate svc {}: old diff={}".format(svc_name, str(
+            jsondiff.diff(old_cfg, start_running_config))))
+        assert False, "_validate_svc: old config mismatch"
+
     if new_cfg != running_config:
         debug_print("validate svc {}: new diff={}".format(svc_name, str(
             jsondiff.diff(new_cfg, running_config))))
@@ -203,14 +225,14 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.change_applier.get_config_json_by_namespace")
+    @patch("generic_config_updater.change_applier.subprocess.Popen")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
-    def test_change_apply(self, mock_set, mock_db, mock_get_config_json):
+    def test_change_apply(self, mock_set, mock_db, mock_subprocess_Popen):
         global read_data, running_config, json_changes, json_change_index
         global start_running_config
 
-        mock_get_config_json.side_effect = mock_get_running_config_json
+        mock_subprocess_Popen.side_effect = subprocess_Popen_cfggen
         mock_db.return_value = DB_HANDLE
         mock_set.side_effect = set_entry
 
@@ -220,11 +242,10 @@ class TestChangeApplier(unittest.TestCase):
         running_config = copy.deepcopy(read_data["running_data"])
         json_changes = copy.deepcopy(read_data["json_changes"])
 
-        generic_config_updater.change_applier.ChangeApplier.updater_conf = None
         generic_config_updater.change_applier.UPDATER_CONF_FILE = CONF_FILE
         generic_config_updater.change_applier.set_verbose(True)
         generic_config_updater.services_validator.set_verbose(True)
-
+        
         applier = generic_config_updater.change_applier.ChangeApplier()
         debug_print("invoked applier")
 
@@ -233,7 +254,7 @@ class TestChangeApplier(unittest.TestCase):
 
             # Take copy for comparison
             start_running_config = copy.deepcopy(running_config)
-
+            
             debug_print("main: json_change_index={}".format(json_change_index))
 
             applier.apply(mock_obj())
@@ -250,6 +271,17 @@ class TestChangeApplier(unittest.TestCase):
             debug_print(f"----------------------------- DONE {i} ---------------------------------")
 
         debug_print("All changes applied & tested")
+
+        # Test data is set up in such a way the multiple changes
+        # finally brings it back to original config.
+        #
+        if read_data["running_data"] != running_config:
+            debug_print("final config mismatch: {}".format(str(
+                jsondiff.diff(read_data["running_data"], running_config))))
+
+        assert read_data["running_data"] == running_config
+
+        debug_print("all good for applier")
 
 
 class TestDryRunChangeApplier(unittest.TestCase):

@@ -41,7 +41,7 @@ class TestShowRunAllCommands(object):
     def mock_run_bgp_command():
         return ""
 
-    @patch('generic_config_updater.generic_updater.subprocess.Popen')
+    @patch('generic_config_updater.gu_common.subprocess.Popen')
     def test_show_runningconfiguration_all_json_loads_failure(self, mock_subprocess_popen):
         mock_instance = MagicMock()
         mock_instance.communicate.return_value = ("", 2)
@@ -49,7 +49,7 @@ class TestShowRunAllCommands(object):
         result = CliRunner().invoke(show.cli.commands['runningconfiguration'].commands['all'], [])
         assert result.exit_code != 0
 
-    @patch('generic_config_updater.generic_updater.subprocess.Popen')
+    @patch('generic_config_updater.gu_common.subprocess.Popen')
     def test_show_runningconfiguration_all_get_cmd_ouput_failure(self, mock_subprocess_popen):
         mock_instance = MagicMock()
         mock_instance.communicate.return_value = ("{}", 2)
@@ -57,7 +57,7 @@ class TestShowRunAllCommands(object):
         result = CliRunner().invoke(show.cli.commands['runningconfiguration'].commands['all'], [])
         assert result.exit_code != 0
 
-    @patch('generic_config_updater.generic_updater.subprocess.Popen')
+    @patch('generic_config_updater.gu_common.subprocess.Popen')
     def test_show_runningconfiguration_all(self, mock_subprocess_popen):
         mock_instance = MagicMock()
         mock_instance.communicate.return_value = ("{}", 0)
@@ -98,9 +98,10 @@ class TestShowRunAllCommandsMasic(object):
     def test_show_runningconfiguration_all_masic(self):
         def get_cmd_output_side_effect(*args, **kwargs):
             return "{}", 0
-        with mock.patch('generic_config_updater.generic_updater.get_cmd_output',
+        with mock.patch('generic_config_updater.gu_common.get_cmd_output',
                 mock.MagicMock(side_effect=get_cmd_output_side_effect)) as mock_get_cmd_output:
             result = CliRunner().invoke(show.cli.commands['runningconfiguration'].commands['all'], [])
+            print(result)
         assert result.exit_code == 0
         assert mock_get_cmd_output.call_count == 3
         assert mock_get_cmd_output.call_args_list == [
