@@ -3116,7 +3116,7 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
         # Mock open to simulate file reading
         mock_replace_content = copy.deepcopy(self.all_config)
         mock_replace_content.pop("asic0")
-        with patch('builtins.open', mock_open(read_data=json.dumps(mock_replace_content)), create=True) as mocked_open:
+        with patch('builtins.open', mock_open(read_data=json.dumps(mock_replace_content)), create=True):
             print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
             # Invocation of the command with the CliRunner
             result = self.runner.invoke(config.config.commands["replace"],

@@ -1,7 +1,6 @@
 import json
 import jsonpointer
 import os
-import subprocess
 
 from enum import Enum
 from .gu_common import HOST_NAMESPACE, GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
