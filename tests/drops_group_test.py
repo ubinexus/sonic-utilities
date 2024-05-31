@@ -57,7 +57,6 @@ sonic_drops_test            1000                    0
 """
 
 expected_counts_voq = """\
-SWITCH LEVEL COUNTERS:
        SWITCH-ID    PKT_INTEGRITY_ERR
 ----------------  -------------------
 sonic_drops_test                  500

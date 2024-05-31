@@ -180,7 +180,6 @@ class DropStat(object):
            cfg_switch_id = self.db.get(self.db.CONFIG_DB, "DEVICE_METADATA|localhost", "switch_id")
            row = [cfg_switch_id]
 
-        print("SWITCH LEVEL COUNTERS:")
         headers = std_switch_dflt_drop_headers
         for cntr in counters:
             if cntr in std_switch_drop_headers_map:
