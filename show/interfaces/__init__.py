@@ -368,11 +368,11 @@ def expected(db, interfacename):
             body.append([interfacename,
                          device,
                          neighbor_dict[interfacename]['port'],
-                         neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' 
+                         neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr'
                          in neighbor_metadata_dict[device] else 'None',
-                         neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr'  
+                         neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr'
                          in neighbor_metadata_dict[device] else 'None',
-                         neighbor_metadata_dict[device]['type'] if 'type' 
+                         neighbor_metadata_dict[device]['type'] if 'type'
                          in neighbor_metadata_dict[device] else 'None'])
         except KeyError:
             click.echo("No neighbor information available for interface {}".format(interfacename))
@@ -384,11 +384,11 @@ def expected(db, interfacename):
                 body.append([port,
                              device,
                              neighbor_dict[port]['port'],
-                             neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr' 
+                             neighbor_metadata_dict[device]['lo_addr'] if 'lo_addr'
                              in neighbor_metadata_dict[device] else 'None',
-                             neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr' 
+                             neighbor_metadata_dict[device]['mgmt_addr'] if 'mgmt_addr'
                              in neighbor_metadata_dict[device] else 'None',
-                             neighbor_metadata_dict[device]['type'] if 'type' 
+                             neighbor_metadata_dict[device]['type'] if 'type'
                              in neighbor_metadata_dict[device] else 'None'])
             except KeyError:
                 pass
@@ -409,7 +409,7 @@ def mpls(ctx, interfacename, namespace, display):
 
     # Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
-        if (display == 'frontend' or 
+        if (display == 'frontend' or
                 display == 'all' or display is None):
             display = None
         else:
