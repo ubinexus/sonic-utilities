@@ -27,22 +27,17 @@ def read_reboot_cause_file():
 
 # Function to fetch reboot cause data from database
 def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
-    if use_chassis_db:
-        redis_host = 'redis_chassis.server'
-        redis_port = 6380
-        redis_idx = CHASSIS_STATE_DB
-    else:
-        redis_host = '127.0.0.1'
-        redis_port = 6379
-        redis_idx = STATE_DB
     prefix='REBOOT_CAUSE|'
-    try:
-        rdb = redis.Redis(host = redis_host, port = redis_port, decode_responses=True, db=redis_idx)
-        table_keys = rdb.keys(prefix+'*')
-    except redis.exceptions.RedisError as e:
-        return []
-    except Exception as e:
-        return []
+    if use_chassis_db:
+        try:
+            rdb = redis.Redis(host = 'redis_chassis.server', port = 6380, decode_responses=True, db=CHASSIS_STATE_DB)
+            table_keys = rdb.keys(prefix+'*')
+        except Exception as e:
+            return []
+    else:
+        rdb = SonicV2Connector(host='127.0.0.1')
+        rdb.connect(rdb.STATE_DB, False)   # Make one attempt only
+        table_keys = rdb.keys(rdb.STATE_DB, prefix+'*')
 
     if not table_keys is None:
         table_keys.sort(reverse=True)
@@ -52,7 +47,10 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     for tk in table_keys:
         r = []
         append = False
-        entry = rdb.hgetall(tk)
+        if use_chassis_db:
+            entry = rdb.hgetall(tk)
+        else:
+            entry = rdb.get_all(rdb.STATE_DB, tk)
 
         if not module_name is None:
             if 'device' in entry:
