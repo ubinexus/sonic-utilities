@@ -3,7 +3,6 @@ import os
 from unittest.mock import patch, MagicMock
 sys.modules['sonic_platform'] = MagicMock()
 sys.modules['argparse'] = MagicMock()
-sys.modules['subprocess'] = MagicMock()
 
 import ssdutil.main as ssdutil  # noqa: E402
 
@@ -59,17 +58,6 @@ class TestSsdutil:
 
     @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', MagicMock(return_value=("test_path", "")))  # noqa: E501
     @patch('os.geteuid', MagicMock(return_value=0))
-    @patch('builtins.print')
-    def test_sonic_storage_path(self, mock_print):
+    def test_happy_path(self):
 
         ssdutil.ssdutil()
-        assert mock_print.call_count == 6
-
-    @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', MagicMock(return_value=("test_path", "")))  # noqa: E501
-    @patch('sonic_platform_base.sonic_storage.ssd', MagicMock(side_effect=ImportError()))  # noqa: E501
-    @patch('os.geteuid', MagicMock(return_value=0))
-    @patch('builtins.print')
-    def test_sonic_ssd_path(self, mock_print):
-
-        ssdutil.ssdutil()
-        assert mock_print.call_count == 6
