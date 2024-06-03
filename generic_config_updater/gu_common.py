@@ -95,7 +95,23 @@ class ConfigWrapper:
         self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
-        return get_config_json_by_namespace(self.scope)
+        text = self._get_config_db_as_text()
+        config_db_json = json.loads(text)
+        config_db_json.pop("bgpraw", None)
+        return config_db_json
+
+    def _get_config_db_as_text(self):
+        if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
+            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
+        else:
+            cmd = ['sonic-cfggen', '-d', '--print-data']
+
+        result = subprocess.Popen(cmd, shell=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        text, err = result.communicate()
+        return_code = result.returncode
+        if return_code: # non-zero means failure
+            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.namespace}, Return code: {return_code}, Error: {err}")
+        return text
 
     def get_sonic_yang_as_json(self):
         config_db_json = self.get_config_db_as_json()
