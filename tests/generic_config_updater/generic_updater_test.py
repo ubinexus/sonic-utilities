@@ -125,7 +125,7 @@ class TestConfigReplacer(unittest.TestCase):
         return gu.ConfigReplacer(patch_applier, config_wrapper, patch_wrapper)
 
 
-@patch('generic_config_updater.gu_common.get_config_json', MagicMock(return_value={}))
+@patch('generic_config_updater.generic_updater.get_config_json', MagicMock(return_value={}))
 class TestFileSystemConfigRollbacker(unittest.TestCase):
     def setUp(self):
         self.checkpoints_dir = os.path.join(os.getcwd(),"checkpoints")
