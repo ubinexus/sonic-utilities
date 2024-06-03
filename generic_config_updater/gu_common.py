@@ -66,7 +66,7 @@ class ConfigWrapper:
         return config_db_json
 
     def _get_config_db_as_text(self):
-        if self.namespace is not None and self.namespace != multi_asic.DEFAULT_NAMESPACE:
+        if self.scope is not None and self.scope != multi_asic.DEFAULT_NAMESPACE:
             cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
         else:
             cmd = ['sonic-cfggen', '-d', '--print-data']
