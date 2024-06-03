@@ -50,6 +50,7 @@ EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 EXIT_PLATFORM_FW_AU_FAILURE=22
 EXIT_TEAMD_RETRY_COUNT_FAILURE=23
+EXIT_NO_MIRROR_SESSION_ACLS=24
 
 function error()
 {
@@ -272,6 +273,37 @@ function backup_database()
     fi
 }
 
+function check_mirror_session_acls()
+{
+    ACL_ARP="missing"
+    ACL_ND="missing"
+    start_time=${SECONDS}
+    elapsed_time=$((${SECONDS} - ${start_time}))
+    while [[ ${elapsed_time} -lt 10 ]]; do
+        ACL_ENTRIES=( $(redis-cli -n 1 KEYS "*" | grep SAI_OBJECT_TYPE_ACL_ENTRY) )
+        ACL_COUNT=${#ACL_ENTRIES[@]}
+        for ACL_ENTRY in ${ACL_ENTRIES[@]}; do
+            ACL_PRIORITY=$(redis-cli -n 1 HGET ${ACL_ENTRY} SAI_ACL_ENTRY_ATTR_PRIORITY)
+            if [[ ${ACL_PRIORITY} -eq 8888 ]]; then
+                ACL_ARP="found"
+            fi
+            if [[ ${ACL_PRIORITY} -eq 8887 ]]; then
+                ACL_ND="found"
+            fi
+        done
+        if [[ "${ACL_ARP}" = "found" && "${ACL_ND}" = "found" ]]; then
+            break
+        fi
+        sleep 0.1
+        elapsed_time=$((${SECONDS} - ${start_time}))
+    done
+    if [[ "${ACL_ARP}" != "found" || "${ACL_ND}" != "found" ]]; then
+        error "Failed to program mirror session ACLs on ASIC. ACLs: ARP=${ACL_ARP} ND=${ACL_ND}"
+        exit ${EXIT_NO_MIRROR_SESSION_ACLS}
+    fi
+    debug "Mirror session ACLs (arp, nd) programmed to ASIC successfully"
+}
+
 function setup_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
@@ -279,6 +311,7 @@ function setup_control_plane_assistant()
         if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
             debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
             ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+	    check_mirror_session_acls
         else
             debug "${HWSKU} Not capable to support CPA. Skipping gracefully ..."
         fi
