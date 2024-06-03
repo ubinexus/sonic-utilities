@@ -1,5 +1,4 @@
 import sys
-import os
 from unittest.mock import patch, MagicMock
 import sonic_platform_base  # noqa: F401
 
@@ -8,29 +7,6 @@ sys.modules['argparse'] = MagicMock()
 sys.modules['sonic_platform_base.sonic_ssd.ssd_generic'] = MagicMock()
 
 import ssdutil.main as ssdutil  # noqa: E402
-
-# Add mocked_libs path so that the file can load mocked modules from there
-tests_path = os.path.dirname(os.path.abspath(__file__))
-mocked_libs_path = os.path.join(tests_path, "mocked_libs")
-sys.path.insert(0, mocked_libs_path)
-
-test_path = os.path.dirname(os.path.abspath(__file__))
-modules_path = os.path.dirname(test_path)
-sys.path.insert(0, modules_path)
-
-ssdutil_output = """
-Device Model : InnoDisk Corp. - mSATA 3IE3
-Health       : 99%
-Temperature  : 30C
-"""
-
-ssdutil_verbose_output = """
-Device Model : InnoDisk Corp. - mSATA 3IE3
-Firmware     : S16425cG
-Serial       : BCA12310040200027
-Health       : 99%
-Temperature  : 30C
-"""
 
 
 class Ssd():
