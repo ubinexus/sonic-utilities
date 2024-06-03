@@ -1,10 +1,11 @@
 import json
+import subprocess
 import jsonpointer
 import os
 
 from enum import Enum
 from .gu_common import HOST_NAMESPACE, GenericConfigUpdaterError, EmptyTableError, ConfigWrapper, \
-                    DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging, get_config_json
+                    DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                         TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
 from .change_applier import ChangeApplier, DryRunChangeApplier
@@ -33,6 +34,27 @@ def extract_scope(path):
         scope = ""
         remainder = path
     return scope, remainder
+
+
+def get_cmd_output(cmd):
+    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
+    return proc.communicate()[0], proc.returncode
+
+
+def get_config_json():
+    command = ["show", "runningconfiguration", "all"]
+    all_running_config_text, returncode = get_cmd_output(command)
+    if returncode:
+        raise GenericConfigUpdaterError(
+            f"Fetch all runningconfiguration failed as output:{all_running_config_text}")
+    all_running_config = json.loads(all_running_config_text)
+
+    if multi_asic.is_multi_asic():
+        for asic in [HOST_NAMESPACE, *multi_asic.get_namespace_list()]:
+            all_running_config[asic].pop("bgpraw", None)
+    else:
+        all_running_config.pop("bgpraw", None)
+    return all_running_config
 
 
 class ConfigLock:
@@ -231,7 +253,7 @@ class FileSystemConfigRollbacker:
         self.logger.log_notice("Deleting checkpoint completed.")
 
 
-class MultiASICConfigReplacer:
+class MultiASICConfigReplacer(ConfigReplacer):
     def __init__(self):
         self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigReplacer",
                                                        print_all_to_console=True)
@@ -247,7 +269,7 @@ class MultiASICConfigReplacer:
             scope_config = target_config.pop(scope)
             if scope.lower() == HOST_NAMESPACE:
                 scope = multi_asic.DEFAULT_NAMESPACE
-            ConfigReplacer(scope=scope).replace(scope_config)
+            super(scope=scope).replace(scope_config)
 
 
 class MultiASICConfigRollbacker(FileSystemConfigRollbacker):

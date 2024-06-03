@@ -19,41 +19,6 @@ GCU_FIELD_OP_CONF_FILE = f"{SCRIPT_DIR}/gcu_field_operation_validators.conf.json
 HOST_NAMESPACE = "localhost"
 
 
-def get_cmd_output(cmd):
-    proc = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
-    return proc.communicate()[0], proc.returncode
-
-
-def get_config_json():
-    command = ["show", "runningconfiguration", "all"]
-    all_running_config_text, returncode = stdout, rc = get_cmd_output(command)
-    if returncode:
-        raise GenericConfigUpdaterError(
-            f"Fetch all runningconfiguration failed as output:{all_running_config_text}")
-    all_running_config = json.loads(all_running_config_text)
-
-    if multi_asic.is_multi_asic():
-        for asic in [HOST_NAMESPACE, *multi_asic.get_namespace_list()]:
-            all_running_config[asic].pop("bgpraw", None)
-    else:
-        all_running_config.pop("bgpraw", None)
-    return all_running_config
-
-
-def get_config_json_by_namespace(scope):
-    cmd = ['sonic-cfggen', '-d', '--print-data']
-    if scope is not None and scope != multi_asic.DEFAULT_NAMESPACE:
-        cmd += ['-n', scope]
-    stdout, rc = get_cmd_output(cmd)
-    if rc:
-        raise GenericConfigUpdaterError("Failed to get cmd output '{}':rc {}".format(cmd, rc))
-    try:
-        config_json = json.loads(stdout)
-    except json.JSONDecodeError as e:
-        raise GenericConfigUpdaterError("Failed to get config by '{}' due to {}".format(cmd, e))
-    return config_json
-
-
 class GenericConfigUpdaterError(Exception):
     pass
 
