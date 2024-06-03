@@ -34,18 +34,9 @@ class TestSsdutil:
 
     @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', MagicMock(return_value=("test_path", "")))  # noqa: E501
     @patch('os.geteuid', MagicMock(return_value=0))
-    @patch('argparse.ArgumentParser.parse_args')
-    def test_sonic_ssd_path(self, mock_args):
+    def test_sonic_storage_path(self):
 
-        sys.modules['sonic_platform_base.sonic_storage.ssd'] = MagicMock(side_effect=ImportError())  # noqa: E501
-        mock_args.return_value = argparse.Namespace(device='/dev/sda', verbose=True, vendor=True)  # noqa: E501
-        ssdutil.ssdutil()
-
-    @patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', MagicMock(return_value=("test_path", "")))  # noqa: E501
-    @patch('os.geteuid', MagicMock(return_value=0))
-    @patch('argparse.ArgumentParser.parse_args')
-    def test_sonic_storage_path(self, mock_args):
-
-        sys.modules['sonic_platform_base.sonic_storage.ssd'] = MagicMock(return_value=Ssd())  # noqa: E501
-        mock_args.return_value = argparse.Namespace(device='/dev/sda', verbose=True, vendor=True)  # noqa: E501
-        ssdutil.ssdutil()
+        with patch('argparse.ArgumentParser.parse_args', MagicMock()) as mock_args:  # noqa: E501
+            sys.modules['sonic_platform_base.sonic_storage.ssd'] = MagicMock(return_value=Ssd())  # noqa: E501
+            mock_args.return_value = argparse.Namespace(device='/dev/sda', verbose=True, vendor=True)  # noqa: E501
+            ssdutil.ssdutil()
