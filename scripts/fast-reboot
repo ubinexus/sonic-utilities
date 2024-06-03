@@ -283,12 +283,12 @@ function check_mirror_session_acls()
     while [[ ${elapsed_time} -lt 10 ]]; do
 	CHECK_ACL_ENTRIES=0
         ACL_OUTPUT=$(sonic-db-cli ASIC_DB KEYS "*" | grep SAI_OBJECT_TYPE_ACL_ENTRY) || CHECK_ACL_ENTRIES=$?
-	if [[ CHECK_ACL_ENTRIES -ne 0 ]]; then
+	if [[ ${CHECK_ACL_ENTRIES} -ne 0 ]]; then
 	    error "Failed to retrieve SAI_OBJECT_TYPE_ACL_ENTRY from redis"
 	    exit ${EXIT_NO_MIRROR_SESSION_ACLS}
 	fi
 	ACL_ENTRIES=( ${ACL_OUTPUT} )
-	if [[ ${ACL_ENTRIES} -eq 0 ]]; then
+	if [[ ${#ACL_ENTRIES[@]} -eq 0 ]]; then
 	    error "NO SAI_OBJECT_TYPE_ACL_ENTRY objects found"
 	    exit ${EXIT_NO_MIRROR_SESSION_ACLS}
 	fi
