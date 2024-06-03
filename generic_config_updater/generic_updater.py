@@ -254,10 +254,15 @@ class FileSystemConfigRollbacker:
 
 
 class MultiASICConfigReplacer(ConfigReplacer):
-    def __init__(self):
+    def __init__(self,
+                 patch_applier=None,
+                 config_wrapper=None,
+                 patch_wrapper=None,
+                 scope=multi_asic.DEFAULT_NAMESPACE):
         self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigReplacer",
                                                        print_all_to_console=True)
         self.scopelist = [HOST_NAMESPACE, *multi_asic.get_namespace_list()]
+        super().__init__(patch_applier, config_wrapper, patch_wrapper, scope)
 
     def replace(self, target_config):
         config_keys = set(target_config.keys())
@@ -273,12 +278,16 @@ class MultiASICConfigReplacer(ConfigReplacer):
 
 
 class MultiASICConfigRollbacker(FileSystemConfigRollbacker):
-    def __init__(self, checkpoints_dir=CHECKPOINTS_DIR):
+    def __init__(self,
+                 checkpoints_dir=CHECKPOINTS_DIR,
+                 config_replacer=None,
+                 config_wrapper=None):
         self.logger = genericUpdaterLogging.get_logger(title="MultiASICConfigRollbacker",
                                                        print_all_to_console=True)
         self.scopelist = [HOST_NAMESPACE, *multi_asic.get_namespace_list()]
         self.checkpoints_dir = checkpoints_dir
         self.util = Util(checkpoints_dir=checkpoints_dir)
+        super().__init__(config_wrapper=config_wrapper, config_replacer=config_replacer)
 
     def rollback(self, checkpoint_name):
         self.logger.log_notice("Config rollbacking starting.")
@@ -486,8 +495,13 @@ class GenericUpdateFactory:
                                      patch_wrapper=patch_wrapper,
                                      changeapplier=change_applier,
                                      scope=self.scope)
-        config_replacer = MultiASICConfigReplacer() if multi_asic.is_multi_asic() else ConfigReplacer(
-            patch_applier=patch_applier, config_wrapper=config_wrapper, scope=self.scope)
+        if multi_asic.is_multi_asic():
+            config_replacer = MultiASICConfigReplacer(patch_applier=patch_applier,
+                                                      config_wrapper=config_wrapper)
+        else:
+            config_replacer = ConfigReplacer(patch_applier=patch_applier,
+                                             config_wrapper=config_wrapper,
+                                             scope=self.scope)
 
         if config_format == ConfigFormat.CONFIGDB:
             pass
@@ -515,10 +529,18 @@ class GenericUpdateFactory:
                                      patch_wrapper=patch_wrapper,
                                      changeapplier=change_applier,
                                      scope=self.scope)
-        config_replacer = MultiASICConfigReplacer() if multi_asic.is_multi_asic() else ConfigReplacer(
-            config_wrapper=config_wrapper, patch_applier=patch_applier, scope=self.scope)
-        config_rollbacker = MultiASICConfigRollbacker() if multi_asic.is_multi_asic() else FileSystemConfigRollbacker(
-            config_wrapper=config_wrapper, config_replacer=config_replacer, scope=self.scope)
+        if multi_asic.is_multi_asic():
+            config_replacer = MultiASICConfigReplacer(config_wrapper=config_wrapper,
+                                                      patch_applier=patch_applier)
+            config_rollbacker = MultiASICConfigRollbacker(config_wrapper=config_wrapper,
+                                                          config_replacer=config_replacer)
+        else:
+            config_replacer = ConfigReplacer(config_wrapper=config_wrapper,
+                                             patch_applier=patch_applier,
+                                             scope=self.scope)
+            config_rollbacker = FileSystemConfigRollbacker(config_wrapper=config_wrapper,
+                                                           config_replacer=config_replacer,
+                                                           scope=self.scope)
 
         if not dry_run:
             config_rollbacker = ConfigLockDecorator(decorated_config_rollbacker=config_rollbacker, scope=self.scope)
