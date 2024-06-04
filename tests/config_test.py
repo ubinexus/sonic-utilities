@@ -3128,32 +3128,28 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
             self.assertNotEqual(result.exit_code, 0, "Command should failed")
             self.assertIn("Failed to replace config", result.output)
 
-    @patch('generic_config_updater.gu_common.subprocess.Popen')
+    @patch('generic_config_updater.generic_updater.subprocess.Popen')
     @patch('generic_config_updater.generic_updater.Util.ensure_checkpoints_dir_exists', mock.Mock(return_value=True))
     @patch('generic_config_updater.generic_updater.Util.save_json_file', MagicMock())
     def test_checkpoint_multiasic(self, mock_subprocess_popen):
         allconfigs = copy.deepcopy(self.all_config)
 
         mock_instance = MagicMock()
-        mock_instance.communicate.side_effect = (allconfigs, 0)
+        mock_instance.communicate.return_value = (json.dumps(allconfigs), 0)
         mock_instance.returncode = 0
         mock_subprocess_popen.return_value = mock_instance
 
         checkpointname = "checkpointname"
-        # Mock GenericUpdater to avoid actual patch application
-        with patch('config.main.GenericUpdater') as mock_generic_updater:
-            mock_generic_updater.return_value.checkpoint = MagicMock()
+        print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+        # Invocation of the command with the CliRunner
+        result = self.runner.invoke(config.config.commands["checkpoint"],
+                                    [checkpointname],
+                                    catch_exceptions=True)
 
-            print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
-            # Invocation of the command with the CliRunner
-            result = self.runner.invoke(config.config.commands["checkpoint"],
-                                        [checkpointname],
-                                        catch_exceptions=True)
-
-            print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
-            # Assertions and verifications
-            self.assertEqual(result.exit_code, 0, "Command should succeed")
-            self.assertIn("Checkpoint created successfully.", result.output)
+        print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+        # Assertions and verifications
+        self.assertEqual(result.exit_code, 0, "Command should succeed")
+        self.assertIn("Checkpoint created successfully.", result.output)
 
     @patch('generic_config_updater.generic_updater.Util.check_checkpoint_exists', mock.Mock(return_value=True))
     @patch('generic_config_updater.generic_updater.ConfigReplacer.replace', MagicMock())
