@@ -179,9 +179,9 @@ def cmd_dump_config_json():
     data = { "enable" : kdump_enabled, \
              "memory" : kdump_memory, \
              "max-dumps" : int(kdump_num_dumps), \
-             "ssh-connection-string" : str(kdump_ssh_connection_string), \
-             "ssh-private-key-path" : str(kdump_ssh_private_key_path), \
-             "remote-enabled" : kdump_remote_enabled }
+             "ssh_connection_string" : str(kdump_ssh_connection_string), \
+             "ssh_private_key-path" : str(kdump_ssh_private_key_path), \
+             "remote_enabled" : kdump_remote_enabled }
     print(json.dumps(data, indent=4))
 
 def cmd_dump_kdump_records_json():
