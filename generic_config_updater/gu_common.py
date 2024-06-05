@@ -67,7 +67,7 @@ class ConfigWrapper:
 
     def _get_config_db_as_text(self):
         if self.scope is not None and self.scope != multi_asic.DEFAULT_NAMESPACE:
-            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.namespace]
+            cmd = ['sonic-cfggen', '-d', '--print-data', '-n', self.scope]
         else:
             cmd = ['sonic-cfggen', '-d', '--print-data']
 
@@ -75,7 +75,7 @@ class ConfigWrapper:
         text, err = result.communicate()
         return_code = result.returncode
         if return_code: # non-zero means failure
-            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.namespace}, Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.scope}, Return code: {return_code}, Error: {err}")
         return text
 
     def get_sonic_yang_as_json(self):

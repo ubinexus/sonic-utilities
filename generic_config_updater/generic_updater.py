@@ -274,7 +274,7 @@ class MultiASICConfigReplacer(ConfigReplacer):
             scope_config = target_config.pop(scope)
             if scope.lower() == HOST_NAMESPACE:
                 scope = multi_asic.DEFAULT_NAMESPACE
-            super(scope=scope).replace(scope_config)
+            ConfigReplacer(scope=scope).replace(scope_config)
 
 
 class MultiASICConfigRollbacker(FileSystemConfigRollbacker):
