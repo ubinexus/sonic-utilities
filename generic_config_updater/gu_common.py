@@ -75,7 +75,8 @@ class ConfigWrapper:
         text, err = result.communicate()
         return_code = result.returncode
         if return_code: # non-zero means failure
-            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.scope}, Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {self.scope},"
+                                            f" Return code: {return_code}, Error: {err}")
         return text
 
     def get_sonic_yang_as_json(self):
