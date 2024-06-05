@@ -1421,7 +1421,6 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.assertEqual(expected_exit_code, result.exit_code)
         self.assertTrue(expected_output in result.output)
 
-    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
     def test_replace__only_required_params__default_values_used_for_optional_params(self):
         # Arrange
         expected_exit_code = 0
@@ -1440,7 +1439,6 @@ class TestGenericUpdateCommands(unittest.TestCase):
         mock_generic_updater.replace.assert_called_once()
         mock_generic_updater.replace.assert_has_calls([expected_call_with_default_values])
 
-    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
     def test_replace__all_optional_params_non_default__non_default_values_used(self):
         # Arrange
         expected_exit_code = 0
@@ -1470,7 +1468,6 @@ class TestGenericUpdateCommands(unittest.TestCase):
         mock_generic_updater.replace.assert_called_once()
         mock_generic_updater.replace.assert_has_calls([expected_call_with_non_default_values])
 
-    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
     def test_replace__exception_thrown__error_displayed_error_code_returned(self):
         # Arrange
         unexpected_exit_code = 0
@@ -1489,7 +1486,6 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.assertNotEqual(unexpected_exit_code, result.exit_code)
         self.assertTrue(any_error_message in result.output)
 
-    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
     def test_replace__optional_parameters_passed_correctly(self):
         self.validate_replace_optional_parameter(
             ["--format", ConfigFormat.SONICYANG.name],

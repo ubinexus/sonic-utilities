@@ -16,6 +16,7 @@ logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
 
+
 def set_verbose(verbose=False):
     global print_to_console, logger
 
@@ -39,6 +40,7 @@ def get_config_db(scope=multi_asic.DEFAULT_NAMESPACE):
     config_db.connect()
     return config_db
 
+
 def set_config(config_db, tbl, key, data):
     config_db.set_entry(tbl, key, data)
 
@@ -61,10 +63,8 @@ class DryRunChangeApplier:
     def __init__(self, config_wrapper):
         self.config_wrapper = config_wrapper
 
-
     def apply(self, change):
         self.config_wrapper.apply_change_to_config_db(change)
-
 
     def remove_backend_tables_from_config(self, data):
         return data
@@ -86,7 +86,6 @@ class ChangeApplier:
             with open(UPDATER_CONF_FILE, "r") as s:
                 ChangeApplier.updater_conf = json.load(s)
 
-
     def _invoke_cmd(self, cmd, old_cfg, upd_cfg, keys):
         # cmd is in the format as <package/module name>.<method name>
         #
@@ -97,7 +96,6 @@ class ChangeApplier:
         method_to_call = getattr(module, method_name)
 
         return method_to_call(old_cfg, upd_cfg, keys)
-
 
     def _services_validate(self, old_cfg, upd_cfg, keys):
         lst_svcs = set()
@@ -123,7 +121,6 @@ class ChangeApplier:
                 return ret
             log_debug("service invoked: {}".format(cmd))
         return 0
-
 
     def _upd_data(self, tbl, run_tbl, upd_tbl, upd_keys):
         for key in set(run_tbl.keys()).union(set(upd_tbl.keys())):

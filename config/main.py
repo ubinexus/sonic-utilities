@@ -1522,7 +1522,6 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
         click.secho("Failed to replace config", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
-
 @config.command()
 @click.argument('checkpoint-name', type=str, required=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
