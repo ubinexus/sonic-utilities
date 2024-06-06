@@ -288,7 +288,11 @@ class ConnectionPool:
         return SonicV2Connector(namespace=ns, use_unix_socket_path=True)
 
     def initialize_redis_conn(self, ns):
-        """Return redis connection for APPL_DB, as APPL_DB is the only one which"""
+        """Return redis connection for APPL_DB,
+        as APPL_DB is the only one which stores data in protobuf
+        format which is not obtained fully by the SonicV2Connector 
+        get_all API
+        """
         return redis.Redis(unix_socket_path=SonicDBConfig.getDbSock("APPL_DB", ns), db=SonicDBConfig.getDbId("APPL_DB", ns)) 
 
     def get(self, db_name, ns, update=False):
