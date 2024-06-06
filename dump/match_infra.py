@@ -288,9 +288,8 @@ class ConnectionPool:
         return SonicV2Connector(namespace=ns, use_unix_socket_path=True)
 
     def initialize_redis_conn(self, ns):
-        if ns != DEFAULT_NAMESPACE:
-            redis.Redis(unix_socket_path=ns, db=0) 
-        return redis.Redis(host='localhost', port=6379, db=0) # This connection is only required for APPL_DB
+        """Return redis connection for APPL_DB, as APPL_DB is the only one which"""
+        return redis.Redis(unix_socket_path=SonicDBConfig.getDbSock("APPL_DB", ns), db=SonicDBConfig.getDbId("APPL_DB", ns)) 
 
     def get(self, db_name, ns, update=False):
         """ Returns a SonicV2Connector Object and caches it for further requests """
