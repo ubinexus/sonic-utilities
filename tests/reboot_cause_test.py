@@ -74,14 +74,12 @@ Name                 Cause        Time                          User    Comment
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"].commands["all"], [])
         print(result.output)
-        #assert result.output == expected_output
 
     # Test 'show reboot-cause all'
     def test_reboot_cause_all(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
         print(result.output)
-        #assert result.output == expected_output
 
     @classmethod
     def teardown_class(cls):
