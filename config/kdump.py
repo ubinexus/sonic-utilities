@@ -92,20 +92,6 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
 
 
-def check_kdump_attributes(db):
-    """Check if required KDUMP attributes exist in ConfigDB"""
-    kdump_attributes = ['ssh-connection-string', 'ssh-private-key-path', 'remote-enabled']
-    missing_attributes = [attr for attr in kdump_attributes if not db.get_entry('KDUMP', 'config', attr)]
-    if missing_attributes:
-        default_values = {
-            'ssh-connection-string': 'dummy_connection_string',
-            'ssh-private-key-path': 'dummy_private_key_path',
-            'remote-enabled': 'disabled'
-        }
-        for attr in missing_attributes:
-            db.cfgdb.mod_entry('KDUMP', 'config', {attr: default_values[attr]})
-
-
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
 @click.option("-c", "ssh_connection_string",
@@ -121,9 +107,6 @@ def kdump_remote(db, action, ssh_connection_string, ssh_private_key_path):
     # Ensure the KDUMP table and 'config' key exist
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
-
-    # Check required attributes before proceeding
-    check_kdump_attributes(db)
 
     if action == "ssh":
         # Validate arguments for SSH configuration
