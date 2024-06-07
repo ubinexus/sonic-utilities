@@ -127,7 +127,7 @@ def kdump_remote(db, action, ssh_connection_string, ssh_private_key_path):
 
     if action == "ssh":
         # Validate arguments for SSH configuration
-        if  ssh_connection_string is None or ssh_private_key_path is None:
+        if ssh_connection_string is None or ssh_private_key_path is None:
             click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path\
                         \are required for SSH configuration.")
             sys.exit(1)
