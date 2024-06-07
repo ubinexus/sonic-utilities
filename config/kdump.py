@@ -90,6 +90,8 @@ def kdump_num_dumps(db, kdump_num_dumps):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
+
+
 def check_kdump_attributes(db):
     """Check if required KDUMP attributes exist in ConfigDB"""
     kdump_attributes = ['ssh-connection-string', 'ssh-private-key-path', 'remote-enabled']
@@ -141,4 +143,3 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
 
     click.echo("KDUMP configuration changes may require a reboot to take effect.")
     click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
-
