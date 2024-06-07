@@ -111,7 +111,7 @@ def check_kdump_attributes(db):
 @click.option("-c", "ssh_connection_string",
               metavar='<kdump_ssh_connection_string>',
               help="SSH user and host. e.g user@hostname/ip")
-@click.option("-p", "ssh_private-_path",
+@click.option("-p", "ssh_private_path",
               metavar='<kdump_ssh_private_key_file_path>',
               help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
 @pass_db
