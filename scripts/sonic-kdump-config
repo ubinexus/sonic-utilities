@@ -173,14 +173,14 @@ def cmd_dump_config_json():
     kdump_memory = get_kdump_memory()
     kdump_num_dumps = get_kdump_num_dumps()
     # remote SSH variables
-    kdump_ssh_connection_string = get_kdump_ssh_connection_string()
-    kdump_ssh_private_key_path = get_kdump_ssh_private_key_path()
+    ssh_connection_string = get_ssh_connection_string()
+    ssh_private_key_path = get_ssh_private_key_path()
     kdump_remote_enabled = get_kdump_remote_enabled()
     data = { "enable" : kdump_enabled, \
              "memory" : kdump_memory, \
              "max-dumps" : int(kdump_num_dumps), \
-             "ssh_connection_string" : str(kdump_ssh_connection_string), \
-             "ssh_private_key-path" : str(kdump_ssh_private_key_path), \
+             "ssh_connection_string" : str(ssh_connection_string), \
+             "ssh_private_key-path" : str(ssh_private_key_path), \
              "remote_enabled" : kdump_remote_enabled }
     print(json.dumps(data, indent=4))
 
@@ -231,16 +231,16 @@ def cmd_dump_status_json():
     kdump_memory = get_kdump_memory()
     kdump_num_dumps = get_kdump_num_dumps()
     # remote SSH variables
-    kdump_ssh_connection_string = get_kdump_ssh_connection_string()
-    kdump_ssh_private_key_path = get_kdump_ssh_private_key_path()
+    ssh_connection_string = get_ssh_connection_string()
+    ssh_private_key_path = get_ssh_private_key_path()
     kdump_remote_enabled = get_kdump_remote_enabled()
     data = { "enable" : kdump_enabled, \
              "current-state" : kdump_oper_state, \
              "memory" : kdump_memory, \
              "allocated-memory" : get_crash_kernel_size(), \
              "max-dumps" : int(kdump_num_dumps), \
-             "ssh-connection-string" : str(kdump_ssh_connection_string), \
-             "ssh-private-key-path" : str(kdump_ssh_private_key_path), \
+             "ssh-connection-string" : str(ssh_connection_string), \
+             "ssh-private-key-path" : str(ssh_private_key_path), \
              "remote-enabled" : kdump_remote_enabled }
     print(json.dumps(data, indent=4))
 
@@ -317,7 +317,7 @@ def get_kdump_num_dumps():
 #
 #  @return The ssh remote connection string for storing kernel dump files remotely
 #          (read from running configuration)
-def get_kdump_ssh_connection_string():
+def get_ssh_connection_string():
     ssh_connection_string = "user@ip/hostname --default, please change--"
     config_db = ConfigDBConnector(use_unix_socket_path=True)
     if config_db is not None:
@@ -335,7 +335,7 @@ def get_kdump_ssh_connection_string():
 #
 #  @return The ssh remote connection private_key_file_path for connecting to remote server without authentication (command "sudo kdump-config propagate" required)
 #          (read from running configuration)
-def get_kdump_ssh_private_key_path():
+def get_ssh_private_key_path():
     ssh_private_key_path = "/root/.ssh/kdump_id_rsa --default, please change--"
     config_db = ConfigDBConnector(use_unix_socket_path=True)
     if config_db is not None:
@@ -601,8 +601,8 @@ def cmd_kdump_enable(verbose, image):
     ##
     # ToDo - 02
     ##
-    ssh_connection_string = get_kdump_ssh_connection_string()
-    ssh_private_key_path = get_kdump_ssh_private_key_path()
+    ssh_connection_string = get_ssh_connection_string()
+    ssh_private_key_path = get_ssh_private_key_path()
     remote_enabled = get_kdump_remote_enabled()
     if verbose:
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d ssh_connection_string=%d ssh_private_key_path=%d  remote_enabled=%d" % (kdump_enabled, memory, num_dumps, ssh_connection_string, ssh_private_key_path, remote_enabled))
