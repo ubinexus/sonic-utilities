@@ -55,6 +55,7 @@ class TestShowRebootCause(object):
             result = runner.invoke(show.cli.commands["reboot-cause"], [])
             assert result.output == expected_output
 
+
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
         expected_output = """\
@@ -67,6 +68,33 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], [])
         print(result.output)
         assert result.output == expected_output
+
+
+    # Test 'show reboot-cause history all'
+    def test_reboot_cause_history_all(self):
+        expected_output = """\
+Name                 Cause        Time                          User    Comment
+-------------------  -----------  ----------------------------  ------  ---------
+2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin   N/A
+2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin   N/A
+"""
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"].commands["all"], [])
+        print(result.output)
+        assert result.output == expected_output
+
+
+    # Test 'show reboot-cause all'
+    def test_reboot_cause_all(self):
+        expected_output = """\
+Name                 Cause        Time                          User    Comment
+-------------------  -----------  ----------------------------  ------  ---------
+2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin   N/A
+2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin   N/A
+"""
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
+        print(result.output)
 
     @classmethod
     def teardown_class(cls):
