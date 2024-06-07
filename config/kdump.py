@@ -127,7 +127,7 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
         # Validate arguments for SSH configuration
         if kdump_ssh_connection_string is None or kdump_ssh_private_key_path is None:
             click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path\
-                        \ are required for SSH configuration.")
+                        \are required for SSH configuration.")
             sys.exit(1)
 
         db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
