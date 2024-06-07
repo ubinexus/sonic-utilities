@@ -9,9 +9,9 @@ from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 
 DPU_STATE = 'DPU_STATE'
-CHASSIS_SERVER='redis_chassis.server'
-CHASSIS_SERVER_PORT=6380
-CHASSIS_STATE_DB=13
+CHASSIS_SERVER = 'redis_chassis.server'
+CHASSIS_SERVER_PORT = 6380
+CHASSIS_STATE_DB = 13
 
 def get_system_health_status():
     if os.environ.get("UTILITIES_UNIT_TESTING") == "1":
@@ -40,6 +40,7 @@ def get_system_health_status():
 
     return manager, chassis, stat
 
+
 def get_module_health_from_db(module_name):
     try:
         chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
@@ -65,30 +66,34 @@ def get_module_health_from_db(module_name):
         click.echo("Error retrieving module health list:", e)
     exit(1)
 
+
 def display_module_health_summary(module_name):
     healthlist, modulelist = get_module_health_from_db(module_name)
-    index=0
+    index = 0
     for health in healthlist:
         print("\n" + modulelist[index])
         display_system_health_summary(json.loads(health['stat']), health['system_status_LED'])
         index += 1
+
 
 def display_module_health_monitor_list(module_name):
     healthlist, modulelist = get_module_health_from_db(module_name)
-    index=0
+    index = 0
     for health in healthlist:
         print("\n" + modulelist[index])
         display_monitor_list(json.loads(health['stat']))
         index += 1
 
+
 def display_module_health_detail(module_name):
     healthlist, modulelist = get_module_health_from_db(module_name)
-    index=0
+    index = 0
     for health in healthlist:
         print("\n" + modulelist[index])
         display_system_health_summary(json.loads(health['stat']), health['system_status_LED'])
         display_monitor_list(json.loads(health['stat']))
         index += 1
+
 
 def show_module_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
@@ -107,7 +112,7 @@ def show_module_state(module_name):
             continue
         state_info = chassis_state_db.get_all(chassis_state_db.CHASSIS_STATE_DB, dbkey)
         # Determine operational status
-        dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
+        # dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
 
         midplanedown = False
         up_cnt = 0
@@ -129,7 +134,7 @@ def show_module_state(module_name):
             if dpustates == 0:
                 row = [key_list[1], state_info.get('id', ''), oper_status, "", "", "", ""]
             else:
-                row = [ "", "", "", "", "", "", ""]
+                row = ["", "", "", "", "", "", ""]
             for key, value in state_info.items():
                 if dpustates == 0 and 'midplane' in key:
                     populate_row(row, key, value, table)
@@ -141,24 +146,26 @@ def show_module_state(module_name):
     headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
     click.echo(tabulate(table, headers=headers))
 
+
 def populate_row(row, key, value, table):
-        if key.endswith('_state'):
-            row[3] = key
-            row[4] = value
-            if "up" in row[4]:
-                row[6] = ""
-            table.append(row)
-        elif key.endswith('_time'):
-            row[5] = value
-        elif key.endswith('_reason'):
-            if not "up" in row[4]:
-                row[6] = value
+    if key.endswith('_state'):
+        row[3] = key
+        row[4] = value
+        if "up" in row[4]:
+            row[6] = ""
+        table.append(row)
+    elif key.endswith('_time'):
+        row[5] = value
+    elif key.endswith('_reason'):
+        if "up" not in row[4]:
+            row[6] = value
+
 
 def display_system_health_summary(stat, led):
     click.echo("System status summary\n\n  System status LED  " + led)
     services_list = []
     fs_list = []
-    device_list =[]
+    device_list = []
     for category, elements in stat.items():
         for element in elements:
             if elements[element]['status'] != "OK":
@@ -185,6 +192,7 @@ def display_system_health_summary(stat, led):
             click.echo('\n'.join(("\t     " + x) for x in device_list[1:]))
     else:
         click.echo("  Hardware:\n    Status: OK")
+
 
 def display_monitor_list(stat):
     click.echo('\nSystem services and devices monitor list\n')
@@ -220,6 +228,7 @@ def display_ignore_list(manager):
             table.append(entry)
     click.echo(tabulate(table, header))
 
+
 #
 # 'system-health' command ("show system-health")
 #
@@ -227,6 +236,7 @@ def display_ignore_list(manager):
 def system_health():
     """Show system-health information"""
     return
+
 
 @system_health.command()
 @click.argument('module_name', required=False)
@@ -239,6 +249,7 @@ def summary(module_name):
         display_system_health_summary(stat, chassis.get_status_led())
     if module_name and module_name.startswith("DPU") or module_name == "all":
         display_module_health_summary(module_name)
+
 
 @system_health.command()
 @click.argument('module_name', required=False)
@@ -254,6 +265,7 @@ def detail(module_name):
     if module_name and module_name.startswith("DPU") or module_name == "all":
         display_module_health_detail(module_name)
 
+
 @system_health.command()
 @click.argument('module_name', required=False)
 def monitor_list(module_name):
@@ -266,11 +278,13 @@ def monitor_list(module_name):
     if module_name and module_name.startswith("DPU") or module_name == "all":
         display_module_health_monitor_list(module_name)
 
+
 @system_health.command()
 @click.argument('module_name', required=False)
 def dpu(module_name):
     """Show system-health dpu information"""
     show_module_state(module_name)
+
 
 @system_health.group('sysready-status',invoke_without_command=True)
 @click.pass_context

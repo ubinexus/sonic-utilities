@@ -10,8 +10,8 @@ import utilities_common.cli as clicommon
 
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
-STATE_DB=6
-CHASSIS_STATE_DB=13
+STATE_DB = 6
+CHASSIS_STATE_DB = 13
 
 def read_reboot_cause_file():
     reboot_cause_dict = {}
@@ -25,21 +25,22 @@ def read_reboot_cause_file():
 
     return reboot_cause_dict
 
+
 # Function to fetch reboot cause data from database
 def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
-    prefix='REBOOT_CAUSE|'
+    prefix = 'REBOOT_CAUSE|'
     if use_chassis_db:
         try:
-            rdb = redis.Redis(host = 'redis_chassis.server', port = 6380, decode_responses=True, db=CHASSIS_STATE_DB)
+            rdb = redis.Redis(host='redis_chassis.server', port=6380, decode_responses=True, db=CHASSIS_STATE_DB)
             table_keys = rdb.keys(prefix+'*')
-        except Exception as e:
+        except Exception:
             return []
     else:
         rdb = SonicV2Connector(host='127.0.0.1')
         rdb.connect(rdb.STATE_DB, False)   # Make one attempt only
         table_keys = rdb.keys(rdb.STATE_DB, prefix+'*')
 
-    if not table_keys is None:
+    if table_keys is not None:
         table_keys.sort(reverse=True)
 
     table = []
@@ -52,30 +53,31 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
         else:
             entry = rdb.get_all(rdb.STATE_DB, tk)
 
-        if not module_name is None:
+        if module_name is not None:
             if 'device' in entry:
                 if module_name != entry['device'] and module_name != "all":
                     continue
-                if entry['device'] in d and history == False:
+                if entry['device'] in d and not history:
                     append = False
                     continue
-                elif not entry['device'] in d or entry['device'] in d and history == True:
+                elif not entry['device'] in d or entry['device'] in d and history:
                     append = True
                     if not entry['device'] in d:
                         d.append(entry['device'])
             r.append(entry['device'] if 'device' in entry else "SWITCH")
-        suffix=""
+        suffix = ""
         if append and "DPU" in entry['device']:
             suffix='|' + entry['device']
         r.append(tk.replace(prefix, "").replace(suffix, ""))
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
         r.append(entry['user'] if 'user' in entry else "")
-        if append == True and fetch_history == False:
+        if append and not fetch_history:
             table.append(r)
-        elif fetch_history == True:
+        elif fetch_history:
             r.append(entry['comment'] if 'comment' in entry else "")
-            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or 'device' in entry and module_name == entry['device']:
+            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or \
+            'device' in entry and module_name == entry['device']:
                 table.append(r)
 
     return table
@@ -102,6 +104,7 @@ def fetch_reboot_cause_from_db(module_name):
 
     table += fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=True)
     return table
+
 
 # Function to fetch reboot cause history data from database
 def fetch_reboot_cause_history_from_db(module_name):
@@ -152,6 +155,7 @@ def reboot_cause(ctx):
 
         click.echo(reboot_cause_str)
 
+
 # 'all' command within 'reboot-cause'
 @reboot_cause.command()
 def all():
@@ -166,10 +170,9 @@ def all():
 def history(module_name):
     """Show history of reboot-cause"""
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if not module_name is None :
+    if module_name is not None:
         header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
         click.echo(tabulate(reboot_cause_history, header, numalign="left"))
     else:
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']
         click.echo(tabulate(reboot_cause_history, header, numalign="left"))
-
