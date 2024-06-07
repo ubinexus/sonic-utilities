@@ -108,14 +108,14 @@ def check_kdump_attributes(db):
 
 @kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
 @click.argument("action", type=click.Choice(["ssh", "disable"]))
-@click.option("-c", "--ssh-connection-string",
+@click.option("-c", "ssh_connection_string",
               metavar='<kdump_ssh_connection_string>',
               help="SSH user and host. e.g user@hostname/ip")
-@click.option("-p", "--ssh-private-key-path",
+@click.option("-p", "ssh_private-_path",
               metavar='<kdump_ssh_private_key_file_path>',
               help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
 @pass_db
-def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_path):
+def kdump_remote(db, action, ssh_connection_string, ssh_private_key_path):
     """Configure remote KDUMP mechanism"""
 
     # Ensure the KDUMP table and 'config' key exist
@@ -127,16 +127,16 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
 
     if action == "ssh":
         # Validate arguments for SSH configuration
-        if kdump_ssh_connection_string is None or kdump_ssh_private_key_path is None:
+        if  ssh_connection_string is None or ssh_private_key_path is None:
             click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path\
                         \are required for SSH configuration.")
             sys.exit(1)
 
         db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
-        if kdump_ssh_connection_string is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": kdump_ssh_connection_string})
-        if kdump_ssh_private_key_path is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": kdump_ssh_private_key_path})
+        if ssh_connection_string is not None:
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ssh_connection_string})
+        if ssh_private_key_path is not None:
+            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ssh_private_key_path})
     elif action == "disable":
         # Set remote_enabled to "false"
         db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "false"})
