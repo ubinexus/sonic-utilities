@@ -90,9 +90,6 @@ def kdump_num_dumps(db, kdump_num_dumps):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
-
-
-
 def check_kdump_attributes(db):
     """Check if required KDUMP attributes exist in ConfigDB"""
     kdump_attributes = ['ssh-connection-string', 'ssh-private-key-path', 'remote-enabled']
@@ -129,7 +126,8 @@ def kdump_remote(db, action, kdump_ssh_connection_string, kdump_ssh_private_key_
     if action == "ssh":
         # Validate arguments for SSH configuration
         if kdump_ssh_connection_string is None or kdump_ssh_private_key_path is None:
-            click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path are required for SSH configuration.")
+            click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path\
+                        \ are required for SSH configuration.")
             sys.exit(1)
 
         db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
