@@ -306,6 +306,11 @@ psu.voltage  Ignored   Device
 """
         assert result.output == expected
 
+    def test_health_detail_all(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["detail"], ["all"])
+        click.echo(result.output)
+
     def test_health_systemready(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"])
