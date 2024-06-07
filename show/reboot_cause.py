@@ -67,7 +67,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
             r.append(entry['device'] if 'device' in entry else "SWITCH")
         suffix = ""
         if append and "DPU" in entry['device']:
-            suffix='|' + entry['device']
+            suffix = '|' + entry['device']
         r.append(tk.replace(prefix, "").replace(suffix, ""))
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
@@ -77,7 +77,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
         elif fetch_history:
             r.append(entry['comment'] if 'comment' in entry else "")
             if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or \
-            'device' in entry and module_name == entry['device']:
+               'device' in entry and module_name == entry['device']:
                 table.append(r)
 
     return table
@@ -163,6 +163,7 @@ def all():
     reboot_cause_data = fetch_reboot_cause_from_db("all")
     header = ['Device', 'Name', 'Cause', 'Time', 'User']
     click.echo(tabulate(reboot_cause_data, header, numalign="left"))
+
 
 # 'history' command within 'reboot-cause'
 @reboot_cause.command()

@@ -117,7 +117,7 @@ def show_module_state(module_name):
         midplanedown = False
         up_cnt = 0
         for key, value in state_info.items():
-            if  key.endswith('_state'):
+            if key.endswith('_state'):
                 if value.lower() == 'up':
                     up_cnt = up_cnt + 1
                 if 'midplane' in key and value.lower() == 'down':
