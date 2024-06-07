@@ -328,12 +328,12 @@ psu.voltage  Ignored   Device
 
     def test_health_monitorlist_switch(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitorlist"], ["SWITCH"])
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["SWITCH"])
         click.echo(result.output)
 
     def test_health_monitorlist_dpu(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitorlist"], ["DPU0"])
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["DPU0"])
         click.echo(result.output)
 
     def test_health_detail_all(self):
