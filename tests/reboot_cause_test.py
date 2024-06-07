@@ -89,7 +89,7 @@ Name                 Cause        Time                          User    Comment
 
     # Test 'show reboot-cause all'
     def test_reboot_cause_all(self):
-        with mock.patch("show.reboot_cause.read_reboot_cause_file",
+        with mock.patch("show.reboot_cause.fetch_data_from_db",
                         return_value={
                             "comment": "",
                             "gen_time": "2020_10_22_03_14_07",

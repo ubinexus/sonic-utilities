@@ -322,9 +322,32 @@ psu.voltage  Ignored   Device
         click.echo(result.output)
 
     def test_health_monitorlist_all(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
-        click.echo(result.output)
+        with mock.patch("show.reboot_cause.get_module_health_from_db",
+                        return_value={
+                            "value": {
+                                "ignore_stat": {
+                                    "psu": {
+                                        "type": "Device",
+                                        "message": "",
+                                        "status": "Ignored"
+                                        }
+                                    },
+                                "stat": {
+                                    "Services": {
+                                        "sonic": {
+                                            "type": "System",
+                                            "message": "",
+                                            "status": "OK"
+                                            }
+                                    },
+                                    "Hardware=": {}
+                                },
+                                "system_status_LED": "green"
+                            }
+                        }):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
+            click.echo(result.output)
 
     def test_health_monitorlist_switch(self):
         runner = CliRunner()
