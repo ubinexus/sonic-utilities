@@ -46,7 +46,7 @@ def get_module_health_from_db(module_name):
         chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
         chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
         key = 'SYSTEM_HEALTH_INFO|'
-        suffix = '*' if not module_name or module_name == 'all' else module_name
+        suffix = '*' if not module_name or not module_name.startswith("DPU")
         key = key + suffix
         keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
         if not keys:
@@ -99,7 +99,7 @@ def show_module_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
     chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
     key = 'DPU_STATE|'
-    suffix = '*' if not module_name or module_name == 'all' else module_name
+    suffix = '*' if not module_name or not module_name.startswith("DPU")
     key = key + suffix
     keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
     if not keys:
