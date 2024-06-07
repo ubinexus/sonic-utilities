@@ -306,9 +306,54 @@ psu.voltage  Ignored   Device
 """
         assert result.output == expected
 
+    def test_health_summary_all(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["all"])
+        click.echo(result.output)
+
+    def test_health_summary_switch(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["SWITCH"])
+        click.echo(result.output)
+
+    def test_health_summary_dpu(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["DPU0"])
+        click.echo(result.output)
+
+    def test_health_monitorlist_all(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
+        click.echo(result.output)
+
+    def test_health_monitorlist_switch(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitorlist"], ["SWITCH"])
+        click.echo(result.output)
+
+    def test_health_monitorlist_dpu(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitorlist"], ["DPU0"])
+        click.echo(result.output)
+
     def test_health_detail_all(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["detail"], ["all"])
+        click.echo(result.output)
+
+    def test_health_detail_switch(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["detail"], ["SWITCH"])
+        click.echo(result.output)
+
+    def test_health_detail_dpu(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["detail"], ["DPU0"])
+        click.echo(result.output)
+
+    def test_health_dpu(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
         click.echo(result.output)
 
     def test_health_systemready(self):
