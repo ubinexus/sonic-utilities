@@ -14,7 +14,8 @@ import tests.mock_tables.dbconnector
 
 from click.testing import CliRunner
 from utilities_common.db import Db
-from consutil.lib import *
+from consutil.lib import ConsolePortProvider, ConsolePortInfo, ConsoleSession, SysInfoProvider, DbUtils, \
+    InvalidConfigurationError, LineBusyError, LineNotFoundError, ConnectionFailedError
 from sonic_py_common import device_info
 from jsonpatch import JsonPatchConflict
 
@@ -555,7 +556,7 @@ class TestConsutilLib(object):
         assert len(ttys) == 1
 
     def test_sys_info_provider_list_console_ttys_device_not_exists(self):
-        SysInfoProvider.DEVICE_PREFIX = CONSOLE_MOCK_DIR + "/dev_inexistent/ttyUSB"
+        SysInfoProvider.DEVICE_PREFIX = CONSOLE_MOCK_DIR + "/dev_not_exist/ttyUSB"
         ttys = SysInfoProvider.list_console_ttys()
         assert len(ttys) == 0
 
