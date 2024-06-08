@@ -5,6 +5,7 @@ from utilities_common.general import load_module_from_source
 
 import click
 from click.testing import CliRunner
+from .mock_tables import dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -15,7 +16,6 @@ sys.path.insert(0, modules_path)
 # Load the file under test
 system_health_path = os.path.join(show_path, 'system_health.py')
 healthshow = load_module_from_source('system_health', system_health_path)
-from .mock_tables import dbconnector
 
 class MockerConfig(object):
     ignore_devices = []
@@ -330,9 +330,9 @@ psu.voltage  Ignored   Device
     def test_mock_health_summary_all(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, healthshow.SYSTEM_HEALTH_INFO|DPU0,\
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, healthshow.SYSTEM_HEALTH_INFO|DPU0,\
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch('healthshow.SonicV2Connector', return_value=conn):
             runner = CliRunner()
