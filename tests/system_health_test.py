@@ -13,10 +13,6 @@ scripts_path = os.path.join(modules_path, "scripts")
 show_path = os.path.join(modules_path, "show")
 sys.path.insert(0, modules_path)
 
-# Load the file under test
-system_health_path = os.path.join(show_path, 'system_health.py')
-healthshow = load_module_from_source('system_health', system_health_path)
-
 class MockerConfig(object):
     ignore_devices = []
     ignore_services = []
@@ -334,7 +330,7 @@ psu.voltage  Ignored   Device
                  "container_checker", "container_checker is not Status ok")
         conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
-        with mock.patch('healthshow.SonicV2Connector', return_value=conn):
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["all"])
             click.echo(result.output)
