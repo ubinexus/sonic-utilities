@@ -323,7 +323,7 @@ psu.voltage  Ignored   Device
         click.echo(result.output)
 
     def test_health_monitorlist_all(self):
-        with mock.patch("show.reboot_cause.get_module_health_from_db",
+        with mock.patch("show.system_health.get_module_health_from_db",
                         return_value={
                             "value": {
                                 "ignore_stat": {
