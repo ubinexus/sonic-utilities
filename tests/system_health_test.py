@@ -308,21 +308,6 @@ psu.voltage  Ignored   Device
         assert result.output == expected
 
     def test_health_summary_all(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["all"])
-        click.echo(result.output)
-
-    def test_health_summary_switch(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["SWITCH"])
-        click.echo(result.output)
-
-    def test_health_summary_dpu(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["DPU0"])
-        click.echo(result.output)
-
-    def test_mock_health_summary_all(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.STATE_DB)
         conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
@@ -334,20 +319,65 @@ psu.voltage  Ignored   Device
             result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["all"])
             click.echo(result.output)
 
+    def test_health_summary_switch(self):
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "summary", "Not OK")
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["SWITCH"])
+            click.echo(result.output)
+
+    def test_health_summary_dpu(self):
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "summary", "Not OK")
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["DPU0"])
+            click.echo(result.output)
+
     def test_health_monitorlist_all(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
-        click.echo(result.output)
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "summary", "Not OK")
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
+            click.echo(result.output)
 
     def test_health_monitorlist_switch(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["SWITCH"])
-        click.echo(result.output)
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "summary", "Not OK")
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["SWITCH"])
+            click.echo(result.output)
 
     def test_health_monitorlist_dpu(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["DPU0"])
-        click.echo(result.output)
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+                 "summary", "Not OK")
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["DPU0"])
+            click.echo(result.output)
 
     def test_health_detail_all(self):
         runner = CliRunner()
