@@ -309,10 +309,10 @@ psu.voltage  Ignored   Device
 
     def test_health_summary_all(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
@@ -321,10 +321,10 @@ psu.voltage  Ignored   Device
 
     def test_health_summary_switch(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
@@ -333,10 +333,10 @@ psu.voltage  Ignored   Device
 
     def test_health_summary_dpu(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
@@ -345,10 +345,10 @@ psu.voltage  Ignored   Device
 
     def test_health_monitorlist_all(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
@@ -357,10 +357,10 @@ psu.voltage  Ignored   Device
 
     def test_health_monitorlist_switch(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
@@ -369,10 +369,10 @@ psu.voltage  Ignored   Device
 
     def test_health_monitorlist_dpu(self):
         conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.STATE_DB)
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.connect(conn.CHASSIS_STATE_DB)
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "container_checker", "container_checker is not Status ok")
-        conn.set(conn.STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
+        conn.set(conn.CHASSIS_STATE_DB, 'SYSTEM_HEALTH_INFO|DPU0',
                  "summary", "Not OK")
         with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
             runner = CliRunner()
