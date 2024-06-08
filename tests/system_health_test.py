@@ -1,16 +1,21 @@
 import sys
 import os
 from unittest import mock
+from utilities_common.general import load_module_from_source
 
 import click
 from click.testing import CliRunner
 
-from .mock_tables import dbconnector
-
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
+show_path = os.path.join(modules_path, "show")
 sys.path.insert(0, modules_path)
+
+# Load the file under test
+system_health_path = os.path.join(show_path, 'system_health.py')
+healthshow = load_module_from_source('system_health', system_health_path)
+from .mock_tables import dbconnector
 
 class MockerConfig(object):
     ignore_devices = []
@@ -322,33 +327,22 @@ psu.voltage  Ignored   Device
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["DPU0"])
         click.echo(result.output)
 
-    def test_health_monitorlist_all(self):
-        with mock.patch("show.system_health.get_module_health_from_db",
-                        return_value={
-                            "value": {
-                                "ignore_stat": {
-                                    "psu": {
-                                        "type": "Device",
-                                        "message": "",
-                                        "status": "Ignored"
-                                        }
-                                    },
-                                "stat": {
-                                    "Services": {
-                                        "sonic": {
-                                            "type": "System",
-                                            "message": "",
-                                            "status": "OK"
-                                            }
-                                    },
-                                    "Hardware=": {}
-                                },
-                                "system_status_LED": "green"
-                            }
-                        }):
+    def test_mock_health_summary_all(self):
+        conn = dbconnector.SonicV2Connector()
+        conn.connect(conn.STATE_DB)
+        conn.set(conn.STATE_DB, healthshow.SYSTEM_HEALTH_INFO|DPU0,\
+                 "container_checker", "container_checker is not Status ok")
+        conn.set(conn.STATE_DB, healthshow.SYSTEM_HEALTH_INFO|DPU0,\
+                 "summary", "Not OK")
+        with mock.patch('healthshow.SonicV2Connector', return_value=conn):
             runner = CliRunner()
-            result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
+            result = runner.invoke(show.cli.commands["system-health"].commands["summary"], ["all"])
             click.echo(result.output)
+
+    def test_health_monitorlist_all(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"], ["all"])
+        click.echo(result.output)
 
     def test_health_monitorlist_switch(self):
         runner = CliRunner()
