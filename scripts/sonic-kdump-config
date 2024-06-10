@@ -326,7 +326,7 @@ def get_ssh_connection_string():
         if table_data is not None:
             config_data = table_data.get('config')
             if config_data is not None:
-                conn = config_data.get('ssh-connection-string')
+                conn = config_data.get('ssh_connection_string')
                 if conn:
                     ssh_connection_string = conn
     return ssh_connection_string
@@ -344,7 +344,7 @@ def get_ssh_private_key_path():
         if table_data is not None:
             config_data = table_data.get('config')
             if config_data is not None:
-                pr_key_path = config_data.get('ssh-private-key-path')
+                pr_key_path = config_data.get('ssh_private_key_path')
                 if pr_key_path:
                     ssh_private_key_path = pr_key_path
     return ssh_private_key_path
@@ -362,7 +362,7 @@ def get_kdump_remote_enabled():
         if table_data is not None:
             config_data = table_data.get('config')
             if config_data is not None:
-                remote_en = config_data.get('remote-enabled')
+                remote_en = config_data.get('remote_enabled')
                 if remote_en:
                     remote_enabled = remote_en
     return remote_enabled
@@ -493,23 +493,35 @@ def write_ssh_private_key_path(ssh_private_key_path):
 ## Disable remote: Comment the value for SSH and SSH_KEY in kdump config file /etc/default/kdump-tools
 #
 def kdump_remote_disable():
-    if get_kdump_remote_enabled().lower() == "true":
-        (rc, lines, err_str) = run_command("/bin/sed -i '/*SSH=\"/s/\#/' %s" % (kdump_cfg), use_shell=False);
-        if rc == 0 and type(lines) == list and len(lines) == 0:
-            sys.exit(1)
-        else:
-            print_err("Error while disabling remote kdump in %s" % kdump_cfg)
-            sys.exit(1)
+  """
+  Disables remote kdump in the configuration file (kdump_cfg).
 
-        (rc, lines, err_str) = run_command("/bin/sed -i '/*SSH_KEY=\"/s/\#/' %s" % (kdump_cfg), use_shell=False);
-        if rc == 0 and type(lines) == list and len(lines) == 0:
-            sys.exit(1)
-        else:
-            print_err("Error while disabling remote kdump in %s" % kdump_cfg)
-            sys.exit(1)
-    else:
-        print_err("Remote kdump is already disabled in %s" % kdump_cfg)
-        sys.exit(1)
+  This function checks if remote kdump is already enabled before attempting
+  to disable it. If enabled, it uses sed to modify the configuration file
+  in-place, removing any comment character (#) before the SSH and SSH_KEY lines.
+  The function exits with an error message if any of the sed commands fail.
+
+  Returns:
+      None
+  """
+
+  # Check if remote kdump is already enabled
+  if get_kdump_remote_enabled().lower() == "true":
+    # Disable SSH key authentication
+    rc = run_command("/bin/sed -i '/*SSH=\"/s/\#/' %s" % (kdump_cfg), use_shell=False)
+    if rc != 0:
+      print_err("Error while disabling SSH key auth in", kdump_cfg)
+      sys.exit(1)
+
+    # Disable SSH authentication (optional, depending on configuration)
+    rc = run_command("/bin/sed -i '/*SSH_KEY=\"/s/\#/' %s" % (kdump_cfg), use_shell=False)
+    if rc != 0:
+      print_err("Error while disabling SSH auth in", kdump_cfg)
+      sys.exit(1)
+
+    print("Successfully disabled remote kdump in", kdump_cfg)
+  else:
+    print("Remote kdump is already disabled in", kdump_cfg)
 
 ## Enable kdump
 #
