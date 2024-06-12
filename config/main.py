@@ -912,7 +912,7 @@ def get_service_finish_timestamp(service):
     return out.strip(' \t\n\r')
 
 
-def wait_service_restart_finish(service, last_timestamp, timeout = 30):
+def wait_service_restart_finish(service, last_timestamp, timeout=30):
     start_time = time.time()
     elapsed_time = 0
     while elapsed_time < timeout:
