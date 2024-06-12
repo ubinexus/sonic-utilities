@@ -1,4 +1,5 @@
 import copy
+import datetime
 import pytest
 import filecmp
 import importlib
@@ -7,7 +8,6 @@ import traceback
 import json
 import jsonpatch
 import sys
-import time
 import unittest
 import ipaddress
 import shutil
@@ -246,9 +246,9 @@ def mock_run_command_side_effect(*args, **kwargs):
         elif command == 'cat /var/run/dhclient.eth0.pid':
             return '101', 0
         elif command == 'sudo systemctl show --no-pager interfaces-config -p ExecMainExitTimestamp --value':
-            return f'{time.localtime()}', 0
+            return f'{datetime.datetime.now()}', 0
         elif command == 'sudo systemctl show --no-pager networking -p ExecMainExitTimestamp --value':
-            return f'{time.localtime()}', 0
+            return f'{datetime.datetime.now()}', 0
         else:
             return '', 0
 
