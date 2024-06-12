@@ -898,9 +898,19 @@ def _reset_failed_services():
     for service in _get_sonic_services():
         clicommon.run_command(['systemctl', 'reset-failed', str(service)])
 
+
 def get_service_finish_timestamp(service):
-    out, _ = clicommon.run_command(['sudo', 'systemctl', 'show', '--no-pager', service, '-p', 'ExecMainExitTimestamp', '--value'], return_cmd=True)
+    out, _ = clicommon.run_command(['sudo',
+                                    'systemctl',
+                                    'show',
+                                    '--no-pager',
+                                    service,
+                                    '-p',
+                                    'ExecMainExitTimestamp',
+                                    '--value'],
+                                   return_cmd=True)
     return out.strip(' \t\n\r')
+
 
 def wait_service_restart_finish(service, last_timestamp, timeout = 30):
     start_time = time.time()
@@ -914,6 +924,7 @@ def wait_service_restart_finish(service, last_timestamp, timeout = 30):
         elapsed_time = time.time() - start_time
 
     log.log_warning("Service: {} does not restart in {} seconds, stop waiting".format(service, timeout))
+
 
 def _restart_services():
     last_interface_config_timestamp = get_service_finish_timestamp('interfaces-config')
