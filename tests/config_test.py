@@ -3130,10 +3130,31 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
     def test_checkpoint_multiasic(self, mock_subprocess_popen):
         allconfigs = copy.deepcopy(self.all_config)
 
-        mock_instance = MagicMock()
-        mock_instance.communicate.return_value = (json.dumps(allconfigs), 0)
-        mock_instance.returncode = 0
-        mock_subprocess_popen.return_value = mock_instance
+        # Create mock instances for each subprocess call
+        mock_instance_localhost = MagicMock()
+        mock_instance_localhost.communicate.return_value = (json.dumps(allconfigs["localhost"]), 0)
+        mock_instance_localhost.returncode = 0
+
+        mock_instance_asic0 = MagicMock()
+        mock_instance_asic0.communicate.return_value = (json.dumps(allconfigs["asic0"]), 0)
+        mock_instance_asic0.returncode = 0
+
+        mock_instance_asic1 = MagicMock()
+        mock_instance_asic1.communicate.return_value = (json.dumps(allconfigs["asic1"]), 0)
+        mock_instance_asic1.returncode = 0
+
+        # Setup side effect to return different mock instances based on input arguments
+        def side_effect(*args, **kwargs):
+            if "asic" not in args[0]:
+                return mock_instance_localhost
+            elif "asic0" in args[0]:
+                return mock_instance_asic0
+            elif "asic1" in args[0]:
+                return mock_instance_asic1
+            else:
+                return MagicMock()  # Default case
+
+        mock_subprocess_popen.side_effect = side_effect
 
         checkpointname = "checkpointname"
         print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))

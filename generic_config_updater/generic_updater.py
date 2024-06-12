@@ -42,18 +42,27 @@ def get_cmd_output(cmd):
 
 
 def get_config_json():
-    command = ["show", "runningconfiguration", "all"]
-    all_running_config_text, returncode = get_cmd_output(command)
-    if returncode:
-        raise GenericConfigUpdaterError(
-            f"Fetch all runningconfiguration failed as output:{all_running_config_text}")
-    all_running_config = json.loads(all_running_config_text)
-
+    scope_list = [multi_asic.DEFAULT_NAMESPACE]
+    all_running_config = {}
     if multi_asic.is_multi_asic():
-        for asic in [HOST_NAMESPACE, *multi_asic.get_namespace_list()]:
-            all_running_config[asic].pop("bgpraw", None)
-    else:
-        all_running_config.pop("bgpraw", None)
+        scope_list.extend(multi_asic.get_namespace_list())
+    for scope in scope_list:
+        command = ["sonic-cfggen", "-d", "--print-data"]
+        if scope != multi_asic.DEFAULT_NAMESPACE:
+            command += ["-n", scope]
+
+        running_config_text, returncode = get_cmd_output(command)
+        if returncode:
+            raise GenericConfigUpdaterError(
+                f"Fetch all runningconfiguration failed as output:{running_config_text}")
+        running_config = json.loads(running_config_text)
+
+        if multi_asic.is_multi_asic():
+            if scope == multi_asic.DEFAULT_NAMESPACE:
+                scope = HOST_NAMESPACE
+            all_running_config[scope] = running_config
+        else:
+            all_running_config = running_config
     return all_running_config
 
 
