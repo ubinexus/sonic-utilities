@@ -67,7 +67,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
             r.append(entry['device'] if 'device' in entry else "SWITCH")
         suffix = ""
         if append and "DPU" in entry['device']:
-            suffix = '|' + entry['device']
+            suffix = entry['device'] + '|'
         r.append(tk.replace(prefix, "").replace(suffix, ""))
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
