@@ -51,7 +51,7 @@ class PgDropStat(object):
     def __init__(self, namespace):
         self.namespace = namespace
         self.ns_list = multi_asic.get_namespace_list(namespace)
-        self.configdb = ConfigDBConnector(namespace=namespace, use_unix_socket_path=True)
+        self.configdb = ConfigDBConnector(namespace=namespace)
         self.configdb.connect()
         dropstat_dir = get_dropstat_dir()
         self.port_drop_stats_file = os.path.join(dropstat_dir, 'pg_drop_stats')
@@ -99,7 +99,7 @@ class PgDropStat(object):
 
     def get_counters_mapdata(self, tablemap, index):
         for ns in self.ns_list:
-            counters_db = SonicV2Connector(namespace=ns, use_unix_socket_path=True)
+            counters_db = SonicV2Connector(namespace=ns)
             counters_db.connect(counters_db.COUNTERS_DB)
             data = counters_db.get(counters_db.COUNTERS_DB, tablemap, index)
             if data:
@@ -109,7 +109,7 @@ class PgDropStat(object):
     def get_counters_mapall(self, tablemap):
         mapdata = {}
         for ns in self.ns_list:
-            counters_db = SonicV2Connector(namespace=ns, use_unix_socket_path=True)
+            counters_db = SonicV2Connector(namespace=ns)
             counters_db.connect(counters_db.COUNTERS_DB)
             map_result = counters_db.get_all(counters_db.COUNTERS_DB, tablemap)
             if map_result:
