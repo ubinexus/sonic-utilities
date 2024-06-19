@@ -65,7 +65,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
 
     if multi_asic.is_multi_asic():
         masic = True
-        header = ["Namespace", "TSA", "W-ECMP"]
+        header = ["ASIC ID", "TSA", "W-ECMP"]
         namespaces = multi_asic.get_namespace_list()
     else:
         masic = False

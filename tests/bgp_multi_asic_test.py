@@ -1,3 +1,4 @@
+from unittest import mock
 import show.main as show
 import pytest
 import logging
@@ -5,6 +6,9 @@ import importlib
 import os
 from click.testing import CliRunner
 from unittest.mock import MagicMock, patch
+from utilities_common.db import Db
+
+from .mock_tables import dbconnector
 from .bgp_input import assert_show_output
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +28,10 @@ class TestBgpMultiAsic:
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = (
             "multi_asic"
         )
+        from .mock_tables import mock_multi_asic
+
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
 
     @classmethod
     def teardown_class(cls):
@@ -34,6 +42,7 @@ class TestBgpMultiAsic:
         from .mock_tables import mock_single_asic
 
         importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
 
     @pytest.mark.parametrize(
         "cfgdb,output",
@@ -41,7 +50,7 @@ class TestBgpMultiAsic:
             pytest.param(
                 os.path.join(mock_config_path, "empty"),
                 {
-                    "plain": assert_show_output.show_device_global_all_disabled_multi_asic,
+                    "plain": assert_show_output.show_device_global_empty,
                     "json": assert_show_output.show_device_global_empty,
                 },
                 id="empty",
@@ -87,15 +96,19 @@ class TestBgpMultiAsic:
             "json",
         ],
     )
-    @patch("multi_asic.is_multi_asic", return_value=True)
     @patch(
-        "multi_asic.get_namespace_list",
-        return_value=["asic0", "asic1"],
+        "show.bgp_cli.multi_asic.is_multi_asic",
+        mock.Mock(return_value=True),
+    )
+    @patch(
+        "show.bgp_cli.multi_asic.get_namespace_list",
+        mock.Mock(return_value=["asic0", "asic1"]),
     )
     def test_show_device_global_multi_asic(
         self, cfgdb, output, format
     ):
-        db = MagicMock()
+        dbconnector.dedicated_dbs["CONFIG_DB"] = cfgdb
+        db = Db()
         runner = CliRunner()
         db.cfgdb_clients = {
             "asic0": MagicMock(),
@@ -103,16 +116,14 @@ class TestBgpMultiAsic:
         }
 
         for asic in ["asic0", "asic1"]:
-            db.cfgdb_clients[
-                f"{asic}"
-            ].get_table.return_value = cfgdb
+            db.cfgdb_clients[f"{asic}"] = cfgdb
 
         cmd_args = [] if format == "plain" else ["--json"]
 
         result = runner.invoke(
             show.cli.commands["bgp"].commands["device-global"],
             cmd_args,
-            obj=db,
+            obj={"db": db},
         )
 
         logger.debug("\n" + result.output)

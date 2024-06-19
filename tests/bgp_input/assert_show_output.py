@@ -56,7 +56,7 @@ show_device_global_wcmp_enabled_json = """\
 
 show_device_global_all_disabled_multi_asic = """\
 ASIC ID    TSA       W-ECMP
---------  --------  --------
+---------  --------  --------
 asic0      disabled  disabled
 asic1      disabled  disabled
 """
@@ -75,7 +75,7 @@ show_device_global_all_disabled_multi_asic_json = """\
 
 show_device_global_all_enabled_multi_asic = """\
 ASIC ID    TSA      W-ECMP
---------  -------  --------
+---------  -------  --------
 asic0      enabled  enabled
 asic1      enabled  enabled
 """
@@ -94,7 +94,7 @@ show_device_global_all_enabled_multi_asic_json = """\
 
 show_device_global_tsa_enabled_multi_asic = """\
 ASIC ID    TSA      W-ECMP
---------  -------  --------
+---------  -------  --------
 asic0      enabled  disabled
 asic1      enabled  disabled
 """
@@ -113,7 +113,7 @@ show_device_global_tsa_enabled_multi_asic_json = """\
 
 show_device_global_wcmp_enabled_multi_asic = """\
 ASIC ID    TSA       W-ECMP
---------  --------  --------
+---------  --------  --------
 asic0      disabled  enabled
 asic1      disabled  enabled
 """
