@@ -105,5 +105,5 @@ class TestBgpMultiAsic:
  
         assert result.output == output[format]
         assert result.exit_code == SUCCESS
-       
+      
    

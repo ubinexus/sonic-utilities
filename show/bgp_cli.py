@@ -137,3 +137,4 @@ def DEVICE_GLOBAL(ctx, db, json_format):
         click.echo(json.dumps(results, indent=4))
     else:
         click.echo(tabulate.tabulate(body, headers=header))
+        
