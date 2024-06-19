@@ -1,14 +1,19 @@
 import show.main as show
 import pytest
+import logging
+import importlib
 import os
 from click.testing import CliRunner
-from utilities_common.db import Db
-from .mock_tables import dbconnector
+from unittest.mock import MagicMock, patch
 from .bgp_input import assert_show_output
  
 test_path = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(test_path, "bgp_input")
 mock_config_path = os.path.join(input_path, "mock_config")
+
+logger = logging.getLogger(__name__)
+
+SUCCESS = 0
  
 class TestBgpMultiAsic:
     @classmethod
@@ -16,12 +21,10 @@ class TestBgpMultiAsic:
         logger.info("Setup class: {}".format(cls.__name__))
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        delete_cache()
  
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        delete_cache()
         logger.info("Teardown class: {}".format(cls.__name__))
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
@@ -93,7 +96,7 @@ class TestBgpMultiAsic:
         for asic in ["asic0", "asic1"]:
             db.cfgdb_clients[f"{asic}"].get_table.return_value = cfgdb
        
-        cmd_args = [] if output_format == "plain" else ["--json"]
+        cmd_args = [] if format == "plain" else ["--json"]
            
         result = runner.invoke(
             show.cli.commands["bgp"].commands["device-global"],
@@ -105,5 +108,3 @@ class TestBgpMultiAsic:
  
         assert result.output == output[format]
         assert result.exit_code == SUCCESS
-      
-   

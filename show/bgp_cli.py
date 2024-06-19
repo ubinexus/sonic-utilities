@@ -103,7 +103,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                 )
             }
            
-            if is_multi_asic:
+            if masic:
                 results[ns] = json_output
             else:
                 results = json_output
