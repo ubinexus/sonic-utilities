@@ -2,53 +2,54 @@ import click
 import tabulate
 import json
 import utilities_common.cli as clicommon
-import utilities_common.multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
- 
+
 from utilities_common.bgp import (
     CFG_BGP_DEVICE_GLOBAL,
     BGP_DEVICE_GLOBAL_KEY,
     to_str,
 )
- 
- 
+
+
 #
-# BGP helpers ---------------------------------------------------------------------------------------------------------
+# BGP helpers ------------------------------------------------------------
 #
- 
- 
+
+
 def format_attr_value(entry, attr):
     """ Helper that formats attribute to be presented in the table output.
- 
+
     Args:
         entry (Dict[str, str]): CONFIG DB entry configuration.
         attr (Dict): Attribute metadata.
- 
+
     Returns:
         str: formatted attribute value.
     """
- 
+
     if attr["is-leaf-list"]:
         value = entry.get(attr["name"], [])
         return "\n".join(value) if value else "N/A"
     return entry.get(attr["name"], "N/A")
- 
- 
+
+
 #
-# BGP CLI -------------------------------------------------------------------------------------------------------------
+# BGP CLI ----------------------------------------------------------------
 #
- 
- 
+
+
 @click.group(
     name="bgp",
     cls=clicommon.AliasedGroup
 )
 def BGP():
     """ Show BGP configuration """
- 
+
     pass
- 
+
 # BGP device-global
+
+
 @BGP.command(name="device-global")
 @click.option("-j", "--json", "json_format",
               help="Display in JSON format",
@@ -58,10 +59,10 @@ def BGP():
 @click.pass_context
 def DEVICE_GLOBAL(ctx, db, json_format):
     """ Show BGP device global state """
-   
+
     body = []
     results = {}
-   
+
     if multi_asic.is_multi_asic():
         masic = True
         header = ["Namespace", "TSA", "W-ECMP"]
@@ -70,19 +71,19 @@ def DEVICE_GLOBAL(ctx, db, json_format):
         masic = False
         header = ["TSA", "W-ECMP"]
         namespaces = [multi_asic.DEFAULT_NAMESPACE]
- 
+
     for ns in namespaces:
         config_db = db.cfgdb_clients[ns]
-       
+
         table = config_db.get_table(CFG_BGP_DEVICE_GLOBAL)
         entry = table.get(BGP_DEVICE_GLOBAL_KEY, {})
-        
+
         if not entry:
             click.echo("No configuration is present in CONFIG DB")
-            ctx.exit(0) 
-       
+            ctx.exit(0)
+
         if json_format:
-            json_output= {
+            json_output = {
                 "tsa": to_str(
                     format_attr_value(
                         entry,
@@ -102,7 +103,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                     )
                 )
             }
-           
+
             if masic:
                 results[ns] = json_output
             else:
@@ -130,11 +131,10 @@ def DEVICE_GLOBAL(ctx, db, json_format):
             ]
             if masic:
                 row.insert(0, ns)
-               
+
             body.append(row)
-       
+
     if json_format:
         click.echo(json.dumps(results, indent=4))
     else:
         click.echo(tabulate.tabulate(body, headers=header))
-        
