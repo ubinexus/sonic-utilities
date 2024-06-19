@@ -1,6 +1,7 @@
 #!/usr/sbin/env python
 
 import click
+import concurrent.futures
 import datetime
 import ipaddress
 import json
@@ -1212,7 +1213,12 @@ def multi_asic_save_config(db, filename):
     with open(filename, 'w') as file:
         json.dump(all_current_config, file, indent=4)
 
+
 # Function to apply patch for a single ASIC.
+def apply_patch_wrapper(args):
+    return apply_patch_for_scope(*args)
+
+
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
@@ -1459,11 +1465,12 @@ def print_dry_run_message(dry_run):
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang',
                show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-p', '--parallel', is_flag=True, default=False, help='applying the change to all ASICs parallelly')
 @click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, parallel, ignore_non_yang_tables, ignore_path, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1509,8 +1516,19 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
                 changes_by_scope[asic] = []
 
         # Apply changes for each scope
-        for scope_changes in changes_by_scope.items():
-            apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        if parallel:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Prepare the argument tuples
+                arguments = [(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path) for scope_changes in changes_by_scope.items()]
+
+                # Submit all tasks and wait for them to complete
+                futures = [executor.submit(apply_patch_wrapper, args) for args in arguments]
+
+                # Wait for all tasks to complete
+                concurrent.futures.wait(futures)
+        else:
+            for scope_changes in changes_by_scope.items():
+                apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         # Check if any updates failed
         failures = [scope for scope, result in results.items() if not result['success']]
