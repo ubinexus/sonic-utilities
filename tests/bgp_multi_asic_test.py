@@ -91,7 +91,7 @@ class TestBgpMultiAsic:
         }
        
         for asic in ["asic0", "asic1"]:
-            db.cfgdb_clients[f"{asic}"].get_table.return_value = config_db_data
+            db.cfgdb_clients[f"{asic}"].get_table.return_value = cfgdb
        
         cmd_args = [] if output_format == "plain" else ["--json"]
            
