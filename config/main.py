@@ -1519,7 +1519,8 @@ def apply_patch(ctx, patch_file_path, format, dry_run, parallel, ignore_non_yang
         if parallel:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 # Prepare the argument tuples
-                arguments = [(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+                arguments = [(scope_changes, results, config_format,
+                              verbose, dry_run, ignore_non_yang_tables, ignore_path)
                              for scope_changes in changes_by_scope.items()]
 
                 # Submit all tasks and wait for them to complete
