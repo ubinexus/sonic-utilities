@@ -2978,13 +2978,13 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     # Invocation of the command with the CliRunner
                     result = self.runner.invoke(config.config.commands["apply-patch"],
                                                 [self.patch_file_path,
-                                                "--format", ConfigFormat.SONICYANG.name,
-                                                "--dry-run",
-                                                "--ignore-non-yang-tables",
-                                                "--ignore-path", "/ANY_TABLE",
-                                                "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                                "--ignore-path", "",
-                                                "--verbose"],
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--dry-run",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
                                                 catch_exceptions=False)
 
                     print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
@@ -3013,14 +3013,14 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     # Invocation of the command with the CliRunner
                     result = self.runner.invoke(config.config.commands["apply-patch"],
                                                 [self.patch_file_path,
-                                                "--format", ConfigFormat.SONICYANG.name,
-                                                "--dry-run",
-                                                "--parallel",
-                                                "--ignore-non-yang-tables",
-                                                "--ignore-path", "/ANY_TABLE",
-                                                "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                                "--ignore-path", "",
-                                                "--verbose"],
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--dry-run",
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
                                                 catch_exceptions=False)
 
                     print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
@@ -3050,13 +3050,13 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     result = self.runner.invoke(config.config.commands["apply-patch"],
                                                 [self.patch_file_path,
                                                 "--format", ConfigFormat.SONICYANG.name,
-                                                "--dry-run",
-                                                "--parallel",
-                                                "--ignore-non-yang-tables",
-                                                "--ignore-path", "/ANY_TABLE",
-                                                "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                                "--ignore-path", "",
-                                                "--verbose"],
+                                                 "--dry-run",
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
                                                 catch_exceptions=False)
 
                     print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
