@@ -79,7 +79,9 @@ class TestBgpMultiAsic:
             "json",
         ]
     )
-   
+    
+    @patch('multi_asic.is_multi_asic', return_value=True)
+    @patch('multi_asic.get_namespace_list', return_value=['asic0', 'asic1'])
     def test_show_device_global_multi_asic(self, cfgdb, output, format):
         db = MagicMock()
         runner = CliRunner()

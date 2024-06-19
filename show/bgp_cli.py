@@ -76,6 +76,10 @@ def DEVICE_GLOBAL(ctx, db, json_format):
        
         table = config_db.get_table(CFG_BGP_DEVICE_GLOBAL)
         entry = table.get(BGP_DEVICE_GLOBAL_KEY, {})
+        
+        if not entry:
+            click.echo("No configuration is present in CONFIG DB")
+            ctx.exit(0) 
        
         if json_format:
             json_output= {
