@@ -185,47 +185,6 @@ def tpid(interfacename, namespace, display, verbose):
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
-@interfaces.command(name='dhcp-mitigation-rate')
-@click.argument('interfacename', required=False)
-@click.pass_context
-@clicommon.pass_db
-def dhcp_mitigation_rate(db, ctx, interfacename):
-    """Show Interface DHCP mitigation rate information"""
-
-    keys = []
-
-    if interfacename is None:
-        port_data = list(db.cfgdb.get_table('PORT').keys())
-        keys = port_data
-
-    else:
-        if clicommon.is_valid_port(db.cfgdb, interfacename):
-            pass
-        elif clicommon.is_valid_portchannel(db.cfgdb, interfacename):
-            ctx.fail("{} is a PortChannel!".format(interfacename))
-        else:
-            ctx.fail("{} does not exist".format(interfacename))
-
-        keys.append(interfacename)
-
-    def get_interface_name_for_display(interface):
-        if clicommon.get_interface_naming_mode() == 'alias':
-            iface_alias_converter = clicommon.InterfaceAliasConverter(db.cfgdb)
-            alias = iface_alias_converter.name_to_alias(interface)
-            return alias
-        return interface
-
-    def tablelize(keys):
-        table = []
-        for key in natsorted(keys):
-            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(db.cfgdb, key)]
-            table.append(r)
-        return table
-
-    header = ['Interface', 'DHCP Mitigation Rate']
-    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
-
-
 #
 # 'breakout' group ###
 #
@@ -953,3 +912,52 @@ def switchport_mode_status(db):
 
     header = ['Interface', 'Mode']
     click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
+
+#
+#  dhcp_mitigation_rate group (show interfaces dhcp_mitigation_rate  ...)
+#
+
+
+@interfaces.group(name='dhcp_mitigation_rate ', cls=clicommon.AliasedGroup)
+def dhcp_mitigation_rate():
+    """Show interface dhcp_mitigation_rate information"""
+    pass
+
+@dhcp_mitigation_rate.command(name="status")
+@clicommon.pass_db
+def dhcp_mitigation_rate_status(db,interfacename,ctx):
+    """Show interface dhcp_mitigation_rate status information"""
+    
+    keys = []
+
+    if interfacename is None:
+        port_data = list(db.cfgdb.get_table('PORT').keys())
+        keys = port_data
+
+    else:
+        if clicommon.is_valid_port(db.cfgdb, interfacename):
+            pass
+        elif clicommon.is_valid_portchannel(db.cfgdb, interfacename):
+            ctx.fail("{} is a PortChannel!".format(interfacename))
+        else:
+            ctx.fail("{} does not exist".format(interfacename))
+
+        keys.append(interfacename)
+
+    def get_interface_name_for_display(interface):
+        if clicommon.get_interface_naming_mode() == 'alias':
+            iface_alias_converter = clicommon.InterfaceAliasConverter(db.cfgdb)
+            alias = iface_alias_converter.name_to_alias(interface)
+            return alias
+        return interface
+
+    def tablelize(keys):
+        table = []
+        for key in natsorted(keys):
+            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(db.cfgdb, key)]
+            table.append(r)
+        return table
+
+    header = ['Interface', 'DHCP Mitigation Rate']
+    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
+
