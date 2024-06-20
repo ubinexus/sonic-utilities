@@ -263,7 +263,7 @@ PortChannel0004  routed
 PortChannel1001  trunk               4000
 """
 
-show_interface_dhcp_rate_limit_output = """\
+show_interfaces_dhcp_rate_limit_output = """\
 Interface        DHCP Mitigation Rate
 -----------     ----------------------
 Ethernet0                       300
@@ -299,6 +299,7 @@ Ethernet116                     300
 Ethernet120                     300
 Ethernet124                     300
 """
+
 
 class TestInterfaces(object):
     @classmethod
@@ -538,7 +539,7 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_interface_dhcp_rate_limit_output
+        assert result.output == show_interfaces_dhcp_rate_limit_output
 
     @classmethod
     def teardown_class(cls):

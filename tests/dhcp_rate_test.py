@@ -3,7 +3,6 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 import config.main as config
-import show.main as show
 
 
 class TestDHCPRate(object):
