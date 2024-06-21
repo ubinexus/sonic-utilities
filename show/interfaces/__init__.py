@@ -918,7 +918,7 @@ def switchport_mode_status(db):
 #
 
 
-@interfaces.command(name='dhcp-mitigation-rate', cls=clicommon.AliasedGroup)
+@interfaces.command(name='dhcp-mitigation-rate')
 @click.argument('interfacename', required=False)
 @clicommon.pass_db
 def dhcp_mitigation_rate(db, interfacename, ctx):
