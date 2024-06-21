@@ -1220,6 +1220,9 @@ def apply_patch_wrapper(args):
 
 
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
+    thread_id = threading.get_ident()
+    log.log_notice(f"apply_patch_for_scope started for {scope_for_log} by {changes} in thread:{thread_id}")
+
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
     if scope.lower() == HOST_NAMESPACE or scope == "":
@@ -1235,7 +1238,7 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
                                                     ignore_non_yang_tables,
                                                     ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
-        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
+        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes} in thread:{thread_id}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
