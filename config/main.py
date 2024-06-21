@@ -1,5 +1,6 @@
 #!/usr/sbin/env python
 
+import threading
 import click
 import concurrent.futures
 import datetime
@@ -1220,15 +1221,15 @@ def apply_patch_wrapper(args):
 
 
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
-    thread_id = threading.get_ident()
-    log.log_notice(f"apply_patch_for_scope started for {scope_for_log} by {changes} in thread:{thread_id}")
-
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
     if scope.lower() == HOST_NAMESPACE or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
 
     scope_for_log = scope if scope else HOST_NAMESPACE
+    thread_id = threading.get_ident()
+    log.log_notice(f"apply_patch_for_scope started for {scope_for_log} by {changes} in thread:{thread_id}")
+
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
