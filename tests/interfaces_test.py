@@ -541,6 +541,7 @@ class TestInterfaces(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_dhcp_rate_limit_output
 
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
