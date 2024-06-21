@@ -535,7 +535,7 @@ class TestInterfaces(object):
 
     def test_show_dhcp_rate_limit(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
