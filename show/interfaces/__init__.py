@@ -917,18 +917,15 @@ def switchport_mode_status(db):
 #  dhcp-mitigation-rate group (show interfaces dhcp-mitigation-rate ...)
 #
 
-
-@interfaces.group(name='dhcp-mitigation-rate', cls=clicommon.AliasedGroup)
+@interfaces.group(name='dhcp-mitigation-rate' , cls=clicommon.AliasedGroup)
 def dhcp_mitigation_rate():
     """Show interface dhcp-mitigation-rate information"""
     pass
 
-
-@dhcp_mitigation_rate.command(name="status")
 @click.argument('interfacename', required=False)
 @clicommon.pass_db
 def dhcp_mitigation_rate_status(db, interfacename, ctx):
-    """Show interface  dhcp-mitigation-rate status information"""
+    """Show interface  dhcp-mitigation-rate information"""
 
     keys = []
 
