@@ -129,3 +129,22 @@ show_device_global_wcmp_enabled_multi_asic_json = """\
     }
 }
 """
+
+show_device_global_opposite_multi_asic = """\
+ASIC ID    TSA       W-ECMP
+---------  --------  --------
+asic0      enabled   disabled
+asic1      disabled  enabled
+"""
+show_device_global_opposie_multi_asic_json = """\
+{
+    "asic0": {
+        "tsa": "enabled",
+        "w-ecmp": "disabled"
+    },
+    "asic1": {
+        "tsa": "disabled",
+        "w-ecmp": "enabled"
+    }
+}
+"""

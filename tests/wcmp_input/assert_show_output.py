@@ -21,7 +21,7 @@ W-ECMP
 --------
 disabled
 """
-show_wcmp_status_single_json = """\
+show_wcmp_status_single_disabled_json = """\
 {
     "w-ecmp": "disabled"
 }
