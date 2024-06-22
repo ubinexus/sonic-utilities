@@ -40,6 +40,7 @@ class TestBgpMultiAsic:
 
         importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()
+        dbconnector.namespaces.clear()
 
     @pytest.mark.parametrize(
         "cfgdb,output",

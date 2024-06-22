@@ -90,11 +90,12 @@ class TestWcmpMultipleAsic:
     @classmethod
     def teardown_class(cls):
         logger.info(f"Teardown class: {cls.__name__}")
-        dbconnector.namespaces.clear()
         from .mock_tables import mock_single_asic
 
         importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()
+        dbconnector.namespaces.clear()
+        dbconnector.dedicated_dbs.clear()
 
     @pytest.mark.parametrize("cfgdb,output",
                              [pytest.param({"asic0": os.path.join(mock_config_path,

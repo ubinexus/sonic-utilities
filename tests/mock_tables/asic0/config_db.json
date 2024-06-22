@@ -115,7 +115,7 @@
         "action": "drop",
         "detection_time": "200",
         "restoration_time": "200"
-    }, 
+    },
     "PFC_WD|GLOBAL": {
         "BIG_RED_SWITCH": "enable",
         "POLL_INTERVAL": "199"
