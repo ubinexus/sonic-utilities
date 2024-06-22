@@ -12,7 +12,7 @@ from utilities_common.bgp import (
 
 
 #
-# W-ECMP helpers ---------------------------------------------------------------------------------------------------------
+# W-ECMP helpers ---------------------------------------------------------
 #
 
 
@@ -32,7 +32,7 @@ def format_attr_value(entry, attr):
 
 
 #
-# W-ECMP CLI -------------------------------------------------------------------------------------------------------------
+# W-ECMP CLI -------------------------------------------------------------
 #
 
 
@@ -42,12 +42,12 @@ def format_attr_value(entry, attr):
 )
 def WECMP():
     """Show W-ECMP configuration"""
-    
+
     pass
 
 
 #
-# W-ECMP status ---------------------------------------------------------------------------------------------------
+# W-ECMP status ----------------------------------------------------------
 #
 
 
@@ -64,10 +64,10 @@ def WECMP():
 @click.pass_context
 def STATUS(ctx, db, json_format):
     """Show status of w-ecmp"""
-    
+
     body = []
     results = {}
-    
+
     if multi_asic.is_multi_asic():
         masic = True
         header = ["ASIC ID", "W-ECMP"]
@@ -76,7 +76,7 @@ def STATUS(ctx, db, json_format):
         masic = False
         header = ["W-ECMP"]
         namespaces = [multi_asic.DEFAULT_NAMESPACE]
-    
+
     for ns in namespaces:
         config_db = db.cfgdb_clients[ns]
 
