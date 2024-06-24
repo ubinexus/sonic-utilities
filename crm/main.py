@@ -22,13 +22,13 @@ class Crm:
         "ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
         "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
         "acl_counter", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry", "mpls_inseg",
-        "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"
+        "mpls_nexthop", "srv6_nexthop", "srv6_my_sid_entry", "dram"
     )
 
     resources = (
         "ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
         "nexthop_group_member", "nexthop_group", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry",
-        "mpls_inseg", "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"
+        "mpls_inseg", "mpls_nexthop", "srv6_nexthop", "srv6_my_sid_entry", "dram"
     )
 
     acl_resources = (
@@ -592,6 +592,18 @@ srv6_my_sid_entry.add_command(type)
 srv6_my_sid_entry.add_command(low)
 srv6_my_sid_entry.add_command(high)
 
+
+@thresholds.group()
+@click.pass_context
+def dram(ctx):
+    """CRM configuration for DRAM"""
+    ctx.obj["crm"].res_type = 'dram'
+
+
+dram.add_command(type)
+dram.add_command(low)
+dram.add_command(high)
+
 if device_info.get_platform_info().get('switch_type') == "dpu":
     thresholds.add_command(config_dash)
 
@@ -795,6 +807,16 @@ def srv6_my_sid_entry(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_resources('srv6_my_sid_entry')
 
+
+@resources.command()
+@click.pass_context
+def dram(ctx):
+    """Show CRM information for DRAM"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('dram')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('dram')
+
 thresholds.add_command(acl)
 thresholds.add_command(all)
 thresholds.add_command(fdb)
@@ -807,6 +829,7 @@ thresholds.add_command(snat)
 thresholds.add_command(dnat)
 thresholds.add_command(srv6_nexthop)
 thresholds.add_command(srv6_my_sid_entry)
+thresholds.add_command(dram)
 
 if device_info.get_platform_info().get('switch_type') == "dpu":
     resources.add_command(show_dash)

@@ -55,6 +55,7 @@ mpls_inseg            percentage                     70                85
 mpls_nexthop          percentage                     70                85
 srv6_nexthop          percentage                     70                85
 srv6_my_sid_entry     percentage                     70                85
+dram                  percentage                     70                85
 
 """
 
@@ -183,6 +184,14 @@ crm_show_thresholds_srv6_nexthop = """\
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 srv6_nexthop     percentage                     70                85
+
+"""
+
+crm_show_thresholds_dram = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+dram             percentage                     70                85
 
 """
 
@@ -344,6 +353,14 @@ ipmc_entry       percentage                     60                90
 
 """
 
+crm_new_show_thresholds_dram = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+dram             percentage                     60                90
+
+"""
+
 crm_show_resources_acl_group = """\
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -402,6 +419,7 @@ mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
 srv6_nexthop                     0               1024
 srv6_my_sid_entry                0               1024
+dram                          1000               4000
 
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -564,6 +582,15 @@ Resource Name      Used Count    Available Count
 srv6_nexthop                0               1024
 
 """
+
+crm_show_resources_dram = """\
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dram                     1000               4000
+
+"""
+
 crm_multi_asic_show_resources_acl_group = """\
 
 ASIC0
@@ -664,6 +691,7 @@ mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
 srv6_nexthop                     0               1024
 srv6_my_sid_entry                0               1024
+dram                          1000               4000
 
 
 ASIC1
@@ -686,6 +714,7 @@ mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
 srv6_nexthop                     0               1024
 srv6_my_sid_entry                0               1024
+dram                          1000               4000
 
 
 ASIC0
@@ -1033,6 +1062,23 @@ srv6_nexthop                0               1024
 
 """
 
+crm_multi_asic_show_resources_dram = """\
+
+ASIC0
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dram                     1000               4000
+
+
+ASIC1
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dram                     1000               4000
+
+"""
+
 crm_config_interval_too_big = "Error: Invalid value for \"INTERVAL\": 30000 is not in the valid range of 1 to 9999."
 
 class TestCrm(object):
@@ -1330,6 +1376,22 @@ class TestCrm(object):
         assert result.exit_code == 0
         assert result.output == crm_new_show_thresholds_ipmc
 
+    def test_crm_show_thresholds_dram(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dram'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_dram
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dram', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dram', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dram'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_dram
+
     def test_crm_show_resources_acl_group(self):
         runner = CliRunner()
         result = runner.invoke(crm.cli, ['show', 'resources', 'acl', 'group'])
@@ -1462,6 +1524,13 @@ class TestCrm(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_resources_srv6_nexthop
+
+    def test_crm_show_resources_dram(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'dram'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_dram
 
     @classmethod
     def teardown_class(cls):
@@ -1789,6 +1858,22 @@ class TestCrmMultiAsic(object):
         assert result.exit_code == 0
         assert result.output == crm_new_show_thresholds_srv6_my_sid_entry
 
+    def test_crm_show_thresholds_dram(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dram'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_dram
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dram', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dram', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dram'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_dram
+
     def test_crm_multi_asic_show_resources_acl_group(self):
         runner = CliRunner()
         result = runner.invoke(crm.cli, ['show', 'resources', 'acl', 'group'])
@@ -1921,6 +2006,13 @@ class TestCrmMultiAsic(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_multi_asic_show_resources_srv6_nexthop
+
+    def test_crm_multi_asic_show_resources_dram(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'dram'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_dram
 
 
     @classmethod

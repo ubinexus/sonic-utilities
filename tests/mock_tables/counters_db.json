@@ -2405,7 +2405,9 @@
         "crm_stats_srv6_my_sid_entry_used":"0",
         "crm_stats_srv6_my_sid_entry_available":"1024",
         "crm_stats_srv6_nexthop_used":"0",
-        "crm_stats_srv6_nexthop_available":"1024"
+        "crm_stats_srv6_nexthop_available":"1024",
+        "crm_stats_dram_used":"1000",
+        "crm_stats_dram_available":"4000"
     },
     "CRM:ACL_STATS:EGRESS:PORT":{
         "crm_stats_acl_table_used":"0",
