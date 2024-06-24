@@ -67,7 +67,6 @@ from . import plugins
 from . import syslog
 from . import dns
 from . import bgp_cli
-from . import wcmp_cli
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -362,9 +361,6 @@ if is_gearbox_configured():
 
 # bgp module
 cli.add_command(bgp_cli.BGP)
-
-# wcmp module
-cli.add_command(wcmp_cli.WECMP)
 
 #
 # 'vrf' command ("show vrf")
