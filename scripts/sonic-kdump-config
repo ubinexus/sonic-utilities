@@ -492,7 +492,6 @@ def write_ssh_connection_string(ssh_connection_string):
           break  # Exit the loop after finding and updating the line
 
       if modified:
-        # Write the modified lines back to the file
         f.seek(0)
         f.writelines(lines)
       else:
