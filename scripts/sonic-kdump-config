@@ -435,26 +435,35 @@ def write_num_dumps(num_dumps):
 ## Read current value for SSH SSH kdump-ssh-connection-string in kdump config file
 #
 #  @return The string value X from SSH=X in /etc/default/kdump-tools
-def read_ssh_connection_string():
-  """Reads the SSH connection string from the kdump configuration file.
+import subprocess
+
+def read_ssh_connection_string(kdump_cfg="/etc/default/kdump-tools"):
+  """Reads the SSH connection string from the kdump configuration file (using grep).
+
+  Args:
+      kdump_cfg (str, optional): The path to the kdump configuration file.
+          Defaults to "/etc/default/kdump-tools".
 
   Returns:
       str: The extracted SSH connection string (user@server) or None if not found.
-      Raises an exception if there's an error reading the file.
+      Raises an exception if there's an error running the grep command.
   """
 
   try:
-    with open(kdump_cfg, "r") as f:
-      for line in f:
-        if line.startswith("#SSH=") or line.strip() == "SSH":
-          # Remove leading/trailing whitespace and quotation marks (if any)
-          ssh_string = line.strip().split("=")[1].strip()
-          return ssh_string
-  except IOError as e:
-    raise Exception(f"Error opening file {kdump_cfg}: {str(e)}")
-  else:
-    # No line starting with "#SSH=" found
-    return None
+    # Use grep to search for lines starting with "#SSH=" or "SSH"
+    output = subprocess.run(
+        ["grep", "^(#SSH=|=SSH)", kdump_cfg], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    if output:
+      # Extract the SSH connection string from the grep output
+      ssh_string = output.split("=")[1].strip()
+      return ssh_string
+    else:
+      return None  # No matching line found
+
+  except subprocess.CalledProcessError as e:
+    raise Exception(f"Error running grep: {str(e)}")
 
 # Assuming kdump_cfg is already defined
 
@@ -466,54 +475,36 @@ else:
   print("SSH connection string not found in", kdump_cfg)
 
 
-## Change the value for SSH kdump-ssh-connection-string in kdump config file
-#
-#  #param ssh-connection-string value for new value
-def write_ssh_connection_string(ssh_connection_string):
-  """Writes the provided SSH connection string to the kdump configuration file.
+def does_ssh_connection_string_exist(kdump_cfg="/etc/default/kdump-tools"):
+  """Checks if an SSH connection string exists in the kdump configuration file (using grep).
 
   Args:
-      ssh_connection_string: The SSH connection string to write (user@server format).
+      kdump_cfg (str, optional): The path to the kdump configuration file.
+          Defaults to "/etc/default/kdump-tools".
 
-  Raises:
-      Exception: If there's an error opening or modifying the file.
+  Returns:
+      bool: True if an SSH connection string is found, False otherwise.
+      Raises an exception if there's an error running the grep command.
   """
 
   try:
-    with open(kdump_cfg, "r+") as f:
-      lines = f.readlines()
-      modified = False
+    # Use grep to search for lines starting with "#SSH=" or "SSH" but without capturing output
+    subprocess.run(
+        ["grep", "^(#SSH=|=SSH)", kdump_cfg], check=True
+    )
+    return True  # grep succeeded, indicating a matching line exists
 
-      for i, line in enumerate(lines):
-        if line.startswith("#SSH") or line.strip() == "SSH":  # Check for both "#SSH" and "SSH"
-          # Update the line with the new SSH connection string
-          lines[i] = f"SSH={ssh_connection_string}\n"
-          modified = True
-          break  # Exit the loop after finding and updating the line
+  except subprocess.CalledProcessError:
+    return False  # grep failed, likely no matching line
 
-      if modified:
-        f.seek(0)
-        f.writelines(lines)
-      else:
-        print("No line starting with '#SSH' or 'SSH' found. Update not performed.")
-
-  except IOError as e:
-    raise Exception(f"Error accessing {kdump_cfg}: {str(e)}")
-
-# Get user input for the SSH connection string
-ssh_connection_string = input("Enter SSH connection string (user@server): ")
-
-# Write the SSH connection string to the file
-write_ssh_connection_string(ssh_connection_string)
-
-print("SSH connection string written to", kdump_cfg, "(if successful).")
+# Example usage
+ssh_connection_string_exists = does_ssh_connection_string_exist()
+print("SSH connection string exists in", kdump_cfg, ":", ssh_connection_string_exists)
 
 
-## Read current value for SSH_KEY kdump-ssh-private-key-path in kdump config file
-#
-#  @return The string value X from SSH_KEY=X in kdump_cfg
+## Read current value for SSH_KEY kdump-ssh-private-key-path (using grep)
 def read_ssh_private_key_path(ssh_config_file=kdump_cfg):
-  """Reads the path to the SSH private key from the specified configuration file.
+  """Reads the path to the SSH private key from the specified configuration file (using grep).
 
   Args:
       ssh_config_file (str, optional): The path to the configuration file
@@ -522,24 +513,31 @@ def read_ssh_private_key_path(ssh_config_file=kdump_cfg):
 
   Returns:
       str: The path to the SSH private key, or None if not found.
-
-  Raises:
-      IOError: If there's an error opening or reading the configuration file.
+      Raises an exception if there's an error running the grep command.
   """
 
   try:
-    with open(ssh_config_file, "r") as f:
-      for line in f:
-        if line.startswith("#SSH_KEY") or line.strip() == "SSH_KEY":
-          # Extract the path after the "=" sign, removing leading/trailing whitespaces
-          ssh_key_path = line.strip().split("=")[1].strip()
-          return ssh_key_path  # Return the path if found
+    # Use grep to search for lines starting with "#SSH_KEY=" or "SSH_KEY"
+    output = subprocess.run(
+        ["grep", "^(#SSH_KEY=|=SSH_KEY)", ssh_config_file], capture_output=True, text=True, check=True
+    ).stdout.strip()
 
-  except IOError as e:
-    raise IOError(f"Error opening file '{ssh_config_file}': {str(e)}")
+    if output:
+      # Extract the path after the "=" sign, removing leading/trailing whitespaces
+      ssh_key_path = output.split("=")[1].strip()
+      return ssh_key_path
+    else:
+      return None  # No matching line found
 
-  # No line starting with "#SSH_KEY" or "SSH_KEY" found
-  return None
+  except subprocess.CalledProcessError as e:
+    raise Exception(f"Error running grep: {str(e)}")
+
+# Example usage
+ssh_private_key_path = read_ssh_private_key_path()
+if ssh_private_key_path:
+  print("SSH private key path found:", ssh_private_key_path)
+else:
+  print("SSH private key path not found in", kdump_cfg)
 
 
 ## Change the value for SSH_
