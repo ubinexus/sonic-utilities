@@ -3074,6 +3074,45 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     mock_config_db_connector.assert_not_called()
 
     @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    @patch('config.main.apply_patch_wrapper')
+    def test_apply_patch_check_apply_call_parallel_multiasic(self, mock_apply_patch):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    assert mock_apply_patch.call_count == 3, "Function should be called 3 times"
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
     @patch('config.main.concurrent.futures.wait', autospec=True)
     def test_apply_patch_check_running_in_not_parallel_multiasic(self, MockThreadPoolWait):
         # Mock open to simulate file reading
