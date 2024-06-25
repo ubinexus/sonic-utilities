@@ -24,6 +24,7 @@ import shlex
 import sys
 import syslog
 import subprocess
+import subprocess
 
 from swsscommon.swsscommon import ConfigDBConnector
 from sonic_installer.bootloader import get_bootloader
