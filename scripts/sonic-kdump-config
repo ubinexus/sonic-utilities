@@ -436,30 +436,79 @@ def write_num_dumps(num_dumps):
 #
 #  @return The string value X from SSH=X in /etc/default/kdump-tools
 def read_ssh_connection_string():
-    (rc, lines, err_str) = run_command("grep '#*SSH=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
-    if rc == 0 and type(lines) == list and len(lines) >= 1:
-        try:
-            return int(lines[0])
-        except Exception as e:
-            print_err('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
-            sys.exit(1)
-    else:
-        print_err("Unable to read SSH from %s" % kdump_cfg)
-        sys.exit(1)
+  """Reads the SSH connection string from /etc/default/kdump-tools
+
+  Returns:
+      str: The extracted SSH connection string (user@server) or None if not found.
+      Raises an exception if there's an error reading the file.
+  """
+
+  try:
+    with open("/etc/default/kdump-tools", "r") as f:
+      for line in f:
+        if line.startswith("#SSH="):
+          # Remove leading/trailing whitespace and quotation marks (if any)
+          ssh_string = line.strip().split("=")[1].strip()
+          return ssh_string
+  except IOError as e:
+    raise Exception(f"Error opening file /etc/default/kdump-tools: {str(e)}")
+  else:
+    # No line starting with "#SSH=" found
+    return None
+
+# Assuming kdump_cfg is already defined as "/etc/default/kdump-tools"
+
+ssh_string = read_ssh_connection_string()
+
+if ssh_string:
+  print("Extracted SSH connection string:", ssh_string)
+else:
+  print("SSH connection string not found in", kdump_cfg)
+
 
 ## Change the value for SSH kdump-ssh-connection-string in kdump config file /etc/default/kdump-tools
 #
 #  #param ssh-connection-string value for new value
 def write_ssh_connection_string(ssh_connection_string):
-    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/#*SSH=.*/SSH=%d/' %s" % (ssh_connection_string, kdump_cfg), use_shell=False);
-    if rc == 0 and type(lines) == list and len(lines) == 0:
-        ssh_connection_string_in_cfg = read_ssh_connection_string()
-        if ssh_connection_string_in_cfg != ssh_connection_string:
-            print_err("Unable to write SSH into %s" % kdump_cfg)
-            sys.exit(1)
-    else:
-        print_err("Error while writing SSH into %s" % kdump_cfg)
-        sys.exit(1)
+  """Writes the provided SSH connection string to /etc/default/kdump-tools
+
+  Args:
+      ssh_connection_string: The SSH connection string to write (user@server format).
+
+  Raises:
+      Exception: If there's an error opening or modifying the file.
+  """
+
+  try:
+    with open("/etc/default/kdump-tools", "r+") as f:
+      lines = f.readlines()
+      modified = False
+
+      for i, line in enumerate(lines):
+        if line.startswith("#SSH") or line.strip() == "SSH":  # Check for both "#SSH" and "SSH"
+          # Update the line with the new SSH connection string
+          lines[i] = f"SSH={ssh_connection_string}\n"
+          modified = True
+          break  # Exit the loop after finding and updating the line
+
+      if modified:
+        # Write the modified lines back to the file
+        f.seek(0)
+        f.writelines(lines)
+      else:
+        print("No line starting with '#SSH' or 'SSH' found. Update not performed.")
+
+  except IOError as e:
+    raise Exception(f"Error accessing /etc/default/kdump-tools: {str(e)}")
+
+# Get user input for the SSH connection string
+ssh_connection_string = input("Enter SSH connection string (user@server): ")
+
+# Write the SSH connection string to the file
+write_ssh_connection_string(ssh_connection_string)
+
+print("SSH connection string written to /etc/default/kdump-tools (if successful).")
+
 
 ## Read current value for SSH_KEY kdump-ssh-private-key-path in kdump config file
 #
