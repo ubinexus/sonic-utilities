@@ -451,7 +451,7 @@ def read_ssh_connection_string(kdump_cfg="/etc/default/kdump-tools"):
   try:
     # Use grep to search for lines starting with "#SSH=" or "SSH"
     output = subprocess.run(
-        ["grep", "^(#SSH=|=SSH)", kdump_cfg], capture_output=True, text=True, check=True
+        ["grep", "^(#*SSH=|=*SSH)", kdump_cfg], capture_output=True, text=True, check=True
     ).stdout.strip()
 
     if output:
@@ -489,7 +489,7 @@ def does_ssh_connection_string_exist(kdump_cfg="/etc/default/kdump-tools"):
   try:
     # Use grep to search for lines starting with "#SSH=" or "SSH" but without capturing output
     subprocess.run(
-        ["grep", "^(#SSH=|=SSH)", kdump_cfg], check=True
+        ["grep", "^(#*SSH=|=*SSH)", kdump_cfg], check=True
     )
     return True  # grep succeeded, indicating a matching line exists
 
@@ -518,7 +518,7 @@ def read_ssh_private_key_path(ssh_config_file=kdump_cfg):
   try:
     # Use grep to search for lines starting with "#SSH_KEY=" or "SSH_KEY"
     output = subprocess.run(
-        ["grep", "^(#SSH_KEY=|=SSH_KEY)", ssh_config_file], capture_output=True, text=True, check=True
+        ["grep", "^(#*SSH_KEY=|=*SSH_KEY)", ssh_config_file], capture_output=True, text=True, check=True
     ).stdout.strip()
 
     if output:
