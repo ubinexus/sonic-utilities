@@ -1,7 +1,7 @@
 import os
 import sys
 import shutil
-from utils import get_result_and_return_code
+from .utils import get_result_and_return_code
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -14,8 +14,8 @@ dropstat_path = "/tmp/dropstat-27"
 dropstat_masic_result = """\
        IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
 ------------  -------  --------  ----------  --------  ----------  ---------  ---------
-   Ethernet0        U         0           0         0           0          0          0
-   Ethernet4        U         0           0         0           0          0          0
+   Ethernet0        U        10         100         0           0         80         20
+   Ethernet4        U         0        1000         0           0        800        100
 Ethernet-BP0        U         0        1000         0           0        800        100
 Ethernet-BP4        U         0        1000         0           0        800        100
 
@@ -50,7 +50,8 @@ class TestMultiAsicDropstat(object):
         ])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
-        assert return_code == 1
+        assert return_code == 2
+        assert "asic5' is not one of" in result
 
     @classmethod
     def teardown_class(cls):
