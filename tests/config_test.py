@@ -3104,7 +3104,9 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     self.assertIn("Patch applied successfully.", result.output)
 
                     # Assertions to check if ThreadPoolExecutor was used correctly
-                    assert mock_apply_patch.call_count == 3, "Function should be called 3 times"
+                    self.assertEqual(mock_apply_patch.call_count,
+                                     multi_asic.get_num_asics() + 1,
+                                     "apply_patch_wrapper function should be called number of ASICs plus host times")
 
                     # Verify mocked_open was called as expected
                     mocked_open.assert_called_with(self.patch_file_path, 'r')
