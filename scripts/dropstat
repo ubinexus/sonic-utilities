@@ -105,8 +105,8 @@ class DropStat(object):
 
         dropstat_dir = get_dropstat_dir()
         self.port_drop_stats_file = os.path.join(dropstat_dir, 'port-stats')
-        self.switch_drop_stats_file = os.path.join(dropstat_dir + 'switch-stats')
-        self.switch_std_drop_stats_file = os.path.join(dropstat_dir,  'switch-std-drop-stats')
+        self.switch_drop_stats_file = os.path.join(dropstat_dir, 'switch-stats')
+        self.switch_std_drop_stats_file = os.path.join(dropstat_dir, 'switch-std-drop-stats')
 
         self.stat_lookup = {}
         self.reverse_stat_lookup = {}
@@ -128,16 +128,36 @@ class DropStat(object):
             Clears the current drop counts.
         """
 
-        try:
-            json.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP),
-                        open(self.port_drop_stats_file, 'w+'))
+        counters_port_drop = {}
+        counters_switch_drop = {}
+        counters_switch_std_drop = {}
+        for ns in self.namespaces:
+            self.config_db = multi_asic.connect_config_db_for_ns(ns)
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+
+            counts = self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP)
+            if counts:
+                counters_port_drop.update(counts)
+
             counters = self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP)
             if counters:
-               json.dump(self.get_counts(counters, self.get_switch_id()), open(self.switch_drop_stats_file, 'w+'))
+                counts = self.get_counts(counters, self.get_switch_id())
+                counters_switch_drop.update(counts)
 
             counters = self.get_configured_counters(DEBUG_COUNTER_SWITCH_STAT_MAP, True)
             if counters:
-               json.dump(self.get_counts(counters, self.get_switch_id()), open(self.switch_std_drop_stats_file, 'w+'))
+                counts = self.get_counts(counters, self.get_switch_id())
+                counters_switch_std_drop.update(counts)
+
+        try:
+            if counters_port_drop:
+                json.dump(counters_port_drop, open(self.port_drop_stats_file, 'w+'))
+
+            if counters_switch_drop:
+                json.dump(counters_switch_drop, open(self.switch_drop_stats_file, 'w+'))
+
+            if counters_switch_std_drop:
+                json.dump(counters_switch_std_drop, open(self.switch_std_drop_stats_file, 'w+'))
         except IOError as e:
             print(e)
             sys.exit(e.errno)
