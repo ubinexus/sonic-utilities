@@ -49,8 +49,10 @@ def get_module_health_from_db(module_name):
         suffix = '*' if not module_name or not module_name.startswith("DPU") else module_name
         key = key + suffix
         keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
+        healthlist = []
+        modulelist = []
         if not keys:
-            return
+            return healthlist, modulelist
 
         for dbkey in natsorted(keys):
             key_list = dbkey.split('|')
