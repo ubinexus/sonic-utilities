@@ -105,7 +105,7 @@ class TestMultiAsicDropstat(object):
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 2
-        assert "asic5' is not one of" in result
+        assert "invalid choice: asic5" in result
 
     def test_show_pg_drop_version(self):
         return_code, result = get_result_and_return_code([
