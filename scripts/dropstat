@@ -118,6 +118,10 @@ class DropStat(object):
             switch-level.
         """
 
+        if os.environ.get("UTILITIES_UNIT_TESTING_DROPSTAT_CLEAN_CACHE", "0") == "1":
+           # Temp cache needs to be cleard to avoid interference from previous test cases
+           UserCache().remove()
+
         self.show_switch_std_drop_counts(group, counter_type)
         self.show_port_drop_counts(group, counter_type)
         print('')

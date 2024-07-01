@@ -68,17 +68,21 @@ class TestMultiAsicDropstat(object):
         print("SETUP")
 
     def test_show_pg_drop_masic_asic0(self):
+        os.environ["UTILITIES_UNIT_TESTING_DROPSTAT_CLEAN_CACHE"] = "1"
         return_code, result = get_result_and_return_code([
             'dropstat', '-c', 'show', '-n', 'asic0'
         ])
+        os.environ.pop("UTILITIES_UNIT_TESTING_DROPSTAT_CLEAN_CACHE")
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert result == dropstat_masic_result_asic0 and return_code == 0
 
     def test_show_pg_drop_masic_all_and_clear(self):
+        os.environ["UTILITIES_UNIT_TESTING_DROPSTAT_CLEAN_CACHE"] = "1"
         return_code, result = get_result_and_return_code([
             'dropstat', '-c', 'show'
         ])
+        os.environ.pop("UTILITIES_UNIT_TESTING_DROPSTAT_CLEAN_CACHE")
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert result == dropstat_masic_result_asic0 + dropstat_masic_result_asic1
@@ -118,6 +122,6 @@ class TestMultiAsicDropstat(object):
     @classmethod
     def teardown_class(cls):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
-        os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        os.environ.pop("UTILITIES_UNIT_TESTING")
+        os.environ.pop("UTILITIES_UNIT_TESTING_TOPOLOGY")
         print("TEARDOWN")
