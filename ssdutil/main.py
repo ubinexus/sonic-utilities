@@ -6,9 +6,12 @@
 #
 
 try:
-    import argparse
     import os
     import sys
+    import argparse
+    import json
+    import psutil
+    from blkinfo import BlkDiskInfo
 
     from sonic_py_common import device_info, logger
 except ImportError as e:
@@ -16,10 +19,36 @@ except ImportError as e:
 
 DEFAULT_DEVICE="/dev/sda"
 SYSLOG_IDENTIFIER = "ssdutil"
+DISK_TYPE_SSD = "sata"
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
+def get_default_disk():
+    """Check default disk"""
+    default_device = DEFAULT_DEVICE
+    host_mnt = '/host'
+    host_partition = None
+    partitions = psutil.disk_partitions()
+
+    for parts in partitions:
+        if parts.mountpoint == "/host":
+            host_partition = parts
+            break
+
+    disk_major = os.major(os.stat(host_partition.device).st_rdev)
+    filters = {
+       'maj:min': '{}:0'.format(disk_major)
+    }
+
+    myblkd = BlkDiskInfo()
+    my_filtered_disks = myblkd.get_disks(filters)
+    json_output = eval(my_filtered_disks)[0]
+    blkdev = json_output['name']
+    disk_type = json_output['tran']
+    default_device = os.path.join("/dev/", blkdev)
+
+    return default_device, disk_type
 
 def import_ssd_api(diskdev):
     """
@@ -39,10 +68,13 @@ def import_ssd_api(diskdev):
     except ImportError as e:
         log.log_warning("Platform specific SsdUtil module not found. Falling down to the generic implementation")
         try:
-            from sonic_platform_base.sonic_storage.ssd import SsdUtil
+            from sonic_platform_base.sonic_ssd.ssd_generic import SsdUtil
         except ImportError as e:
-            log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
-            raise e
+            try:
+                from sonic_platform_base.sonic_storage.ssd import SsdUtil
+            except ImportError as e:
+                log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
+                raise e
 
     return SsdUtil(diskdev)
 
@@ -60,10 +92,14 @@ def ssdutil():
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", help="Device name to show health info", default=DEFAULT_DEVICE)
+    (default_device , disk_type) = get_default_disk()
+    parser.add_argument("-d", "--device", help="Device name to show health info", default=default_device)
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Show verbose output (some additional parameters)")
     parser.add_argument("-e", "--vendor", action="store_true", default=False, help="Show vendor output (extended output if provided by platform vendor)")
     args = parser.parse_args()
+
+    if DISK_TYPE_SSD not in disk_type:
+        print("Disk type is not SSD")
 
     ssd = import_ssd_api(args.device)
 
