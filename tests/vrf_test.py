@@ -117,7 +117,7 @@ Vrf103  Ethernet4
         vrf_obj['state_db'] = state_db
 
         expected_output_unbind = "Interface Eth36.10 IP disabled and address(es) removed due to unbinding VRF.\n"
-        T1 = threading.Thread(target = self.update_statedb, args = (state_db, db.db.STATE_DB, _hash))
+        T1 = threading.Thread( target = self.update_statedb, args = (state_db, db.db.STATE_DB, _hash))  
         T1.start()
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth36.10"], obj=vrf_obj)
         T1.join()
