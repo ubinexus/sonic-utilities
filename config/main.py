@@ -2483,7 +2483,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
         if is_portchannel_name_valid(portchannel_name) != True:
             ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}' and its length should not \
             exceed {} characters".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO,
-            iface_name_max_length()))
+                                         iface_name_max_length()))
         if is_portchannel_present_in_db(db, portchannel_name):
             ctx.fail("{} already exists!".format(portchannel_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
 
