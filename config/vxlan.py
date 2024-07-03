@@ -27,7 +27,7 @@ def add_vxlan(db, vxlan_name, src_ip):
         if not clicommon.is_ipaddress(src_ip):
             ctx.fail("{} invalid src ip address".format(src_ip))
         if not validate_interface_name_length(vxlan_name):
-            ctx.fail("'vxlan_name' length should not exceed {} characters".format(iface_name_max_length))
+            ctx.fail("'vxlan_name' length should not exceed {} characters".format(iface_name_max_length()))
 
     vxlan_keys = db.cfgdb.get_keys('VXLAN_TUNNEL')
     if not vxlan_keys:
