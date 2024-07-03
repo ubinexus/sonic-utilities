@@ -576,8 +576,8 @@ class TestVlan(object):
 
     def test_config_vlan_add_member_with_invalid_long_name(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-            ["123456789012", "Ethernet4"])
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],["123456789012", \
+                               "Ethernet4"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
