@@ -43,7 +43,7 @@ def get_default_disk():
 
     myblkd = BlkDiskInfo()
     my_filtered_disks = myblkd.get_disks(filters)
-    json_output = eval(my_filtered_disks)[0]
+    json_output = my_filtered_disks[0]
     blkdev = json_output['name']
     disk_type = json_output['tran']
     default_device = os.path.join("/dev/", blkdev)
