@@ -25,6 +25,7 @@ import sys
 import syslog
 import subprocess
 
+from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import ConfigDBConnector
 from sonic_installer.bootloader import get_bootloader
 from sonic_installer.common import IMAGE_PREFIX
@@ -435,31 +436,35 @@ def write_num_dumps(num_dumps):
 ## Read current value for SSH SSH kdump-ssh-connection-string in kdump config file
 #
 #  @return The string value X from SSH=X in /etc/default/kdump-tools
-def read_ssh_connection_string():
-    (rc, lines, err_str) = run_command("grep '#*SSH=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
-    if rc == 0 and type(lines) == list and len(lines) >= 1:
-        try:
-            return int(lines[0])
-        except Exception as e:
-            print_err('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
-            sys.exit(1)
-    else:
-        print_err("Unable to read SSH from %s" % kdump_cfg)
-        sys.exit(1)
+def read_ssh_connection_string_from_db():
+    config_db = ConfigDBConnector(use_unix_socket_path=True)
+    config_db.connect()
+    
+    kdump_table = config_db.get_table('KDUMP')
+    if kdump_table:
+        config_data = kdump_table.get('config')
+        if config_data:
+            return config_data.get('ssh_connection_string')
+    return None
 
 ## Change the value for SSH kdump-ssh-connection-string in kdump config file /etc/default/kdump-tools
 #
 #  #param ssh-connection-string value for new value
-def write_ssh_connection_string(ssh_connection_string):
-    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/#*SSH=.*/SSH=%d/' %s" % (ssh_connection_string, kdump_cfg), use_shell=False);
-    if rc == 0 and type(lines) == list and len(lines) == 0:
-        ssh_connection_string_in_cfg = read_ssh_connection_string()
-        if ssh_connection_string_in_cfg != ssh_connection_string:
-            print_err("Unable to write SSH into %s" % kdump_cfg)
-            sys.exit(1)
-    else:
-        print_err("Error while writing SSH into %s" % kdump_cfg)
-        sys.exit(1)
+def write_ssh_connection_string_to_kdump_tools():
+    ssh_connection_string = read_ssh_connection_string_from_db()
+    if not ssh_connection_string:
+        print("Error: SSH connection string not found in Config DB.")
+        return False
+        
+    try:
+        # Use sed to update the SSH connection string in the kdump-tools file
+        subprocess.run(['sudo', 'sed', '-i', 's/#SSH=.*/SSH="{}"/g'.format(ssh_connection_string), kdump_cfg], check=True)
+        
+        return True
+    except Exception as e:
+        print("Error: Unable to write to {}. Exception: {}".format(kdump_cfg, str(e)))
+        return False
+
 
 ## Read current value for SSH_KEY kdump-ssh-private-key-path in kdump config file
 #
