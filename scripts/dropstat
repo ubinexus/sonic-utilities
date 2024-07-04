@@ -37,6 +37,8 @@ try:
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import tests.mock_tables.mock_multi_asic
         dbconnector.load_namespace_config()
+    else:
+        dbconnector.load_database_config()
 except KeyError:
     pass
 
