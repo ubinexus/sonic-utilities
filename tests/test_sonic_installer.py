@@ -86,6 +86,9 @@ def test_install(run_command, run_command_or_raise, get_bootloader, swap, fs):
         call(["sh", "-c", f"echo 'DOCKER_OPTS=\"$DOCKER_OPTS {' '.join(dockerd_opts)}\"' >> {mounted_image_folder}/etc/default/docker"]), # dockerd started with added options as host dockerd
         call(["chroot", mounted_image_folder, "/usr/lib/docker/docker.sh", "start"]),
         call(["cp", "/var/lib/sonic-package-manager/packages.json", f"{mounted_image_folder}/tmp/packages.json"]),
+        call(["mkdir", "-p", "/var/lib/sonic-package-manager/manifests"]),
+        call(["cp", "-arf", "/var/lib/sonic-package-manager/manifests",
+             f"{mounted_image_folder}/var/lib/sonic-package-manager"]),
         call(["touch", f"{mounted_image_folder}/tmp/docker.sock"]),
         call(["mount", "--bind", "/var/run/docker.sock", f"{mounted_image_folder}/tmp/docker.sock"]),
         call(["cp", f"{mounted_image_folder}/etc/resolv.conf", "/tmp/resolv.conf.backup"]),
@@ -129,3 +132,18 @@ def test_set_fips(get_bootloader):
     mock_bootloader.get_fips = Mock(return_value=True)
     result = runner.invoke(sonic_installer.commands["get-fips"], [next_image])
     assert "FIPS is enabled" in result.output
+
+@patch("sonic_installer.common.subprocess.Popen")
+def test_runtime_exception(mock_popen):
+    """ This test covers the "sonic-installer" exception handling. """
+
+    mock_popen.return_value.returncode = 1
+    mock_popen.return_value.communicate.return_value = ('Running', 'Failed')
+
+    with pytest.raises(sonic_installer_common.SonicRuntimeException) as sre:
+        sonic_installer_common.run_command_or_raise(["test.sh"])
+
+    assert '\nSTDOUT:\nRunning' in sre.value.notes, "Invalid STDOUT"
+    assert '\nSTDERR:\nFailed' in sre.value.notes, "Invalid STDERR"
+
+    assert all(v in str(sre.value) for v in ['test.sh', 'Running', 'Failed']), "Invalid message"
