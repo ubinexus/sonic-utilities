@@ -160,6 +160,9 @@ class portconfig(object):
         if self.is_lag:
             raise Exception("Invalid port %s" % (port))
 
+        if self.is_rj45_port:
+            raise Exception("Setting RJ45 ports' link-training is not supported")
+
         if self.verbose:
             print("Setting link-training %s on port %s" % (mode, port))
         lt_modes = ['on', 'off']
