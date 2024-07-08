@@ -1,8 +1,8 @@
 mock_json_op = \
 [ 
     {
-        "name": "sda",
-        "kname": "sda",
+        "name": "sdx",
+        "kname": "sdx",
         "fstype": "",
         "label": "",
         "mountpoint": "",
@@ -22,8 +22,8 @@ mock_json_op = \
         "mode": "brw-rw----",
         "children": [
             {
-                "name": "sda1",
-                "kname": "sda1",
+                "name": "sdx1",
+                "kname": "sdx1",
                 "fstype": "ext4",
                 "label": "",
                 "mountpoint": "/host",
@@ -42,11 +42,11 @@ mock_json_op = \
                 "group": "",
                 "mode": "brw-rw----",
                 "children": [],
-                "parents": ["sda"],
+                "parents": ["sdx"],
                 "statistics": {
                     "major": "8",
                     "minor": "1",
-                    "kname": "sda1",
+                    "kname": "sdx1",
                     "reads_completed": "22104",
                     "reads_merged": "5299",
                     "sectors_read": "1091502",
@@ -65,7 +65,7 @@ mock_json_op = \
         "statistics": {
             "major": "8",
             "minor": "0",
-            "kname": "sda",
+            "kname": "sdx",
             "reads_completed": "22151",
             "reads_merged": "5299",
             "sectors_read": "1093606",
