@@ -54,6 +54,17 @@ class TestSsdutil:
         assert default_device == "/dev/sdx"
         assert disk_type == 'usb'
 
+
+    @patch('os.geteuid', MagicMock(return_value=0))
+    @patch('os.stat', MagicMock(st_rdev=2049))
+    @patch('os.major', MagicMock(return_value=8))
+    @patch('psutil.disk_partitions', MagicMock(return_value=None))
+    def test_get_default_disk_none_partitions(self):
+        (default_device, disk_type) = ssdutil.get_default_disk()
+
+        assert default_device == "/dev/sda"
+        assert disk_type == None
+
     def test_is_number_valueerror(self):
         outcome = ssdutil.is_number("nope")
         assert outcome is False
