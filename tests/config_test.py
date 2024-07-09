@@ -2999,7 +2999,8 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     mock_config_db_connector.assert_not_called()
 
     @patch('config.main.validate_patch', mock.Mock(return_value=True))
-    def test_apply_patch_parallel_multiasic(self):
+    @patch('config.main.concurrent.futures.wait', autospec=True)
+    def test_apply_patch_dryrun_parallel_multiasic(self, MockThreadPoolWait):
         # Mock open to simulate file reading
         with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
@@ -3027,6 +3028,9 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     # Assertions and verifications
                     self.assertEqual(result.exit_code, 0, "Command should succeed")
                     self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    MockThreadPoolWait.assert_called_once()
 
                     # Verify mocked_open was called as expected
                     mocked_open.assert_called_with(self.patch_file_path, 'r')
