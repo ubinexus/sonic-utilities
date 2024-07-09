@@ -1,0 +1,25 @@
+[
+    {
+      "esi":"00:11:22:33:44:55:66:77:88:99",
+      "vni":1000,
+      "type":[
+        "remote"
+      ],
+      "vteps":[
+        {
+          "vtep_ip":"1.1.1.1",
+          "flags":[
+            "ead-per-es",
+            "ead-per-evi"
+          ]
+        },
+        {
+          "vtep_ip":"2.2.2.2",
+          "flags":[
+            "ead-per-es",
+            "ead-per-evi"
+          ]
+        }
+      ]
+    }
+]

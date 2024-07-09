@@ -93,39 +93,39 @@ def interface():
     vxlan_keys = vxlan_table.keys()
     vtep_sip = '0.0.0.0'
     if vxlan_keys is not None:
-      for key in natsorted(vxlan_keys):
-          key1 = key.split('|',1)
-          vtepname = key1.pop();
-          if 'src_ip' in vxlan_table[key]:
-            vtep_sip = vxlan_table[key]['src_ip']
-          if vtep_sip != '0.0.0.0':
-             output = '\tVTEP Name : ' + vtepname + ', SIP  : ' + vxlan_table[key]['src_ip']
-          else:
-             output = '\tVTEP Name : ' + vtepname
+        for key in natsorted(vxlan_keys):
+            key1 = key.split('|', 1)
+            vtepname = key1.pop()
+            if 'src_ip' in vxlan_table[key]:
+                vtep_sip = vxlan_table[key]['src_ip']
+            if vtep_sip != '0.0.0.0':
+                output = '    VTEP Name : ' + vtepname + ', SIP  : ' + vxlan_table[key]['src_ip']
+            else:
+                output = '    VTEP Name : ' + vtepname
 
-          click.echo(output)
+            click.echo(output)
 
     if vtep_sip != '0.0.0.0':
-       vxlan_table = config_db.get_table('VXLAN_EVPN_NVO')
-       vxlan_keys = vxlan_table.keys()
-       if vxlan_keys is not None:
-         for key in natsorted(vxlan_keys):
-             key1 = key.split('|',1)
-             vtepname = key1.pop();
-             output = '\tNVO Name  : ' + vtepname + ',  VTEP : ' + vxlan_table[key]['source_vtep']
-             click.echo(output)
+        vxlan_table = config_db.get_table('VXLAN_EVPN_NVO')
+        vxlan_keys = vxlan_table.keys()
+        if vxlan_keys is not None:
+            for key in natsorted(vxlan_keys):
+                key1 = key.split('|', 1)
+                vtepname = key1.pop()
+                output = '    NVO Name  : ' + vtepname + ',  VTEP : ' + vxlan_table[key]['source_vtep']
+                click.echo(output)
 
-       vxlan_keys = config_db.keys('CONFIG_DB', "LOOPBACK_INTERFACE|*")
-       loopback = 'Not Configured'
-       if vxlan_keys is not None:
-         for key in natsorted(vxlan_keys):
-             key1 = key.split('|',2)
-             if len(key1) == 3 and key1[2] == vtep_sip+'/32':
-                loopback = key1[1]
-                break
-         output = '\tSource interface  : ' + loopback
-         if vtep_sip != '0.0.0.0':
-            click.echo(output)
+        vxlan_keys = config_db.keys('CONFIG_DB', "LOOPBACK_INTERFACE|*")
+        loopback = 'Not Configured'
+        if vxlan_keys is not None:
+            for key in natsorted(vxlan_keys):
+                key1 = key.split('|', 2)
+                if len(key1) == 3 and key1[2] == vtep_sip+'/32':
+                    loopback = key1[1]
+                    break
+            output = '    Source interface  : ' + loopback
+            if vtep_sip != '0.0.0.0':
+                click.echo(output)
 
 @vxlan.command()
 @click.argument('count', required=False)
@@ -334,3 +334,60 @@ def counters(tunnel, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+
+@vxlan.command()
+def l2_nexthop_group():
+    """Show all the remote NHG discovered."""
+
+    header = ['NHG', 'Tunnels', 'LocalMembers']
+    body = []
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.APPL_DB)
+
+    nhg_keys = db.keys(db.APPL_DB, 'L2_NEXTHOP_GROUP_TABLE:*')
+
+    if nhg_keys is not None:
+        for key in natsorted(nhg_keys):
+            key1 = key.split(':', 2)
+            nhid = key1.pop()
+            l2nhg_table = db.get_all(db.APPL_DB, key)
+            if l2nhg_table is None:
+                continue
+            nexthop_group = l2nhg_table.get('nexthop_group')
+            if nexthop_group is None:
+                body.append([nhid, l2nhg_table['remote_vtep'], l2nhg_table['ifname']])
+            else:
+                body.append([nhid, '', l2nhg_table['nexthop_group']])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
+
+@vxlan.command()
+def ethernet_segment():
+    """Show VXLAN Ethernet segment information"""
+
+    header = ['Interface', 'DF', 'Peers', 'NHG']
+    body = []
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.APPL_DB)
+
+    df_keys = db.keys(db.APPL_DB, 'EVPN_DF_TABLE:*')
+
+    if df_keys is not None:
+        for key in natsorted(df_keys):
+            key1 = key.split(':', 2)
+            intf = key1.pop()
+            df = ''
+            df_table = db.get_all(db.APPL_DB, key)
+            sh_table = db.get_all(db.APPL_DB, 'EVPN_SPLIT_HORIZON_TABLE:'+intf)
+            backup_nhg_table = db.get_all(db.APPL_DB, 'EVPN_ES_BACKUP_NHG_TABLE:'+intf)
+            if df_table is None or sh_table is None or backup_nhg_table is None:
+                continue
+            if df_table.get('df') == 'true':
+                df = 'DF'
+            elif df_table.get('df') == 'false':
+                df = 'NDF'
+            sh_vteps = sh_table['vteps'].replace(',', '\n')
+            body.append([intf, df, sh_vteps, backup_nhg_table['nexthop_group']])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))

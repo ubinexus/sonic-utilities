@@ -416,3 +416,164 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device, has_bgp_neighbors=
     except KeyError as e:
         ctx = click.get_current_context()
         ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
+
+
+def display_bgp_evpn_es(evpn_es):
+    '''
+    Display the json output in the format display by FRR
+
+    Args:
+        evpn_es ([dict]): ES information
+
+    '''
+    headers = ["ESI", "Type", "ES Interface", "status", "Peers"]
+    click.echo("\nType: L local, R remote, N non-DF")
+    # display the bgp evpn es information'
+    click.echo(tabulate(evpn_es, headers=headers))
+
+
+def display_bgp_evpn_es_detail(evpn_es):
+    '''
+    Display the json output in the format display by FRR
+
+    Args:
+        evpn_es ([dict]): all detailed ES information
+
+    '''
+    try:
+        for evpn_esi in evpn_es:
+            click.echo()
+            click.echo("ESI: {}".format(evpn_esi['esi']))
+            es_type = 'Local' if 'local' in evpn_esi['flags'] else ''
+            es_type += ',Remote' if 'remote' in evpn_esi['flags'] else ''
+            es_type = es_type.lstrip(',')
+            click.echo(" Type: {}".format(es_type))
+            click.echo(" Interface: {}".format(evpn_esi.get('accessPort', '-')))
+            click.echo(" State: {}".format('up' if 'operUp' in evpn_esi['flags'] else 'down'))
+            click.echo(" DF status: {}".format('non-DF' if 'nonDF' in evpn_esi['flags'] else 'is DF'))
+            click.echo(" DF preference: {}".format(evpn_esi.get('dfPreference', '-')))
+            click.echo(" Nexthop group: {}".format(evpn_esi.get('nexthopGroup', '-')))
+            click.echo(" VTEPs:")
+            for vtep in evpn_esi["vteps"]:
+                click.echo("     {} df_alg: {} df_pref: {} nh: {}".format(
+                    vtep['vtep'], vtep.get('dfAlgorithm', '-'),
+                    vtep.get('dfPreference', '-'),
+                    vtep.get('nexthopId', '-')
+                ))
+    except Exception as e:
+        ctx = click.get_current_context()
+        ctx.fail("{} missing in the bgp_evpn_es".format(e.args[0]))
+
+
+def get_bgp_evpn_es_detais_from_all_bgp_instances(namespace, display, extended=False):
+
+    device = multi_asic_util.MultiAsic(display, namespace)
+    ctx = click.get_current_context()
+    vtysh_cmd = "show evpn es detail json"
+
+    evpn_es = []
+    cmd_output_json = {}
+    try:
+        for ns in device.get_ns_list_based_on_options():
+            cmd_output = run_bgp_command(vtysh_cmd, ns, constants.RVTYSH_COMMAND)
+            device.current_namespace = ns
+            try:
+                cmd_output_json = json.loads(cmd_output)
+            except ValueError:
+                ctx.fail("bgp evpn es from bgp container not in json format")
+
+            if extended is False:
+                for es in cmd_output_json:
+                    es_member = []
+                    es_member.append(es['esi'])
+                    es_type = 'L' if 'local' in es['flags'] else ''
+                    es_type += 'R' if 'remote' in es['flags'] else ''
+                    es_type += 'N' if 'nonDF' in es['flags'] else ''
+                    es_member.append(es_type)
+                    es_member.append(es.get('accessPort', '-'))
+                    es_member.append('up' if 'operUp' in es['flags'] else 'down')
+                    if es.get('vteps', ''):
+                        for peer in es['vteps']:
+                            if (es_member):
+                                es_member.append(peer['vtep'])
+                                evpn_es.append(es_member)
+                                es_member = []
+                            else:
+                                es_member = ['', '', '', '']
+                                es_member.append(peer['vtep'])
+                                evpn_es.append(es_member)
+                                es_member = []
+                    else:
+                        es_member.append('')
+                        evpn_es.append(es_member)
+            else:
+                evpn_es = cmd_output_json
+    except KeyError as e:
+        ctx = click.get_current_context()
+        ctx.fail("{} missing in the bgp_evpn_es".format(e.args[0]))
+
+    return evpn_es
+
+
+def display_bgp_evpn_es_evi(evpn_es_evi):
+    '''
+    Display the json output in the format display by FRR
+
+    Args:
+        evpn_es ([dict]): all detailed ES information
+
+    '''
+    headers = ["VNI", "ESI", "Flags", "VTEPs"]
+    click.echo("\nFlags: L local, R remote, I inconsistent")
+    click.echo("VTEP-Flags: E EAD-per-ES, V EAD-per-EVI")
+    # display the bgp evpn es-evi informati on'
+    click.echo(tabulate(evpn_es_evi, headers=headers))
+
+
+def get_bgp_evpn_es_evi_detais_from_all_bgp_instances(namespace, display):
+
+    device = multi_asic_util.MultiAsic(display, namespace)
+    ctx = click.get_current_context()
+    vtysh_cmd = "show bgp l2vpn evpn es-evi json"
+
+    evpn_es_evi = []
+    cmd_output_json = {}
+
+    try:
+        for ns in device.get_ns_list_based_on_options():
+            cmd_output = run_bgp_command(vtysh_cmd, ns, constants.RVTYSH_COMMAND)
+            device.current_namespace = ns
+            try:
+                cmd_output_json = json.loads(cmd_output)
+            except ValueError:
+                ctx.fail("bgp evpn es-evi from bgp container not in json format")
+
+            for es in cmd_output_json:
+                es_member = []
+                es_member.append(es['vni'])
+                es_member.append(es['esi'])
+                es_type = 'L' if 'local' in es['type'] else ''
+                es_type += 'R' if 'remote' in es['type'] else ''
+                es_type += 'I' if 'inconsistent' in es['type'] else ''
+                es_member.append(es_type)
+                if es.get('vteps', ''):
+                    for peer in es['vteps']:
+                        peer_flags = 'V' if 'ead-per-evi' in peer['flags'] else ''
+                        peer_flags += 'E' if 'ead-per-es' in peer['flags'] else ''
+                        if (es_member):
+                            es_member.append(peer['vtep_ip'] + '({})'.format(peer_flags))
+                            evpn_es_evi.append(es_member)
+                            es_member = []
+                        else:
+                            es_member = ['', '', '']
+                            es_member.append(peer['vtep_ip'] + '({})'.format(peer_flags))
+                            evpn_es_evi.append(es_member)
+                            es_member = []
+                else:
+                    es_member.append('')
+                    evpn_es_evi.append(es_member)
+    except KeyError as e:
+        ctx = click.get_current_context()
+        ctx.fail("{} missing in the bgp_evpn_es_evi".format(e.args[0]))
+
+    return evpn_es_evi

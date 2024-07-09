@@ -18,6 +18,9 @@ from .bgp_commands_input.bgp_network_test_vector import (
     mock_show_bgp_network_single_asic,
     mock_show_bgp_network_multi_asic
     )
+from .bgp_commands_input.bgp_evpn_es_test_vector import (
+    mock_show_bgp_evpn_route_single_asic,
+    )
 from . import config_int_ip_common
 import utilities_common.constants as constants
 import config.main as config
@@ -194,7 +197,19 @@ def setup_single_bgp_instance(request):
     elif request.param == 'ipv6_route':
         bgp_mocked_json = 'ipv6_route.json'
     elif request.param == 'ip_special_route':
-        bgp_mocked_json = 'ip_special_route.json'    
+        bgp_mocked_json = 'ip_special_route.json'
+    elif request.param == 'show_run_bgp_evpn_es':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'bgp_evpn_es.json')
+    elif request.param == 'show_run_bgp_evpn_es_detail':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'bgp_evpn_es_detail.json')
+    elif request.param == 'show_run_bgp_evpn_es_evi':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'bgp_evpn_es_evi.json')
+    elif request.param == 'show_run_bgp_evpn_es_evi_2vtep':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'bgp_evpn_es_evi_2vtep.json')
     else:
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
@@ -263,6 +278,9 @@ def setup_single_bgp_instance(request):
         functions_to_call = [mock_run_bgp_command(bgp_neigh_mocked_json), mock_run_bgp_command(bgp_mocked_json)]
         bgp_util.run_bgp_command = mock.MagicMock(
             side_effect=functions_to_call)
+    elif request.param.startswith('show_bgp_evpn_route'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_bgp_evpn_route_single_asic(request))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_run_bgp_command(bgp_mocked_json))
@@ -407,9 +425,11 @@ def setup_bgp_commands():
     import show.main as show
     from show.bgp_frr_v4 import bgp as bgpv4
     from show.bgp_frr_v6 import bgp as bgpv6
+    from show.bgp_frr_evpn import evpn as bgp_evpn
 
     show.ip.add_command(bgpv4)
     show.ipv6.add_command(bgpv6)
+    show.cli.add_command(bgp_evpn)
     return show
 
 
