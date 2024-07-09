@@ -31,9 +31,8 @@ def shutdown_chassis_module(db, chassis_module_name):
     if not chassis_module_name.startswith("SUPERVISOR") and \
        not chassis_module_name.startswith("LINE-CARD") and \
        not chassis_module_name.startswith("FABRIC-CARD") and \
-       not chassis_module_name.startswith("DPU") and \
-       not chassis_module_name.startswith("SWITCH"):
-        ctx.fail("'module_name' has to begin with 'SUPERVISOR', 'LINE-CARD', 'FABRIC-CARD', 'DPU' or 'SWITCH'")
+       not chassis_module_name.startswith("DPU"):
+        ctx.fail("'module_name' has to begin with 'SUPERVISOR', 'LINE-CARD', 'FABRIC-CARD', 'DPU'")
 
     fvs = {'admin_status': 'down'}
     config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
