@@ -4824,7 +4824,6 @@ def add_interface_ip(ctx, interface_name, ip_addr, gw, secondary):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-        
         # Add a validation to check this interface is not a member in vlan before
         # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
