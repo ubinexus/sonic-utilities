@@ -2387,17 +2387,8 @@ def summary(db):
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
                 values["local_discriminator"] = "NA"
-            bfd_body.append([key_values[3],
-                             key_values[2],
-                             key_values[1],
-                             values["state"],
-                             values["type"],
-                             values["local_addr"],
-                             values["tx_interval"],
-                             values["rx_interval"],
-                             values["multiplier"],
-                             values["multihop"],
-                             values["local_discriminator"]])
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
+                                values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"], values["local_discriminator"]])
 
     click.echo(tabulate(bfd_body, bfd_headers))
 
@@ -2441,30 +2432,10 @@ def peer(db, peer_ip):
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
                 values["local_discriminator"] = "NA"
-            bfd_body.append([key_values[3],
-                             key_values[2],
-                             key_values[1],
-                             values.get("state"),
-                             values.get("type"),
-                             values.get("local_addr"),
-                             values.get("tx_interval"),
-                             values.get("rx_interval"),
-                             values.get("multiplier"),
-                             values.get("multihop"),
-                             values.get("local_discriminator")])
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
+                                values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 
     click.echo(tabulate(bfd_body, bfd_headers))
-
-
-# 'suppress-fib-pending' subcommand ("show suppress-fib-pending")
-@cli.command('suppress-fib-pending')
-@clicommon.pass_db
-def suppress_pending_fib(db):
-    """ Show the status of suppress pending FIB feature """
-
-    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
-    state = field_values.get('suppress-fib-pending', 'disabled').title()
-    click.echo(state)
 
 
 # asic-sdk-health-event subcommand ("show asic-sdk-health-event")
