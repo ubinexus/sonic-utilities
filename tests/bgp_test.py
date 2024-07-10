@@ -59,6 +59,28 @@ class TestBgp:
         logger.debug(result.exit_code)
 
         assert result.exit_code == SUCCESS
+        
+    @pytest.mark.parametrize(
+        "state", [
+            "ignore",
+            "active",
+            "skip-missing",
+            "default-weight-for-missing"
+        ]
+    )
+    def test_config_device_global_bandwidth(self, state):
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config.config.commands["bgp"].commands["device-global"].
+            commands["bandwidth"].commands[state], obj=db
+        )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+
+        assert result.exit_code == SUCCESS
 
     # ---------- SHOW BGP ---------- #
 

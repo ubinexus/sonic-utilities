@@ -2742,6 +2742,20 @@ Feature list:
   admin@sonic:~$ config bgp device-global w-ecmp enabled
   ```
 
+**config bgp device-global bandwidth**
+
+This command allows for the control of link bandwidth processing on the receiver
+
+- Usage:
+  ```bash
+  config bgp device-global bandwidth <ignore|active|skip-missing|default-weight-for-missing->
+  ```
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config bgp device-global bandwidth ignore
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ## Console
