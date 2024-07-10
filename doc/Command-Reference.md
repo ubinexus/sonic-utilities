@@ -2626,19 +2626,19 @@ Single ASIC
 - Example:
   ```bash
   admin@sonic:~$ show bgp device-global
-  TSA      W-ECMP
-  -------  -------
-  enabled  enabled
+  TSA      W-ECMP      BANDWIDTH
+  -------  ----------  ------------
+  enabled  cumulative  skip_missing
   ```
 
 Multiple ASICs
 - Example:
   ```bash
   admin@sonic:~$ show bgp device-global
-  ASIC ID    W-ECMP
-  ---------  --------
-  asic0      disabled
-  asic1      enabled
+  ASIC ID    TSA      W-ECMP      BANDWIDTH
+  ---------  -------  ----------  ------------
+  asic0      enabled  cumulative  skip_missing
+  asic1      enabled  cumulative  skip_missing
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -2776,7 +2776,7 @@ This command allows for the control of link bandwidth processing on the receiver
 
 - Usage:
   ```bash
-  config bgp device-global bandwidth <ignore|active|skip-missing|default-weight-for-missing->
+  config bgp device-global bandwidth <ignore|active|skip-missing|default-weight-for-missing>
   ```
 
 - Examples:
