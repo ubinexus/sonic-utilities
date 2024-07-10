@@ -159,14 +159,41 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 #
 
 
+class CustomAliasedGroup(click.Group):
+    def parse_args(self, ctx, args):
+        if args and args[0].isdigit():
+            ctx.args = args
+            ctx.protected_args = []
+        else:
+            super().parse_args(ctx, args)
+
+    def format_help(self, ctx, formatter):
+        super().format_help(ctx, formatter)
+        formatter.write_text("\nYou can also directly input a weight value between 1 and 25600.\n")
+
+
 @DEVICE_GLOBAL.group(
     name="w-ecmp",
-    cls=clicommon.AliasedGroup
+    cls=CustomAliasedGroup
 )
-def DEVICE_GLOBAL_WCMP():
-    """ Configure Weighted-Cost Multi-Path (W-ECMP) feature """
+@click.argument("weight", required=False)
+@clicommon.pass_db
+@click.pass_context
+def DEVICE_GLOBAL_WCMP(ctx, db, weight):
+    """Configure Weighted-Cost Multi-Path (W-ECMP) feature"""
+    if weight:
+        try:
+            weight = int(weight)
+        except ValueError:
+            raise click.BadParameter('Weight must be an integer.')
 
-    pass
+        if not (1 <= weight <= 25600):
+            raise click.BadParameter('Weight must be between 1 and 25600.')
+
+        wcmp_handler(ctx, db, str(weight))
+    elif not ctx.invoked_subcommand:
+        click.echo(ctx.get_help())
+        ctx.exit()
 
 
 @DEVICE_GLOBAL_WCMP.command(
@@ -174,45 +201,30 @@ def DEVICE_GLOBAL_WCMP():
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_ENABLED(ctx, db):
-    """ Cumulative bandwidth of all multipaths """
-
+def DEVICE_GLOBAL_WCMP_CUMULATIVE(ctx, db):
+    """Cumulative bandwidth of all multipaths"""
+    
     wcmp_handler(ctx, db, "cummulative")
+
 
 @DEVICE_GLOBAL_WCMP.command(
     name="num-multipaths"
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
-    """ Internally computed bandwidth based on number of multipaths """
-
+def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
+    """Internally computed bandwidth based on number of multipaths"""
+    
     wcmp_handler(ctx, db, "num_multipaths")
 
-@DEVICE_GLOBAL_WCMP.command()
-@click.argument("weight")
-@clicommon.pass_db
-@click.pass_context
-def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db, weight):
-    """ (1-25600) Bandwidth value in Mbps """
-    
-    try:
-        weight = int(weight)
-    except ValueError:
-        raise click.BadParameter('Weight must be an integer.')
 
-    if not (1 <= weight <= 25600):
-        raise click.BadParameter('Value must be between 1 and 25600.')
-
-    wcmp_handler(ctx, db, str(weight))
- 
 @DEVICE_GLOBAL_WCMP.command(
     name="disabled"
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_ENABLED(ctx, db):
-    """ Disable Weighted-Cost Multi-Path (W-ECMP) feature """
-
+def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
+    """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
+    
     wcmp_handler(ctx, db, "false")
 
