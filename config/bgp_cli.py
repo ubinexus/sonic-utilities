@@ -293,6 +293,7 @@ def DEVICE_GLOBAL_BANDWIDTH_DEFAULT_WEIGHT(ctx, db):
 
     bandwidth_handler(ctx, db, "default_weight_for_missing")
 
+
 @DEVICE_GLOBAL_WCMP.command(
     name="set-weight"
 )
