@@ -126,7 +126,7 @@ def kdump_remote(db, action):
 #
 
 
-@kdump.command(name="add")
+@kdump.command(name="add",short_help="Add ssh connection string." )
 @click.argument('item', type=click.Choice(['ssh_connection_string']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
@@ -155,7 +155,7 @@ def ssh_connection_string(db, item, value):
         click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
 
 
-@kdump.command(name="remove", aliases=["rem"])
+@kdump.command(name="remove", short_help="Remove ssh connection string.")
 @click.argument('item', type=click.Choice(['ssh_connection_string']))
 @pass_db
 def remove_ssh_connection_string(db, item):
@@ -182,7 +182,7 @@ def remove_ssh_connection_string(db, item):
 #
 
 
-@kdump.command(name="add")
+@kdump.command(name="add", short_help="Add ssh private key path.")
 @click.argument('item', type=click.Choice(['ssh_private_key_path']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
@@ -211,7 +211,7 @@ def add_ssh_private_key_path(db, item, value):
         click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
 
 
-@kdump.command(name="remove", aliases=["rem"])
+@kdump.command(name="remove", shot_help="Add ssh private key path")
 @click.argument('item', type=click.Choice(['ssh_private_key_path']))
 @pass_db
 def remove_ssh_private_key_path(db, item):
