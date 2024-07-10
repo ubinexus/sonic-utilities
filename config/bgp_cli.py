@@ -240,22 +240,22 @@ def DEVICE_GLOBAL_BANDWIDTH_ACTIVE(ctx, db):
     bandwidth_handler(ctx, db, "active")
     
 @DEVICE_GLOBAL_BANDWIDTH.command(
-    name="skip-missing"
+    name="skip_missing"
 )
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_BANDWIDTH_SKIP_MISSING(ctx, db):
     """ Ignore paths without link bandwidth for W-ECMP (if other paths have it) """
 
-    bandwidth_handler(ctx, db, "skip-missing")
+    bandwidth_handler(ctx, db, "skip_missing")
     
 @DEVICE_GLOBAL_BANDWIDTH.command(
-    name="default-weight-for-missing"
+    name="default_weight_for_missing"
 )
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_BANDWIDTH_DEFAULT_WEIGHT(ctx, db):
     """ Assign a low default weight (value 1) to paths not having link bandwidth """
 
-    bandwidth_handler(ctx, db, "default-weight-for-missing")
+    bandwidth_handler(ctx, db, "default_weight_for_missing")
 
