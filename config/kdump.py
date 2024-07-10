@@ -1,8 +1,6 @@
 import sys
-
 import click
 from utilities_common.cli import AbbreviationGroup, pass_db
-
 
 #
 # 'kdump' group ('sudo config kdump ...')
@@ -11,7 +9,6 @@ from utilities_common.cli import AbbreviationGroup, pass_db
 def kdump():
     """Configure the KDUMP mechanism"""
     pass
-
 
 def check_kdump_table_existence(kdump_table):
     """Checks whether the 'KDUMP' table is configured in Config DB.
@@ -31,10 +28,15 @@ def check_kdump_table_existence(kdump_table):
         click.echo("Unable to retrieve key 'config' from KDUMP table.")
         sys.exit(2)
 
-
+def echo_reboot_warning():
+    """Prints the warning message about reboot requirements."""
+    click.echo("KDUMP configuration changes may require a reboot to take effect.")
+    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
 #
 # 'disable' command ('sudo config kdump disable')
 #
+
+
 @kdump.command(name="disable", short_help="Disable the KDUMP mechanism")
 @pass_db
 def kdump_disable(db):
@@ -43,13 +45,13 @@ def kdump_disable(db):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "false"})
-    click.echo("KDUMP configuration changes may require a reboot to take effect.")
-    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
-
+    echo_reboot_warning()
 
 #
 # 'enable' command ('sudo config kdump enable')
 #
+
+
 @kdump.command(name="enable", short_help="Enable the KDUMP mechanism")
 @pass_db
 def kdump_enable(db):
@@ -58,13 +60,13 @@ def kdump_enable(db):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "true"})
-    click.echo("KDUMP configuration changes may require a reboot to take effect.")
-    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
-
+    echo_reboot_warning()
 
 #
 # 'memory' command ('sudo config kdump memory ...')
 #
+
+
 @kdump.command(name="memory", short_help="Configure the memory for KDUMP mechanism")
 @click.argument('kdump_memory', metavar='<kdump_memory>', required=True)
 @pass_db
@@ -74,13 +76,13 @@ def kdump_memory(db, kdump_memory):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"memory": kdump_memory})
-    click.echo("KDUMP configuration changes may require a reboot to take effect.")
-    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
-
+    echo_reboot_warning()
 
 #
 # 'num_dumps' command ('sudo config kdump num_dumps ...')
 #
+
+
 @kdump.command(name="num_dumps", short_help="Configure the maximum dump files of KDUMP mechanism")
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
 @pass_db
@@ -90,39 +92,53 @@ def kdump_num_dumps(db, kdump_num_dumps):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
+    echo_reboot_warning()
+
+#
+# 'remote' command ('sudo config kdump remote ...')
+#
 
 
-@kdump.command(name="remote", short_help="Configure remote KDUMP mechanism")
-@click.argument("action", type=click.Choice(["ssh", "disable"]))
-@click.option("-c", "ssh_connection_string",
-              metavar='<kdump_ssh_connection_string>',
-              help="SSH user and host. e.g user@hostname/ip")
-@click.option("-p", "ssh_private_key_path",
-              metavar='<kdump_ssh_private_key_file_path>',
-              help="Path to private key. e.g /root/.ssh/kdump_id_rsa")
+@kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
+@click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
-def kdump_remote(db, action, ssh_connection_string, ssh_private_key_path):
-    """Configure remote KDUMP mechanism"""
-
-    # Ensure the KDUMP table and 'config' key exist
+def kdump_remote(db, action):
+    """Enable or Disable Kdump Remote Mode"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
-    if action == "ssh":
-        # Validate arguments for SSH configuration
-        if ssh_connection_string is None or ssh_private_key_path is None:
-            click.echo("Error: Both --ssh-connection-string and --ssh-private-key-path\
-                        \are required for SSH configuration.")
-            sys.exit(1)
+    remote_enabled = 'true' if action.lower() == 'enable' else 'false'
+    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote_enabled})
+    echo_reboot_warning()
 
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "true"})
-        if ssh_connection_string is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ssh_connection_string})
-        if ssh_private_key_path is not None:
-            db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ssh_private_key_path})
-    elif action == "disable":
-        # Set remote_enabled to "false"
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote_enabled": "false"})
+#
+# 'ssh_connection_string' command ('sudo config kdump ssh_connection_string ...')
+#
 
-    click.echo("KDUMP configuration changes may require a reboot to take effect.")
-    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
+
+@kdump.command(name="ssh_connection_string", short_help="Set SSH connection string")
+@click.argument('ssh_connection_string', metavar='<ssh_connection_string>', required=True)
+@pass_db
+def set_ssh_connection_string(db, ssh_connection_string):
+    """Set SSH connection string (username@serverip)"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ssh_connection_string})
+    echo_reboot_warning()
+
+#
+# 'ssh_private_key_path' command ('sudo config kdump ssh_private_key_path ...')
+#
+
+
+@kdump.command(name="ssh_private_key_path", short_help="Set path to SSH private key")
+@click.argument('ssh_private_key_path', metavar='<ssh_private_key_path>', required=True)
+@pass_db
+def set_ssh_private_key_path(db, ssh_private_key_path):
+    """Set path to SSH private key"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ssh_private_key_path})
+    echo_reboot_warning()

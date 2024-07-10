@@ -176,13 +176,13 @@ def cmd_dump_config_json():
     # remote SSH variables
     ssh_connection_string = get_ssh_connection_string()
     ssh_private_key_path = get_ssh_private_key_path()
-    kdump_remote_enabled = get_kdump_remote_enabled()
+    kdump_remote = get_kdump_remote()
     data = { "enable" : kdump_enabled, \
              "memory" : kdump_memory, \
              "max-dumps" : int(kdump_num_dumps), \
              "ssh_connection_string" : str(ssh_connection_string), \
              "ssh_private_key-path" : str(ssh_private_key_path), \
-             "remote_enabled" : kdump_remote_enabled }
+             "remote" : kdump_remote }
     print(json.dumps(data, indent=4))
 
 def cmd_dump_kdump_records_json():
@@ -234,7 +234,7 @@ def cmd_dump_status_json():
     # remote SSH variables
     ssh_connection_string = get_ssh_connection_string()
     ssh_private_key_path = get_ssh_private_key_path()
-    kdump_remote_enabled = get_kdump_remote_enabled()
+    kdump_remote = get_kdump_remote()
     data = { "enable" : kdump_enabled, \
              "current-state" : kdump_oper_state, \
              "memory" : kdump_memory, \
@@ -242,7 +242,7 @@ def cmd_dump_status_json():
              "max-dumps" : int(kdump_num_dumps), \
              "ssh-connection-string" : str(ssh_connection_string), \
              "ssh-private-key-path" : str(ssh_private_key_path), \
-             "remote-enabled" : kdump_remote_enabled }
+             "remote" : kdump_remote }
     print(json.dumps(data, indent=4))
 
 ## Query current configuration to check if kdump is enabled or disabled
@@ -354,8 +354,8 @@ def get_ssh_private_key_path():
 #
 #  @return The if remote connection is enabled for connecting to remote server
 #          (read from running configuration)
-def get_kdump_remote_enabled():
-    remote_enabled = False
+def get_kdump_remote():
+    remote = False
     config_db = ConfigDBConnector(use_unix_socket_path=True)
     if config_db is not None:
         config_db.connect()
@@ -363,10 +363,10 @@ def get_kdump_remote_enabled():
         if table_data is not None:
             config_data = table_data.get('config')
             if config_data is not None:
-                remote_en = config_data.get('remote_enabled')
+                remote_en = config_data.get('remote')
                 if remote_en:
-                    remote_enabled = remote_en
-    return remote_enabled
+                    remote = remote_en
+    return remote
 
 
 
@@ -548,7 +548,7 @@ def kdump_remote_disable():
   """
 
   # Check if remote kdump is already enabled
-  if get_kdump_remote_enabled().lower() == "true":
+  if get_kdump_remote().lower() == "true":
     # Disable SSH key authentication
     rc = run_command("/bin/sed -i '/*SSH=\"/s/\#/' %s" % (kdump_cfg), use_shell=False)
     if rc != 0:
@@ -657,9 +657,9 @@ def cmd_kdump_enable(verbose, image):
     ##
     ssh_connection_string = get_ssh_connection_string()
     ssh_private_key_path = get_ssh_private_key_path()
-    remote_enabled = get_kdump_remote_enabled()
+    remote = get_kdump_remote()
     if verbose:
-        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d ssh_connection_string=%d ssh_private_key_path=%d  remote_enabled=%d" % (kdump_enabled, memory, num_dumps, ssh_connection_string, ssh_private_key_path, remote_enabled))
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d ssh_connection_string=%d ssh_private_key_path=%d  remote=%d" % (kdump_enabled, memory, num_dumps, ssh_connection_string, ssh_private_key_path, remote))
 
     if os.path.exists(grub_cfg):
         return kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, grub_cfg)
