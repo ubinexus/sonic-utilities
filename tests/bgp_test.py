@@ -65,44 +65,45 @@ class TestBgp:
             "cumulative",
             "num-multipaths",
             "disabled",
-            "5"
+            "set-weight"
         ]
     )
     def test_config_device_global_wcmp(self, state):
         db = Db()
         runner = CliRunner()
 
-        if state.isdigit():
+        if state == "set-weight":
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].
-                commands["w-ecmp"], [state], obj=db
-            )
+                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-weight"],
+                ["10"],
+                obj=db)
         else:
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].
-                commands["w-ecmp"].commands[state], obj=db
-            )
+                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands[state],
+                obj=db)
 
         logger.debug("\n" + result.output)
         logger.debug(result.exit_code)
 
-        assert result.exit_code == SUCCESS
-    
+        assert result.exit_code == SUCCESS  # Ensure SUCCESS is defined appropriately
+
     @pytest.mark.parametrize(
-    "weight, expected_error", [
-        ("abc", "Weight must be an integer."),
-        ("-1", "Weight must be between 1 and 25600."),
-        ("0", "Weight must be between 1 and 25600."),
-        ("25601", "Weight must be between 1 and 25600."),
-    ]
+        "weight, expected_error", [
+            ("abc", "Weight must be an integer."),
+            ("-1", "Weight must be between 1 and 25600."),
+            ("0", "Weight must be between 1 and 25600."),
+            ("25601", "Weight must be between 1 and 25600."),
+        ]
     )
-    def test_config_device_global_wcmp_invalid_weights(self, weight, expected_error):
+    def test_config_device_global_wcmp_invalid_weights(
+            self, weight, expected_error):
         db = Db()
         runner = CliRunner()
 
         result = runner.invoke(
-            config.config.commands["bgp"].commands["device-global"].
-            commands["w-ecmp"], [weight], obj=db
+            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-weight"],
+            ['--', weight],
+            obj=db
         )
 
         logger.debug("\n" + result.output)
