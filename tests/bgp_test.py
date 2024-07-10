@@ -63,8 +63,8 @@ class TestBgp:
         "state", [
             "ignore",
             "active",
-            "skip_missing",
-            "default_weight_for_missing"
+            "skip-missing",
+            "default-weight-for-missing"
         ]
     )
     def test_config_device_global_bandwidth(self, state):
