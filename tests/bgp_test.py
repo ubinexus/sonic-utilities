@@ -1,6 +1,7 @@
 import pytest
 import os
 import logging
+import click
 import show.main as show
 import config.main as config
 
@@ -86,6 +87,29 @@ class TestBgp:
         logger.debug(result.exit_code)
 
         assert result.exit_code == SUCCESS
+    
+    @pytest.mark.parametrize(
+    "weight, expected_error", [
+        ("abc", "Weight must be an integer."),
+        ("-1", "Weight must be between 1 and 25600."),
+        ("0", "Weight must be between 1 and 25600."),
+        ("25601", "Weight must be between 1 and 25600."),
+    ]
+    )
+    def test_config_device_global_wcmp_invalid_weights(self, weight, expected_error):
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config.config.commands["bgp"].commands["device-global"].
+            commands["w-ecmp"], [weight], obj=db
+        )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+
+        assert expected_error in result.output
+        assert result.exit_code == click.exceptions.BadParameter.exit_code
 
     # ---------- SHOW BGP ---------- #
 
