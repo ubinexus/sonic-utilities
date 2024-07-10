@@ -19,38 +19,38 @@ show_device_global_all_disabled_json = """\
 """
 
 show_device_global_all_enabled = """\
-TSA      W-ECMP
+TSA        W-ECMP
 -------  --------
-enabled  enabled
+enabled         5
 """
 show_device_global_all_enabled_json = """\
 {
     "tsa": "enabled",
-    "w-ecmp": "enabled"
+    "w-ecmp": "5"
 }
 """
 
 show_device_global_tsa_enabled = """\
 TSA      W-ECMP
--------  --------
-enabled  disabled
+-------  ----------
+enabled  cumulative
 """
 show_device_global_tsa_enabled_json = """\
 {
     "tsa": "enabled",
-    "w-ecmp": "disabled"
+    "w-ecmp": "cumulative"
 }
 """
 
 show_device_global_wcmp_enabled = """\
 TSA       W-ECMP
---------  --------
-disabled  enabled
+--------  --------------
+disabled  num_multipaths
 """
 show_device_global_wcmp_enabled_json = """\
 {
     "tsa": "disabled",
-    "w-ecmp": "enabled"
+    "w-ecmp": "num_multipaths"
 }
 """
 
@@ -74,77 +74,77 @@ show_device_global_all_disabled_multi_asic_json = """\
 """
 
 show_device_global_all_enabled_multi_asic = """\
-ASIC ID    TSA      W-ECMP
+ASIC ID    TSA        W-ECMP
 ---------  -------  --------
-asic0      enabled  enabled
-asic1      enabled  enabled
+asic0      enabled         5
+asic1      enabled         5
 """
 show_device_global_all_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "enabled"
+        "w-ecmp": "5"
     },
     "asic1": {
         "tsa": "enabled",
-        "w-ecmp": "enabled"
+        "w-ecmp": "5"
     }
 }
 """
 
 show_device_global_tsa_enabled_multi_asic = """\
 ASIC ID    TSA      W-ECMP
----------  -------  --------
-asic0      enabled  disabled
-asic1      enabled  disabled
+---------  -------  ----------
+asic0      enabled  cumulative
+asic1      enabled  cumulative
 """
 show_device_global_tsa_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "disabled"
+        "w-ecmp": "cumulative"
     },
     "asic1": {
         "tsa": "enabled",
-        "w-ecmp": "disabled"
+        "w-ecmp": "cumulative"
     }
 }
 """
 
 show_device_global_wcmp_enabled_multi_asic = """\
 ASIC ID    TSA       W-ECMP
----------  --------  --------
-asic0      disabled  enabled
-asic1      disabled  enabled
+---------  --------  --------------
+asic0      disabled  num_multipaths
+asic1      disabled  num_multipaths
 """
 show_device_global_wcmp_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "disabled",
-        "w-ecmp": "enabled"
+        "w-ecmp": "num_multipaths"
     },
     "asic1": {
         "tsa": "disabled",
-        "w-ecmp": "enabled"
+        "w-ecmp": "num_multipaths"
     }
 }
 """
 
 show_device_global_opposite_multi_asic = """\
 ASIC ID    TSA       W-ECMP
----------  --------  --------
-asic0      enabled   disabled
-asic1      disabled  enabled
+---------  --------  --------------
+asic0      enabled   cumulative
+asic1      disabled  num_multipaths
 """
 show_device_global_opposie_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "disabled"
+        "w-ecmp": "cumulative"
     },
     "asic1": {
         "tsa": "disabled",
-        "w-ecmp": "enabled"
+        "w-ecmp": "num_multipaths"
     }
 }
 """

@@ -36,8 +36,7 @@ class TestBgp:
 
     @pytest.mark.parametrize(
         "feature", [
-            "tsa",
-            "w-ecmp"
+            "tsa"
         ]
     )
     @pytest.mark.parametrize(
@@ -46,7 +45,7 @@ class TestBgp:
             "disabled"
         ]
     )
-    def test_config_device_global(self, feature, state):
+    def test_config_device_global_tsa(self, feature, state):
         db = Db()
         runner = CliRunner()
 
@@ -76,6 +75,34 @@ class TestBgp:
             config.config.commands["bgp"].commands["device-global"].
             commands["bandwidth"].commands[state], obj=db
         )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+
+        assert result.exit_code == SUCCESS
+
+    @pytest.mark.parametrize(
+        "state", [
+            "cumulative",
+            "num-multipaths",
+            "disabled",
+            "5"
+        ]
+    )
+    def test_config_device_global_wcmp(self, state):
+        db = Db()
+        runner = CliRunner()
+
+        if state.isdigit():
+            result = runner.invoke(
+                config.config.commands["bgp"].commands["device-global"].
+                commands["w-ecmp"], [state], obj=db
+            )
+        else:
+            result = runner.invoke(
+                config.config.commands["bgp"].commands["device-global"].
+                commands["w-ecmp"].commands[state], obj=db
+            )
 
         logger.debug("\n" + result.output)
         logger.debug(result.exit_code)
