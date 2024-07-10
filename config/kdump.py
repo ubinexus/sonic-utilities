@@ -108,6 +108,15 @@ def kdump_remote(db, action):
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
+    current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
+    
+    if action.lower() == 'enable' and current_remote_status == 'true':
+        click.echo("Error: Kdump Remote Mode is already enabled.")
+        return
+    elif action.lower() == 'disable' and current_remote_status == 'false':
+        click.echo("Error: Kdump Remote Mode is already disabled.")
+        return
+
     remote_enabled = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote_enabled})
     echo_reboot_warning()
@@ -117,29 +126,109 @@ def kdump_remote(db, action):
 #
 
 
-@kdump.command(name="ssh_connection_string", short_help="Set SSH connection string")
-@click.argument('ssh_connection_string', metavar='<ssh_connection_string>', required=True)
+@kdump.command(name="add")
+@click.argument('item', type=click.Choice(['ssh_connection_string']))
+@click.argument('value', metavar='<value>', required=True)
 @pass_db
-def set_ssh_connection_string(db, ssh_connection_string):
-    """Set SSH connection string (username@serverip)"""
-    kdump_table = db.cfgdb.get_table("KDUMP")
-    check_kdump_table_existence(kdump_table)
+def ssh_connection_string(db, item, value):
+    """Add configuration item for kdump"""
+    if item == 'ssh_connection_string':
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        check_kdump_table_existence(kdump_table)
 
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ssh_connection_string})
-    echo_reboot_warning()
+        # Check if remote mode is enabled
+        remote_mode_enabled = kdump_table.get("config", {}).get("remote", "false").lower()
+        if remote_mode_enabled != "true":
+            click.echo("Error: Enable remote mode first.")
+            return
+
+        # Check if SSH connection string is already added
+        existing_ssh_connection_string = kdump_table.get("config", {}).get("ssh_connection_string")
+        if existing_ssh_connection_string:
+            click.echo("Error: SSH connection string is already added. Please remove it first before adding a new one.")
+            return
+
+        # Add SSH connection string to config_db
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": value})
+        echo_reboot_warning()
+    else:
+        click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
+
+
+@kdump.command(name="remove", aliases=["rem"])
+@click.argument('item', type=click.Choice(['ssh_connection_string']))
+@pass_db
+def remove_ssh_connection_string(db, item):
+    """Remove configuration item for kdump"""
+    if item == 'ssh_connection_string':
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        check_kdump_table_existence(kdump_table)
+
+        # Check if SSH connection string is already added
+        existing_ssh_connection_string = kdump_table.get("config", {}).get("ssh_connection_string")
+        if not existing_ssh_connection_string:
+            click.echo("Error: SSH connection string is not configured.")
+            return
+
+        # Remove SSH connection string from config_db
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": None})
+        click.echo("SSH connection string removed successfully.")
+        echo_reboot_warning()
+    else:
+        click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
 
 #
 # 'ssh_private_key_path' command ('sudo config kdump ssh_private_key_path ...')
 #
 
 
-@kdump.command(name="ssh_private_key_path", short_help="Set path to SSH private key")
-@click.argument('ssh_private_key_path', metavar='<ssh_private_key_path>', required=True)
+@kdump.command(name="add")
+@click.argument('item', type=click.Choice(['ssh_private_key_path']))
+@click.argument('value', metavar='<value>', required=True)
 @pass_db
-def set_ssh_private_key_path(db, ssh_private_key_path):
-    """Set path to SSH private key"""
-    kdump_table = db.cfgdb.get_table("KDUMP")
-    check_kdump_table_existence(kdump_table)
+def add_ssh_private_key_path(db, item, value):
+    """Add configuration item for kdump"""
+    if item == 'ssh_private_key_path':
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        check_kdump_table_existence(kdump_table)
 
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ssh_private_key_path})
-    echo_reboot_warning()
+        # Check if remote mode is enabled
+        remote_mode_enabled = kdump_table.get("config", {}).get("remote", "false").lower()
+        if remote_mode_enabled != "true":
+            click.echo("Error: Enable remote mode first.")
+            return
+
+        # Check if SSH connection string is already added
+        existing_ssh_private_key_path = kdump_table.get("config", {}).get("ssh_private_key_path")
+        if existing_ssh_private_key_path:
+            click.echo("Error: SSH private key path is already added. Please remove it first before adding a new one.")
+            return
+
+        # Add SSH connection string to config_db
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": value})
+        echo_reboot_warning()
+    else:
+        click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
+
+
+@kdump.command(name="remove", aliases=["rem"])
+@click.argument('item', type=click.Choice(['ssh_private_key_path']))
+@pass_db
+def remove_ssh_private_key_path(db, item):
+    """Remove configuration item for kdump"""
+    if item == 'ssh_private_key_path':
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        check_kdump_table_existence(kdump_table)
+
+        # Check if SSH connection string is already added
+        existing_ssh_private_key_path = kdump_table.get("config", {}).get("ssh_private_key_path")
+        if not existing_ssh_private_key_path:
+            click.echo("Error: SSH key path is not configured.")
+            return
+
+        # Remove SSH connection string from config_db
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": None})
+        click.echo("SSH key path removed successfully.")
+        echo_reboot_warning()
+    else:
+        click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
