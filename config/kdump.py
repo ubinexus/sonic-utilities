@@ -28,6 +28,7 @@ def check_kdump_table_existence(kdump_table):
         click.echo("Unable to retrieve key 'config' from KDUMP table.")
         sys.exit(2)
 
+
 def echo_reboot_warning():
     """Prints the warning message about reboot requirements."""
     click.echo("KDUMP configuration changes may require a reboot to take effect.")
