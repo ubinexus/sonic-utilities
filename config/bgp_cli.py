@@ -15,7 +15,7 @@ log.set_min_log_priority_info()
 
 
 #
-# BGP DB interface ----------------------------------------------------------------------------------------------------
+# BGP DB interface -------------------------------------------------------
 #
 
 
@@ -65,7 +65,7 @@ def update_entry_validated(db, table, key, data, create_if_not_exists=False):
 
 
 #
-# BGP handlers --------------------------------------------------------------------------------------------------------
+# BGP handlers -----------------------------------------------------------
 #
 
 
@@ -79,7 +79,12 @@ def tsa_handler(ctx, db, state):
     }
 
     try:
-        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+        update_entry_validated(
+            db.cfgdb,
+            table,
+            key,
+            data,
+            create_if_not_exists=True)
         log.log_notice("Configured TSA state: {}".format(to_str(state)))
     except Exception as e:
         log.log_error("Failed to configure TSA state: {}".format(str(e)))
@@ -96,14 +101,19 @@ def wcmp_handler(ctx, db, state):
     }
 
     try:
-        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+        update_entry_validated(
+            db.cfgdb,
+            table,
+            key,
+            data,
+            create_if_not_exists=True)
         log.log_notice("Configured W-ECMP state: {}".format(to_str(state)))
     except Exception as e:
         log.log_error("Failed to configure W-ECMP state: {}".format(str(e)))
         ctx.fail(str(e))
 
 #
-# BGP device-global ---------------------------------------------------------------------------------------------------
+# BGP device-global ------------------------------------------------------
 #
 
 
@@ -118,7 +128,7 @@ def DEVICE_GLOBAL():
 
 
 #
-# BGP device-global tsa -----------------------------------------------------------------------------------------------
+# BGP device-global tsa --------------------------------------------------
 #
 
 
@@ -155,7 +165,7 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 
 
 #
-# BGP device-global w-ecmp --------------------------------------------------------------------------------------------
+# BGP device-global w-ecmp -----------------------------------------------
 #
 
 
@@ -167,7 +177,9 @@ class CustomAliasedGroup(click.Group):
 
     def format_help(self, ctx, formatter):
         super().format_help(ctx, formatter)
-        formatter.write_text("\nYou can also directly input a weight value between 1 and 25600.\n")
+        formatter.write_text(
+            "\nYou can also directly input a weight value between 1 and 25600.\n")
+
 
 @DEVICE_GLOBAL.group(
     name="w-ecmp",
@@ -221,4 +233,3 @@ def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
 def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
     wcmp_handler(ctx, db, "false")
-
