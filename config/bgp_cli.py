@@ -162,23 +162,20 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 class CustomAliasedGroup(click.Group):
     def parse_args(self, ctx, args):
         if args and args[0].isdigit():
-            ctx.args = args
-            ctx.protected_args = []
-        else:
-            super().parse_args(ctx, args)
+            ctx.protected_args = [args.pop(0)]
+        super().parse_args(ctx, args)
 
     def format_help(self, ctx, formatter):
         super().format_help(ctx, formatter)
         formatter.write_text("\nYou can also directly input a weight value between 1 and 25600.\n")
 
-
 @DEVICE_GLOBAL.group(
     name="w-ecmp",
     cls=CustomAliasedGroup
 )
-@click.argument("weight", required=False)
 @clicommon.pass_db
 @click.pass_context
+@click.argument("weight", required=False)
 def DEVICE_GLOBAL_WCMP(ctx, db, weight):
     """Configure Weighted-Cost Multi-Path (W-ECMP) feature"""
     if weight:
@@ -197,14 +194,13 @@ def DEVICE_GLOBAL_WCMP(ctx, db, weight):
 
 
 @DEVICE_GLOBAL_WCMP.command(
-    name="cummulative"
+    name="cumulative"
 )
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_CUMULATIVE(ctx, db):
     """Cumulative bandwidth of all multipaths"""
-    
-    wcmp_handler(ctx, db, "cummulative")
+    wcmp_handler(ctx, db, "cumulative")
 
 
 @DEVICE_GLOBAL_WCMP.command(
@@ -213,8 +209,7 @@ def DEVICE_GLOBAL_WCMP_CUMULATIVE(ctx, db):
 @clicommon.pass_db
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
-    """Internally computed bandwidth based on number of multipaths"""
-    
+    """Bandwidth based on number of multipaths"""
     wcmp_handler(ctx, db, "num_multipaths")
 
 
@@ -225,6 +220,5 @@ def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
-    
     wcmp_handler(ctx, db, "false")
 

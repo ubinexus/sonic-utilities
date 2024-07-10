@@ -58,10 +58,10 @@ class TestBgp:
         logger.debug(result.exit_code)
 
         assert result.exit_code == SUCCESS
-    
+
     @pytest.mark.parametrize(
         "state", [
-            "cummulative",
+            "cumulative",
             "num-multipaths",
             "disabled",
             "5"

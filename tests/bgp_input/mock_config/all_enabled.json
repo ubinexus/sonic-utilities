@@ -1,6 +1,6 @@
 {
     "BGP_DEVICE_GLOBAL|STATE": {
         "tsa_enabled": "true",
-        "wcmp_enabled": "true"
+        "wcmp_enabled": "5"
     }
 }
