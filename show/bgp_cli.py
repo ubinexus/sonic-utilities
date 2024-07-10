@@ -65,11 +65,11 @@ def DEVICE_GLOBAL(ctx, db, json_format):
 
     if multi_asic.is_multi_asic():
         masic = True
-        header = ["ASIC ID", "TSA", "W-ECMP"]
+        header = ["ASIC ID", "TSA", "W-ECMP", "BANDWIDTH"]
         namespaces = multi_asic.get_namespace_list()
     else:
         masic = False
-        header = ["TSA", "W-ECMP"]
+        header = ["TSA", "W-ECMP", "BANDWIDTH"]
         namespaces = [multi_asic.DEFAULT_NAMESPACE]
 
     for ns in namespaces:
@@ -101,6 +101,15 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                             'is-leaf-list': False
                         }
                     )
+                ),
+                "bandwidth": to_str(
+                    format_attr_value(
+                        entry,
+                        {
+                            'name': 'bestpath_bandwidth',
+                            'is-leaf-list': False
+                        }
+                    )
                 )
             }
 
@@ -124,6 +133,15 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                         entry,
                         {
                             'name': 'wcmp_enabled',
+                            'is-leaf-list': False
+                        }
+                    )
+                ),
+                to_str(
+                    format_attr_value(
+                        entry,
+                        {
+                            'name': 'bestpath_bandwidth',
                             'is-leaf-list': False
                         }
                     )

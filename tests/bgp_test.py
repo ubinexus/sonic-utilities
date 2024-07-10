@@ -104,12 +104,12 @@ class TestBgp:
                                                            "tsa_enabled"),
                                               {"plain": assert_show_output.show_device_global_tsa_enabled,
                                                "json": assert_show_output.show_device_global_tsa_enabled_json},
-                                              id="tsa-enabled"),
+                                              id="tsa-enabled-and-bandwidth-skip"),
                                  pytest.param(os.path.join(mock_config_path,
                                                            "wcmp_enabled"),
                                               {"plain": assert_show_output.show_device_global_wcmp_enabled,
                                                "json": assert_show_output.show_device_global_wcmp_enabled_json},
-                                              id="w-ecmp-enabled")])
+                                              id="w-ecmp-enabled-and-bandwidth-default-weight")])
     @pytest.mark.parametrize(
         "format", [
             "plain",
