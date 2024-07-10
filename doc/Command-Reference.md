@@ -2733,24 +2733,41 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
   ```
 
-**config bgp device-global tsa/w-ecmp**
+**config bgp device-global tsa**
 
 This command is used to manage BGP device global configuration.
 
 Feature list:
 1. TSA - Traffic-Shift-Away
-2. W-ECMP - Weighted-Cost Multi-Path
 
 - Usage:
   ```bash
   config bgp device-global tsa <enabled|disabled>
-  config bgp device-global w-ecmp <enabled|disabled>
   ```
 
 - Examples:
   ```bash
   admin@sonic:~$ config bgp device-global tsa enabled
-  admin@sonic:~$ config bgp device-global w-ecmp enabled
+  ```
+
+**config bgp device-global w-ecmp**
+
+This command is used to manage BGP device global configuration.
+
+Feature list:
+1. W-ECMP - Weighted-Cost Multi-Path
+
+- Usage:
+  ```bash
+  config bgp device-global w-ecmp <cumulative|num-multipaths|disabled|[WEIGHT]>
+  ```
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config bgp device-global w-ecmp cumulative
+  ```
+  ```bash
+  admin@sonic:~$ config bgp device-global w-ecmp 5
   ```
 
 **config bgp device-global bandwidth**
