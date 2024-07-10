@@ -274,7 +274,7 @@ Ethernet16                      300
 Ethernet20                      300
 Ethernet24                      300
 Ethernet28                      300
-Ethernet32                      45
+Ethernet32                      300
 Ethernet36                      300
 Ethernet40                      300
 Ethernet44                      300
