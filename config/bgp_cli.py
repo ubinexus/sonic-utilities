@@ -15,7 +15,7 @@ log.set_min_log_priority_info()
 
 
 #
-# BGP DB interface ----------------------------------------------------------------------------------------------------
+# BGP DB interface -------------------------------------------------------
 #
 
 
@@ -65,7 +65,7 @@ def update_entry_validated(db, table, key, data, create_if_not_exists=False):
 
 
 #
-# BGP handlers --------------------------------------------------------------------------------------------------------
+# BGP handlers -----------------------------------------------------------
 #
 
 
@@ -79,7 +79,12 @@ def tsa_handler(ctx, db, state):
     }
 
     try:
-        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+        update_entry_validated(
+            db.cfgdb,
+            table,
+            key,
+            data,
+            create_if_not_exists=True)
         log.log_notice("Configured TSA state: {}".format(to_str(state)))
     except Exception as e:
         log.log_error("Failed to configure TSA state: {}".format(str(e)))
@@ -96,14 +101,20 @@ def wcmp_handler(ctx, db, state):
     }
 
     try:
-        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+        update_entry_validated(
+            db.cfgdb,
+            table,
+            key,
+            data,
+            create_if_not_exists=True)
         log.log_notice("Configured W-ECMP state: {}".format(to_str(state)))
     except Exception as e:
         log.log_error("Failed to configure W-ECMP state: {}".format(str(e)))
         ctx.fail(str(e))
 
+
 def bandwidth_handler(ctx, db, state):
-    
+
     table = CFG_BGP_DEVICE_GLOBAL
     key = BGP_DEVICE_GLOBAL_KEY
     data = {
@@ -111,15 +122,24 @@ def bandwidth_handler(ctx, db, state):
     }
 
     try:
-        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
-        log.log_notice("Configured bestpath for bandwidth state: {}".format(to_str(state)))
+        update_entry_validated(
+            db.cfgdb,
+            table,
+            key,
+            data,
+            create_if_not_exists=True)
+        log.log_notice(
+            "Configured bestpath for bandwidth state: {}".format(
+                to_str(state)))
     except Exception as e:
-        log.log_error("Failed to configure bestpath for bandwidth state: {}".format(str(e)))
+        log.log_error(
+            "Failed to configure bestpath for bandwidth state: {}".format(
+                str(e)))
         ctx.fail(str(e))
 
 
 #
-# BGP device-global ---------------------------------------------------------------------------------------------------
+# BGP device-global ------------------------------------------------------
 #
 
 
@@ -134,7 +154,7 @@ def DEVICE_GLOBAL():
 
 
 #
-# BGP device-global tsa -----------------------------------------------------------------------------------------------
+# BGP device-global tsa --------------------------------------------------
 #
 
 
@@ -171,7 +191,7 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 
 
 #
-# BGP device-global w-ecmp --------------------------------------------------------------------------------------------
+# BGP device-global w-ecmp -----------------------------------------------
 #
 
 
@@ -183,7 +203,9 @@ class CustomAliasedGroup(click.Group):
 
     def format_help(self, ctx, formatter):
         super().format_help(ctx, formatter)
-        formatter.write_text("\nYou can also directly input a weight value between 1 and 25600.\n")
+        formatter.write_text(
+            "\nYou can also directly input a weight value between 1 and 25600.\n")
+
 
 @DEVICE_GLOBAL.group(
     name="w-ecmp",
@@ -237,10 +259,11 @@ def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
 def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
     wcmp_handler(ctx, db, "false")
-    
+
 #
-# BGP device-global bandwidth --------------------------------------------------------------------------------------------
+# BGP device-global bandwidth --------------------------------------------
 #
+
 
 @DEVICE_GLOBAL.group(
     name="bandwidth",
@@ -251,6 +274,7 @@ def DEVICE_GLOBAL_BANDWIDTH():
 
     pass
 
+
 @DEVICE_GLOBAL_BANDWIDTH.command(
     name="ignore"
 )
@@ -260,7 +284,8 @@ def DEVICE_GLOBAL_BANDWIDTH_IGNORE(ctx, db):
     """ Ignore link bandwidth (i.e., do regular ECMP, not weighted) """
 
     bandwidth_handler(ctx, db, "ignore")
-    
+
+
 @DEVICE_GLOBAL_BANDWIDTH.command(
     name="active"
 )
@@ -270,7 +295,8 @@ def DEVICE_GLOBAL_BANDWIDTH_ACTIVE(ctx, db):
     """ Allow for normal behavior without bestpath for bandwidth """
 
     bandwidth_handler(ctx, db, "active")
-    
+
+
 @DEVICE_GLOBAL_BANDWIDTH.command(
     name="skip-missing"
 )
@@ -280,7 +306,8 @@ def DEVICE_GLOBAL_BANDWIDTH_SKIP_MISSING(ctx, db):
     """ Ignore paths without link bandwidth for W-ECMP (if other paths have it) """
 
     bandwidth_handler(ctx, db, "skip_missing")
-    
+
+
 @DEVICE_GLOBAL_BANDWIDTH.command(
     name="default-weight-for-missing"
 )
@@ -290,4 +317,3 @@ def DEVICE_GLOBAL_BANDWIDTH_DEFAULT_WEIGHT(ctx, db):
     """ Assign value 1 to paths not having link bandwidth """
 
     bandwidth_handler(ctx, db, "default_weight_for_missing")
-
