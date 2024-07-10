@@ -195,40 +195,15 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 #
 
 
-class CustomAliasedGroup(click.Group):
-    def parse_args(self, ctx, args):
-        if args and args[0].isdigit():
-            ctx.protected_args = [args.pop(0)]
-        super().parse_args(ctx, args)
-
-    def format_help(self, ctx, formatter):
-        super().format_help(ctx, formatter)
-        formatter.write_text(
-            "\nYou can also directly input a weight value between 1 and 25600.\n")
-
-
-@DEVICE_GLOBAL.group(
+@click.group(
     name="w-ecmp",
-    cls=CustomAliasedGroup
+    cls=clicommon.AliasedGroup
 )
 @clicommon.pass_db
 @click.pass_context
-@click.argument("weight", required=False)
-def DEVICE_GLOBAL_WCMP(ctx, db, weight):
+def DEVICE_GLOBAL_WCMP(ctx, db):
     """Configure Weighted-Cost Multi-Path (W-ECMP) feature"""
-    if weight:
-        try:
-            weight = int(weight)
-        except ValueError:
-            raise click.BadParameter('Weight must be an integer.')
-
-        if not (1 <= weight <= 25600):
-            raise click.BadParameter('Weight must be between 1 and 25600.')
-
-        wcmp_handler(ctx, db, str(weight))
-    elif not ctx.invoked_subcommand:
-        click.echo(ctx.get_help())
-        ctx.exit()
+    pass
 
 
 @DEVICE_GLOBAL_WCMP.command(
@@ -317,3 +292,21 @@ def DEVICE_GLOBAL_BANDWIDTH_DEFAULT_WEIGHT(ctx, db):
     """ Assign value 1 to paths not having link bandwidth """
 
     bandwidth_handler(ctx, db, "default_weight_for_missing")
+
+@DEVICE_GLOBAL_WCMP.command(
+    name="set-weight"
+)
+@clicommon.pass_db
+@click.pass_context
+@click.argument("weight", required=True, type=str)
+def set_weight(ctx, db, weight):
+    """Set weight for W-ECMP"""
+    try:
+        weight = int(weight)
+    except ValueError:
+        raise click.BadParameter('Weight must be an integer.')
+
+    if not (1 <= weight <= 25600):
+        raise click.BadParameter('Weight must be between 1 and 25600.')
+
+    wcmp_handler(ctx, db, str(weight))

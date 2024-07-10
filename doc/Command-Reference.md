@@ -2759,7 +2759,7 @@ Feature list:
 
 - Usage:
   ```bash
-  config bgp device-global w-ecmp <cumulative|num-multipaths|disabled|[WEIGHT]>
+  config bgp device-global w-ecmp <cumulative|num-multipaths|disabled|set-weight [WEIGHT]>
   ```
 
 - Examples:
@@ -2767,7 +2767,7 @@ Feature list:
   admin@sonic:~$ config bgp device-global w-ecmp cumulative
   ```
   ```bash
-  admin@sonic:~$ config bgp device-global w-ecmp 5
+  admin@sonic:~$ config bgp device-global w-ecmp set-weight 5
   ```
 
 **config bgp device-global bandwidth**
