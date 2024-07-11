@@ -264,8 +264,8 @@ PortChannel1001  trunk               4000
 """
 
 show_interfaces_dhcp_rate_limit_output = """\
-Interface        DHCP Mitigation Rate
------------     ----------------------
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
 Ethernet0                       300
 Ethernet4                       300
 Ethernet8                       300
