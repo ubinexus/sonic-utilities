@@ -921,8 +921,10 @@ def switchport_mode_status(db):
 @interfaces.command(name='dhcp-mitigation-rate')
 @click.argument('interfacename', required=False)
 @clicommon.pass_db
-def dhcp_mitigation_rate(db, interfacename, ctx):
+def dhcp_mitigation_rate(db, interfacename):
     """Show interface dhcp-mitigation-rate information"""
+
+    ctx = click.get_current_context()
 
     keys = []
 
