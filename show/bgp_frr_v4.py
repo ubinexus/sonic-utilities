@@ -142,7 +142,7 @@ def network(ipaddress, info_type, namespace):
     if namespace == "all":
         if multi_asic.is_multi_asic():
             for ns in multi_asic.get_namespace_list():
-                click.echo("======== namespace {} ========".format(ns))
+                click.echo("\n======== namespace {} ========".format(ns))
                 output = bgp_util.run_bgp_show_command(command, ns)
                 click.echo(output.rstrip('\n'))
         else:

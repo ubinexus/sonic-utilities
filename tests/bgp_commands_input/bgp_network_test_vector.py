@@ -314,6 +314,7 @@ Paths: (2 available, best #2, table default, not advertised outside local AS)
 bgp_v4_network_all_asic = \
 """
 ======== namespace asic0 ========
+
 BGP table version is 11256, local router ID is 10.1.0.32, vrf id 0
 Default local pref 100, local AS 65100
 Status codes:  s suppressed, d damped, h history, * valid, > best, = multipath,
@@ -362,7 +363,9 @@ Origin codes:  i - IGP, e - EGP, ? - incomplete
 *>i                 10.1.0.0                 0    100      0 ?
 *=i10.0.0.44/31     10.1.0.2                 0    100      0 ?
 *>i                 10.1.0.0                 0    100      0 ? 
+
 ======== namespace asic1 ========
+
 BGP table version is 11256, local router ID is 10.1.0.32, vrf id 0
 Default local pref 100, local AS 65100
 Status codes:  s suppressed, d damped, h history, * valid, > best, = multipath,
