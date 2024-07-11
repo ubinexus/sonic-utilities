@@ -233,6 +233,26 @@ def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
     wcmp_handler(ctx, db, "false")
 
+
+@DEVICE_GLOBAL_WCMP.command(
+    name="set-weight"
+)
+@clicommon.pass_db
+@click.pass_context
+@click.argument("weight", required=True, type=str)
+def set_weight(ctx, db, weight):
+    """Set weight for W-ECMP"""
+    try:
+        weight = int(weight)
+    except ValueError:
+        raise click.BadParameter('Weight must be an integer.')
+
+    if not (1 <= weight <= 25600):
+        raise click.BadParameter('Weight must be between 1 and 25600.')
+
+    wcmp_handler(ctx, db, str(weight))
+
+
 #
 # BGP device-global bandwidth --------------------------------------------
 #
@@ -290,22 +310,3 @@ def DEVICE_GLOBAL_BANDWIDTH_DEFAULT_WEIGHT(ctx, db):
     """ Assign value 1 to paths not having link bandwidth """
 
     bandwidth_handler(ctx, db, "default_weight_for_missing")
-
-
-@DEVICE_GLOBAL_WCMP.command(
-    name="set-weight"
-)
-@clicommon.pass_db
-@click.pass_context
-@click.argument("weight", required=True, type=str)
-def set_weight(ctx, db, weight):
-    """Set weight for W-ECMP"""
-    try:
-        weight = int(weight)
-    except ValueError:
-        raise click.BadParameter('Weight must be an integer.')
-
-    if not (1 <= weight <= 25600):
-        raise click.BadParameter('Weight must be between 1 and 25600.')
-
-    wcmp_handler(ctx, db, str(weight))
