@@ -142,13 +142,13 @@ def add_ssh_string(db, item, value):
         return
 
     # Check if SSH connection string is already added
-    existing_ssh_string = kdump_table.get("config", {}).get("ssh_connection_string")
+    existing_ssh_string = kdump_table.get("config", {}).get("ssh_string")
     if existing_ssh_string:
         click.echo("Error: SSH connection string is already added. Please remove it first before adding a new one.")
         return
 
     # Add SSH connection string to config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": value})
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": value})
     echo_reboot_warning()
 
 #
@@ -157,7 +157,7 @@ def add_ssh_string(db, item, value):
 
 
 @kdump.command(name="remove", short_help="Remove ssh connection string.")
-@click.argument('item', type=click.Choice(['ssh_connection_string']))
+@click.argument('item', type=click.Choice(['ssh_string']))
 @pass_db
 def remove_ssh_string(db, item):
     """Remove configuration item for kdump"""
@@ -165,13 +165,13 @@ def remove_ssh_string(db, item):
     check_kdump_table_existence(kdump_table)
 
     # Check if SSH connection string is already added
-    existing_ssh_string = kdump_table.get("config", {}).get("ssh_connection_string")
+    existing_ssh_string = kdump_table.get("config", {}).get("ssh_string")
     if not existing_ssh_string:
         click.echo("Error: SSH connection string is not configured.")
         return
 
     # Remove SSH connection string from config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ""})
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": ""})
     click.echo("SSH connection string removed successfully.")
     echo_reboot_warning()
 
@@ -181,7 +181,7 @@ def remove_ssh_string(db, item):
 
 
 @kdump.command(name="add", short_help="Add ssh private key path.")
-@click.argument('item', type=click.Choice(['ssh_private_key_path']))
+@click.argument('item', type=click.Choice(['ssh_path']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
 def add_ssh_path(db, item, value):
@@ -196,13 +196,13 @@ def add_ssh_path(db, item, value):
         return
 
     # Check if SSH private key path is already added
-    existing_ssh_path = kdump_table.get("config", {}).get("ssh_private_key_path")
+    existing_ssh_path = kdump_table.get("config", {}).get("ssh_path")
     if existing_ssh_path:
         click.echo("Error: SSH private key path is already added. Please remove it first before adding a new one.")
         return
 
     # Add SSH private key path to config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": value})
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": value})
     echo_reboot_warning()
 
 #
@@ -211,7 +211,7 @@ def add_ssh_path(db, item, value):
 
 
 @kdump.command(name="remove", short_help="Remove ssh private key path")
-@click.argument('item', type=click.Choice(['ssh_private_key_path']))
+@click.argument('item', type=click.Choice(['ssh_path']))
 @pass_db
 def remove_ssh_path(db, item):
     """Remove configuration item for kdump"""
@@ -225,6 +225,6 @@ def remove_ssh_path(db, item):
         return
 
     # Remove SSH private key path from config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ""})
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": ""})
     click.echo("SSH private key path removed successfully.")
     echo_reboot_warning()
