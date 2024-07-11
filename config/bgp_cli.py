@@ -195,13 +195,11 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 #
 
 
-@click.group(
+@DEVICE_GLOBAL.group(
     name="w-ecmp",
     cls=clicommon.AliasedGroup
 )
-@clicommon.pass_db
-@click.pass_context
-def DEVICE_GLOBAL_WCMP(ctx, db):
+def DEVICE_GLOBAL_WCMP():
     """Configure Weighted-Cost Multi-Path (W-ECMP) feature"""
     pass
 
