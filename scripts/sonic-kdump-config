@@ -176,12 +176,12 @@ def cmd_dump_config_json():
     # remote SSH variables
     ssh_string = get_ssh_string()
     ssh_path = get_ssh_path()
-    kdump_remote = get_kdump_remote()
+    kdump_remote = get_remote()
     data = { "enable" : kdump_enabled, \
              "memory" : kdump_memory, \
              "max-dumps" : int(kdump_num_dumps), \
-             "ssh_string" : str(ssh_string), \
-             "ssh_path" : str(ssh_path), \
+             "ssh_string" : ssh_string, \
+             "ssh_path" : ssh_path, \
              "remote" : kdump_remote }
     print(json.dumps(data, indent=4))
 
@@ -234,14 +234,14 @@ def cmd_dump_status_json():
     # remote SSH variables
     ssh_string = get_ssh_string()
     ssh_path = get_ssh_path()
-    kdump_remote = get_kdump_remote()
+    kdump_remote = get_remote()
     data = { "enable" : kdump_enabled, \
              "current-state" : kdump_oper_state, \
              "memory" : kdump_memory, \
              "allocated-memory" : get_crash_kernel_size(), \
              "max-dumps" : int(kdump_num_dumps), \
-             "ssh-string" : str(ssh_string), \
-             "ssh-path" : str(ssh_path), \
+             "ssh_string" : ssh_string, \
+             "ssh_path" : ssh_path, \
              "remote" : kdump_remote }
     print(json.dumps(data, indent=4))
 
@@ -354,7 +354,7 @@ def get_ssh_path():
 #
 #  @return The if remote connection is enabled for connecting to remote server
 #          (read from running configuration)
-def get_kdump_remote():
+def get_remote():
     remote = False
     config_db = ConfigDBConnector(use_unix_socket_path=True)
     if config_db is not None:
@@ -436,91 +436,59 @@ def write_num_dumps(num_dumps):
 ## Read current value for SSH SSH kdump-ssh-connection-string in kdump config file
 #
 #  @return The string value X from SSH=X in /etc/default/kdump-tools
-def read_ssh_string_from_db():
-    config_db = ConfigDBConnector(use_unix_socket_path=True)
-    config_db.connect()
-    
-    kdump_table = config_db.get_table('KDUMP')
-    if kdump_table:
-        config_data = kdump_table.get('config')
-        if config_data:
-            return config_data.get('ssh_string')
-    return None
+def read_ssh_string():
+    (rc, lines, err_str) = run_command("grep '#*SSH=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
+    if rc == 0 and type(lines) == list and len(lines) >= 1:
+        try:
+            return int(lines[0])
+        except Exception as e:
+            print_err('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
+            sys.exit(1)
+    else:
+        print_err("Unable to read SSH from %s" % kdump_cfg)
+        sys.exit(1)
 
 ## Change the value for SSH kdump-ssh-connection-string in kdump config file /etc/default/kdump-tools
 #
 #  #param ssh-connection-string value for new value
-def write_ssh_string_to_kdump_tools():
-    ssh_string = read_ssh_string_from_db()
-    if not  ssh_string:
-        print("Error: SSH connection string not found in Config DB.")
-        return False
-        
-    try:
-        # Use sed to update the SSH connection string in the kdump-tools file
-        subprocess.run(['sudo', 'sed', '-i', 's/#SSH=.*/SSH="{}"/g'.format(    ssh_string), kdump_cfg], check=True)
-        
-        return True
-    except Exception as e:
-        print("Error: Unable to write to {}. Exception: {}".format(kdump_cfg, str(e)))
-        return False
+def write_ssh_string(ssh_string):
+    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/#*SSH=.*/SSH=%d/' %s" % (ssh_string, kdump_cfg), use_shell=False);
+    if rc == 0 and type(lines) == list and len(lines) == 0:
+        ssh_string_in_cfg = read_ssh_string()
+        if ssh_string_in_cfg != ssh_string:
+            print_err("Unable to write SSH into %s" % kdump_cfg)
+            sys.exit(1)
+    else:
+        print_err("Error while writing SSH into %s" % kdump_cfg)
+        sys.exit(1)
 
 
 ## Read current value for SSH_KEY kdump-ssh-private-key-path in kdump config file
 #
 #  @return The string value X from SSH_KEY=X in /etc/default/kdump-tools
-def read_ssh_path(kdump_cfg="/etc/default/kdump-tools"):
-    """Reads the SSH private key path from the kdump configuration file.
+def read_ssh_path():
+    (rc, lines, err_str) = run_command("grep '#*SSH_KEY=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
+    if rc == 0 and type(lines) == list and len(lines) >= 1:
+        try:
+            return int(lines[0])
+        except Exception as e:
+            print_err('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
+            sys.exit(1)
+    else:
+        print_err("Unable to read SSH_KEY from %s" % kdump_cfg)
+        sys.exit(1)
 
-    Args:
-        kdump_cfg (str, optional): The path to the kdump configuration file.
-            Defaults to "/etc/default/kdump-tools".
-
-    Returns:
-        str: The extracted SSH private key path from the file or None if not found.
-        Raises:
-            Exception: If there's an error running the grep command.
-    """
-
-    try:
-        # Construct the full command string safely
-        command = f"grep '#*SSH_KEY=.*' {kdump_cfg} | cut -d = -f 2"
-
-        # Use subprocess.run without shell execution
-        output = subprocess.run(
-            command.split(), capture_output=True, text=True, check=True
-        ).stdout.strip()
-
-        if output:
-            return output  # Existing SSH private key path found
-        else:
-            return None  # No matching line found
-
-    except subprocess.CalledProcessError as e:
-        raise Exception(f"Error reading SSH private key path from {kdump_cfg}: {str(e)}")
-
-
-def write_ssh_path(ssh_path, kdump_cfg="/etc/default/kdump-tools"):
-    """Writes the SSH private key path to the kdump configuration file.
-
-    Args:
-        ssh_path (str): The SSH private key path to write.
-        kdump_cfg (str, optional): The path to the kdump configuration file.
-            Defaults to "/etc/default/kdump-tools".
-
-    Raises:
-        Exception: If there's an error writing to the file.
-    """
-
-    try:
-        # Construct the full command as a list of arguments
-        command = ["sed", "-i", f"s|#*SSH_KEY=.*$|SSH_KEY={ssh_path}|", kdump_cfg]
-
-        # Use subprocess.run with the command list
-        subprocess.run(command, check=True)
-
-    except subprocess.CalledProcessError as e:
-        raise Exception(f"Error writing SSH private key path to {kdump_cfg}: {str(e)}")
+def write_ssh_path(ssh_path):
+    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/#*SSH_KEY=.*/SSH_KEY=%d/' %s" % (ssh_path, kdump_cfg), use_shell=False);
+    if rc == 0 and type(lines) == list and len(lines) == 0:
+        ssh_path_in_cfg = read_ssh_path()
+        if ssh_path_in_cfg != ssh_path:
+            print_err("Unable to write SSH_KEY into %s" % kdump_cfg)
+            sys.exit(1)
+    else:
+        print_err("Error while writing SSH_KEY into %s" % kdump_cfg)
+        sys.exit(1)
+        return False
 
 
 # Example usage
@@ -554,7 +522,7 @@ def kdump_remote_disable():
   """
 
   # Check if remote kdump is already enabled
-  if get_kdump_remote().lower() == "true":
+  if get_remote().lower() == "true":
     # Disable SSH key authentication
     rc = run_command("/bin/sed -i '/*SSH=\"/s/\#/' %s" % (kdump_cfg), use_shell=False)
     if rc != 0:
@@ -663,9 +631,9 @@ def cmd_kdump_enable(verbose, image):
     ##
     ssh_string = get_ssh_string()
     ssh_path = get_ssh_path()
-    remote = get_kdump_remote()
+    remote = get_remote()
     if verbose:
-        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d     ssh_string=%d     ssh_path=%d  remote=%d" % (kdump_enabled, memory, num_dumps,     ssh_string,     ssh_path, remote))
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d     ssh_string=%d     ssh_path=%d  remote=%d" % (kdump_enabled, memory, num_dumps, ssh_string, ssh_path, remote))
 
     if os.path.exists(grub_cfg):
         return kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, grub_cfg)
@@ -743,9 +711,11 @@ def cmd_kdump_disable(verbose):
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
+    ssh_path = get_ssh_path()
+    ssh_string = get_ssh_string()
 
     if verbose:
-        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps, ssh_string, ssh_path))
 
     if os.path.exists(grub_cfg):
         return kdump_disable(verbose, image, grub_cfg)
@@ -789,6 +759,24 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
         print('\n'.join(lines))
     else:
         write_num_dumps(num_dumps)
+        kdump_enabled = get_kdump_administrative_mode()
+        kdump_memory = get_kdump_memory()
+
+def cmd_ssh_string(verbose, ssh_string):
+    if ssh_string is None:
+        (rc, lines, err_str) = run_command("show kdump config", use_shell=False);
+        print('\n'.join(lines))
+    else:
+        write_num_dumps(ssh_string)
+        kdump_enabled = get_kdump_administrative_mode()
+        kdump_memory = get_kdump_memory()
+
+def cmd_ssh_path(verbose, ssh_path):
+    if ssh_path is None:
+        (rc, lines, err_str) = run_command("show kdump config", use_shell=False);
+        print('\n'.join(lines))
+    else:
+        write_num_dumps(ssh_path)
         kdump_enabled = get_kdump_administrative_mode()
         kdump_memory = get_kdump_memory()
 
@@ -869,6 +857,10 @@ def main():
             cmd_kdump_memory(options.verbose, options.memory)
         elif options.num_dumps != False:
             cmd_kdump_num_dumps(options.verbose, options.num_dumps)
+        elif options.ssh_string != False:
+            cmd_ssh_string(options.verbose, options.ssh_string)
+        elif options.ssh_path != False:
+            cmd_ssh_path(options.verbose, options.ssh_path)
         elif options.dump_db:
             cmd_dump_db()
         elif options.status_json:
