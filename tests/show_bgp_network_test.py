@@ -84,7 +84,8 @@ class TestMultiAsicBgpNetwork(object):
          ('bgp_v4_network_bestpath_asic0', 'bgp_v4_network_bestpath_asic0'),
         ('bgp_v6_network_asic0', 'bgp_v6_network_asic0'),
          ('bgp_v6_network_ip_address_asic0', 'bgp_v6_network_ip_address_asic0'),
-         ('bgp_v6_network_bestpath_asic0', 'bgp_v6_network_bestpath_asic0')],
+         ('bgp_v6_network_bestpath_asic0', 'bgp_v6_network_bestpath_asic0'),
+         ('bgp_v4_network_all', 'bgp_v4_network_all')],
         indirect=['setup_multi_asic_bgp_instance'])
     def test_bgp_network(self, setup_bgp_commands, test_vector,
                          setup_multi_asic_bgp_instance):
