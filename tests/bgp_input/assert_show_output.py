@@ -7,56 +7,56 @@ No configuration is present in CONFIG DB
 """
 
 show_device_global_all_disabled = """\
-TSA       W-ECMP
---------  --------
+TSA       ORIGINATE-BANDWIDTH
+--------  ---------------------
 disabled  disabled
 """
 show_device_global_all_disabled_json = """\
 {
     "tsa": "disabled",
-    "w-ecmp": "disabled"
+    "originate-bandwidth": "disabled"
 }
 """
 
 show_device_global_all_enabled = """\
-TSA        W-ECMP
--------  --------
-enabled         5
+TSA        ORIGINATE-BANDWIDTH
+-------  ---------------------
+enabled                      5
 """
 show_device_global_all_enabled_json = """\
 {
     "tsa": "enabled",
-    "w-ecmp": "5"
+    "originate-bandwidth": "5"
 }
 """
 
 show_device_global_tsa_enabled = """\
-TSA      W-ECMP
--------  ----------
+TSA      ORIGINATE-BANDWIDTH
+-------  ---------------------
 enabled  cumulative
 """
 show_device_global_tsa_enabled_json = """\
 {
     "tsa": "enabled",
-    "w-ecmp": "cumulative"
+    "originate-bandwidth": "cumulative"
 }
 """
 
 show_device_global_wcmp_enabled = """\
-TSA       W-ECMP
---------  --------------
+TSA       ORIGINATE-BANDWIDTH
+--------  ---------------------
 disabled  num_multipaths
 """
 show_device_global_wcmp_enabled_json = """\
 {
     "tsa": "disabled",
-    "w-ecmp": "num_multipaths"
+    "originate-bandwidth": "num_multipaths"
 }
 """
 
 show_device_global_all_disabled_multi_asic = """\
-ASIC ID    TSA       W-ECMP
----------  --------  --------
+ASIC ID    TSA       ORIGINATE-BANDWIDTH
+---------  --------  ---------------------
 asic0      disabled  disabled
 asic1      disabled  disabled
 """
@@ -64,37 +64,37 @@ show_device_global_all_disabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "disabled",
-        "w-ecmp": "disabled"
+        "originate-bandwidth": "disabled"
     },
     "asic1": {
         "tsa": "disabled",
-        "w-ecmp": "disabled"
+        "originate-bandwidth": "disabled"
     }
 }
 """
 
 show_device_global_all_enabled_multi_asic = """\
-ASIC ID    TSA        W-ECMP
----------  -------  --------
-asic0      enabled         5
-asic1      enabled         5
+ASIC ID    TSA        ORIGINATE-BANDWIDTH
+---------  -------  ---------------------
+asic0      enabled                      5
+asic1      enabled                      5
 """
 show_device_global_all_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "5"
+        "originate-bandwidth": "5"
     },
     "asic1": {
         "tsa": "enabled",
-        "w-ecmp": "5"
+        "originate-bandwidth": "5"
     }
 }
 """
 
 show_device_global_tsa_enabled_multi_asic = """\
-ASIC ID    TSA      W-ECMP
----------  -------  ----------
+ASIC ID    TSA      ORIGINATE-BANDWIDTH
+---------  -------  ---------------------
 asic0      enabled  cumulative
 asic1      enabled  cumulative
 """
@@ -102,18 +102,18 @@ show_device_global_tsa_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "cumulative"
+        "originate-bandwidth": "cumulative"
     },
     "asic1": {
         "tsa": "enabled",
-        "w-ecmp": "cumulative"
+        "originate-bandwidth": "cumulative"
     }
 }
 """
 
 show_device_global_wcmp_enabled_multi_asic = """\
-ASIC ID    TSA       W-ECMP
----------  --------  --------------
+ASIC ID    TSA       ORIGINATE-BANDWIDTH
+---------  --------  ---------------------
 asic0      disabled  num_multipaths
 asic1      disabled  num_multipaths
 """
@@ -121,18 +121,18 @@ show_device_global_wcmp_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "disabled",
-        "w-ecmp": "num_multipaths"
+        "originate-bandwidth": "num_multipaths"
     },
     "asic1": {
         "tsa": "disabled",
-        "w-ecmp": "num_multipaths"
+        "originate-bandwidth": "num_multipaths"
     }
 }
 """
 
 show_device_global_opposite_multi_asic = """\
-ASIC ID    TSA       W-ECMP
----------  --------  --------------
+ASIC ID    TSA       ORIGINATE-BANDWIDTH
+---------  --------  ---------------------
 asic0      enabled   cumulative
 asic1      disabled  num_multipaths
 """
@@ -140,11 +140,11 @@ show_device_global_opposie_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "w-ecmp": "cumulative"
+        "originate-bandwidth": "cumulative"
     },
     "asic1": {
         "tsa": "disabled",
-        "w-ecmp": "num_multipaths"
+        "originate-bandwidth": "num_multipaths"
     }
 }
 """

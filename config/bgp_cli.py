@@ -91,13 +91,13 @@ def tsa_handler(ctx, db, state):
         ctx.fail(str(e))
 
 
-def wcmp_handler(ctx, db, state):
-    """ Handle config updates for Weighted-Cost Multi-Path (W-ECMP) feature """
+def originate_bandwidth_handler(ctx, db, state):
+    """ Handle config updates for originate_bandwidth for Weighted-Cost Multi-Path (W-ECMP) feature """
 
     table = CFG_BGP_DEVICE_GLOBAL
     key = BGP_DEVICE_GLOBAL_KEY
     data = {
-        "wcmp_enabled": state,
+        "originate_bandwidth": state,
     }
 
     try:
@@ -107,9 +107,13 @@ def wcmp_handler(ctx, db, state):
             key,
             data,
             create_if_not_exists=True)
-        log.log_notice("Configured W-ECMP state: {}".format(to_str(state)))
+        log.log_notice(
+            "Configured originate_bandwidth state: {}".format(
+                to_str(state)))
     except Exception as e:
-        log.log_error("Failed to configure W-ECMP state: {}".format(str(e)))
+        log.log_error(
+            "Failed to configure originate_bandwidth state: {}".format(
+                str(e)))
         ctx.fail(str(e))
 
 #
@@ -165,7 +169,7 @@ def DEVICE_GLOBAL_TSA_DISABLED(ctx, db):
 
 
 #
-# BGP device-global w-ecmp -----------------------------------------------
+# BGP device-global w-ecmp originate-bandwidth ---------------------------
 #
 
 
@@ -178,43 +182,52 @@ def DEVICE_GLOBAL_WCMP():
     pass
 
 
-@DEVICE_GLOBAL_WCMP.command(
+@DEVICE_GLOBAL_WCMP.group(
+    name="originate-bandwidth",
+    cls=clicommon.AliasedGroup
+)
+def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH():
+    """Configure Originate Bandwidth via (W-ECMP) feature"""
+    pass
+
+
+@DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH.command(
     name="cumulative"
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_CUMULATIVE(ctx, db):
+def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_CUMULATIVE(ctx, db):
     """Cumulative bandwidth of all multipaths"""
-    wcmp_handler(ctx, db, "cumulative")
+    originate_bandwidth_handler(ctx, db, "cumulative")
 
 
-@DEVICE_GLOBAL_WCMP.command(
+@DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH.command(
     name="num-multipaths"
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_NUM_MULTIPATHS(ctx, db):
+def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_NUM_MULTIPATHS(ctx, db):
     """Bandwidth based on number of multipaths"""
-    wcmp_handler(ctx, db, "num_multipaths")
+    originate_bandwidth_handler(ctx, db, "num_multipaths")
 
 
-@DEVICE_GLOBAL_WCMP.command(
+@DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH.command(
     name="disabled"
 )
 @clicommon.pass_db
 @click.pass_context
-def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
+def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
-    wcmp_handler(ctx, db, "false")
+    originate_bandwidth_handler(ctx, db, "false")
 
 
-@DEVICE_GLOBAL_WCMP.command(
+@DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH.command(
     name="set-bandwidth"
 )
 @clicommon.pass_db
 @click.pass_context
 @click.argument("bandwidth", required=True, type=str)
-def set_weight(ctx, db, bandwidth):
+def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_SET_BANDWIDTH(ctx, db, bandwidth):
     """(1-25600) Set bandwidth for W-ECMP"""
     try:
         bandwidth = int(bandwidth)
@@ -224,4 +237,4 @@ def set_weight(ctx, db, bandwidth):
     if not (1 <= bandwidth <= 25600):
         raise click.BadParameter('Bandwidth must be between 1 and 25600.')
 
-    wcmp_handler(ctx, db, str(bandwidth))
+    originate_bandwidth_handler(ctx, db, str(bandwidth))

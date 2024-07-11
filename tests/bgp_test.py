@@ -29,7 +29,9 @@ class TestBgp:
 
     @classmethod
     def teardown_class(cls):
-        logger.info("Teardown class: {}".format(cls.__name__))
+        logger.info(
+            "Teardown class: {}".format(
+                cls.__name__))
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs.clear()
 
@@ -68,24 +70,27 @@ class TestBgp:
             "set-bandwidth"
         ]
     )
-    def test_config_device_global_wcmp(self, state):
+    def test_config_device_global_originate_bandwidth(
+            self,
+            state):
         db = Db()
         runner = CliRunner()
 
         if state == "set-bandwidth":
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-bandwidth"],
+                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands["set-bandwidth"],
                 ["10"],
                 obj=db)
         else:
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands[state],
+                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands[state],
                 obj=db)
 
         logger.debug("\n" + result.output)
         logger.debug(result.exit_code)
 
-        assert result.exit_code == SUCCESS  # Ensure SUCCESS is defined appropriately
+        # Ensure SUCCESS is defined appropriately
+        assert result.exit_code == SUCCESS
 
     @pytest.mark.parametrize(
         "bandwidth, expected_error", [
@@ -101,7 +106,7 @@ class TestBgp:
         runner = CliRunner()
 
         result = runner.invoke(
-            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-bandwidth"],
+            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands["set-bandwidth"],
             ['--', bandwidth],
             obj=db
         )
@@ -146,7 +151,8 @@ class TestBgp:
             "json",
         ]
     )
-    def test_show_device_global(self, cfgdb, output, format):
+    def test_show_device_global(
+            self, cfgdb, output, format):
         dbconnector.dedicated_dbs["CONFIG_DB"] = cfgdb
 
         db = Db()
@@ -154,8 +160,8 @@ class TestBgp:
 
         result = runner.invoke(
             show.cli.commands["bgp"].commands["device-global"],
-            [] if format == "plain" else ["--json"], obj=db
-        )
+            [] if format == "plain" else ["--json"],
+            obj=db)
 
         logger.debug("\n" + result.output)
         logger.debug(result.exit_code)
