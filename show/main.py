@@ -1187,7 +1187,7 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
-elif device_info.is_chassis():
+elif device_info.is_supervisor():
     from .bgp_frr_v4 import bgp
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp

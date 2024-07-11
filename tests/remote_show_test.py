@@ -1,16 +1,10 @@
-import importlib
-import pytest
 import mock
 import paramiko
-from io import BytesIO, StringIO
+from io import BytesIO
 from click.testing import CliRunner
 
-from rcli import rexec
-
 def mock_exec_command():
-
     mock_stdout = BytesIO(b"""hello world""")
-    mock_stderr = BytesIO()
     return '', mock_stdout, None
 
 def mock_exec_error_cmd():
@@ -44,8 +38,8 @@ class TestRexecBgpNetwork(object):
     def test_show_ip_bgp_rexec(self, setup_bgp_commands):
         show = setup_bgp_commands
         runner = CliRunner()
-        
-        result = runner.invoke(show.commands["ip"].commands["bgp"])
+
+        result = runner.invoke(show.cli.commands["ip"].commands["bgp"])
         print(result.output)
         assert result.exit_code == 0, result.output
         assert MULTI_LC_REXEC_OUTPUT == result.output
@@ -59,8 +53,8 @@ class TestRexecBgpNetwork(object):
     def test_show_ip_bgp_error_rexec(self, setup_bgp_commands):
         show = setup_bgp_commands
         runner = CliRunner()
-        
-        result = runner.invoke(show.commands["ip"].commands["bgp"])
+
+        result = runner.invoke(show.cli.commands["ip"].commands["bgp"])
         print(result.output)
         assert result.exit_code == 0, result.output
         assert MULTI_LC_ERR_OUTPUT == result.output
