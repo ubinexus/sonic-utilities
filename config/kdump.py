@@ -117,8 +117,8 @@ def kdump_remote(db, action):
         click.echo("Error: Kdump Remote Mode is already disabled.")
         return
 
-    remote_enabled = 'true' if action.lower() == 'enable' else 'false'
-    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote_enabled})
+    remote = 'true' if action.lower() == 'enable' else 'false'
+    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
     echo_reboot_warning()
 
 #
@@ -130,7 +130,7 @@ def kdump_remote(db, action):
 @click.argument('item', type=click.Choice(['ssh_connection_string']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
-def ssh_connection_string(db, item, value):
+def add_ssh_connection_string(db, item, value):
     """Add configuration item for kdump"""
     if item == 'ssh_connection_string':
         kdump_table = db.cfgdb.get_table("KDUMP")
@@ -171,7 +171,7 @@ def remove_ssh_connection_string(db, item):
             return
 
         # Remove SSH connection string from config_db
-        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": None})
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_connection_string": ""})
         click.echo("SSH connection string removed successfully.")
         echo_reboot_warning()
     else:
@@ -211,7 +211,7 @@ def add_ssh_private_key_path(db, item, value):
         click.echo(f"Error: '{item}' is not a valid configuration item for kdump.")
 
 
-@kdump.command(name="remove", short_help="Add ssh private key path")
+@kdump.command(name="remove", short_help="Remove ssh private key path")
 @click.argument('item', type=click.Choice(['ssh_private_key_path']))
 @pass_db
 def remove_ssh_private_key_path(db, item):
@@ -227,7 +227,7 @@ def remove_ssh_private_key_path(db, item):
             return
 
         # Remove SSH connection string from config_db
-        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": None})
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_private_key_path": ""})
         click.echo("SSH key path removed successfully.")
         echo_reboot_warning()
     else:
