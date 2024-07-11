@@ -87,16 +87,16 @@ class TestBgp:
             "cumulative",
             "num-multipaths",
             "disabled",
-            "set-weight"
+            "set-bandwidth"
         ]
     )
     def test_config_device_global_wcmp(self, state):
         db = Db()
         runner = CliRunner()
 
-        if state == "set-weight":
+        if state == "set-bandwidth":
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-weight"],
+                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-bandwidth"],
                 ["10"],
                 obj=db)
         else:
@@ -110,21 +110,21 @@ class TestBgp:
         assert result.exit_code == SUCCESS  # Ensure SUCCESS is defined appropriately
 
     @pytest.mark.parametrize(
-        "weight, expected_error", [
-            ("abc", "Weight must be an integer."),
-            ("-1", "Weight must be between 1 and 25600."),
-            ("0", "Weight must be between 1 and 25600."),
-            ("25601", "Weight must be between 1 and 25600."),
+        "bandwidth, expected_error", [
+            ("abc", "Bandwidth must be an integer."),
+            ("-1", "Bandwidth must be between 1 and 25600."),
+            ("0", "Bandwidth must be between 1 and 25600."),
+            ("25601", "Bandwidth must be between 1 and 25600."),
         ]
     )
     def test_config_device_global_wcmp_invalid_weights(
-            self, weight, expected_error):
+            self, bandwidth, expected_error):
         db = Db()
         runner = CliRunner()
 
         result = runner.invoke(
-            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-weight"],
-            ['--', weight],
+            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["set-bandwidth"],
+            ['--', bandwidth],
             obj=db
         )
 

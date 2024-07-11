@@ -235,22 +235,22 @@ def DEVICE_GLOBAL_WCMP_DISABLED(ctx, db):
 
 
 @DEVICE_GLOBAL_WCMP.command(
-    name="set-weight"
+    name="set-bandwidth"
 )
 @clicommon.pass_db
 @click.pass_context
-@click.argument("weight", required=True, type=str)
-def set_weight(ctx, db, weight):
-    """Set weight for W-ECMP"""
+@click.argument("bandwidth", required=True, type=str)
+def set_weight(ctx, db, bandwidth):
+    """(1-25600) Set bandwidth for W-ECMP"""
     try:
-        weight = int(weight)
+        bandwidth = int(bandwidth)
     except ValueError:
-        raise click.BadParameter('Weight must be an integer.')
+        raise click.BadParameter('Bandwidth must be an integer.')
 
-    if not (1 <= weight <= 25600):
-        raise click.BadParameter('Weight must be between 1 and 25600.')
+    if not (1 <= bandwidth <= 25600):
+        raise click.BadParameter('Bandwidth must be between 1 and 25600.')
 
-    wcmp_handler(ctx, db, str(weight))
+    wcmp_handler(ctx, db, str(bandwidth))
 
 
 #
