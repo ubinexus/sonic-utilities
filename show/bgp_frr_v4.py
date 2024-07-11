@@ -1,11 +1,13 @@
 import click
+import sys
 
-from sonic_py_common import multi_asic
+from sonic_py_common import multi_asic, device_info
 from show.main import ip
 import utilities_common.bgp_util as bgp_util
 import utilities_common.cli as clicommon
 import utilities_common.constants as constants
 import utilities_common.multi_asic as multi_asic_util
+import rcli.rexec
 
 ###############################################################################
 #
@@ -17,6 +19,11 @@ import utilities_common.multi_asic as multi_asic_util
 @ip.group(cls=clicommon.AliasedGroup)
 def bgp():
     """Show IPv4 BGP (Border Gateway Protocol) information"""
+    if device_info.is_supervisor():
+        # if the device is a chassis, the command need to be executed by rexec
+        click.echo("Since the current device is a chassis supervisor, this command will be executed remotely on all linecards")
+        rcli.rexec.cli("all", " ".join(sys.argv))
+        sys.exit(0)
     pass
 
 
@@ -102,10 +109,15 @@ def neighbors(ipaddress, info_type, namespace):
 def network(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP network"""
 
-    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
-        ctx = click.get_current_context()
-        ctx.fail('-n/--namespace option required. provide namespace from list {}'\
-            .format(multi_asic.get_namespace_list()))
+    if multi_asic.is_multi_asic():
+        if namespace == multi_asic.DEFAULT_NAMESPACE:
+            ctx = click.get_current_context()
+            ctx.fail('-n/--namespace option required. provide namespace from list {}'\
+                .format(multi_asic.get_namespace_list()))
+        if namespace != "all" and namespace not in multi_asic.get_namespace_list():
+            ctx = click.get_current_context()
+            ctx.fail('invalid namespace. provide namespace from list {}'\
+                .format(multi_asic.get_namespace_list()))
 
     command = 'show ip bgp'
     if ipaddress is not None:
@@ -125,5 +137,15 @@ def network(ipaddress, info_type, namespace):
         if info_type is not None:
             command += ' {}'.format(info_type)
 
-    output  =  bgp_util.run_bgp_show_command(command, namespace)
-    click.echo(output.rstrip('\n'))
+    if namespace == "all":
+        if multi_asic.is_multi_asic():
+            for ns in multi_asic.get_namespace_list():
+                click.echo("======== namespace {} ========".format(ns))
+                output = bgp_util.run_bgp_show_command(command, ns)
+                click.echo(output.rstrip('\n'))
+        else:
+            output = bgp_util.run_bgp_show_command(command, "")
+            click.echo(output.rstrip('\n'))
+    else:
+        output = bgp_util.run_bgp_show_command(command, namespace)
+        click.echo(output.rstrip('\n'))
