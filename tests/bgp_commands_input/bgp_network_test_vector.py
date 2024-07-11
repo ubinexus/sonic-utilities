@@ -605,7 +605,7 @@ testData = {
         'rc_output': bgp_v4_network_bestpath_asic0
     },
     'bgp_v4_network_all_asic': {
-        'args': ['-n all'],
+        'args': ['-nall'],
         'rc': 0,
         'rc_output': bgp_v4_network_all_asic
     },

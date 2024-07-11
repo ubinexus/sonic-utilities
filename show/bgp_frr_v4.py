@@ -110,6 +110,7 @@ def neighbors(ipaddress, info_type, namespace):
 def network(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP network"""
 
+    namespace = namespace.strip()
     if multi_asic.is_multi_asic():
         if namespace == multi_asic.DEFAULT_NAMESPACE:
             ctx = click.get_current_context()
