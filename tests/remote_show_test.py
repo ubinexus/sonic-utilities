@@ -39,7 +39,7 @@ class TestRexecBgpNetwork(object):
         show = setup_bgp_commands
         runner = CliRunner()
 
-        result = runner.invoke(show.cli.commands["ip"].commands["bgp"].commands["summary"])
+        result = runner.invoke(show.cli.commands["ip"].commands["bgp"], args=["summary"])
         print(result.output)
         assert result.exit_code == 0, result.output
         assert MULTI_LC_REXEC_OUTPUT == result.output
@@ -54,7 +54,7 @@ class TestRexecBgpNetwork(object):
         show = setup_bgp_commands
         runner = CliRunner()
 
-        result = runner.invoke(show.cli.commands["ip"].commands["bgp"].commands["summary"])
+        result = runner.invoke(show.cli.commands["ip"].commands["bgp"], args=["summary"])
         print(result.output)
         assert result.exit_code == 0, result.output
         assert MULTI_LC_ERR_OUTPUT == result.output
