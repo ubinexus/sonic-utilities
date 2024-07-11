@@ -11,11 +11,15 @@ from .mock_tables import dbconnector
 from .bgp_input import assert_show_output
 
 
-test_path = os.path.dirname(os.path.abspath(__file__))
-input_path = os.path.join(test_path, "bgp_input")
-mock_config_path = os.path.join(input_path, "mock_config")
+test_path = os.path.dirname(
+    os.path.abspath(__file__))
+input_path = os.path.join(
+    test_path, "bgp_input")
+mock_config_path = os.path.join(
+    input_path, "mock_config")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(
+    __name__)
 
 
 SUCCESS = 0
@@ -23,12 +27,16 @@ SUCCESS = 0
 
 class TestBgp:
     @classmethod
-    def setup_class(cls):
-        logger.info("Setup class: {}".format(cls.__name__))
+    def setup_class(
+            cls):
+        logger.info(
+            "Setup class: {}".format(
+                cls.__name__))
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
 
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(
+            cls):
         logger.info(
             "Teardown class: {}".format(
                 cls.__name__))
@@ -48,7 +56,8 @@ class TestBgp:
             "disabled"
         ]
     )
-    def test_config_device_global_tsa(self, feature, state):
+    def test_config_device_global_tsa(
+            self, feature, state):
         db = Db()
         runner = CliRunner()
 
@@ -57,8 +66,11 @@ class TestBgp:
             commands[feature].commands[state], obj=db
         )
 
-        logger.debug("\n" + result.output)
-        logger.debug(result.exit_code)
+        logger.debug(
+            "\n" +
+            result.output)
+        logger.debug(
+            result.exit_code)
 
         assert result.exit_code == SUCCESS
 
@@ -100,18 +112,27 @@ class TestBgp:
 
         if state == "set-bandwidth":
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands["set-bandwidth"],
+                config.config.commands["bgp"].commands["device-global"]
+                .commands["w-ecmp"].commands["originate-bandwidth"].commands["set-bandwidth"],
                 ["10"],
                 obj=db)
         else:
             result = runner.invoke(
-                config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands[state],
+                config.config.commands["bgp"].commands["device-global"]
+                .commands["w-ecmp"].commands["originate-bandwidth"].commands[state],
                 obj=db)
 
-        logger.debug("\n" + result.output)
-        logger.debug(result.exit_code)
+        logger.debug(
+            "\n" +
+            result.output)
+        logger.debug(
+            result.exit_code)
 
-        # Ensure SUCCESS is defined appropriately
+        # Ensure
+        # SUCCESS
+        # is
+        # defined
+        # appropriately
         assert result.exit_code == SUCCESS
 
     @pytest.mark.parametrize(
@@ -128,13 +149,17 @@ class TestBgp:
         runner = CliRunner()
 
         result = runner.invoke(
-            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"].commands["originate-bandwidth"].commands["set-bandwidth"],
+            config.config.commands["bgp"].commands["device-global"].commands["w-ecmp"]
+            .commands["originate-bandwidth"].commands["set-bandwidth"],
             ['--', bandwidth],
             obj=db
         )
 
-        logger.debug("\n" + result.output)
-        logger.debug(result.exit_code)
+        logger.debug(
+            "\n" +
+            result.output)
+        logger.debug(
+            result.exit_code)
 
         assert expected_error in result.output
         assert result.exit_code == click.exceptions.BadParameter.exit_code
@@ -169,10 +194,7 @@ class TestBgp:
                                               id="w-ecmp-enabled-and-bandwidth-default-weight")])
     @pytest.mark.parametrize(
         "format", [
-            "plain",
-            "json",
-        ]
-    )
+            "plain", "json", ])
     def test_show_device_global(
             self, cfgdb, output, format):
         dbconnector.dedicated_dbs["CONFIG_DB"] = cfgdb
@@ -185,8 +207,11 @@ class TestBgp:
             [] if format == "plain" else ["--json"],
             obj=db)
 
-        logger.debug("\n" + result.output)
-        logger.debug(result.exit_code)
+        logger.debug(
+            "\n" +
+            result.output)
+        logger.debug(
+            result.exit_code)
 
         assert result.output == output[format]
         assert result.exit_code == SUCCESS
