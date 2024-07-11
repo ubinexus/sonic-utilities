@@ -125,6 +125,7 @@ def kdump_remote(db, action):
 # 'add_ssh_string' command ('sudo config kdump add ssh_connection_string ...')
 #
 
+
 @kdump.command(name="add", short_help="Add ssh connection string.")
 @click.argument('item', type=click.Choice(['ssh_connection_string']))
 @click.argument('value', metavar='<value>', required=True)
@@ -154,6 +155,7 @@ def add_ssh_string(db, item, value):
 # 'remove_ssh_string' command ('sudo config kdump remove ssh_connection_string ...')
 #
 
+
 @kdump.command(name="remove", short_help="Remove ssh connection string.")
 @click.argument('item', type=click.Choice(['ssh_connection_string']))
 @pass_db
@@ -176,6 +178,7 @@ def remove_ssh_string(db, item):
 #
 # 'add_ssh_path' command ('sudo config kdump add ssh_private_key_path ...')
 #
+
 
 @kdump.command(name="add", short_help="Add ssh private key path.")
 @click.argument('item', type=click.Choice(['ssh_private_key_path']))
@@ -205,6 +208,7 @@ def add_ssh_path(db, item, value):
 #
 # 'remove_ssh_path' command ('sudo config kdump remove ssh_private_key_path ...')
 #
+
 
 @kdump.command(name="remove", short_help="Remove ssh private key path")
 @click.argument('item', type=click.Choice(['ssh_private_key_path']))
