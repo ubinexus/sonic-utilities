@@ -311,7 +311,7 @@ Paths: (2 available, best #2, table default, not advertised outside local AS)
       Last update: Thu Apr 22 02:13:30 2021 
 """
 
-bgp_v4_network_all = \
+bgp_v4_network_all_asic = \
 """
 ======== namespace asic0 ========
 BGP table version is 11256, local router ID is 10.1.0.32, vrf id 0
@@ -531,7 +531,7 @@ def mock_show_bgp_network_multi_asic(param):
         return bgp_v6_network_ip_address_asic0
     elif param == 'bgp_v6_network_bestpath_asic0':
         return bgp_v6_network_ip_address_asic0_bestpath
-    elif param == "bgp_v4_network_all":
+    elif param == "bgp_v4_network_all_asic":
         # this is mocking the output of a single LC
         return bgp_v4_network_asic0
     else:
@@ -604,10 +604,10 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v4_network_bestpath_asic0
     },
-    'bgp_v4_network_all': {
+    'bgp_v4_network_all_asic': {
         'args': ['-n all'],
         'rc': 0,
-        'rc_output': bgp_v4_network_all
+        'rc_output': bgp_v4_network_all_asic
     },
     'bgp_v6_network_multi_asic': {
         'args': [],

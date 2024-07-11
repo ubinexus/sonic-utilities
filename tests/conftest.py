@@ -390,7 +390,8 @@ def setup_multi_asic_bgp_instance(request):
         return ["asic0", "asic1"]
 
     # mock multi-asic list
-    multi_asic.get_namespace_list = mock_multi_asic_list
+    if request.param.endswith("all_asic"):
+        multi_asic.get_namespace_list = mock_multi_asic_list
 
     _old_run_bgp_command = bgp_util.run_bgp_command
     if request.param == 'ip_route_for_int_ip':

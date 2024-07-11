@@ -38,7 +38,7 @@ class TestRexecBgpNetwork(object):
     @mock.patch("sonic_py_common.device_info.is_supervisor", mock.MagicMock(return_value=True))
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     @mock.patch("rcli.utils.get_password", mock.MagicMock(return_value="dummy"))
-    @mock.patch("rcli_utils.get_all_linecards", mock.MagicMock(return_value=["LINE-CARD0", "LINE-CARD1"]))
+    @mock.patch("rcli.utils.get_all_linecards", mock.MagicMock(return_value=["LINE-CARD0", "LINE-CARD1"]))
     @mock.patch.object(paramiko.SSHClient, 'connect', mock.MagicMock())
     @mock.patch.object(paramiko.SSHClient, 'exec_command', mock.MagicMock(return_value=mock_exec_command()))
     def test_show_ip_bgp_rexec(self, setup_bgp_commands):
@@ -53,7 +53,7 @@ class TestRexecBgpNetwork(object):
     @mock.patch("sonic_py_common.device_info.is_supervisor", mock.MagicMock(return_value=True))
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     @mock.patch("rcli.utils.get_password", mock.MagicMock(return_value="dummy"))
-    @mock.patch("rcli_utils.get_all_linecards", mock.MagicMock(return_value=["LINE-CARD0", "LINE-CARD1"]))
+    @mock.patch("rcli.utils.get_all_linecards", mock.MagicMock(return_value=["LINE-CARD0", "LINE-CARD1"]))
     @mock.patch.object(paramiko.SSHClient, 'connect', mock.MagicMock())
     @mock.patch.object(paramiko.SSHClient, 'exec_command', mock.MagicMock(return_value=mock_exec_error_cmd()))
     def test_show_ip_bgp_error_rexec(self, setup_bgp_commands):
