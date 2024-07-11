@@ -65,12 +65,16 @@ def DEVICE_GLOBAL(ctx, db, json_format):
 
     if multi_asic.is_multi_asic():
         masic = True
-        header = ["ASIC ID", "TSA", "W-ECMP", "BANDWIDTH"]
+        header = [
+            "ASIC ID",
+            "TSA",
+            "ORIGINATE-BANDWIDTH",
+            "RECEIVED-BANDWIDTH"]
         namespaces = multi_asic.get_namespace_list()
     else:
         masic = False
-        header = ["TSA", "W-ECMP", "BANDWIDTH"]
-        namespaces = [multi_asic.DEFAULT_NAMESPACE]
+        header = ["TSA", "ORIGINATE-BANDWIDTH", "RECEIVED-BANDWIDTH"]
+        namespaces = multi_asic.get_namespace_list()
 
     for ns in namespaces:
         config_db = db.cfgdb_clients[ns]
@@ -93,20 +97,20 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                         }
                     )
                 ),
-                "w-ecmp": to_str(
+                "originate-bandwidth": to_str(
                     format_attr_value(
                         entry,
                         {
-                            'name': 'wcmp_enabled',
+                            'name': 'originate_bandwidth',
                             'is-leaf-list': False
                         }
                     )
                 ),
-                "bandwidth": to_str(
+                "received-bandwidth": to_str(
                     format_attr_value(
                         entry,
                         {
-                            'name': 'bestpath_bandwidth',
+                            'name': 'received_bandwidth',
                             'is-leaf-list': False
                         }
                     )
@@ -132,7 +136,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                     format_attr_value(
                         entry,
                         {
-                            'name': 'wcmp_enabled',
+                            'name': 'originate_bandwidth',
                             'is-leaf-list': False
                         }
                     )
@@ -141,7 +145,7 @@ def DEVICE_GLOBAL(ctx, db, json_format):
                     format_attr_value(
                         entry,
                         {
-                            'name': 'bestpath_bandwidth',
+                            'name': 'received_bandwidth',
                             'is-leaf-list': False
                         }
                     )
