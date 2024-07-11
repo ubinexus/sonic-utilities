@@ -500,11 +500,11 @@ def read_ssh_path(kdump_cfg="/etc/default/kdump-tools"):
         raise Exception(f"Error reading SSH private key path from {kdump_cfg}: {str(e)}")
 
 
-def write_ssh_path(    ssh_path, kdump_cfg="/etc/default/kdump-tools"):
+def write_ssh_path(ssh_path, kdump_cfg="/etc/default/kdump-tools"):
     """Writes the SSH private key path to the kdump configuration file.
 
     Args:
-            ssh_path (str): The SSH private key path to write.
+        ssh_path (str): The SSH private key path to write.
         kdump_cfg (str, optional): The path to the kdump configuration file.
             Defaults to "/etc/default/kdump-tools".
 
@@ -513,22 +513,28 @@ def write_ssh_path(    ssh_path, kdump_cfg="/etc/default/kdump-tools"):
     """
 
     try:
-        # Construct the full command string safely
-        command = f"sed -i 's/#*SSH_KEY=.*$/SSH_KEY={ssh_path}/' {kdump_cfg}"
+        # Construct the full command as a list of arguments
+        command = ["sed", "-i", f"s|#*SSH_KEY=.*$|SSH_KEY={ssh_path}|", kdump_cfg]
 
-        # Use subprocess.run without shell execution
-        subprocess.run(command.split(), check=True)
+        # Use subprocess.run with the command list
+        subprocess.run(command, check=True)
 
     except subprocess.CalledProcessError as e:
         raise Exception(f"Error writing SSH private key path to {kdump_cfg}: {str(e)}")
 
 
 # Example usage
+def get_ssh_path():
+    # This is a placeholder for the function that retrieves the SSH path.
+    # Replace it with the actual implementation.
+    return "/root/.ssh/kdump_id_rsa"
+
 ssh_path = get_ssh_path()
 
 # Write the retrieved value to kdump_cfg only if it's not the default value
-if  ssh_path != "/root/.ssh/kdump_id_rsa --default, please change--":
+if ssh_path != "/root/.ssh/kdump_id_rsa":
     write_ssh_path(ssh_path)
+
 
 # Now you can potentially read the written value using read_ssh_path(kdump_cfg)
 
