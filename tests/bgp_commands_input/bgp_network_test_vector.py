@@ -227,7 +227,7 @@ Paths: (4 available, best #4, table default)
 multi_asic_bgp_network_err = \
 """Error: -n/--namespace option required. provide namespace from list ['asic0', 'asic1']"""
 
-multi_asic_bgp_network_err = \
+multi_asic_bgp_network_asic_unknown_err = \
 """Error: invalid namespace asic_unknown. provide namespace from list ['asic0', 'asic1']"""
 
 bgp_v4_network_asic0 = \
@@ -621,9 +621,9 @@ testData = {
         'rc_output': bgp_v4_network_all_asic
     },
     'bgp_v4_network_asic_unknown': {
-        'args': ['-nasic_unkown'],
+        'args': ['-nasic_unknown'],
         'rc': 2,
-        'rc_err_msg': multi_asic_bgp_network_err
+        'rc_err_msg': multi_asic_bgp_network_asic_unknown_err
     },
     'bgp_v6_network_multi_asic': {
         'args': [],
