@@ -227,6 +227,9 @@ Paths: (4 available, best #4, table default)
 multi_asic_bgp_network_err = \
 """Error: -n/--namespace option required. provide namespace from list ['asic0', 'asic1']"""
 
+multi_asic_bgp_network_err = \
+"""Error: invalid namespace asic_unknown. provide namespace from list ['asic0', 'asic1']"""
+
 bgp_v4_network_asic0 = \
 """
 BGP table version is 11256, local router ID is 10.1.0.32, vrf id 0
@@ -562,6 +565,11 @@ testData = {
         'rc': 1,
         'rc_output': bgp_v4_network_longer_prefixes_error
     },
+    'bgp_v4_network_all_asic_on_single_asic': {
+        'args': ['-nall'],
+        'rc': 0,
+        'rc_output': bgp_v4_network
+    },
     'bgp_v6_network': {
         'args': [],
         'rc': 0,
@@ -611,6 +619,11 @@ testData = {
         'args': ['-nall'],
         'rc': 0,
         'rc_output': bgp_v4_network_all_asic
+    },
+    'bgp_v4_network_asic_unknown': {
+        'args': ['-nasic_unkown'],
+        'rc': 2,
+        'rc_err_msg': multi_asic_bgp_network_err
     },
     'bgp_v6_network_multi_asic': {
         'args': [],
