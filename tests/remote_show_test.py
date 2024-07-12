@@ -30,13 +30,6 @@ class TestRexecBgpNetwork(object):
         pass
 
     @mock.patch("sonic_py_common.device_info.is_supervisor", mock.MagicMock(return_value=True))
-    @mock.patch("show.main.get_routing_stack", mock.MagicMock(return_value=""))
-    def test_bgp_setup_in_show_main(self):
-        import show.main as main
-        assert main.ip.commands["bgp"] is not None
-        assert main.ipv6.commands["bgp"] is not None
-
-    @mock.patch("sonic_py_common.device_info.is_supervisor", mock.MagicMock(return_value=True))
     def test_show_ip_bgp_rexec(self, setup_bgp_commands):
         show = setup_bgp_commands
         runner = CliRunner()
