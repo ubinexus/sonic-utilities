@@ -4,21 +4,22 @@ from io import BytesIO
 from click.testing import CliRunner
 
 
-def mock_rexec_command():
+def mock_rexec_command(*args):
     mock_stdout = BytesIO(b"""hello world""")
     print(mock_stdout.getvalue().decode())
     return subprocess.CompletedProcess(args=[], returncode=0, stdout=mock_stdout, stderr=BytesIO())
 
-def mock_rexec_error_cmd():
-
+def mock_rexec_error_cmd(*args):
     mock_stderr = BytesIO(b"""Error""")
     print(mock_stderr.getvalue().decode())
     return subprocess.CompletedProcess(args=[], returncode=1, stdout=BytesIO(), stderr=mock_stderr)
 
 
-MULTI_LC_REXEC_OUTPUT = '''hello world'''
+MULTI_LC_REXEC_OUTPUT = '''Since the current device is a chassis supervisor, this command will be executed remotely on all linecards
+hello world'''
 
-MULTI_LC_ERR_OUTPUT = '''Error'''
+MULTI_LC_ERR_OUTPUT = '''Since the current device is a chassis supervisor, this command will be executed remotely on all linecards
+Error'''
 
 class TestRexecBgpNetwork(object):
     @classmethod
