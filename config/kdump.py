@@ -144,8 +144,8 @@ def add_kdump_item(db, item, value):
     # Check if the item is already added
     existing_value = kdump_table.get("config", {}).get(item)
     if existing_value:
-        click.echo(f"Error: {item.replace('_', ' ').capitalize()} is already added.\
-                    \Please remove it first before adding a new one.")
+        click.echo(f"Error: {item.replace('_', ' ').capitalize()} is already added."
+                   "Please remove it first before adding a new one.")
         return
 
     # Add item to config_db
