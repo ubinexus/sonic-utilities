@@ -9,6 +9,7 @@ def mock_rexec_command(*args):
     print(mock_stdout.getvalue().decode())
     return subprocess.CompletedProcess(args=[], returncode=0, stdout=mock_stdout, stderr=BytesIO())
 
+
 def mock_rexec_error_cmd(*args):
     mock_stderr = BytesIO(b"""Error""")
     print(mock_stderr.getvalue().decode())
@@ -16,10 +17,12 @@ def mock_rexec_error_cmd(*args):
 
 
 MULTI_LC_REXEC_OUTPUT = '''Since the current device is a chassis supervisor, this command will be executed remotely on all linecards
-hello world'''
+hello world
+'''
 
 MULTI_LC_ERR_OUTPUT = '''Since the current device is a chassis supervisor, this command will be executed remotely on all linecards
-Error'''
+Error
+'''
 
 class TestRexecBgpNetwork(object):
     @classmethod
