@@ -1,5 +1,6 @@
 import click
 import sys
+import subprocess
 
 from sonic_py_common import multi_asic, device_info
 from show.main import ip
@@ -23,8 +24,8 @@ def bgp():
         # if the device is a chassis, the command need to be executed by rexec
         click.echo("Since the current device is a chassis supervisor, " +
                    "this command will be executed remotely on all linecards")
-        rcli.rexec.cli("all", " ".join(sys.argv))
-        sys.exit(0)
+        proc = subprocess.run(["rexec", "all"] + ["-c", " ".join(sys.argv)])
+        sys.exit(proc.returncode)
     pass
 
 
