@@ -24,6 +24,7 @@ MULTI_LC_ERR_OUTPUT = '''Since the current device is a chassis supervisor, this 
 Error
 '''
 
+
 class TestRexecBgp(object):
     @classmethod
     def setup_class(cls):
