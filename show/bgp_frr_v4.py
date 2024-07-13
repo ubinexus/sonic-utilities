@@ -115,11 +115,11 @@ def network(ipaddress, info_type, namespace):
         if namespace == multi_asic.DEFAULT_NAMESPACE:
             ctx = click.get_current_context()
             ctx.fail('-n/--namespace option required. provide namespace from list {}'
-                    .format(multi_asic.get_namespace_list()))
+                     .format(multi_asic.get_namespace_list()))
         if namespace != "all" and namespace not in multi_asic.get_namespace_list():
             ctx = click.get_current_context()
             ctx.fail('invalid namespace {}. provide namespace from list {}'
-                    .format(namespace, multi_asic.get_namespace_list()))
+                     .format(namespace, multi_asic.get_namespace_list()))
 
     command = 'show ip bgp'
     if ipaddress is not None:
