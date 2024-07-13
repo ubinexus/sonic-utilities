@@ -5541,6 +5541,7 @@ def dom(ctx, interface_name, desired_config):
 # 'power' subcommand ('config interface power ... ')
 #
 
+
 @transceiver.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enable", "disable"]))
