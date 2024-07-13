@@ -1306,11 +1306,13 @@ def reset(port_name):
 
         i += 1
 
+
 # 'power' subgroup
 @cli.group()
 def power():
     """Enable or disable power of SFP transceiver"""
     pass
+
 
 # Helper method for setting low-power mode
 def set_power(port_name, enable):
@@ -1342,6 +1344,7 @@ def set_power(port_name, enable):
     else:
         click.echo("Failed")
 
+
 # 'disable' subcommand
 @power.command()
 @click.argument('port_name', metavar='<port_name>')
@@ -1349,12 +1352,14 @@ def disable(port_name):
     """Disable power of SFP transceiver"""
     set_power(port_name, False)
 
+
 # 'enable' subcommand
 @power.command()
 @click.argument('port_name', metavar='<port_name>')
 def enable(port_name):
     """Enable power of SFP transceiver"""
     set_power(port_name, True)
+
 
 def update_firmware_info_to_state_db(port_name):
     physical_port = logical_port_to_physical_port_index(port_name)
