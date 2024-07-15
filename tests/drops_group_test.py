@@ -12,6 +12,7 @@ sys.path.insert(0, modules_path)
 
 import show.main as show
 import clear.main as clear
+from utilities_common.cli import UserCache
 
 expected_counter_capabilities = """\
 Counter Type           Total
@@ -97,14 +98,16 @@ Ethernet8      N/A         0           0         0           0          0       
 sonic_drops_test               0                    0
 """
 
-dropstat_path = "/tmp/dropstat-27"
+def remove_tmp_dropstat_file():
+    # remove the tmp portstat
+    cache = UserCache("dropstat")
+    cache.remove_all()
 
 class TestDropCounters(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        if os.path.exists(dropstat_path):
-            shutil.rmtree(dropstat_path)
+        remove_tmp_dropstat_file()
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
