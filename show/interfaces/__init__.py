@@ -368,9 +368,9 @@ def mpls(ctx, interfacename, namespace, display):
         if (display == 'frontend' or
                 display == 'all' or display is None):
             display = None
-        else:
-            print("Error: Invalid display option command for single asic")
-            return
+    else:
+        print("Error: Invalid display option command for single asic")
+        return
 
     display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)

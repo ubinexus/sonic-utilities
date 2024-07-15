@@ -10,7 +10,7 @@
         "fec": "none",
         "autoneg": "on",
         "adv_speeds": "10000",
-        "dhcp_rate_limit": "300"
+        "dhcp_rate_limit": "100"
     },
     "PORT|Ethernet2": {
         "index": "0",
