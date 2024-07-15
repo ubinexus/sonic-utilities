@@ -3,6 +3,7 @@ import sys
 
 import shutil
 from click.testing import CliRunner
+from utilities_common.cli import UserCache
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -12,7 +13,6 @@ sys.path.insert(0, modules_path)
 
 import show.main as show
 import clear.main as clear
-from utilities_common.cli import UserCache
 
 expected_counter_capabilities = """\
 Counter Type           Total
@@ -97,6 +97,7 @@ Ethernet8      N/A         0           0         0           0          0       
 ----------------  --------------  -------------------
 sonic_drops_test               0                    0
 """
+
 
 def remove_tmp_dropstat_file():
     # remove the tmp portstat
