@@ -1320,7 +1320,7 @@ def set_power(port_name, enable):
     sfp = platform_chassis.get_sfp(physical_port)
 
     if is_port_type_rj45(port_name):
-        click.echo("Power disable/enable is not available for {}.".format(port_name))
+        click.echo("Power disable/enable is not available for RJ45 port {}.".format(port_name))
         sys.exit(EXIT_FAIL)
 
     try:
