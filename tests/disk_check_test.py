@@ -179,5 +179,5 @@ class TestDiskCheck(object):
 
     @classmethod
     def teardown_class(cls):
-        subprocess.run("rm -rf /tmp/tmp*", shell=True) # cleanup the temporary dirs
+        subprocess.run("rm -rf /tmp/tmp*", shell=True)  # cleanup the temporary dirs
         print("TEARDOWN")
