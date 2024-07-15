@@ -228,7 +228,7 @@ multi_asic_bgp_network_err = \
 """Error: -n/--namespace option required. provide namespace from list ['asic0', 'asic1']"""
 
 multi_asic_bgp_network_asic_unknown_err = \
-"""Error: invalid namespace asic_unknown. provide namespace from list ['asic0', 'asic1']"""
+  """Error: invalid namespace asic_unknown. provide namespace from list ['asic0', 'asic1']"""
 
 bgp_v4_network_asic0 = \
 """
@@ -279,7 +279,7 @@ Origin codes:  i - IGP, e - EGP, ? - incomplete
 *=i10.0.0.42/31     10.1.0.2                 0    100      0 ?
 *>i                 10.1.0.0                 0    100      0 ?
 *=i10.0.0.44/31     10.1.0.2                 0    100      0 ?
-*>i                 10.1.0.0                 0    100      0 ? 
+*>i                 10.1.0.0                 0    100      0 ?
 """
 
 bgp_v4_network_ip_address_asic0 = \
@@ -315,7 +315,7 @@ Paths: (2 available, best #2, table default, not advertised outside local AS)
 """
 
 bgp_v4_network_all_asic = \
-"""
+  """
 ======== namespace asic0 ========
 
 BGP table version is 11256, local router ID is 10.1.0.32, vrf id 0
@@ -365,7 +365,7 @@ Origin codes:  i - IGP, e - EGP, ? - incomplete
 *=i10.0.0.42/31     10.1.0.2                 0    100      0 ?
 *>i                 10.1.0.0                 0    100      0 ?
 *=i10.0.0.44/31     10.1.0.2                 0    100      0 ?
-*>i                 10.1.0.0                 0    100      0 ? 
+*>i                 10.1.0.0                 0    100      0 ?
 
 ======== namespace asic1 ========
 
@@ -416,7 +416,7 @@ Origin codes:  i - IGP, e - EGP, ? - incomplete
 *=i10.0.0.42/31     10.1.0.2                 0    100      0 ?
 *>i                 10.1.0.0                 0    100      0 ?
 *=i10.0.0.44/31     10.1.0.2                 0    100      0 ?
-*>i                 10.1.0.0                 0    100      0 ? 
+*>i                 10.1.0.0                 0    100      0 ?
 """
 
 bgp_v6_network_asic0 = \
