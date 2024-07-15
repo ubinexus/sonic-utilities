@@ -129,42 +129,40 @@ class TestDHCPRate(object):
         assert result.exit_code == 0
 
  
- #------------------------------------------------------------
     def test_config_dhcp_rate_add_del_in_alias_mode(self):
-    runner = CliRunner()
-    obj = {'config_db': Db().cfgdb}
+        runner = CliRunner()
+        obj = {'config_db': Db().cfgdb}
 
-    # Enable alias mode by setting environment variable
-    os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        # Enable alias mode by setting environment variable
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
 
-    interface_alias = "etp1"   
+        interface_alias = "etp1"   
 
-    # Remove default 300 rate limit from the interface using alias
-    result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                           [interface_alias, "300"], obj=obj)
-    print(result.exit_code)
-    print(result.output)
-    assert result.exit_code == 0
+        # Remove default 300 rate limit from the interface using alias
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
+                            [interface_alias, "300"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
-    # Remove the 300 rate limit again, expecting an error
-    result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                           [interface_alias, "300"], obj=obj)
-    print(result.exit_code)
-    print(result.output)
-    assert result.exit_code != 0
-    assert "Error: Rate limit does not exist" in result.output
+        # Remove the 300 rate limit again, expecting an error
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
+                            [interface_alias, "300"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Rate limit does not exist" in result.output
 
-    # Add new rate limit of 80 to the interface using alias
-    result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
-                           [interface_alias, "80"], obj=obj)
-    print(result.exit_code)
-    print(result.output)
-    assert result.exit_code == 0
+        # Add new rate limit of 80 to the interface using alias
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                            [interface_alias, "80"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
-    # Disable alias mode  
-    os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        # Disable alias mode  
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
-#-------------------------------------------------------------------------------------------
 
     def test_config_dhcp_rate_add_on_invalid_interface(self):
         db = Db()

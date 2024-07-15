@@ -302,17 +302,17 @@ Ethernet124                     300
 
 
 show_dhcp_rate_limit_in_alias_mode_output= """\
-    Interface       DHCP rate limit
-    -------------   ---------------
-    Ethernet0       300
-    Ethernet1       300
-    """
+Interface       DHCP rate limit
+-------------   ---------------
+Ethernet0       300
+Ethernet1       300
+"""
 
 show_dhcp_rate_limit_single_interface_output= """\
-    Interface       DHCP rate limit
-    -------------   ---------------
-    Ethernet0       300
-    """
+Interface       DHCP rate limit
+-------------   ---------------
+Ethernet0       300
+"""
 
 class TestInterfaces(object):
     @classmethod
@@ -386,7 +386,6 @@ class TestInterfaces(object):
         # traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_neighbor_expected_output
-#----------------------------------------------------------------------
 
     def test_show_dhcp_rate_limit_in_alias_mode(self):
         runner = CliRunner()
@@ -448,7 +447,6 @@ class TestInterfaces(object):
         assert f"Error: Interface '{invalid_interface_name}' not found" in result.output, "Expected error message not found"
 
 
-#----------------------------------------------------------------------
     def test_show_interfaces_neighbor_expected_t1(self, setup_t1_topo):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], [])
