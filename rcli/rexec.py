@@ -30,7 +30,7 @@ def cli(linecard_names, command, username):
 
     if list(linecard_names) == ["all"]:
         # Get all linecard names using autocompletion helper
-        linecard_names = rcli_utils.get_all_linecards(None, None, "")
+        linecard_names = sorted(rcli_utils.get_all_linecards(None, None, ""))
 
     linecards = []
     # Iterate through each linecard, check if the login was successful
