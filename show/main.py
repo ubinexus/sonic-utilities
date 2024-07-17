@@ -1190,6 +1190,8 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
+    from .bgp_frr_evpn import evpn
+    cli.add_command(evpn)
 
 #
 # 'link-local-mode' subcommand ("show ipv6 link-local-mode")

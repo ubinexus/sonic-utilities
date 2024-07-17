@@ -57,6 +57,7 @@ from . import muxcable
 from . import nat
 from . import vlan
 from . import vxlan
+from . import evpn_mh
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
@@ -114,6 +115,9 @@ PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
 PORT_MODE = "switchport_mode"
 
+ES_ID_VALUE_MIN = 1
+ES_ID_VALUE_MAX = 16777215
+
 DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
 
 asic_type = None
@@ -130,6 +134,27 @@ sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfg
 #
 # Helper functions
 #
+
+
+def is_esid_valid(es_id):
+    """Check if the es id is in acceptable range"""
+    if es_id < ES_ID_VALUE_MIN or es_id > ES_ID_VALUE_MAX:
+        return False
+    return True
+
+
+def is_esiname_valid(esiname):
+    """Check if the esiname address is valid"""
+    if re.match("^[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){8}$", esiname.lower()):
+        return True
+    return False
+
+
+def is_mac_valid(mac_addr):
+    """Check if mac address is valid"""
+    if re.match("^[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", mac_addr.lower()):
+        return True
+    return False
 
 # Sort nested dict
 def sort_dict(data):
@@ -1412,6 +1437,9 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+
+# Add EVPN MH commands
+config.add_command(evpn_mh.evpn_mh)
 
 #add mclag commands
 config.add_command(mclag.mclag)
@@ -5831,6 +5859,324 @@ def disable_use_link_local_only(ctx, interface_name):
 
     interface_dict = db.get_table(interface_type)
     set_ipv6_link_local_only_on_interface(db, interface_dict, interface_type, interface_name, "disable")
+
+
+#
+# 'sys-mac' subgroup ('config interface sys-mac ...')
+#
+@interface.group()
+@click.pass_context
+def sys_mac(ctx):
+    """Configure interface system mac address"""
+    pass
+
+
+@sys_mac.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mac-addr', metavar='<mac_addr>', required=True)
+@clicommon.pass_db
+def add_sys_mac(db, interface_name, mac_addr):
+    """Add interface system mac address"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+    if is_mac_valid(mac_addr) is False:
+        ctx.fail("MAC address is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("type3_system_mac") is not None:
+        ctx.fail("System MAC is already added!")
+    if evpn_eth.get("esi_type") != "3":
+        ctx.fail(f"evpn-esi type for {interface_name} is not type-3!")
+
+    db.cfgdb.mod_entry("EVPN_ETHERNET_SEGMENT", interface_name, {"type3_system_mac": mac_addr})
+
+
+@sys_mac.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mac-addr', metavar='<mac_addr>', required=True)
+@clicommon.pass_db
+def set_sys_mac(db, interface_name, mac_addr):
+    """Set interface system mac address"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+    if is_mac_valid(mac_addr) is False:
+        ctx.fail("MAC address is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("type3_system_mac") is None:
+        ctx.fail("System MAC should be added first!")
+    if evpn_eth.get("esi_type") != "3":
+        ctx.fail(f"evpn-esi type for {interface_name} is not type-3!")
+
+    db.cfgdb.mod_entry("EVPN_ETHERNET_SEGMENT", interface_name, {"type3_system_mac": mac_addr})
+
+
+@sys_mac.command('del')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mac-addr', metavar='<mac_addr>', required=True)
+@clicommon.pass_db
+def del_sys_mac(db, interface_name, mac_addr):
+    """Delete interface system mac address"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+    if is_mac_valid(mac_addr) is False:
+        ctx.fail("MAC address is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    db_mac_addr = evpn_eth.get("type3_system_mac")
+    if db_mac_addr is None:
+        ctx.fail("System MAC is not configured!")
+    if db_mac_addr != mac_addr:
+        ctx.fail("Unable to delete system MAC. Configured value is {}".format(db_mac_addr))
+
+    del evpn_eth["type3_system_mac"]
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name, evpn_eth)
+
+
+#
+# 'evpn-esi' subgroup ('config interface evpn-esi ...')
+#
+@interface.group()
+@click.pass_context
+def evpn_esi(ctx):
+    """Configure EVPN Ethernet Segment ID"""
+    pass
+
+
+@evpn_esi.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('esi_type', metavar='<esi_type>', required=True, type=click.Choice(["type-0", "type-3"]))
+@click.argument('es_id', metavar='<es_id>', required=True)
+@clicommon.pass_db
+def add_evpn_esi(db, interface_name, esi_type, es_id):
+    """Add EVPN Ethernet Segment ID"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    if (esi_type == "type-0") and (is_esiname_valid(es_id) is False):
+        ctx.fail("Invalid es_id, should be in format 'XX:XX:XX:XX:XX:XX:XX:XX:XX:XX'!")
+
+    if esi_type == "type-3":
+        es_id_num = int(es_id)
+        if is_esid_valid(es_id_num) is False:
+            ctx.fail(f"Invalid es_id, should be in range {ES_ID_VALUE_MIN}-{ES_ID_VALUE_MAX}!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("esi_type") is not None:
+        ctx.fail("ES ID is already added!")
+
+    evpn_eth['interface'] = interface_name
+    if esi_type == "type-0":
+        evpn_eth['esi_type'] = "0"
+        evpn_eth['type0_operator_config'] = es_id
+    elif esi_type == "type-3":
+        evpn_eth['esi_type'] = "3"
+        evpn_eth['type3_local_discriminator'] = es_id
+    else:
+        ctx.fail("esi_type is invalid!")
+
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name, evpn_eth)
+
+
+@evpn_esi.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('esi_type', metavar='<esi_type>', required=True, type=click.Choice(["type-0", "type-3"]))
+@click.argument('es_id', metavar='<es_id>', required=True)
+@clicommon.pass_db
+def set_evpn_esi(db, interface_name, esi_type, es_id):
+    """Set EVPN Ethernet Segment ID"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    if (esi_type == "type-0") and (is_esiname_valid(es_id) is False):
+        ctx.fail("Invalid es_id, should be in format 'XX:XX:XX:XX:XX:XX:XX:XX:XX:XX'!")
+
+    if esi_type == "type-3":
+        es_id_num = int(es_id)
+        if is_esid_valid(es_id_num) is False:
+            ctx.fail(f"Invalid es_id, should be in range {ES_ID_VALUE_MIN}-{ES_ID_VALUE_MAX}!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("esi_type") is None:
+        ctx.fail("ES ID should be added first!")
+    if "type-{}".format(evpn_eth.get("esi_type")) != esi_type:
+        ctx.fail("Cannot update ES ID! Configured ES type is different from the specified in the command")
+
+    evpn_eth['interface'] = interface_name
+    if esi_type == "type-0":
+        evpn_eth['esi_type'] = "0"
+        evpn_eth['type0_operator_config'] = es_id
+    elif esi_type == "type-3":
+        evpn_eth['esi_type'] = "3"
+        evpn_eth['type3_local_discriminator'] = es_id
+    else:
+        ctx.fail("esi_type is invalid!")
+
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name, evpn_eth)
+
+
+@evpn_esi.command('del')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('esi_type', metavar='<esi_type>', required=True, type=click.Choice(["type-0", "type-3"]))
+@click.argument('es_id', metavar='<es_id>', required=True)
+@clicommon.pass_db
+def del_evpn_esi(db, interface_name, esi_type, es_id):
+    """Delete EVPN Ethernet Segment ID"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    if (esi_type == "type-0") and (is_esiname_valid(es_id) is False):
+        ctx.fail("Invalid es_id, should be in format 'XX:XX:XX:XX:XX:XX:XX:XX:XX:XX'!")
+
+    if esi_type == "type-3":
+        es_id_num = int(es_id)
+        if is_esid_valid(es_id_num) is False:
+            ctx.fail(f"Invalid es_id, should be in range {ES_ID_VALUE_MIN}-{ES_ID_VALUE_MAX}!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    db_esi_type = evpn_eth.get("esi_type")
+    if db_esi_type is None:
+        ctx.fail("ES ID is not configured!")
+    if "type-{}".format(db_esi_type) != esi_type:
+        ctx.fail("Unable to delete ES ID. Configured ES type is {}".format(db_esi_type))
+
+    if evpn_eth.get("interface"):
+        del evpn_eth["interface"]
+    if evpn_eth.get("esi_type"):
+        del evpn_eth["esi_type"]
+
+    if esi_type == "type-0":
+        if evpn_eth.get('type0_operator_config') != str(es_id):
+            ctx.fail("Unable to delete ES ID!")
+        del evpn_eth['type0_operator_config']
+    elif esi_type == "type-3":
+        if evpn_eth.get('type3_local_discriminator') != str(es_id):
+            ctx.fail("Unable to delete ES ID!")
+        del evpn_eth['type3_local_discriminator']
+        if evpn_eth.get('type3_system_mac'):
+            del evpn_eth['type3_system_mac']
+    else:
+        ctx.fail("esi_type is invalid!")
+
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name, evpn_eth)
+
+
+#
+# 'evpn-df-pref' subgroup ('config interface evpn-df-pref ...')
+#
+@interface.group()
+@click.pass_context
+def evpn_df_pref(ctx):
+    """Configure EVPN DF preference"""
+    pass
+
+
+@evpn_df_pref.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('df_perf', metavar='<df_perf>', required=True, type=click.IntRange(min=1, max=65535))
+@clicommon.pass_db
+def add_evpn_df_pref(db, interface_name, df_perf):
+    """Add EVPN DF preference"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("df-preference") is not None:
+        ctx.fail("DF preference is already added!")
+
+    db.cfgdb.mod_entry("EVPN_ETHERNET_SEGMENT", interface_name, {"df-preference": df_perf})
+
+
+@evpn_df_pref.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('df_perf', metavar='<df_perf>', required=True, type=click.IntRange(min=1, max=65535))
+@clicommon.pass_db
+def set_evpn_df_pref(db, interface_name, df_perf):
+    """Set EVPN DF preference"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    if evpn_eth.get("df-preference") is None:
+        ctx.fail("DF preference should be added first!")
+
+    db.cfgdb.mod_entry("EVPN_ETHERNET_SEGMENT", interface_name, {"df-preference": df_perf})
+
+
+@evpn_df_pref.command('del')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('df_perf', metavar='<df_perf>', required=True, type=click.IntRange(min=1, max=65535))
+@clicommon.pass_db
+def del_evpn_df_pref(db, interface_name, df_perf):
+    """Delete EVPN DF preference"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("PortChannel") is False:
+        ctx.fail("interface_name is invalid, should be PortChannel!")
+    if is_portchannel_name_valid(interface_name) is False:
+        ctx.fail("PortChannel interface name is invalid!")
+
+    evpn_eth = db.cfgdb.get_entry("EVPN_ETHERNET_SEGMENT", interface_name)
+    db_df_pref = evpn_eth.get("df-preference")
+    if db_df_pref is None:
+        ctx.fail("System MAC is not configured!")
+    if db_df_pref != str(df_perf):
+        ctx.fail("Unable to delete DF preference. Configured value is {}".format(db_df_pref))
+
+    del evpn_eth["df-preference"]
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name, evpn_eth)
+
+
+#
+# 'interface evpn-uplink' command
+#
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('uplink', metavar='<uplink>', required=True, type=click.Choice(["enable", "disable"]))
+@clicommon.pass_db
+def evpn_uplink(db, interface_name, uplink):
+    """Configure EVPN uplink state"""
+    ctx = click.get_current_context()
+
+    if interface_name.startswith("Ethernet") is False:
+        ctx.fail("interface_name is invalid, should be Ethernet!")
+    if interface_name_is_valid(db.cfgdb, interface_name) is False:
+        ctx.fail("Ethernet interface name is invalid!")
+
+    db.cfgdb.set_entry("EVPN_ETHERNET_SEGMENT", interface_name,
+                       {"mh-uplink": "true" if uplink == "enable" else "false"})
 
 #
 # 'vrf' group ('config vrf ...')

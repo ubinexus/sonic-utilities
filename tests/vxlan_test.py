@@ -18,8 +18,8 @@ mock_db_path = os.path.join(test_path, "vnet_input")
 show_vxlan_interface_output="""\
 VTEP Information:
 
-	VTEP Name : vtep1, SIP  : 1.1.1.1
-	NVO Name  : nvo1,  VTEP : vtep1
+    VTEP Name : vtep1, SIP  : 1.1.1.1
+    NVO Name  : nvo1,  VTEP : vtep1
 """
 
 show_vxlan_vlanvnimap_output="""\
@@ -145,6 +145,30 @@ Total count : 2
 show_vxlan_remotemac_specific_cnt_output="""\
 Total count : 1
 
+"""
+
+show_vxlan_ethernet_segment_output = """\
++--------------+------+---------+-------+
+| Interface    | DF   | Peers   |   NHG |
++==============+======+=========+=======+
+| PortChannel5 | NDF  | 2.2.2.2 |    10 |
+|              |      | 4.5.6.7 |       |
++--------------+------+---------+-------+
+| PortChannel6 | DF   | 1.1.1.1 |    20 |
+|              |      | 3.3.3.3 |       |
++--------------+------+---------+-------+
+"""
+
+show_vxlan_l2_nexthop_group_output = """\
++-------+-----------+----------------+
+|   NHG | Tunnels   | LocalMembers   |
++=======+===========+================+
+|    10 |           | 20,30,40       |
++-------+-----------+----------------+
+|    20 | 2.3.4.5   | PortChannel5   |
++-------+-----------+----------------+
+|    30 | 2.3.4.6   | PortChannel6   |
++-------+-----------+----------------+
 """
 
 class TestVxlan(object):
@@ -309,6 +333,22 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_remotemac_specific_cnt_output
+
+    def test_show_vxlan_ethernet_segment(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["ethernet-segment"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_ethernet_segment_output
+
+    def test_show_vxlan_l2_nexthop_group(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["l2-nexthop-group"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_l2_nexthop_group_output
 
     def test_config_vxlan_add(self):
         runner = CliRunner()
