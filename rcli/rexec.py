@@ -43,7 +43,7 @@ def cli(linecard_names, command, username):
 
     for linecard in linecards:
         if linecard.connection:
-            click.echo(f"======== {linecard.linecard_name} output: ========")
+            click.echo(f"======== {linecard.linecard_name}|{linecard.hostname} output: ========")
             click.echo(linecard.execute_cmd(command))
 
 
