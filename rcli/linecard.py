@@ -41,7 +41,7 @@ class Linecard:
             # the user has passed linecard hostname
             self.hostname = linecard_name
             self.module_name = module_name
-            
+
         self.username = username
         self.password = password
 
