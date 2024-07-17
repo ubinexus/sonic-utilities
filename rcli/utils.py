@@ -47,7 +47,7 @@ def get_linecard_module_name_from_hostname(linecard_name: str):
 def get_linecard_hostname_from_module_name(linecard_name: str):
 
     chassis_state_db = connect_to_chassis_state_db()
-    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB , '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, '*'))
+    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, '*'))
     for key in keys:
         module_name = key.split('|')[1]
         if module_name.replace('-', '').lower() == linecard_name.replace('-', '').lower():
