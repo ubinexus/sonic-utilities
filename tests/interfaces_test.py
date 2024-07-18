@@ -305,6 +305,36 @@ Interface      DHCP Mitigation Rate
 -----------  ----------------------
 etp1                            300
 etp2                            300
+etp3                            300
+etp4                            300
+etp5                            300
+etp6                            300
+etp7                            300
+etp8                            300
+etp9                            300
+etp10                           300
+etp11                           300
+etp12                           300
+etp13                           300
+etp14                           300
+etp15                           300
+etp16                           300
+etp17                           300
+etp18                           300
+etp19                           300
+etp20                           300
+etp21                           300
+etp22                           300
+etp23                           300
+etp24                           300
+etp25                           300
+etp26                           300
+etp27                           300
+etp28                           300
+etp29                           300
+etp30                           300
+etp31                           300
+etp32                           300
 """
 
 show_dhcp_rate_limit_single_interface_output = """\
@@ -411,7 +441,10 @@ class TestInterfaces(object):
         # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with valid interface
         result = runner.invoke(
             show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [interface_name])
-        print(result.exit_code)
+        print("Exit Code:", result.exit_code)
+        print("Expected Output:")
+        print(show_dhcp_rate_limit_single_interface_output.strip())
+        print("Actual Output:")
         print(result.output)
         assert result.exit_code == 0
         assert (
