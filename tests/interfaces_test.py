@@ -340,7 +340,7 @@ etp32                           300
 show_dhcp_rate_limit_single_interface_output = """\
 Interface      DHCP Mitigation Rate
 -----------  ----------------------
-etp1                            300
+Ethernet0                       300
 
 """
 
