@@ -5537,35 +5537,6 @@ def dom(ctx, interface_name, desired_config):
     else:
         config_db.mod_entry("PORT", interface_name, {"dom_polling": "disabled" if desired_config == "disable" else "enabled"})
 
-#
-# 'power' subcommand ('config interface power ... ')
-#
-
-
-@transceiver.command()
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enable", "disable"]))
-@click.pass_context
-def power(ctx, interface_name, mode):
-    """enable/disable power for SFP transceiver module"""
-    log.log_info("interface transceiver power {} {} executing...".format(interface_name, mode))
-    # Get the config_db connector
-    config_db = ctx.obj['config_db']
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    if interface_name_is_valid(config_db, interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-
-    cmd = ['sudo', 'sfputil', 'power', str(mode), str(interface_name)]
-    clicommon.run_command(cmd)
-
-#
-# 'mpls' subgroup ('config interface mpls ...')
-#
 
 @interface.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
