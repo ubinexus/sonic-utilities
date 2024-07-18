@@ -143,7 +143,7 @@ class TestDHCPRate(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Rate limit does not exist" in result.output
+        assert "300 DHCP rate limit does not exist on Ethernet0" in result.output
         # Add new rate limit of 80 to the interface using alias
         result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
                                [interface_alias, "80"], obj=obj)
