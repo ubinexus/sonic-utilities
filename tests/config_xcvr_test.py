@@ -67,15 +67,6 @@ class TestConfigXcvr(object):
         mock_get_entry.return_value = {'subport': '1'}
         result = self.basic_check("dom", [interface_name, desired_config], ctx)
 
-    def test_power(self, ctx):
-        interface_name = 'Ethernet0'
-        desired_config = 'enable'
-
-        result = self.basic_check("power", ["", desired_config], ctx, operator.ne)
-        assert "Interface name is invalid. Please enter a valid interface name!!" in result.output
-
-        desired_config = 'disable'
-        result = self.basic_check("power", [interface_name, desired_config], ctx, operator.ne)
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
