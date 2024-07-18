@@ -67,7 +67,6 @@ class TestConfigXcvr(object):
         mock_get_entry.return_value = {'subport': '1'}
         result = self.basic_check("dom", [interface_name, desired_config], ctx)
 
-
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["interface"].commands["transceiver"].commands[command_name], para_list, obj = ctx)
