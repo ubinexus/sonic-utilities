@@ -5538,6 +5538,10 @@ def dom(ctx, interface_name, desired_config):
         config_db.mod_entry("PORT", interface_name, {"dom_polling": "disabled" if desired_config == "disable" else "enabled"})
 
 
+#
+# 'mpls' subgroup ('config interface mpls ...')
+#
+
 @interface.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
 def mpls(ctx):
