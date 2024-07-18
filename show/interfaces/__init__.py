@@ -942,17 +942,10 @@ def dhcp_mitigation_rate(db, interfacename):
 
         keys.append(interfacename)
 
-    def get_interface_name_for_display(interface):
-        if clicommon.get_interface_naming_mode() == 'alias':
-            iface_alias_converter = clicommon.InterfaceAliasConverter(db.cfgdb)
-            alias = iface_alias_converter.name_to_alias(interface)
-            return alias
-        return interface
-
     def tablelize(keys):
         table = []
         for key in natsorted(keys):
-            r = [get_interface_name_for_display(key), clicommon.get_interface_dhcp_mitigation_rate(db.cfgdb, key)]
+            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_dhcp_mitigation_rate(db.cfgdb, key)]
             table.append(r)
         return table
 
