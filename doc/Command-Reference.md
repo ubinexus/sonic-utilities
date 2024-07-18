@@ -5552,22 +5552,7 @@ This command is used to configure the Digital Optical Monitoring (DOM) for an in
   user@sonic~$ sudo config interface transceiver dom Ethernet0 disable
   ```
 
-**config interface transceiver power**
 
-This command is used to enable or disable power to the module of an interface.
-
-- Usage:
-  ```
-  config interface transceiver power <interface_name> (enable | disable)
-  ```
-
-- Examples:
-  ```
-  user@sonic~$ sudo config interface transceiver power Ethernet0 enable
-
-  user@sonic~$ sudo config interface transceiver power Ethernet0 disable
-  ```
-  
 **config interface mtu <interface_name> (Versions >= 201904)**
 
 This command is used to configure the mtu for the Physical interface. Use the value 1500 for setting max transfer unit size to 1500 bytes.
