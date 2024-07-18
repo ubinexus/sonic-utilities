@@ -301,16 +301,17 @@ Ethernet124                     300
 """
 
 show_dhcp_rate_limit_in_alias_mode_output = """\
-Interface       DHCP rate limit
--------------   ---------------
-Ethernet0       300
-Ethernet1       300
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+etp1                            300
+etp2                            300
 """
 
 show_dhcp_rate_limit_single_interface_output = """\
-Interface       DHCP rate limit
--------------   ---------------
-Ethernet0       300
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+etp1                            300
+
 """
 
 class TestInterfaces(object):
