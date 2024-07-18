@@ -390,9 +390,9 @@ class TestInterfaces(object):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         # Run show interfaces dhcp-mitigation-rate command
-        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [])
-        print("Exit Code:", result.exit_code)
-        print("Output:\n", result.output)
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"])
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert (
             result.output.strip() == show_dhcp_rate_limit_in_alias_mode_output.strip()
@@ -403,12 +403,12 @@ class TestInterfaces(object):
     def test_show_dhcp_rate_limit_single_interface(self):
         runner = CliRunner()
         # Interface to test
-        interface_name = "etp1"
+        interface_name = "Ethernet0"
         # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with valid interface
         result = runner.invoke(
             show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [interface_name])
-        print("Exit Code:", result.exit_code)
-        print("Output:\n", result.output)
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert (
             result.output.strip() == show_dhcp_rate_limit_single_interface_output.strip()
@@ -421,12 +421,12 @@ class TestInterfaces(object):
         # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with valid portchannel
         result = runner.invoke(
             show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [portchannel_name])
-        print("Exit Code:", result.exit_code)
-        print("Output:\n", result.output)
+        print(result.exit_code)
+        print(result.output)
         # Assert error message
         assert result.exit_code != 0
         assert (
-            "Error: PortChannel interface does not support DHCP rate limits" in result.output
+            "'{portchannel_name}' is a PortChannel!" in result.output
         ), "Expected error message not found"
 
     def test_show_dhcp_rate_limit_single_interface_with_nonexist_interface(self):
@@ -437,12 +437,12 @@ class TestInterfaces(object):
         # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with invalid interface
         result = runner.invoke(
             show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [invalid_interface_name])
-        print("Exit Code:", result.exit_code)
-        print("Output:\n", result.output)
+        print(result.exit_code)
+        print(result.output)
         # Assert error message
         assert result.exit_code != 0
         assert (
-            f"Error: Interface '{invalid_interface_name}' not found" in result.output
+            f"'{invalid_interface_name}' does not exist" in result.output
             ), "Expected error message not found"
 
 
