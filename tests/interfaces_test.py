@@ -391,7 +391,10 @@ class TestInterfaces(object):
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         # Run show interfaces dhcp-mitigation-rate command
         result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"])
-        print(result.exit_code)
+        print("Exit Code:", result.exit_code)
+        print("Expected Output:")
+        print(show_dhcp_rate_limit_in_alias_mode_output.strip())
+        print("Actual Output:")
         print(result.output)
         assert result.exit_code == 0
         assert (
