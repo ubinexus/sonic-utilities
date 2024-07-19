@@ -26,7 +26,7 @@ Ethernet56                      300
 Ethernet60                      300
 Ethernet64                      300
 Ethernet68                      300
-Ethernet72                      300
+Ethernet72
 Ethernet76                      300
 Ethernet80                      300
 Ethernet84                      300
@@ -63,7 +63,7 @@ etp15                           300
 etp16                           300
 etp17                           300
 etp18                           300
-etp19                           300
+etp19
 etp20                           300
 etp21                           300
 etp22                           300
@@ -181,6 +181,23 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: 20 DHCP rate limit does not exist on Ethernet0." in result.output
+    
+    def test_config_dhcp_rate_add_del_with_no_rate(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db': db.cfgdb}
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
+                               ["Ethernet72", "80"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: 80 DHCP rate limit does not exist on Ethernet72." in result.output
+
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                               ["Ethernet72", "80"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
     def test_config_dhcp_rate_add_del(self):
         db = Db()
