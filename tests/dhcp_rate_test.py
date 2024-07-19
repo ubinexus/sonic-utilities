@@ -287,7 +287,7 @@ class TestDHCPRate(object):
         print(result.output)
         # Assert error message
         assert result.exit_code != 0
-        assert "{portchannel_name} is a PortChannel!" in result.output
+        assert f"{portchannel_name} is a PortChannel!" in result.output
 
     def test_show_dhcp_rate_limit_single_interface_with_nonexist_interface(self):
         runner = CliRunner()
@@ -301,7 +301,7 @@ class TestDHCPRate(object):
         print(result.output)
         # Assert error message
         assert result.exit_code != 0
-        assert "{invalid_interface_name} does not exist" in result.output
+        assert f"{invalid_interface_name} does not exist" in result.output
 
     @classmethod
     def teardown_class(cls):
