@@ -3,6 +3,8 @@ import pytest
 from unittest.mock import patch
 from click.testing import CliRunner
 from utilities_common.db import Db
+from unittest import mock
+from mock import patch
 
 import config.main as config
 import show.main as show
@@ -264,26 +266,24 @@ class TestDHCPRate(object):
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
     def test_config_dhcp_rate_add_del_with_value_error(self):
-        with patch('click.testing.CliRunner.invoke', side_effect=ValueError()):
-            db = Db()
-            runner = CliRunner()
-            obj = {'config_db': db.cfgdb}
-            with pytest.raises(ValueError):
-                result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                                    ["Ethernet84", "300"], obj=obj)
-                print(result.exit_code)
-                print(result.output)
-                assert result.output != 0
-                assert "Ethernet84 invalid or does not exist" in result.output
+        db = Db()
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
+                                ["Ethernet84", "300"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.output != 0
+        assert "Ethernet84 invalid or does not exist" in result.output
 
-            with pytest.raises(ValueError):
-                result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
-                                    ["Ethernet72", "65"])
-                print(result.exit_code)
-                print(result.output)
-                assert result.output != 0
-                assert "Ethernet72 invalid or does not exist" in result.output
+        result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                                ["Ethernet72", "65"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.output != 0
+        assert "Ethernet72 invalid or does not exist" in result.output
 
     def test_show_dhcp_rate_limit(self):
         runner = CliRunner()
