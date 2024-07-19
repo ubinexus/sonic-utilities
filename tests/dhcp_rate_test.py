@@ -3,7 +3,87 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 import config.main as config
+import show.main as show
 
+show_interfaces_dhcp_rate_limit_output = """\
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+Ethernet0                       300
+Ethernet4                       300
+Ethernet8                       300
+Ethernet12                      300
+Ethernet16                      300
+Ethernet20                      300
+Ethernet24                      300
+Ethernet28                      300
+Ethernet32                      300
+Ethernet36                      300
+Ethernet40                      300
+Ethernet44                      300
+Ethernet48                      300
+Ethernet52                      300
+Ethernet56                      300
+Ethernet60                      300
+Ethernet64                      300
+Ethernet68                      300
+Ethernet72                      300
+Ethernet76                      300
+Ethernet80                      300
+Ethernet84                      300
+Ethernet88                      300
+Ethernet92                      300
+Ethernet96                      300
+Ethernet100                     300
+Ethernet104                     300
+Ethernet108                     300
+Ethernet112                     300
+Ethernet116                     300
+Ethernet120                     300
+Ethernet124                     300
+"""
+
+show_dhcp_rate_limit_in_alias_mode_output = """\
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+etp1                            300
+etp2                            300
+etp3                            300
+etp4                            300
+etp5                            300
+etp6                            300
+etp7                            300
+etp8                            300
+etp9                            300
+etp10                           300
+etp11                           300
+etp12                           300
+etp13                           300
+etp14                           300
+etp15                           300
+etp16                           300
+etp17                           300
+etp18                           300
+etp19                           300
+etp20                           300
+etp21                           300
+etp22                           300
+etp23                           300
+etp24                           300
+etp25                           300
+etp26                           300
+etp27                           300
+etp28                           300
+etp29                           300
+etp30                           300
+etp31                           300
+etp32                           300
+"""
+
+show_dhcp_rate_limit_single_interface_output = """\
+Interface      DHCP Mitigation Rate
+-----------  ----------------------
+Ethernet0                       300
+"""
 
 class TestDHCPRate(object):
     @classmethod
@@ -163,6 +243,65 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
+
+    def test_show_dhcp_rate_limit(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_dhcp_rate_limit_output
+
+    def test_show_dhcp_rate_limit_in_alias_mode(self):
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        # Run show interfaces dhcp-mitigation-rate command
+        result = runner.invoke(show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"])
+        # Go back to default mode
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_dhcp_rate_limit_in_alias_mode_output
+        
+    def test_show_dhcp_rate_limit_single_interface(self):
+        runner = CliRunner()
+        # Interface to test
+        interface_name = "Ethernet0"
+        # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with valid interface
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [interface_name])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_dhcp_rate_limit_single_interface_output
+
+    def test_show_dhcp_rate_limit_single_interface_portchannel(self):
+        runner = CliRunner()
+        # Portchannel interface to test
+        portchannel_name = "PortChannel0001"
+        # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with valid portchannel
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [portchannel_name])
+        print(result.exit_code)
+        print(result.output)
+        # Assert error message
+        assert result.exit_code != 0
+        assert "{portchannel_name} is a PortChannel!" in result.output
+
+    def test_show_dhcp_rate_limit_single_interface_with_nonexist_interface(self):
+        runner = CliRunner()
+        # Invalid interface name to test
+        invalid_interface_name = "etp35"
+        # etp35 is a non-existing interface
+        # Run show interfaces dhcp-mitigation-rate <INTERFACE> command with invalid interface
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["dhcp-mitigation-rate"], [invalid_interface_name])
+        print(result.exit_code)
+        print(result.output)
+        # Assert error message
+        assert result.exit_code != 0
+        assert "{invalid_interface_name} does not exist" in result.output
 
     @classmethod
     def teardown_class(cls):
