@@ -904,7 +904,8 @@ def switchport_mode_status(db):
         table = []
 
         for key in natsorted(keys):
-            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_switchport_mode(db, key)]
+            r = [clicommon.get_interface_name_for_display(db, key),
+                 clicommon.get_interface_switchport_mode(db, key)]
             table.append(r)
 
         return table

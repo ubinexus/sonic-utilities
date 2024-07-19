@@ -86,6 +86,7 @@ Interface      DHCP Mitigation Rate
 Ethernet0                       300
 """
 
+
 class TestDHCPRate(object):
     @classmethod
     def setup_class(cls):
@@ -182,7 +183,7 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: 20 DHCP rate limit does not exist on Ethernet0." in result.output
-    
+
     def test_config_dhcp_rate_add_del_with_no_rate(self):
         db = Db()
         runner = CliRunner()
@@ -268,12 +269,12 @@ class TestDHCPRate(object):
         obj = {'config_db': db.cfgdb}
         with pytest.raises(ValueError):
             result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
-                                   ["Ethernet84", "300"])
+                                   ["Ethernet84", "300"], obj=obj)
             print(result.exit_code)
             print(result.output)
             assert result.output != 0
             assert "Ethernet84 invalid or does not exist" in result.output
-        
+
         with pytest.raises(ValueError):
             result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
                                    ["Ethernet72", "65"])
@@ -301,7 +302,7 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_dhcp_rate_limit_in_alias_mode_output
-        
+
     def test_show_dhcp_rate_limit_single_interface(self):
         runner = CliRunner()
         # Interface to test
