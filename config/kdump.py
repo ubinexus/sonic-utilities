@@ -144,8 +144,7 @@ def add_kdump_item(db, item, value):
     # Check if the item is already added
     existing_value = kdump_table.get("config", {}).get(item)
     if existing_value:
-        click.echo(f"Error: {item.replace('_', ' ').capitalize()} is already added.\
-                   Please remove it first before adding a new one.")
+        click.echo(f"Error: {item} is already added.")
         return
 
     # Add item to config_db
@@ -170,10 +169,10 @@ def remove_kdump_item(db, item):
     # Check if the item is already configured
     existing_value = kdump_table.get("config", {}).get(item)
     if not existing_value:
-        click.echo(f"Error: {item.replace('_', ' ').capitalize()} is not configured.")
+        click.echo(f"Error: {item} is not configured.")
         return
 
     # Remove item from config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: ""})
-    click.echo(f"{item.replace('_', ' ').capitalize()} removed successfully.")
+    click.echo(f"{item} removed successfully.")
     echo_reboot_warning()
