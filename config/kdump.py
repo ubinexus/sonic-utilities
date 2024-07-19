@@ -208,7 +208,7 @@ def remove_kdump_ssh_string(db, ssh_string):
 @kdump.command(name="remove", short_help="Remove SSH key path for kdump.")
 @click.argument('ssh_path', metavar='<ssh_path>', required=True)
 @pass_db
-def remove_kdump_ssh_string(db, ssh_path):
+def remove_kdump_ssh_key_path(db, ssh_path):
     """Reomve SSH key path for kdump"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
