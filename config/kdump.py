@@ -160,12 +160,6 @@ def remove_kdump_item(db, item):
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
-    # Check if remote mode is enabled
-    remote_mode_enabled = kdump_table.get("config", {}).get("remote", "false").lower()
-    if remote_mode_enabled != "true":
-        click.echo("Error: Enable remote mode first.")
-        return
-
     # Check if the item is already configured
     existing_value = kdump_table.get("config", {}).get(item)
     if not existing_value:
