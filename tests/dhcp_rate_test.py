@@ -1,4 +1,5 @@
 import os
+import pytest
 from click.testing import CliRunner
 from utilities_common.db import Db
 
@@ -260,6 +261,26 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
+
+    def test_config_dhcp_rate_add_del_with_value_error(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db': db.cfgdb}
+        with pytest.raises(ValueError):
+            result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["del"],
+                                   ["Ethernet84", "300"])
+            print(result.exit_code)
+            print(result.output)
+            assert result.output != 0
+            assert "Ethernet84 invalid or does not exist" in result.output
+        
+        with pytest.raises(ValueError):
+            result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
+                                   ["Ethernet72", "65"])
+            print(result.exit_code)
+            print(result.output)
+            assert result.output != 0
+            assert "Ethernet72 invalid or does not exist" in result.output
 
     def test_show_dhcp_rate_limit(self):
         runner = CliRunner()
