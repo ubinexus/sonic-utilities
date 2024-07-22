@@ -344,6 +344,7 @@ Ethernet0                       300
 
 """
 
+
 class TestInterfaces(object):
     @classmethod
     def setup_class(cls):
@@ -481,7 +482,6 @@ class TestInterfaces(object):
         assert (
             f"'{invalid_interface_name}' does not exist" in result.output
             ), "Expected error message not found"
-
 
     def test_show_interfaces_neighbor_expected_t1(self, setup_t1_topo):
         runner = CliRunner()
