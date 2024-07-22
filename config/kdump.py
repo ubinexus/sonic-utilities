@@ -1,8 +1,8 @@
 import sys
 import click
-import re
-from utilities_common.cli import AbbreviationGroup, pass_db
 
+from utilities_common.cli import AbbreviationGroup, pass_db
+from pathlib import Path
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -115,29 +115,24 @@ def kdump_remote(db, action):
     if action.lower() == 'enable':
         if current_remote_status == 'true':
             # Check if SSH is already uncommented
-            with open('/etc/default/kdump-tools', 'r') as file:
-                content = file.read()
+            file_path = Path('/etc/default/kdump-tools')
+            try:
+                content = file_path.read_text()
+                if "SSH=" in content:
+                    click.echo("Error: Kdump Remote Mode is already enabled.")
+                    return
 
-            if re.search(r'^\s*SSH\s*=', content, re.MULTILINE):
-                click.echo("Error: Kdump Remote Mode is already enabled.")
-                return
+                # Uncomment SSH and SSH_KEY in /etc/default/kdump-tools
+                new_content = content.replace('#SSH=', 'SSH=').replace('#SSH_KEY=', 'SSH_KEY=')
+                file_path.write_text(new_content)
 
-            # Uncomment SSH in /etc/default/kdump-tools
-            with open('/etc/default/kdump-tools', 'r') as file:
-                lines = file.readlines()
+                click.echo("Kdump Remote Mode enabled. SSH configuration updated.")
+            except Exception as e:
+                click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
-            with open('/etc/default/kdump-tools', 'w') as file:
-                for line in lines:
-                    if line.strip().startswith('#SSH'):
-                        file.write(line.lstrip('#'))
-                    else:
-                        file.write(line)
-
-            click.echo("Kdump Remote Mode enabled.")
         else:
             # Enable remote mode
-            remote = 'true'
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
             echo_reboot_warning()
 
     elif action.lower() == 'disable':
@@ -146,43 +141,20 @@ def kdump_remote(db, action):
             return
 
         # Disable remote mode
-        remote = 'false'
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
 
-        # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
         try:
-            # Read the current content of the file
-            with open('/etc/default/kdump-tools', 'r') as file:
-                lines = file.readlines()
+            # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
+            file_path = Path('/etc/default/kdump-tools')
+            content = file_path.read_text()
+            new_content = content.replace('SSH=', '#SSH=').replace('SSH_KEY=', '#SSH_KEY=')
+            file_path.write_text(new_content)
 
-            # Prepare new content
-            new_lines = []
-            ssh_commented = False
-            ssh_key_commented = False
-
-            for line in lines:
-                if line.strip().startswith('SSH'):
-                    new_lines.append(f"#{line}")
-                    ssh_commented = True
-                elif line.strip().startswith('SSH_KEY'):
-                    new_lines.append(f"#{line}")
-                    ssh_key_commented = True
-                else:
-                    new_lines.append(line)
-
-            # If SSH or SSH_KEY were not present, add commented lines at the end
-            if not ssh_commented:
-                new_lines.append("#SSH=\n")
-            if not ssh_key_commented:
-                new_lines.append("#SSH_KEY=\n")
-
-            # Write the updated content back to the file
-            with open('/etc/default/kdump-tools', 'w') as file:
-                file.writelines(new_lines)
-
-            click.echo("Kdump Remote Mode disabled. SSH settings commented out.")
+            click.echo("Kdump Remote Mode disabled. SSH configuration commented out.")
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+
+    echo_reboot_warning()
 
 #
 # 'add' command ('sudo config kdump add ...')
@@ -214,35 +186,33 @@ def add_kdump_item(db, item, value):
 
     # If both are present, update the file
     if ssh_string and ssh_path:
+        file_path = Path('/etc/default/kdump-tools')
         try:
-            # Read the current content of the file
-            with open('/etc/default/kdump-tools', 'r') as file:
-                lines = file.readlines()
+            content = file_path.read_text()
+            lines = content.splitlines()
 
-            # Prepare new content
             new_lines = []
             ssh_string_added = False
             ssh_path_added = False
 
             for line in lines:
-                if line.strip().startswith('#SSH') or line.strip().startswith('SSH'):
-                    new_lines.append(f"SSH={ssh_string}\n")
+                if line.strip().startswith('#SSH'):
+                    new_lines.append(f"SSH={ssh_string}")
                     ssh_string_added = True
-                elif line.strip().startswith('#SSH_KEY') or line.strip().startswith('SSH_KEY'):
-                    new_lines.append(f"SSH_KEY={ssh_path}\n")
+                elif line.strip().startswith('#SSH_KEY'):
+                    new_lines.append(f"SSH_KEY={ssh_path}")
                     ssh_path_added = True
                 else:
                     new_lines.append(line)
 
             # If either SSH or SSH_KEY was not found, add them at the end of the file
             if not ssh_string_added:
-                new_lines.append(f"SSH={ssh_string}\n")
+                new_lines.append(f"SSH={ssh_string}")
             if not ssh_path_added:
-                new_lines.append(f"SSH_KEY={ssh_path}\n")
+                new_lines.append(f"SSH_KEY={ssh_path}")
 
             # Write the updated content back to the file
-            with open('/etc/default/kdump-tools', 'w') as file:
-                file.writelines(new_lines)
+            file_path.write_text('\n'.join(new_lines))
 
             click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
         except Exception as e:
