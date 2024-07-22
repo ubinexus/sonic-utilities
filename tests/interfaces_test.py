@@ -266,7 +266,7 @@ show_dhcp_rate_limit_in_alias_mode_output = """\
 Interface      DHCP Mitigation Rate
 -----------  ----------------------
 etp1                            300
-etp2               
+etp2
 """
 
 
