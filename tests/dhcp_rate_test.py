@@ -264,7 +264,6 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: etp33 does not exist" in result.output
-
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch(
         "config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry",
@@ -281,7 +280,6 @@ class TestDHCPRate(object):
             print(result.output)
             assert result.output != 0
             assert "Ethernet84 invalid or does not exist" in result.output
-
         with pytest.raises(ValueError):
             result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
                                    ["Ethernet72", "65"], obj=db)
