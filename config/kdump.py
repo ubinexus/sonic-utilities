@@ -1,5 +1,6 @@
 import sys
 import click
+import re
 from utilities_common.cli import AbbreviationGroup, pass_db
 
 #
@@ -108,25 +109,87 @@ def kdump_remote(db, action):
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
+    # Fetch the current remote status
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
 
-    if action.lower() == 'enable' and current_remote_status == 'true':
-        click.echo("Error: Kdump Remote Mode is already enabled.")
-        return
-    elif action.lower() == 'disable' and current_remote_status == 'false':
-        click.echo("Error: Kdump Remote Mode is already disabled.")
-        return
+    if action.lower() == 'enable':
+        if current_remote_status == 'true':
+            # Check if SSH is already uncommented
+            with open('/etc/default/kdump-tools', 'r') as file:
+                content = file.read()
 
-    remote = 'true' if action.lower() == 'enable' else 'false'
-    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
-    echo_reboot_warning()
+            if re.search(r'^\s*SSH\s*=', content, re.MULTILINE):
+                click.echo("Error: Kdump Remote Mode is already enabled.")
+                return
+
+            # Uncomment SSH in /etc/default/kdump-tools
+            with open('/etc/default/kdump-tools', 'r') as file:
+                lines = file.readlines()
+
+            with open('/etc/default/kdump-tools', 'w') as file:
+                for line in lines:
+                    if line.strip().startswith('#SSH'):
+                        file.write(line.lstrip('#'))
+                    else:
+                        file.write(line)
+
+            click.echo("Kdump Remote Mode enabled.")
+        else:
+            # Enable remote mode
+            remote = 'true'
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
+            echo_reboot_warning()
+
+    elif action.lower() == 'disable':
+        if current_remote_status == 'false':
+            click.echo("Error: Kdump Remote Mode is already disabled.")
+            return
+
+        # Disable remote mode
+        remote = 'false'
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
+
+        # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
+        try:
+            # Read the current content of the file
+            with open('/etc/default/kdump-tools', 'r') as file:
+                lines = file.readlines()
+
+            # Prepare new content
+            new_lines = []
+            ssh_commented = False
+            ssh_key_commented = False
+
+            for line in lines:
+                if line.strip().startswith('SSH'):
+                    new_lines.append(f"#{line}")
+                    ssh_commented = True
+                elif line.strip().startswith('SSH_KEY'):
+                    new_lines.append(f"#{line}")
+                    ssh_key_commented = True
+                else:
+                    new_lines.append(line)
+
+            # If SSH or SSH_KEY were not present, add commented lines at the end
+            if not ssh_commented:
+                new_lines.append("#SSH=\n")
+            if not ssh_key_commented:
+                new_lines.append("#SSH_KEY=\n")
+
+            # Write the updated content back to the file
+            with open('/etc/default/kdump-tools', 'w') as file:
+                file.writelines(new_lines)
+
+            click.echo("Kdump Remote Mode disabled. SSH settings commented out.")
+        except Exception as e:
+            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
 #
 # 'add' command ('sudo config kdump add ...')
 #
 
 
-@kdump.command(name="add", short_help="Add SSH connection string or SSH key path for kdump.")
+@kdump.command(name="add", short_help="Add SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
@@ -141,14 +204,50 @@ def add_kdump_item(db, item, value):
         click.echo("Error: Enable remote mode first.")
         return
 
-    # Check if the item is already added
-    existing_value = kdump_table.get("config", {}).get(item)
-    if existing_value:
-        click.echo(f"Error: {item} is already added.")
-        return
-
     # Add item to config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: value})
+    click.echo(f"{item} added to configuration.")
+
+    # Check if both parameters are added
+    ssh_string = kdump_table.get("config", {}).get("ssh_string")
+    ssh_path = kdump_table.get("config", {}).get("ssh_path")
+
+    # If both are present, update the file
+    if ssh_string and ssh_path:
+        try:
+            # Read the current content of the file
+            with open('/etc/default/kdump-tools', 'r') as file:
+                lines = file.readlines()
+
+            # Prepare new content
+            new_lines = []
+            ssh_string_added = False
+            ssh_path_added = False
+
+            for line in lines:
+                if line.strip().startswith('#SSH') or line.strip().startswith('SSH'):
+                    new_lines.append(f"SSH={ssh_string}\n")
+                    ssh_string_added = True
+                elif line.strip().startswith('#SSH_KEY') or line.strip().startswith('SSH_KEY'):
+                    new_lines.append(f"SSH_KEY={ssh_path}\n")
+                    ssh_path_added = True
+                else:
+                    new_lines.append(line)
+
+            # If either SSH or SSH_KEY was not found, add them at the end of the file
+            if not ssh_string_added:
+                new_lines.append(f"SSH={ssh_string}\n")
+            if not ssh_path_added:
+                new_lines.append(f"SSH_KEY={ssh_path}\n")
+
+            # Write the updated content back to the file
+            with open('/etc/default/kdump-tools', 'w') as file:
+                file.writelines(new_lines)
+
+            click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
+        except Exception as e:
+            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+
     echo_reboot_warning()
 
 
