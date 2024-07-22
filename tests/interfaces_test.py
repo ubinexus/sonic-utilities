@@ -260,7 +260,7 @@ PortChannel0001  routed
 PortChannel0002  routed
 PortChannel0003  routed
 PortChannel0004  routed
-PortChannel1001  trunk   4000
+PortChannel1001  trunk               4000
 """
 show_dhcp_rate_limit_in_alias_mode_output = """\
 Interface      DHCP Mitigation Rate

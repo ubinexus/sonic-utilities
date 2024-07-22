@@ -196,7 +196,6 @@ class TestDHCPRate(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: 80 DHCP rate limit does not exist on Ethernet72." in result.output
-
         result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
                                ["Ethernet72", "80"], obj=obj)
         print(result.exit_code)
@@ -280,7 +279,6 @@ class TestDHCPRate(object):
             print(result.output)
             assert result.output != 0
             assert "Ethernet84 invalid or does not exist" in result.output
-
         with pytest.raises(ValueError):
             result = runner.invoke(config.config.commands["interface"].commands["dhcp-mitigation-rate"].commands["add"],
                                    ["Ethernet72", "65"], obj=db)
