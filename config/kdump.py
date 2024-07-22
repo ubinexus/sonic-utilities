@@ -137,7 +137,7 @@ def kdump_remote(db, action):
 
         # Disable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-        
+
         # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
         file_path = Path('/etc/default/kdump-tools')
         try:
