@@ -1,5 +1,6 @@
 import sys
 import click
+import re
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 from pathlib import Path
@@ -117,19 +118,6 @@ def kdump_remote(db, action):
             click.echo("Error: Kdump Remote Mode is already enabled.")
             return
 
-        # Enable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-
-        # Uncomment SSH and SSH_KEY in /etc/default/kdump-tools
-        file_path = Path('/etc/default/kdump-tools')
-        try:
-            content = file_path.read_text()
-            new_content = content.replace('#SSH=', 'SSH=').replace('#SSH_KEY=', 'SSH_KEY=')
-            file_path.write_text(new_content)
-            click.echo("Kdump Remote Mode enabled.")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-
     elif action.lower() == 'disable':
         if current_remote_status == 'false':
             click.echo("Error: Kdump Remote Mode is already disabled.")
@@ -137,7 +125,7 @@ def kdump_remote(db, action):
 
         # Disable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-
+        
         # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
         file_path = Path('/etc/default/kdump-tools')
         try:
@@ -174,44 +162,33 @@ def add_kdump_item(db, item, value):
     db.cfgdb.mod_entry("KDUMP", "config", {item: value})
     click.echo(f"{item} added to configuration.")
 
-    # Check if both parameters are added
-    ssh_string = kdump_table.get("config", {}).get("ssh_string")
-    ssh_path = kdump_table.get("config", {}).get("ssh_path")
+    # Retrieve updated values
+    ssh_string = kdump_table.get("config", {}).get("ssh_string", "")
+    ssh_path = kdump_table.get("config", {}).get("ssh_path", "")
 
-    # If both are present, update the file
-    if ssh_string and ssh_path:
-        file_path = Path('/etc/default/kdump-tools')
-        try:
-            content = file_path.read_text()
-            new_lines = []
-            ssh_string_added = False
-            ssh_path_added = False
+    file_path = Path('/etc/default/kdump-tools')
+    try:
+        content = file_path.read_text()
+        
+        # Uncomment and update SSH and SSH_KEY values
+        new_content = content
+        if ssh_string:
+            new_content = re.sub(r'^\s*#?SSH=.*$', f'SSH="{ssh_string}"', new_content, flags=re.MULTILINE)
+        if ssh_path:
+            new_content = re.sub(r'^\s*#?SSH_KEY=.*$', f'SSH_KEY="{ssh_path}"', new_content, flags=re.MULTILINE)
+        
+        # Add new lines if not present
+        if not re.search(r'^\s*#?SSH=', new_content, flags=re.MULTILINE):
+            new_content += f'\nSSH="{ssh_string}"'
+        if not re.search(r'^\s*#?SSH_KEY=', new_content, flags=re.MULTILINE):
+            new_content += f'\nSSH_KEY="{ssh_path}"'
 
-            for line in content.splitlines():
-                if line.strip().startswith('SSH='):
-                    new_lines.append(f"SSH=\"{ssh_string}\"")
-                    ssh_string_added = True
-                elif line.strip().startswith('SSH_KEY='):
-                    new_lines.append(f"SSH_KEY=\"{ssh_path}\"")
-                    ssh_path_added = True
-                else:
-                    new_lines.append(line)
-
-            # If either SSH or SSH_KEY was not found, add them at the end of the file
-            if not ssh_string_added:
-                new_lines.append(f"SSH=\"{ssh_string}\"")
-            if not ssh_path_added:
-                new_lines.append(f"SSH_KEY=\"{ssh_path}\"")
-
-            # Write the updated content back to the file
-            file_path.write_text('\n'.join(new_lines))
-
-            click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+        file_path.write_text(new_content)
+        click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
+    except Exception as e:
+        click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
     echo_reboot_warning()
-
 
 @kdump.command(name="remove", short_help="Remove SSH connection string.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
