@@ -266,8 +266,7 @@
         "tpid": "0x8100",
         "mode": "routed",
         "pfc_asym": "off",
-        "speed": "40000",
-        "dhcp_rate_limit": "300"
+        "speed": "40000"
     },
     "PORT|Ethernet76": {
         "admin_status": "up",

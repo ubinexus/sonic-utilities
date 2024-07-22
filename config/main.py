@@ -5045,8 +5045,6 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
 
     if clicommon.is_valid_port(config_db, interface_name):
         pass
@@ -5089,8 +5087,7 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("{} does not exist")
+
     if clicommon.is_valid_port(config_db, interface_name):
         pass
     elif clicommon.is_valid_portchannel(config_db, interface_name):

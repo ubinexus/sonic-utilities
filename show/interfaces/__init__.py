@@ -365,12 +365,11 @@ def mpls(ctx, interfacename, namespace, display):
 
     # Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
-        if (display == 'frontend' or
-                display == 'all' or display is None):
-            display = None
-    else:
-        print("Error: Invalid display option command for single asic")
-        return
+       if (display == 'frontend' or display == 'all' or display is None):
+           display = None
+       else:
+           print("Error: Invalid display option command for single asic")
+           return
 
     display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
@@ -905,7 +904,8 @@ def switchport_mode_status(db):
         table = []
 
         for key in natsorted(keys):
-            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_switchport_mode(db, key)]
+            r = [clicommon.get_interface_name_for_display(db, key),
+                 clicommon.get_interface_switchport_mode(db, key)]
             table.append(r)
 
         return table
