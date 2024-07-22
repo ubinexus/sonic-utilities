@@ -5038,10 +5038,11 @@ def dhcp_mitigation_rate(ctx):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('packet_rate', metavar='<DHCP packet rate>', required=True, type=int)
 @click.pass_context
-def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
+@clicommon.pass_db
+def add_dhcp_mitigation_rate(db, ctx, interface_name, packet_rate):
     """Add a new DHCP mitigation rate on an interface"""
     # Get the config_db connector
-    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -5068,8 +5069,8 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 
     try:
         config_db.mod_entry('PORT', interface_name, {"dhcp_rate_limit": "{}".format(str(packet_rate))})
-    except ValueError:
-        ctx.fail("{} invalid or does not exist".format(interface_name))
+    except ValueError as e:
+        ctx.fail("{} invalid or does not exist. Error: {}".format(interface_name, e))
 
 #
 # 'del' subcommand
@@ -5080,10 +5081,11 @@ def add_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('packet_rate', metavar='<DHCP packet rate>', required=True, type=int)
 @click.pass_context
-def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
+@clicommon.pass_db
+def del_dhcp_mitigation_rate(db, ctx, interface_name, packet_rate):
     """Delete an existing DHCP mitigation rate on an interface"""
     # Get the config_db connector
-    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -5112,8 +5114,8 @@ def del_dhcp_mitigation_rate(ctx, interface_name, packet_rate):
 
     try:
         config_db.mod_entry('PORT', interface_name, {"dhcp_rate_limit": "0"})
-    except ValueError:
-        ctx.fail("{} invalid or does not exist".format(interface_name))
+    except ValueError as e:
+        ctx.fail("{} invalid or does not exist. Error: {}".format(interface_name, e))
 
 #
 # buffer commands and utilities
