@@ -125,7 +125,7 @@ def kdump_remote(db, action):
 
         # Disable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-        
+
         # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
         file_path = Path('/etc/default/kdump-tools')
         try:
@@ -169,14 +169,14 @@ def add_kdump_item(db, item, value):
     file_path = Path('/etc/default/kdump-tools')
     try:
         content = file_path.read_text()
-        
+
         # Uncomment and update SSH and SSH_KEY values
         new_content = content
         if ssh_string:
             new_content = re.sub(r'^\s*#?SSH=.*$', f'SSH="{ssh_string}"', new_content, flags=re.MULTILINE)
         if ssh_path:
             new_content = re.sub(r'^\s*#?SSH_KEY=.*$', f'SSH_KEY="{ssh_path}"', new_content, flags=re.MULTILINE)
-        
+
         # Add new lines if not present
         if not re.search(r'^\s*#?SSH=', new_content, flags=re.MULTILINE):
             new_content += f'\nSSH="{ssh_string}"'
@@ -189,6 +189,7 @@ def add_kdump_item(db, item, value):
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
     echo_reboot_warning()
+
 
 @kdump.command(name="remove", short_help="Remove SSH connection string.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
