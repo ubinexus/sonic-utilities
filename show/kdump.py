@@ -86,10 +86,10 @@ def config():
     # remote SSH configs
     if get_kdump_config("remote") == "true":
         ssh_conn_str = get_kdump_config("ssh_string")
-        click.echo("Kdump remote server user@ip/hostname: {}".format(ssh_conn_str))
+        click.echo("Kdump ssh connection string: {}".format(ssh_conn_str))
 
         ssh_prv_key = get_kdump_config("ssh_path")
-        click.echo("Kdump private key file path for remote ssh connection: {}".format(ssh_prv_key))
+        click.echo("Kdump private key path: {}".format(ssh_prv_key))
 
 
 def get_kdump_core_files():
