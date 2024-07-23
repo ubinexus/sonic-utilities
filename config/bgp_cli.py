@@ -247,7 +247,7 @@ def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_NUM_MULTIPATHS(ctx, db):
 @click.pass_context
 def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_DISABLED(ctx, db):
     """Disable Weighted-Cost Multi-Path (W-ECMP) feature"""
-    originate_bandwidth_handler(ctx, db, "false")
+    originate_bandwidth_handler(ctx, db, "disabled")
 
 
 @DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH.command(
