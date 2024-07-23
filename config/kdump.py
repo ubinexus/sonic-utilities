@@ -221,8 +221,6 @@ def remove_kdump_item(db, item):
 
     # Retrieve updated values from config_db
     kdump_table = db.cfgdb.get_table("KDUMP")
-    ssh_string = kdump_table.get("config", {}).get("ssh_string", "")
-    ssh_path = kdump_table.get("config", {}).get("ssh_path", "")
 
     file_path = Path('/etc/default/kdump-tools')
     try:
