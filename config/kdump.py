@@ -102,11 +102,6 @@ def kdump_num_dumps(db, kdump_num_dumps):
 #
 
 
-#
-# 'remote' command ('sudo config kdump remote ...')
-#
-
-
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
@@ -133,13 +128,12 @@ def kdump_remote(db, action):
 #
 
 
-@kdump.command(name="add", short_help="Add SSH connection string or SSH key path.")
+@kdump.command(name="add", short_help="Add SSH connection string or SSH key path for kdump.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @click.argument('value', metavar='<value>', required=True)
 @pass_db
 def add_kdump_item(db, item, value):
     """Add SSH connection string or SSH key path for kdump"""
-
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
@@ -149,7 +143,17 @@ def add_kdump_item(db, item, value):
         click.echo("Error: Enable remote mode first.")
         return
 
+    # Check if the item is already added
+    existing_value = kdump_table.get("config", {}).get(item)
+    if existing_value:
+        click.echo(f"Error: {item} is already added.")
+        return
+
+    # Add item to config_db
+    db.cfgdb.mod_entry("KDUMP", "config", {item: value})
+
     # Retrieve updated values from config_db
+    kdump_table = db.cfgdb.get_table("KDUMP")
     ssh_string = kdump_table.get("config", {}).get("ssh_string", "")
     ssh_path = kdump_table.get("config", {}).get("ssh_path", "")
 
@@ -166,8 +170,8 @@ def add_kdump_item(db, item, value):
             return f'SSH_KEY="{ssh_path}"' if ssh_path else match.group(0)
 
         # Apply replacements using capture groups
-        new_content = re.sub(r"(^\s*#?SSH=)(.*)", replace_ssh, content, flags=re.MULTILINE)
-        new_content = re.sub(r"(^\s*#?SSH_KEY=)(.*)", replace_ssh_key, new_content, flags=re.MULTILINE)
+        new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
+        new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
 
         # Write the updated content back to the file
         file_path.write_text(new_content)
@@ -177,7 +181,7 @@ def add_kdump_item(db, item, value):
     echo_reboot_warning()
 
 
-@kdump.command(name="remove", short_help="Remove SSH connection string.")
+@kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path for kdump.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @pass_db
 def remove_kdump_item(db, item):
