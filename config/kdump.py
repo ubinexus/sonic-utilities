@@ -133,6 +133,10 @@ def kdump_remote(db, action):
 #
 
 
+@kdump.command(name="add", short_help="Add SSH connection string or SSH key path.")
+@click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
+@click.argument('value', metavar='<value>', required=True)
+@pass_db
 def add_kdump_item(db, item, value):
     """Add SSH connection string or SSH key path for kdump"""
 
