@@ -229,10 +229,10 @@ def remove_kdump_item(db, item):
 
         # Define replacement functions with capture groups
         def replace_ssh(match):
-            return 'SSH=""' if item == "ssh_string" else match.group(0)
+            return '#SSH=""' if item == "ssh_string" else match.group(0)
 
         def replace_ssh_key(match):
-            return 'SSH_KEY=""' if item == "ssh_path" else match.group(0)
+            return '#SSH_KEY=""' if item == "ssh_path" else match.group(0)
 
         # Apply replacements using capture groups
         new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
