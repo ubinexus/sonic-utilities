@@ -102,6 +102,11 @@ def kdump_num_dumps(db, kdump_num_dumps):
 #
 
 
+#
+# 'remote' command ('sudo config kdump remote ...')
+#
+
+
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
@@ -110,32 +115,17 @@ def kdump_remote(db, action):
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
-    # Fetch the current remote status
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
 
-    if action.lower() == 'enable':
-        if current_remote_status == 'true':
-            click.echo("Error: Kdump Remote Mode is already enabled.")
-            return
+    if action.lower() == 'enable' and current_remote_status == 'true':
+        click.echo("Error: Kdump Remote Mode is already enabled.")
+        return
+    elif action.lower() == 'disable' and current_remote_status == 'false':
+        click.echo("Error: Kdump Remote Mode is already disabled.")
+        return
 
-    elif action.lower() == 'disable':
-        if current_remote_status == 'false':
-            click.echo("Error: Kdump Remote Mode is already disabled.")
-            return
-
-        # Disable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-
-        # Comment out SSH and SSH_KEY in /etc/default/kdump-tools
-        file_path = Path('/etc/default/kdump-tools')
-        try:
-            content = file_path.read_text()
-            new_content = content.replace('SSH=', '#SSH=').replace('SSH_KEY=', '#SSH_KEY=')
-            file_path.write_text(new_content)
-            click.echo("Kdump Remote Mode disabled.")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-
+    remote = 'true' if action.lower() == 'enable' else 'false'
+    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
     echo_reboot_warning()
 
 #
@@ -143,12 +133,9 @@ def kdump_remote(db, action):
 #
 
 
-@kdump.command(name="add", short_help="Add SSH connection string or SSH key path.")
-@click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
-@click.argument('value', metavar='<value>', required=True)
-@pass_db
 def add_kdump_item(db, item, value):
     """Add SSH connection string or SSH key path for kdump"""
+
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
@@ -158,36 +145,31 @@ def add_kdump_item(db, item, value):
         click.echo("Error: Enable remote mode first.")
         return
 
-    # Add item to config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {item: value})
-    click.echo(f"{item} added to configuration.")
-
-    # Retrieve updated values
+    # Retrieve updated values from config_db
     ssh_string = kdump_table.get("config", {}).get("ssh_string", "")
     ssh_path = kdump_table.get("config", {}).get("ssh_path", "")
 
     file_path = Path('/etc/default/kdump-tools')
     try:
+        # Read the content of the file
         content = file_path.read_text()
 
-        # Uncomment and update SSH and SSH_KEY values
-        new_content = content
-        if ssh_string:
-            new_content = re.sub(r'^\s*#?SSH=.*$', f'SSH="{ssh_string}"', new_content, flags=re.MULTILINE)
-        if ssh_path:
-            new_content = re.sub(r'^\s*#?SSH_KEY=.*$', f'SSH_KEY="{ssh_path}"', new_content, flags=re.MULTILINE)
+        # Define replacement functions with capture groups
+        def replace_ssh(match):
+            return f'SSH="{ssh_string}"' if ssh_string else match.group(0)
 
-        # Add new lines if not present
-        if not re.search(r'^\s*#?SSH=', new_content, flags=re.MULTILINE):
-            new_content += f'\nSSH="{ssh_string}"'
-        if not re.search(r'^\s*#?SSH_KEY=', new_content, flags=re.MULTILINE):
-            new_content += f'\nSSH_KEY="{ssh_path}"'
+        def replace_ssh_key(match):
+            return f'SSH_KEY="{ssh_path}"' if ssh_path else match.group(0)
 
+        # Apply replacements using capture groups
+        new_content = re.sub(r"(^\s*#?SSH=)(.*)", replace_ssh, content, flags=re.MULTILINE)
+        new_content = re.sub(r"(^\s*#?SSH_KEY=)(.*)", replace_ssh_key, new_content, flags=re.MULTILINE)
+
+        # Write the updated content back to the file
         file_path.write_text(new_content)
         click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
     except Exception as e:
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-
     echo_reboot_warning()
 
 
