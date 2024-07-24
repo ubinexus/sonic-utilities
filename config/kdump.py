@@ -7,6 +7,7 @@ from pathlib import Path
 #
 # 'kdump' group ('sudo config kdump ...')
 #
+
 @click.group(cls=AbbreviationGroup, name="kdump")
 def kdump():
     """Configure the KDUMP mechanism"""
@@ -104,12 +105,10 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
-@click.pass_context
-def kdump_remote(ctx, action):
+@pass_db
+def kdump_remote(db, action):
     """Enable or Disable Kdump Remote Mode"""
-    db = ConfigDBConnector()
-    db.connect()
-    kdump_table = db.get_table("KDUMP")
+    kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
