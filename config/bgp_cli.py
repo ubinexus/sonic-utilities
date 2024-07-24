@@ -228,7 +228,7 @@ def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_DISABLED(ctx, db):
 @click.pass_context
 @click.argument("bandwidth", required=True, type=str)
 def DEVICE_GLOBAL_WCMP_ORIGINATE_BANDWIDTH_SET_BANDWIDTH(ctx, db, bandwidth):
-    """(1-25600) Set bandwidth for W-ECMP"""
+    """(1-25600 Mbps) Set bandwidth for W-ECMP"""
     try:
         bandwidth = int(bandwidth)
     except ValueError:
