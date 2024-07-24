@@ -129,7 +129,7 @@ def kdump_remote(db, action):
             return
 
     remote = 'true' if action.lower() == 'enable' else 'false'
-    db.mod_entry("KDUMP", "config", {"remote": remote})
+    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
 
     if action.lower() == 'disable':
         file_path = Path('/etc/default/kdump-tools')
