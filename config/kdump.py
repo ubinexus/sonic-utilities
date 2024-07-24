@@ -104,10 +104,12 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
-@pass_db
-def kdump_remote(db, action):
+@click.pass_context
+def kdump_remote(ctx, action):
     """Enable or Disable Kdump Remote Mode"""
-    kdump_table = db.cfgdb.get_table("KDUMP")
+    db = ConfigDBConnector()
+    db.connect()
+    kdump_table = db.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
@@ -119,8 +121,16 @@ def kdump_remote(db, action):
         click.echo("Error: Kdump Remote Mode is already disabled.")
         return
 
+    if action.lower() == 'disable':
+        ssh_string = kdump_table.get("config", {}).get("ssh_string", None)
+        ssh_key = kdump_table.get("config", {}).get("ssh_key", None)
+
+        if ssh_string or ssh_key:
+            click.echo("Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode.")
+            return
+
     remote = 'true' if action.lower() == 'enable' else 'false'
-    db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
+    db.mod_entry("KDUMP", "config", {"remote": remote})
 
     if action.lower() == 'disable':
         file_path = Path('/etc/default/kdump-tools')
