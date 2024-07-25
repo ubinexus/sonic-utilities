@@ -22,12 +22,12 @@ show_device_global_all_disabled_json = """\
 show_device_global_all_enabled = """\
 TSA        ORIGINATE-BANDWIDTH  RECEIVED-BANDWIDTH
 -------  ---------------------  --------------------
-enabled                      5  active
+enabled                 5 Mbps  active
 """
 show_device_global_all_enabled_json = """\
 {
     "tsa": "enabled",
-    "originate-bandwidth": "5",
+    "originate-bandwidth": "5 Mbps",
     "received-bandwidth": "active"
 }
 """
@@ -82,19 +82,19 @@ show_device_global_all_disabled_multi_asic_json = """\
 show_device_global_all_enabled_multi_asic = """\
 ASIC ID    TSA        ORIGINATE-BANDWIDTH  RECEIVED-BANDWIDTH
 ---------  -------  ---------------------  --------------------
-asic0      enabled                      5  active
-asic1      enabled                      5  active
+asic0      enabled                 5 Mbps  active
+asic1      enabled                 5 Mbps  active
 """
 show_device_global_all_enabled_multi_asic_json = """\
 {
     "asic0": {
         "tsa": "enabled",
-        "originate-bandwidth": "5",
+        "originate-bandwidth": "5 Mbps",
         "received-bandwidth": "active"
     },
     "asic1": {
         "tsa": "enabled",
-        "originate-bandwidth": "5",
+        "originate-bandwidth": "5 Mbps",
         "received-bandwidth": "active"
     }
 }
