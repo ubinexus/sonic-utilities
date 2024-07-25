@@ -2,6 +2,6 @@
     "BGP_DEVICE_GLOBAL|STATE": {
         "tsa_enabled": "true",
         "originate_bandwidth": "5",
-        "received_bandwidth": "active"
+        "received_bandwidth": "allow"
     }
 }

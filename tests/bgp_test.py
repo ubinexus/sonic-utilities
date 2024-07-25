@@ -188,9 +188,9 @@ class TestBgp:
                                                "json": assert_show_output.show_device_global_tsa_enabled_json},
                                               id="tsa-enabled-and-bandwidth-skip"),
                                  pytest.param(os.path.join(mock_config_path,
-                                                           "wcmp_enabled"),
-                                              {"plain": assert_show_output.show_device_global_wcmp_enabled,
-                                               "json": assert_show_output.show_device_global_wcmp_enabled_json},
+                                                           "diff_originate_received"),
+                                              {"plain": assert_show_output.show_device_global_diff_originate_received,
+                                               "json": assert_show_output.show_device_global_diff_originate_received_json},
                                               id="w-ecmp-enabled-and-bandwidth-default-weight")])
     @pytest.mark.parametrize(
         "format", [

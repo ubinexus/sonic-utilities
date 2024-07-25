@@ -91,19 +91,19 @@ class TestBgpMultiAsic:
             ),
             pytest.param(
                 {
-                    "asic0": os.path.join(mock_config_path, "wcmp_enabled"),
-                    "asic1": os.path.join(mock_config_path, "wcmp_enabled"),
+                    "asic0": os.path.join(mock_config_path, "diff_originate_received"),
+                    "asic1": os.path.join(mock_config_path, "diff_originate_received"),
                 },
                 {
-                    "plain": assert_show_output.show_device_global_wcmp_enabled_multi_asic,
-                    "json": assert_show_output.show_device_global_wcmp_enabled_multi_asic_json,
+                    "plain": assert_show_output.show_device_global_diff_originate_received_multi_asic,
+                    "json": assert_show_output.show_device_global_diff_originate_received_multi_asic_json,
                 },
                 id="w-ecmp-enabled",
             ),
             pytest.param(
                 {
                     "asic0": os.path.join(mock_config_path, "tsa_enabled"),
-                    "asic1": os.path.join(mock_config_path, "wcmp_enabled"),
+                    "asic1": os.path.join(mock_config_path, "diff_originate_received"),
                 },
                 {
                     "plain": assert_show_output.show_device_global_opposite_multi_asic,
