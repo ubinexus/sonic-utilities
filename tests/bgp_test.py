@@ -82,7 +82,9 @@ class TestBgp:
             "default-weight-for-missing"
         ]
     )
-    def test_config_device_global_received_bandwidth(self, state):
+    def test_config_device_global_received_bandwidth(
+            self,
+            state):
         db = Db()
         runner = CliRunner()
 
@@ -91,7 +93,8 @@ class TestBgp:
             .commands["received-bandwidth"].commands[state], obj=db
         )
 
-        logger.debug("\n" + result.output)
+        logger.debug(
+            "\n" + result.output)
         logger.debug(result.exit_code)
 
         assert result.exit_code == SUCCESS
