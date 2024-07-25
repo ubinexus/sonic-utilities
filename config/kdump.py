@@ -220,7 +220,6 @@ def add_kdump_item(db, item, value):
     echo_reboot_warning()
 
 
-
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @pass_db
