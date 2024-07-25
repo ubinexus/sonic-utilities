@@ -27,5 +27,3 @@ def to_str(state):
         else:
             return f"{value} Mbps"
     return state
-
-
