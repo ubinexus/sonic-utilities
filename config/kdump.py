@@ -139,7 +139,7 @@ def kdump_remote(db, action):
             # Write the updated content back to the file
             file_path.write_text(new_content)
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY uncommented.")
-        
+
         elif action.lower() == 'disable':
             # Define replacement functions with capture groups for commenting
             def comment_ssh(match):
@@ -152,7 +152,7 @@ def kdump_remote(db, action):
             # Write the updated content back to the file
             file_path.write_text(new_content)
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
-        
+
     except Exception as e:
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
