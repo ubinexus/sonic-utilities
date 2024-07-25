@@ -141,8 +141,7 @@ def kdump_remote(db, action):
                 return match.group(0)[1:]  # Remove the leading '#'
 
             new_content = re.sub(r"^#SSH", uncomment_ssh, content, flags=re.MULTILINE)
-            new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)
-            
+            new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)            
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
@@ -157,8 +156,7 @@ def kdump_remote(db, action):
                 return f'#{match.group(0)}'  # Add a leading '#'
 
             new_content = re.sub(r"^SSH", comment_ssh, content, flags=re.MULTILINE)
-            new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)
-            
+            new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)            
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented .")
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
