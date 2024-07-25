@@ -2750,38 +2750,35 @@ Feature list:
   admin@sonic:~$ config bgp device-global tsa enabled
   ```
 
-**config bgp device-global w-ecmp**
+**config bgp device-global w-ecmp originate-bandwidth**
 
-This command is used to manage BGP device global configuration.
-
-Feature list:
-1. W-ECMP - Weighted-Cost Multi-Path
+This command controls how the device advertises/outbounds bandwidth to eBGP peers.
 
 - Usage:
   ```bash
-  config bgp device-global w-ecmp <cumulative|num-multipaths|disabled|set-bandwidth [BANDWIDTH]>
+  config bgp device-global w-ecmp originate-bandwidth <cumulative|num-multipaths|disabled|set-bandwidth [BANDWIDTH]>
   ```
 
 - Examples:
   ```bash
-  admin@sonic:~$ config bgp device-global w-ecmp cumulative
+  admin@sonic:~$ config bgp device-global w-ecmp originate-bandwidth cumulative
   ```
   ```bash
-  admin@sonic:~$ config bgp device-global w-ecmp set-bandwidth 5
+  admin@sonic:~$ config bgp device-global w-ecmp originate-bandwidth set-bandwidth 5
   ```
 
-**config bgp device-global bandwidth**
+**config bgp device-global w-ecmp received-bandwidth**
 
 This command allows for the control of link bandwidth processing on the receiver
 
 - Usage:
   ```bash
-  config bgp device-global bandwidth <ignore|active|skip-missing|default-weight-for-missing>
+  config bgp device-global w-ecmp received-bandwidth <ignore|allow|skip-missing|default-weight-for-missing>
   ```
 
 - Examples:
   ```bash
-  admin@sonic:~$ config bgp device-global bandwidth ignore
+  admin@sonic:~$ config bgp device-global w-ecmp received-bandwidth ignore
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
