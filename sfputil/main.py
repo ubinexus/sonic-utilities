@@ -1343,6 +1343,7 @@ def set_power(port_name, enable):
         click.echo("OK")
     else:
         click.echo("Failed")
+        sys.exit(EXIT_FAIL)
 
 
 # 'disable' subcommand
