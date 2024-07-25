@@ -614,6 +614,7 @@ Ethernet0  N/A
         result = runner.invoke(sfputil.cli.commands['power'].commands['enable'], ["Ethernet0"])
         assert result.output == 'Failed\n'
 
+
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
