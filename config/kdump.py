@@ -122,27 +122,42 @@ def kdump_remote(db, action):
     remote = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
 
-    if action.lower() == 'disable':
-        file_path = Path('/etc/default/kdump-tools')
-        try:
-            # Read the content of the file
-            content = file_path.read_text()
+    file_path = Path('/etc/default/kdump-tools')
+    try:
+        # Read the content of the file
+        content = file_path.read_text()
 
-            # Define replacement functions with capture groups
+        if action.lower() == 'enable':
+            # Define replacement functions with capture groups for uncommenting
+            def uncomment_ssh(match):
+                return match.group(0).lstrip('#')
+
+            # Apply replacements using capture groups for uncommenting
+            new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", uncomment_ssh, content, flags=re.MULTILINE)
+            new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", uncomment_ssh, new_content, flags=re.MULTILINE)
+
+            # Write the updated content back to the file
+            file_path.write_text(new_content)
+            click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY uncommented.")
+        
+        elif action.lower() == 'disable':
+            # Define replacement functions with capture groups for commenting
             def comment_ssh(match):
-                return f'# {match.group(0)}'
+                return f'#{match.group(0)}' if not match.group(0).startswith('#') else match.group(0)
 
-            # Apply replacements using capture groups
-            new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", comment_ssh, content, flags=re.MULTILINE)
-            new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", comment_ssh, new_content, flags=re.MULTILINE)
+            # Apply replacements using capture groups for commenting
+            new_content = re.sub(r"^\s*\s*SSH\s*=\s*.*$", comment_ssh, content, flags=re.MULTILINE)
+            new_content = re.sub(r"^\s*\s*SSH_KEY\s*=\s*.*$", comment_ssh, new_content, flags=re.MULTILINE)
 
             # Write the updated content back to the file
             file_path.write_text(new_content)
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+        
+    except Exception as e:
+        click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
     echo_reboot_warning()
+
 
 #
 # 'add' command ('sudo config kdump add ...')
@@ -164,12 +179,6 @@ def add_kdump_item(db, item, value):
         click.echo("Error: Enable remote mode first.")
         return
 
-    # Check if the item is already added
-    existing_value = kdump_table.get("config", {}).get(item)
-    if existing_value:
-        click.echo(f"Error: {item} is already added.")
-        return
-
     # Add item to config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: value})
 
@@ -183,23 +192,33 @@ def add_kdump_item(db, item, value):
         # Read the content of the file
         content = file_path.read_text()
 
-        # Define replacement functions with capture groups
+        # Check if SSH and SSH_KEY are uncommented and update them
+        ssh_uncommented = bool(re.search(r"^\s*SSH\s*=\s*.*$", content, flags=re.MULTILINE))
+        ssh_key_uncommented = bool(re.search(r"^\s*SSH_KEY\s*=\s*.*$", content, flags=re.MULTILINE))
+
+        if not ssh_uncommented or not ssh_key_uncommented:
+            click.echo("Error: Enable remote mode first.")
+            return
+
+        # Define replacement functions
         def replace_ssh(match):
             return f'SSH="{ssh_string}"' if ssh_string else match.group(0)
 
         def replace_ssh_key(match):
             return f'SSH_KEY="{ssh_path}"' if ssh_path else match.group(0)
 
-        # Apply replacements using capture groups
-        new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
-        new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
+        # Apply replacements
+        new_content = re.sub(r"^\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
+        new_content = re.sub(r"^\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
 
         # Write the updated content back to the file
         file_path.write_text(new_content)
         click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
     except Exception as e:
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+
     echo_reboot_warning()
+
 
 
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
@@ -216,27 +235,39 @@ def remove_kdump_item(db, item):
         click.echo(f"Error: {item} is not configured.")
         return
 
+    # Check if remote mode is enabled
+    remote_mode_enabled = kdump_table.get("config", {}).get("remote", "false").lower()
+    if remote_mode_enabled != "true":
+        click.echo("Error: Remote mode is not enabled.")
+        return
+
     # Remove item from config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: ""})
-
-    # Retrieve updated values from config_db
-    kdump_table = db.cfgdb.get_table("KDUMP")
 
     file_path = Path('/etc/default/kdump-tools')
     try:
         # Read the content of the file
         content = file_path.read_text()
 
-        # Define replacement functions with capture groups
-        def replace_ssh(match):
-            return '#SSH=""' if item == "ssh_string" else match.group(0)
+        # Define replacement functions
+        def remove_ssh(match):
+            return 'SSH=""' if item == "ssh_string" else match.group(0)
 
-        def replace_ssh_key(match):
-            return '#SSH_KEY=""' if item == "ssh_path" else match.group(0)
+        def remove_ssh_key(match):
+            return 'SSH_KEY=""' if item == "ssh_path" else match.group(0)
 
-        # Apply replacements using capture groups
-        new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
-        new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
+        # Check if SSH and SSH_KEY are commented
+        ssh_commented = bool(re.search(r"^\s*#\s*SSH\s*=\s*.*$", content, flags=re.MULTILINE))
+        ssh_key_commented = bool(re.search(r"^\s*#\s*SSH_KEY\s*=\s*.*$", content, flags=re.MULTILINE))
+
+        if ssh_commented and ssh_key_commented:
+            # Apply replacements to remove values
+            new_content = re.sub(r"^\s*#\s*SSH\s*=\s*.*$", remove_ssh, content, flags=re.MULTILINE)
+            new_content = re.sub(r"^\s*#\s*SSH_KEY\s*=\s*.*$", remove_ssh_key, new_content, flags=re.MULTILINE)
+        else:
+            # Apply replacements to remove values
+            new_content = re.sub(r"^\s*SSH\s*=\s*.*$", remove_ssh, content, flags=re.MULTILINE)
+            new_content = re.sub(r"^\s*SSH_KEY\s*=\s*.*$", remove_ssh_key, new_content, flags=re.MULTILINE)
 
         # Write the updated content back to the file
         file_path.write_text(new_content)
