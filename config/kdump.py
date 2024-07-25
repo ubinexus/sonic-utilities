@@ -133,33 +133,27 @@ def kdump_remote(db, action):
 
     file_path = Path('/etc/default/kdump-tools')
     if action.lower() == 'enable':
-        try:
-            # Read the content of the file
-            content = file_path.read_text()
+        # Read the content of the file
+        content = file_path.read_text()
+        
+        def uncomment_ssh(match):
+            return match.group(0)[1:]  # Remove the leading '#'
 
-            def uncomment_ssh(match):
-                return match.group(0)[1:]  # Remove the leading '#'
-
-            new_content = re.sub(r"^#SSH", uncomment_ssh, content, flags=re.MULTILINE)
-            new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)
-            click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+        new_content = re.sub(r"^#SSH", uncomment_ssh, content, flags=re.MULTILINE)
+        new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)
+        click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")       
 
     if action.lower() == 'disable':
-        file_path = Path('/etc/default/kdump-tools')
-        try:
-            # Read the content of the file
-            content = file_path.read_text()
+        # Read the content of the file
+        content = file_path.read_text()
 
-            def comment_ssh(match):
-                return f'#{match.group(0)}'  # Add a leading '#'
+        def comment_ssh(match):
+            return f'#{match.group(0)}'  # Add a leading '#'
 
-            new_content = re.sub(r"^SSH", comment_ssh, content, flags=re.MULTILINE)
-            new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)
-            click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented .")
-        except Exception as e:
-            click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+        new_content = re.sub(r"^SSH", comment_ssh, content, flags=re.MULTILINE)
+        new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)
+        click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented .")
+        click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
     echo_reboot_warning()
 
@@ -218,7 +212,7 @@ def add_kdump_item(db, item, value):
     #     click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
     # except Exception as e:
     #     click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-    echo_reboot_warning()
+    # echo_reboot_warning()
 
 
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
