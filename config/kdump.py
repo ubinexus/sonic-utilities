@@ -131,8 +131,8 @@ def kdump_remote(db, action):
     remote = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
 
+    file_path = Path('/etc/default/kdump-tools')
     if action.lower() == 'enable':
-        file_path = Path('/etc/default/kdump-tools')
         try:
             # Read the content of the file
             content = file_path.read_text()
@@ -146,7 +146,7 @@ def kdump_remote(db, action):
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
-    elif action.lower() == 'disable':
+    if action.lower() == 'disable':
         file_path = Path('/etc/default/kdump-tools')
         try:
             # Read the content of the file
