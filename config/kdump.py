@@ -131,18 +131,18 @@ def kdump_remote(db, action):
     remote = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
 
-    def uncomment_ssh(match):
-        return match.group(0)[1:]  # Remove the leading '#'
-    def comment_ssh(match):
-        return f'#{match.group(0)}'  # Add a leading '#'
-
     if action.lower() == 'enable':
         file_path = Path('/etc/default/kdump-tools')
         try:
             # Read the content of the file
             content = file_path.read_text()
+
+            def uncomment_ssh(match):
+                return match.group(0)[1:]  # Remove the leading '#'
+
             new_content = re.sub(r"^#SSH", uncomment_ssh, content, flags=re.MULTILINE)
             new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)
+            
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
@@ -152,8 +152,13 @@ def kdump_remote(db, action):
         try:
             # Read the content of the file
             content = file_path.read_text()
+
+            def comment_ssh(match):
+                return f'#{match.group(0)}'  # Add a leading '#'
+
             new_content = re.sub(r"^SSH", comment_ssh, content, flags=re.MULTILINE)
             new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)
+            
             click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented .")
         except Exception as e:
             click.echo(f"Error updating /etc/default/kdump-tools: {e}")
