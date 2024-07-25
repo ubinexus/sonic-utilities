@@ -139,7 +139,7 @@ def kdump_remote(db, action):
 
             # Define replacement functions with capture groups
             def comment_ssh(match):
-                return f'# {match.group(0)}'
+                return f'#{match.group(0)}'
 
             # Apply replacements using capture groups
             new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", comment_ssh, content, flags=re.MULTILINE)
