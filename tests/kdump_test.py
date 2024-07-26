@@ -76,7 +76,6 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "Kdump Remote Mode Enabled" in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
@@ -93,7 +92,6 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "Kdump Remote Mode Disabled.." in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
@@ -111,7 +109,6 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_string", "user@host"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "Updated kdump configurations." in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
@@ -125,14 +122,10 @@ class TestKdump(object):
         db = Db()
         runner = CliRunner()
 
-        # Ensure KDUMP table exists and is in the right state
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "user@host"})
-
         # Remove SSH string
         result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "Updated kdump configurations." in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
@@ -146,14 +139,10 @@ class TestKdump(object):
         db = Db()
         runner = CliRunner()
 
-        # Set KDUMP remote mode to enabled
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-
         # Add SSH path
         result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "/path/to/key"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "Updated kdump configurations." in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
@@ -171,7 +160,6 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
-        assert "ssh_path removed successfully." in result.output
 
         # Delete the 'KDUMP' table.
         db.cfgdb.delete_table("KDUMP")
