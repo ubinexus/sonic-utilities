@@ -1,6 +1,5 @@
 import sys
 import click
-import re
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 from pathlib import Path
@@ -98,6 +97,7 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
     echo_reboot_warning()
 # 'remote' command ('sudo config kdump remote ...')
+
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
@@ -213,8 +213,7 @@ def add_kdump_item(db, item, value):
     #     click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
     # except Exception as e:
     #     click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-    # echo_reboot_warning()
-
+    # echo_reboot_warning(
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @pass_db
