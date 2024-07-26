@@ -133,7 +133,8 @@ def kdump_remote(db, action):
     file_path = Path('/etc/default/kdump-tools')
     if action.lower() == 'enable':
         # Read the content of the file
-        content = file_path.read_text()        
+        content = file_path.read_text()
+         
         def uncomment_ssh(match):
             return match.group(0)[1:]  # Remove the leading '#'
 
