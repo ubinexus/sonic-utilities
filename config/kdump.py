@@ -131,26 +131,46 @@ def kdump_remote(db, action):
     remote = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
     file_path = Path('/etc/default/kdump-tools')
+    # Values to be set for SSH and SSH_KEY
+    ssh_value = "your_ssh_value"
+    ssh_key_value = "your_ssh_key_value"
     if action.lower() == 'enable':
         # Read the content of the file
-        content = file_path.read_text()
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+        # Update the lines
+        updated_lines = []
+        for line in lines:
+            if line.startswith("#SSH="):
+                updated_lines.append(f'SSH="{ssh_value}"\n')
+            elif line.startswith("#SSH_KEY="):
+                updated_lines.append(f'SSH_KEY="{ssh_key_value}"\n')
+            else:
+                updated_lines.append(line)
 
-        def uncomment_ssh(match):
-            return match.group(0)[1:]  # Remove the leading '#'
-
-        new_content = re.sub(r"^#SSH", uncomment_ssh, content, flags=re.MULTILINE)
-        new_content = re.sub(r"^#SSH_KEY", uncomment_ssh, new_content, flags=re.MULTILINE)
+        # Write the updated lines back to the configuration file
+        with open(file_path, 'w') as file:
+            file.writelines(updated_lines)
         click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
+    
     if action.lower() == 'disable':
         # Read the content of the file
-        content = file_path.read_text()
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
 
-        def comment_ssh(match):
-            return f'#{match.group(0)}'  # Add a leading '#'
+        # Update the lines
+        updated_lines = []
+        for line in lines:
+            if line.startswith("SSH="):
+                updated_lines.append(f'#SSH="{ssh_value}"\n')
+            elif line.startswith("SSH_KEY="):
+                updated_lines.append(f'#SSH_KEY="{ssh_key_value}"\n')
+            else:
+                updated_lines.append(line)
 
-        new_content = re.sub(r"^SSH", comment_ssh, content, flags=re.MULTILINE)
-        new_content = re.sub(r"^SSH_KEY", comment_ssh, new_content, flags=re.MULTILINE)
-        click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented .")
+        # Write the updated lines back to the configuration file
+        with open(file_path, 'w') as file:
+            file.writelines(updated_lines)
     echo_reboot_warning()
 
 #
