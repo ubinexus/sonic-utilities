@@ -138,7 +138,7 @@ def kdump_remote(db, action):
 
             # Write the updated content back to the file
             file_path.write_text(new_content)
-            click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY uncommented.")
+            click.echo("Kdump Remote Mode Enabled")
 
         elif action.lower() == 'disable':
             # Define replacement functions with capture groups for commenting
@@ -151,7 +151,7 @@ def kdump_remote(db, action):
 
             # Write the updated content back to the file
             file_path.write_text(new_content)
-            click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
+            click.echo("Kdump Remote Mode Disabled.")
 
     except Exception as e:
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
@@ -213,9 +213,9 @@ def add_kdump_item(db, item, value):
 
         # Write the updated content back to the file
         file_path.write_text(new_content)
-        click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
+        click.echo("Updated kdump configurations.")
     except Exception as e:
-        click.echo(f"Error updating /etc/default/kdump-tools: {e}")
+        click.echo(f"Error updating kdump configurations: {e}")
 
     echo_reboot_warning()
 
@@ -270,7 +270,7 @@ def remove_kdump_item(db, item):
 
         # Write the updated content back to the file
         file_path.write_text(new_content)
-        click.echo("Updated /etc/default/kdump-tools with empty SSH settings.")
+        click.echo("Updated kdump configurations.")
     except Exception as e:
         click.echo(f"Error updating /etc/default/kdump-tools: {e}")
 
