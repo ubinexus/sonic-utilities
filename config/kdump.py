@@ -97,12 +97,7 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
     echo_reboot_warning()
-
-#
 # 'remote' command ('sudo config kdump remote ...')
-#
-
-
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
@@ -110,24 +105,19 @@ def kdump_remote(db, action):
     """Enable or Disable Kdump Remote Mode"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
-
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
-
     if action.lower() == 'enable' and current_remote_status == 'true':
         click.echo("Error: Kdump Remote Mode is already enabled.")
         return
     elif action.lower() == 'disable' and current_remote_status == 'false':
         click.echo("Error: Kdump Remote Mode is already disabled.")
         return
-
     if action.lower() == 'disable':
         ssh_string = kdump_table.get("config", {}).get("ssh_string", None)
         ssh_key = kdump_table.get("config", {}).get("ssh_key", None)
-
         if ssh_string or ssh_key:
             click.echo("Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode.")
             return
-
     remote = 'true' if action.lower() == 'enable' else 'false'
     db.cfgdb.mod_entry("KDUMP", "config", {"remote": remote})
     file_path = Path('/etc/default/kdump-tools')
@@ -147,17 +137,14 @@ def kdump_remote(db, action):
                 updated_lines.append(f'SSH_KEY="{ssh_key_value}"\n')
             else:
                 updated_lines.append(line)
-
         # Write the updated lines back to the configuration file
         with open(file_path, 'w') as file:
             file.writelines(updated_lines)
-        click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
-    
+    click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
     if action.lower() == 'disable':
         # Read the content of the file
         with open(file_path, 'r') as file:
             lines = file.readlines()
-
         # Update the lines
         updated_lines = []
         for line in lines:
@@ -167,12 +154,10 @@ def kdump_remote(db, action):
                 updated_lines.append(f'#SSH_KEY="{ssh_key_value}"\n')
             else:
                 updated_lines.append(line)
-
         # Write the updated lines back to the configuration file
         with open(file_path, 'w') as file:
             file.writelines(updated_lines)
     echo_reboot_warning()
-
 #
 # 'add' command ('sudo config kdump add ...')
 #
@@ -229,7 +214,6 @@ def add_kdump_item(db, item, value):
     # except Exception as e:
     #     click.echo(f"Error updating /etc/default/kdump-tools: {e}")
     # echo_reboot_warning()
-
 
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
