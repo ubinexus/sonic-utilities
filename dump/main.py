@@ -94,7 +94,7 @@ def state(ctx, module, identifier, db, table, key_map, verbose, namespace):
     vidtorid = extract_rid(collected_info, namespace, ctx.obj.conn_pool)
 
     if not key_map:
-        collected_info = populate_fv(collected_info, module, namespace, ctx.obj.conn_pool,obj.return_pb2_obj())
+        collected_info = populate_fv(collected_info, module, namespace, ctx.obj.conn_pool, obj.return_pb2_obj())
 
     for id in vidtorid.keys():
         collected_info[id]["ASIC_DB"]["vidtorid"] = vidtorid[id]
