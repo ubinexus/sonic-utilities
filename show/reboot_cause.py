@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import redis
 
 import click
 from tabulate import tabulate
@@ -10,8 +9,6 @@ import utilities_common.cli as clicommon
 
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
-STATE_DB = 6
-CHASSIS_STATE_DB = 13
 
 def read_reboot_cause_file():
     reboot_cause_dict = {}
@@ -25,14 +22,14 @@ def read_reboot_cause_file():
 
     return reboot_cause_dict
 
-
 # Function to fetch reboot cause data from database
 def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     prefix = 'REBOOT_CAUSE|'
     if use_chassis_db:
         try:
-            rdb = redis.Redis(host='redis_chassis.server', port=6380, decode_responses=True, db=CHASSIS_STATE_DB)
-            table_keys = rdb.keys(prefix+'*')
+            rdb = SonicV2Connector(host='redis_chassis.server', port=6380)
+            rdb.connect(rdb.CHASSIS_STATE_DB)
+            table_keys = rdb.keys(rdb.CHASSIS_STATE_DB, prefix+'*')
         except Exception:
             return []
     else:
@@ -49,7 +46,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
         r = []
         append = False
         if use_chassis_db:
-            entry = rdb.hgetall(tk)
+            entry = rdb.get_all(rdb.CHASSIS_STATE_DB, tk)
         else:
             entry = rdb.get_all(rdb.STATE_DB, tk)
 

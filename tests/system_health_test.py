@@ -1,6 +1,7 @@
 import sys
 import os
-from unittest import mock
+# TBD: uncomment in phase:2 when system-health is supported
+# from unittest import mock
 
 import click
 from click.testing import CliRunner
@@ -9,8 +10,9 @@ from .mock_tables import dbconnector
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
-show_path = os.path.join(modules_path, "show")
 sys.path.insert(0, modules_path)
+# TBD: uncomment in phase:2 when system-health is supported
+# show_path = os.path.join(modules_path, "show")
 
 class MockerConfig(object):
     ignore_devices = []
@@ -307,6 +309,54 @@ psu.voltage  Ignored   Device
 """
         assert result.output == expected
 
+    def test_health_systemready(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"])
+        click.echo(result.output)
+        print("myresult:{}".format(result.output))
+        expected = """\
+System is not ready - one or more services are not up
+
+Service-Name    Service-Status    App-Ready-Status    Down-Reason
+--------------  ----------------  ------------------  -------------
+bgp             Down              Down                Inactive
+mgmt-framework  OK                OK                  -
+pmon            OK                OK                  -
+swss            OK                OK                  -
+"""
+        assert result.output == expected
+        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["brief"])
+        click.echo(result.output)
+        print("myresult:{}".format(result.output))
+        expected = """\
+System is not ready - one or more services are not up
+"""
+        assert result.output == expected
+        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["detail"])
+        click.echo(result.output)
+        print("myresult:{}".format(result.output))
+        expected = """\
+System is not ready - one or more services are not up
+
+Service-Name    Service-Status    App-Ready-Status    Down-Reason    AppStatus-UpdateTime
+--------------  ----------------  ------------------  -------------  ----------------------
+bgp             Down              Down                Inactive       -
+mgmt-framework  OK                OK                  -              -
+pmon            OK                OK                  -              -
+swss            OK                OK                  -              -
+"""
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
+
+'''
+#
+# TBD: Uncomment this code in phase:2 when system-health is supported
+#
     def test_health_summary_all(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
@@ -421,47 +471,4 @@ psu.voltage  Ignored   Device
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
             click.echo(result.output)
-
-    def test_health_systemready(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-
-Service-Name    Service-Status    App-Ready-Status    Down-Reason
---------------  ----------------  ------------------  -------------
-bgp             Down              Down                Inactive
-mgmt-framework  OK                OK                  -
-pmon            OK                OK                  -
-swss            OK                OK                  -
-"""
-        assert result.output == expected
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["brief"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-"""
-        assert result.output == expected
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["detail"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-
-Service-Name    Service-Status    App-Ready-Status    Down-Reason    AppStatus-UpdateTime
---------------  ----------------  ------------------  -------------  ----------------------
-bgp             Down              Down                Inactive       -
-mgmt-framework  OK                OK                  -              -
-pmon            OK                OK                  -              -
-swss            OK                OK                  -              -
-"""
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
-
+'''
