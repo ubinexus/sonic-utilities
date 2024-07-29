@@ -160,9 +160,10 @@ def sysready_status_detail():
     except Exception as e:
         click.echo("Exception: {}".format(str(e)))
 
+
 '''
 #
-# TBD: Uncomment this code in phase:2 
+# TBD: Uncomment this code in phase:2
 # when system-health is supported
 #
 

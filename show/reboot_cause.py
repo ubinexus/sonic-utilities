@@ -22,6 +22,7 @@ def read_reboot_cause_file():
 
     return reboot_cause_dict
 
+
 # Function to fetch reboot cause data from database
 def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     prefix = 'REBOOT_CAUSE|'
@@ -58,14 +59,15 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
                     append = False
                     continue
                 elif not entry['device'] in d or entry['device'] in d and history:
-                    append = True
                     if not entry['device'] in d:
                         d.append(entry['device'])
+                        append = True
             r.append(entry['device'] if 'device' in entry else "SWITCH")
-        suffix = ""
-        if append and "DPU" in entry['device']:
-            suffix = entry['device'] + '|'
-        r.append(tk.replace(prefix, "").replace(suffix, ""))
+
+        name = tk.replace(prefix, "")
+        if "|" in name:
+            name = name[:name.rindex('|')] + ''
+        r.append(name)
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
         r.append(entry['user'] if 'user' in entry else "")
