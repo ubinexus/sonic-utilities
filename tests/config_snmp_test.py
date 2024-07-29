@@ -903,7 +903,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         runner.invoke(config.config.commands["snmpagentaddress"].commands["add"], ["10.1.0.32"], obj=obj)
         assert ('10.1.0.32', '', '') in db.cfgdb.get_keys('SNMP_AGENT_ADDRESS_CONFIG')
-        assert db.cfgdb.get_entry("SNMP_AGENT_ADDRESS_CONFIG", "i10.1.0.32||") == {}
+        assert db.cfgdb.get_entry("SNMP_AGENT_ADDRESS_CONFIG", "10.1.0.32||") == {}
 
     @classmethod
     def teardown_class(cls):
