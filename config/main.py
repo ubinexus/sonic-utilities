@@ -3237,8 +3237,8 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     # Link local IP address should be provided along with zone id
     # <link_local_ip>%<zone_id> for ex fe80::1%eth0
-    ip_addr = agentip.split('%')[0]
-    if not clicommon.is_ipaddress(ip_addr):
+    agent_ip_addr = agentip.split('%')[0]
+    if not clicommon.is_ipaddress(agent_ip_addr):
         click.echo("Invalid IP address")
         return False
     config_db = ctx.obj['db']
@@ -3248,12 +3248,12 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
             click.echo("ManagementVRF is Enabled. Provide vrf.")
             return False
     found = 0
-    ip = ipaddress.ip_address(ip_addr)
+    ip = ipaddress.ip_address(agent_ip_addr)
     for intf in netifaces.interfaces():
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
             for ipaddr in ipaddresses[ip_family[ip.version]]:
-                if agentip.lower() == ipaddr['addr'].lower():
+                if agent_ip_addr.lower() == ipaddr['addr'].lower():
                     found = 1
                     break
         if found == 1:
