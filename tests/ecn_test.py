@@ -6,10 +6,14 @@ import sys
 from click.testing import CliRunner
 
 import config.main as config
-from ecn_input.ecn_test_vectors import *
-from utils import get_result_and_return_code
+from .ecn_input.ecn_test_vectors import testData
+from .utils import get_result_and_return_code
 from utilities_common.db import Db
 import show.main as show
+
+# Constants
+ARGS_DELIMITER = ','
+NAMESPACE_DELIMITER = '-'
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -26,12 +30,19 @@ class TestEcnConfigBase(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
     def process_cmp_args(self, cmp_args):
-        if cmp_args is None:
-            return (None, None)
-        return cmp_args.split(',')
+        """
+        The arguments are a string marked by delimiters
+        Arguments marked as 'None', are treated as None objects
+        First arg is always a collection of namespaces
+        """
+
+        args = cmp_args.split(ARGS_DELIMITER)
+        args = [None if arg == "None" else arg for arg in args]
+        args[0] = args[0].split(NAMESPACE_DELIMITER)
+        return args
 
     def verify_profile(self, queue_db_entry, profile, value):
-        if profile != None:
+        if profile is not None:
             assert queue_db_entry[profile] == value
         else:
             assert profile not in queue_db_entry,\
@@ -69,20 +80,30 @@ class TestEcnConfigBase(object):
         if 'cmp_args' in input:
             fd = open('/tmp/ecnconfig', 'r')
             cmp_data = json.load(fd)
+
+            # Verify queue assignments
             if 'cmp_q_args' in input:
-                profile, value = self.process_cmp_args(input['cmp_args'][0])
+                namespaces, profile, value = self.process_cmp_args(input['cmp_args'][0])
+                for namespace in namespaces:
+                    for key in cmp_data[namespace]:
+                        queue_idx = ast.literal_eval(key)[-1]
+                        if queue_idx in input['cmp_q_args']:
+                            self.verify_profile(cmp_data[namespace][key], profile, value)
+
+                # other_q helps verify two different queue assignments
                 if 'other_q' in input:
-                    profile1, value1 = self.process_cmp_args(input['cmp_args'][-1])
-                for key in cmp_data:
-                    queue_idx = ast.literal_eval(key)[-1]
-                    if queue_idx in input['cmp_q_args']:
-                        self.verify_profile(cmp_data[key], profile, value)
-                    if 'other_q' in input and queue_idx in input['other_q']:
-                        self.verify_profile(cmp_data[key], profile1, value1)
+                    namespaces1, profile1, value1 = self.process_cmp_args(input['cmp_args'][-1])
+                    for namespace1 in namespaces1:
+                        for key in cmp_data[namespace1]:
+                            queue_idx = ast.literal_eval(key)[-1]
+                            if 'other_q' in input and queue_idx in input['other_q']:
+                                self.verify_profile(cmp_data[namespace1][key], profile1, value1)
+            # Verify non-queue related assignments
             else:
                 for args in input['cmp_args']:
-                    profile, name, value = args.split(',')
-                    assert(cmp_data[profile][name] == value)
+                    namespaces, profile, name, value = self.process_cmp_args(args)
+                    for namespace in namespaces:
+                        assert(cmp_data[namespace][profile][name] == value)
             fd.close()
 
         if 'rc_msg' in input:
@@ -95,9 +116,11 @@ class TestEcnConfigBase(object):
     def teardown_class(cls):
         os.environ['PATH'] = os.pathsep.join(os.environ['PATH'].split(os.pathsep)[:-1])
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
         if os.path.isfile('/tmp/ecnconfig'):
             os.remove('/tmp/ecnconfig')
         print("TEARDOWN")
+
 
 class TestEcnConfig(TestEcnConfigBase):
     def test_ecn_show_config(self):

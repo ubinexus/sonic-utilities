@@ -6403,7 +6403,8 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
     if ydrop is not None: command += ['-ydrop', str(ydrop)]
     if gdrop is not None: command += ['-gdrop', str(gdrop)]
     if verbose: command += ["-vv"]
-    if namespace is not None: command += ['-n', str(namespace)]
+    if namespace is not None:
+        command += ['-n', str(namespace)]
     clicommon.run_command(command, display_cmd=verbose)
 
 

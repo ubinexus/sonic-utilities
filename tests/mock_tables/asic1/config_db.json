@@ -251,5 +251,16 @@
             "green_max_threshold": "32760",
             "green_min_threshold": "4095",
             "yellow_drop_probability": "2"
+    },
+    "DEVICE_NEIGHBOR|Ethernet0": {
+        "name": "Servers",
+        "port": "eth0"
+    },
+    "QUEUE|Ethernet0|0": {
+        "scheduler": "[SCHEDULAR|scheduler.0]",
+        "wred_profile": "AZURE_LOSSLESS"
+    },
+    "QUEUE|Ethernet0|1": {
+        "scheduler": "[SCHEDULAR|scheduler.0]"
     }
 }

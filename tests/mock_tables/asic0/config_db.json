@@ -315,5 +315,16 @@
         "yellow_max_threshold": "2097152",
         "yellow_drop_probability": "5",
         "red_drop_probability": "5"
+    },
+    "DEVICE_NEIGHBOR|Ethernet4": {
+        "name": "Serverss0",
+        "port": "eth0"
+    },
+    "QUEUE|Ethernet4|0": {
+        "scheduler": "[SCHEDULAR|scheduler.0]"
+    },
+    "QUEUE|Ethernet4|1": {
+        "scheduler": "[SCHEDULAR|scheduler.0]",
+        "wred_profile": "AZURE_LOSSLESS"
     }
 }
