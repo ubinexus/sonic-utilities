@@ -1,4 +1,3 @@
-import importlib
 from unittest import mock
 
 from click.testing import CliRunner
@@ -74,13 +73,12 @@ class TestKdump(object):
         print(result.exit_code)
         assert result.exit_code == 1
 
-
     @pytest.fixture
     def db():
         db = mock.MagicMock()
         db.cfgdb = mock.MagicMock()
         return db
-    
+
     def setup_and_teardown(self, db):
         # Mock the file read and write operations
         self.file_path = Path('/etc/default/kdump-tools')
@@ -134,10 +132,11 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         assert result.exit_code == 0
         expected_error_message = (
-        "Error: Remove SSH_string and SSH_key from Config DB before disabling "
-        "Kdump Remote Mode."
+            "Error: Remove SSH_string and SSH_key from Config DB before disabling "
+            "Kdump Remote Mode."
         )
         assert expected_error_message in result.output
+    
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
