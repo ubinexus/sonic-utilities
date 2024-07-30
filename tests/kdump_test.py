@@ -173,5 +173,6 @@ class TestKdumpUtilities(unittest.TestCase):
     def teardown_class(cls):
         print("TEARDOWN")
 
+
 if __name__ == '__main__':
     unittest.main()
