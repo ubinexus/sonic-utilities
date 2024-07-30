@@ -1,14 +1,11 @@
-import os
-import sys
 import pytest
-import click
 from click.testing import CliRunner
 from unittest import mock
 from utilities_common.db import Db
 
 from config.main import config
 
-# Mocking the database and filesystem interactions
+
 @pytest.fixture
 def db():
     db = mock.MagicMock()
@@ -81,7 +78,7 @@ class TestKdump(object):
         print(result.exit_code)
         assert result.exit_code == 1
 
-    def test_kdump_remote_enable(db):
+    def test_kdump_remote_enable(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
@@ -89,7 +86,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "true"})
 
-    def test_kdump_remote_enable_already_enabled(db):
+    def test_kdump_remote_enable_already_enabled(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
@@ -97,7 +94,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         assert "Error: Kdump Remote Mode is already enabled." in result.output
 
-    def test_kdump_remote_disable(db):
+    def test_kdump_remote_disable(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
@@ -105,7 +102,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "false"})
 
-    def test_kdump_remote_disable_already_disabled(db):
+    def test_kdump_remote_disable_already_disabled(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
@@ -113,7 +110,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         assert "Error: Kdump Remote Mode is already disabled." in result.output
 
-    def test_kdump_remote_disable_with_ssh_values(db):
+    def test_kdump_remote_disable_with_ssh_values(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {
@@ -127,7 +124,7 @@ class TestKdump(object):
         )
         assert expected_output in result.output
 
-    def test_kdump_add(db):
+    def test_kdump_add(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
@@ -136,7 +133,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"ssh_string": "test_ssh_string"})
 
-    def test_kdump_add_remote_not_enabled(db):
+    def test_kdump_add_remote_not_enabled(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
@@ -145,7 +142,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         assert "Error: Enable remote mode first." in result.output
 
-    def test_kdump_add_already_exists(db):
+    def test_kdump_add_already_exists(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"remote": "true", "ssh_string": "existing_ssh_string"}}
@@ -154,7 +151,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         assert "Error: ssh_string is already added." in result.output
 
-    def test_kdump_remove(db):
+    def test_kdump_remove(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {"ssh_string": "test_ssh_string"}}
@@ -162,7 +159,7 @@ class TestKdump(object):
         assert result.exit_code == 0
         db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"ssh_string": ""})
 
-    def test_kdump_remove_not_configured(db):
+    def test_kdump_remove_not_configured(self, db):
         runner = CliRunner()
 
         db.cfgdb.get_table.return_value = {"config": {}}
