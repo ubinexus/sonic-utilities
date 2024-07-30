@@ -3,9 +3,8 @@ import unittest
 
 from click.testing import CliRunner
 from utilities_common.db import Db
-from config.kdump import kdump_remote, add_kdump_item, remove_kdump_item,\
-    check_kdump_table_existence, echo_reboot_warning
-from unittest.mock import MagicMock, patch
+from config.kdump import kdump_remote, add_kdump_item, remove_kdump_item
+from unittest.mock import patch
 
 
 class TestKdump(object):
