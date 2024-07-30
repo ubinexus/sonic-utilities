@@ -187,36 +187,9 @@ def add_kdump_item(db, item, value):
 
     # Add item to config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: value})
+    echo_reboot_warning()
 
-    # Retrieve updated values from config_db
-    # kdump_table = db.cfgdb.get_table("KDUMP")
-    # ssh_string = kdump_table.get("config", {}).get("ssh_string", "")
-    # ssh_path = kdump_table.get("config", {}).get("ssh_path", "")
-
-    # file_path = Path('/etc/default/kdump-tools')
-    # try:
-    #     # Read the content of the file
-    #     content = file_path.read_text()
-
-    #     # Define replacement functions with capture groups
-    #     def replace_ssh(match):
-    #         return f'SSH="{ssh_string}"' if ssh_string else match.group(0)
-
-    #     def replace_ssh_key(match):
-    #         return f'SSH_KEY="{ssh_path}"' if ssh_path else match.group(0)
-
-    #     # Apply replacements using capture groups
-    #     new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
-    #     new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
-
-    #     # Write the updated content back to the file
-    #     file_path.write_text(new_content)
-    #     click.echo("Updated /etc/default/kdump-tools with new SSH settings.")
-    # except Exception as e:
-    #     click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-    # echo_reboot_warning(
-
-
+    
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @pass_db
@@ -233,31 +206,5 @@ def remove_kdump_item(db, item):
 
     # Remove item from config_db
     db.cfgdb.mod_entry("KDUMP", "config", {item: ""})
-
-    # Retrieve updated values from config_db
-    # kdump_table = db.cfgdb.get_table("KDUMP")
-
-    # file_path = Path('/etc/default/kdump-tools')
-    # try:
-    #     # Read the content of the file
-    #     content = file_path.read_text()
-
-    #     # Define replacement functions with capture groups
-    #     def replace_ssh(match):
-    #         return 'SSH=""' if item == "ssh_string" else match.group(0)
-
-    #     def replace_ssh_key(match):
-    #         return 'SSH_KEY=""' if item == "ssh_path" else match.group(0)
-
-    #     # Apply replacements using capture groups
-    #     new_content = re.sub(r"^\s*#?\s*SSH\s*=\s*.*$", replace_ssh, content, flags=re.MULTILINE)
-    #     new_content = re.sub(r"^\s*#?\s*SSH_KEY\s*=\s*.*$", replace_ssh_key, new_content, flags=re.MULTILINE)
-
-    #     # Write the updated content back to the file
-    #     file_path.write_text(new_content)
-    #     click.echo("Updated /etc/default/kdump-tools with empty SSH settings.")
-    # except Exception as e:
-    #     click.echo(f"Error updating /etc/default/kdump-tools: {e}")
-
     click.echo(f"{item} removed successfully.")
     echo_reboot_warning()
