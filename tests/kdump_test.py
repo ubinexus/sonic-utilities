@@ -81,7 +81,7 @@ class TestKdumpUtilities(unittest.TestCase):
     def test_kdump_remote_enable_already_enabled(self, mock_write_text, mock_read_text, mock_db):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
         runner = CliRunner()
-        result = runner.invoke(kdump_remote, ['enable'])
+        result = runner.invoke(kdump_remote, ['enable'], obj=mock_db)
         self.assertIn("Error: Kdump Remote Mode is already enabled.", result.output)
         mock_write_text.assert_not_called()
 
@@ -91,7 +91,7 @@ class TestKdumpUtilities(unittest.TestCase):
     def test_kdump_remote_disable_already_disabled(self, mock_write_text, mock_read_text, mock_db):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
         runner = CliRunner()
-        result = runner.invoke(kdump_remote, ['disable'])
+        result = runner.invoke(kdump_remote, ['disable'], obj=mock_db)
         self.assertIn("Error: Kdump Remote Mode is already disabled.", result.output)
         mock_write_text.assert_not_called()
 
@@ -103,7 +103,7 @@ class TestKdumpUtilities(unittest.TestCase):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
         mock_read_text.return_value = '#SSH="test"\n#SSH_KEY="test_key"\n'
         runner = CliRunner()
-        result = runner.invoke(kdump_remote, ['enable'])
+        result = runner.invoke(kdump_remote, ['enable'], obj=mock_db)
         self.assertIn("Kdump Remote Mode Enabled", result.output)
         mock_write_text.assert_called_once()
         mock_echo_reboot_warning.assert_called_once()
@@ -116,7 +116,7 @@ class TestKdumpUtilities(unittest.TestCase):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
         mock_read_text.return_value = 'SSH="test"\nSSH_KEY="test_key"\n'
         runner = CliRunner()
-        result = runner.invoke(kdump_remote, ['disable'])
+        result = runner.invoke(kdump_remote, ['disable'], obj=mock_db)
         self.assertIn("Kdump Remote Mode Disabled.", result.output)
         mock_write_text.assert_called_once()
         mock_echo_reboot_warning.assert_called_once()
@@ -125,7 +125,7 @@ class TestKdumpUtilities(unittest.TestCase):
     def test_add_kdump_item_remote_not_enabled(self, mock_db):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
         runner = CliRunner()
-        result = runner.invoke(add_kdump_item, ['ssh_string', 'test_value'])
+        result = runner.invoke(add_kdump_item, ['ssh_string', 'test_value'], obj=mock_db)
         self.assertIn("Error: Enable remote mode first.", result.output)
 
     @patch('config.kdump.db')
@@ -136,7 +136,7 @@ class TestKdumpUtilities(unittest.TestCase):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true", "ssh_string": "", "ssh_path": ""}}
         mock_read_text.return_value = 'SSH=""\nSSH_KEY=""\n'
         runner = CliRunner()
-        result = runner.invoke(add_kdump_item, ['ssh_string', 'test_value'])
+        result = runner.invoke(add_kdump_item, ['ssh_string', 'test_value'], obj=mock_db)
         self.assertIn("Updated kdump configurations.", result.output)
         mock_write_text.assert_called_once()
         mock_echo_reboot_warning.assert_called_once()
@@ -145,14 +145,14 @@ class TestKdumpUtilities(unittest.TestCase):
     def test_remove_kdump_item_not_configured(self, mock_db):
         mock_db.cfgdb.get_table.return_value = {"config": {"ssh_string": ""}}
         runner = CliRunner()
-        result = runner.invoke(remove_kdump_item, ['ssh_string'])
+        result = runner.invoke(remove_kdump_item, ['ssh_string'], obj=mock_db)
         self.assertIn("Error: ssh_string is not configured.", result.output)
 
     @patch('config.kdump.db')
     def test_remove_kdump_item_remote_not_enabled(self, mock_db):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false", "ssh_string": "test_value"}}
         runner = CliRunner()
-        result = runner.invoke(remove_kdump_item, ['ssh_string'])
+        result = runner.invoke(remove_kdump_item, ['ssh_string'], obj=mock_db)
         self.assertIn("Error: Remote mode is not enabled.", result.output)
 
     @patch('config.kdump.db')
@@ -163,11 +163,15 @@ class TestKdumpUtilities(unittest.TestCase):
         mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true", "ssh_string": "test_value"}}
         mock_read_text.return_value = 'SSH="test_value"\nSSH_KEY=""\n'
         runner = CliRunner()
-        result = runner.invoke(remove_kdump_item, ['ssh_string'])
+        result = runner.invoke(remove_kdump_item, ['ssh_string'], obj=mock_db)
         self.assertIn("ssh_string removed successfully.", result.output)
         mock_write_text.assert_called_once()
         mock_echo_reboot_warning.assert_called_once()
 
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+
+if __name__ == '__main__':
+    unittest.main()
