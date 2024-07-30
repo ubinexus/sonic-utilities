@@ -136,7 +136,7 @@ class TestKdump(object):
             "Kdump Remote Mode."
         )
         assert expected_error_message in result.output
-    
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
