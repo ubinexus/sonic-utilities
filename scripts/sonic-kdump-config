@@ -653,10 +653,6 @@ def main():
             cmd_kdump_memory(options.verbose, options.memory)
         elif options.num_dumps != False:
             cmd_kdump_num_dumps(options.verbose, options.num_dumps)
-        elif options.ssh_string != False:
-            cmd_ssh_string(options.verbose, options.ssh_string)
-        elif options.ssh_path != False:
-            cmd_ssh_path(options.verbose, options.ssh_path)
         elif options.dump_db:
             cmd_dump_db()
         elif options.status_json:
