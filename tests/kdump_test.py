@@ -4,11 +4,13 @@ from unittest import mock
 from pathlib import Path
 from config.kdump import kdump_disable, kdump_enable, kdump_memory, kdump_num_dumps, kdump_remote
 
+
 @pytest.fixture
 def db():
     db = mock.MagicMock()
     db.cfgdb = mock.MagicMock()
     return db
+
 
 class TestKdump:
     @classmethod
@@ -70,7 +72,7 @@ class TestKdump:
     def test_kdump_remote_enable(self, db):
         runner = CliRunner()
         db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
-        
+
         mock_file_path = mock.MagicMock(spec=Path)
         mock_file_path.exists.return_value = True
 
