@@ -7028,6 +7028,7 @@ def audit():
     """audit-related configuration tasks"""
     pass
 
+
 #
 # 'audit enable' command ('config audit enable')
 #
@@ -7043,6 +7044,7 @@ def enable(ctx):
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
+
 #
 # 'audit disable' command ('config audit disable>')
 #
@@ -7056,6 +7058,7 @@ def disable(ctx):
         config_db.mod_entry('AUDIT', 'config', {"enabled": "false"})
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
 
 #
 # 'sflow' group ('config sflow ...')
