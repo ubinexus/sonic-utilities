@@ -142,7 +142,6 @@ def kdump_remote(db, action):
         with open(file_path, 'w') as file:
             file.writelines(updated_lines)
     echo_reboot_warning()
-    click.echo("Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out.")
     if action.lower() == 'disable':
         # Read the content of the file
         with open(file_path, 'r') as file:
