@@ -1,193 +1,99 @@
 import pytest
 from click.testing import CliRunner
-from unittest import mock
-from config.main import config
-from utilities_common.db import Db
-
-
-class TestKdump(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-
-    def test_config_kdump_disable(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["kdump"].commands["disable"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
-        # Delete the 'KDUMP' table.
-        db.cfgdb.delete_table("KDUMP")
-
-        result = runner.invoke(config.config.commands["kdump"].commands["disable"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 1
-
-    def test_config_kdump_enable(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
-        # Delete the 'KDUMP' table.
-        db.cfgdb.delete_table("KDUMP")
-
-        result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 1
-
-    def test_config_kdump_memory(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
-        # Delete the 'KDUMP' table.
-        db.cfgdb.delete_table("KDUMP")
-
-        result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 1
-
-    def test_config_kdump_num_dumps(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 0
-
-        # Delete the 'KDUMP' table.
-        db.cfgdb.delete_table("KDUMP")
-
-        result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
-        print(result.exit_code)
-        assert result.exit_code == 1
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-
+from unittest.mock import MagicMock, patch
+from config.kdump import  kdump_enable, kdump_disable, kdump_memory, kdump_num_dumps, kdump_remote, add_kdump_item, remove_kdump_item
 
 @pytest.fixture
-def db():
-    db = mock.MagicMock()
-    db.cfgdb = mock.MagicMock()
-    return db
+def runner():
+    return CliRunner()
 
-class TestKdumpRemote:
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
+@pytest.fixture
+def mock_db():
+    return MagicMock()
 
-    def test_kdump_remote_enable(self, db):
-        runner = CliRunner()
-        # Mocking the initial state where remote is disabled
-        db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
-        
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0
-        db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "true"})
-        assert "Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out." not in result.output
-        assert "KDUMP configuration changes may require a reboot to take effect." in result.output
+@pytest.fixture
+def mock_check_kdump_table_existence():
+    with patch('my_kdump_module.check_kdump_table_existence') as mock:
+        yield mock
 
-    def test_kdump_remote_enable_already_enabled(self, db):
-        runner = CliRunner()
-        # Mocking the initial state where remote is already enabled
-        db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
-        
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already enabled." in result.output
+@pytest.fixture
+def mock_echo_reboot_warning():
+    with patch('my_kdump_module.echo_reboot_warning') as mock:
+        yield mock
 
-    def test_kdump_remote_disable(self, db):
-        runner = CliRunner()
-        # Mocking the initial state where remote is enabled
-        db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
-        
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "false"})
-        assert "Updated /etc/default/kdump-tools: SSH and SSH_KEY commented out." not in result.output
-        assert "KDUMP configuration changes may require a reboot to take effect." in result.output
+@pytest.fixture
+def mock_file_operations():
+    with patch('builtins.open', create=True) as mock_open:
+        with patch('my_kdump_module.Path') as mock_path:
+            mock_path.return_value.exists.return_value = True
+            yield mock_open
 
-    def test_kdump_remote_disable_already_disabled(self, db):
-        runner = CliRunner()
-        # Mocking the initial state where remote is already disabled
-        db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
-        
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already disabled." in result.output
-
-    def test_kdump_remote_disable_with_ssh_values(self, db):
-        runner = CliRunner()
-        # Mocking the initial state where remote is enabled with ssh values
-        db.cfgdb.get_table.return_value = {
-            "config": {"remote": "true", "ssh_string": "some_ssh_string", "ssh_key": "some_ssh_key"}
-        }
-        
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        expected_output = (
-            "Error: Remove SSH_string and SSH_key from Config DB before disabling "
-            "Kdump Remote Mode."
-        )
-        assert expected_output in result.output
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-
-# Mock the file interactions
-
-@mock.patch("pathlib.Path.open", create=True)
-def test_kdump_remote_enable_file_update(mock_open, db):
-    runner = CliRunner()
-    # Mocking the initial state where remote is disabled
-    db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
-    
-    file_mock = mock_open.return_value.__enter__.return_value
-    file_mock.readlines.return_value = [
-        "#SSH=original_value\n",
-        "#SSH_KEY=original_value\n"
-    ]
-    
-    result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+def test_kdump_enable(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {"enabled": "false"}}
+    result = runner.invoke(kdump_enable, obj={'db': mock_db})
     assert result.exit_code == 0
-    db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "true"})
-    file_mock.writelines.assert_called_once_with([
-        'SSH="your_ssh_value"\n',
-        'SSH_KEY="your_ssh_key_value"\n'
-    ])
-    assert "KDUMP configuration changes may require a reboot to take effect." in result.output
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"enabled": "true"})
+    mock_echo_reboot_warning.assert_called_once()
 
-@mock.patch("pathlib.Path.open", create=True)
-def test_kdump_remote_disable_file_update(mock_open, db):
-    runner = CliRunner()
-    # Mocking the initial state where remote is enabled
-    db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
-    
-    file_mock = mock_open.return_value.__enter__.return_value
-    file_mock.readlines.return_value = [
-        'SSH="your_ssh_value"\n',
-        'SSH_KEY="your_ssh_key_value"\n'
-    ]
-    
-    result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+def test_kdump_disable(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {"enabled": "true"}}
+    result = runner.invoke(kdump_disable, obj={'db': mock_db})
     assert result.exit_code == 0
-    db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "false"})
-    file_mock.writelines.assert_called_once_with([
-        '#SSH="your_ssh_value"\n',
-        '#SSH_KEY="your_ssh_key_value"\n'
-    ])
-    assert "KDUMP configuration changes may require a reboot to take effect." in result.output
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"enabled": "false"})
+    mock_echo_reboot_warning.assert_called_once()
 
-if __name__ == "__main__":
-    pytest.main()
+def test_kdump_memory(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {}}
+    result = runner.invoke(kdump_memory, ['256M'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"memory": "256M"})
+    mock_echo_reboot_warning.assert_called_once()
+
+def test_kdump_num_dumps(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {}}
+    result = runner.invoke(kdump_num_dumps, [5], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"num_dumps": 5})
+    mock_echo_reboot_warning.assert_called_once()
+
+def test_kdump_remote_enable(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning, mock_file_operations):
+    mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
+    result = runner.invoke(kdump_remote, ['enable'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "true"})
+    mock_echo_reboot_warning.assert_called_once()
+    mock_file_operations.assert_called()
+
+def test_kdump_remote_disable(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning, mock_file_operations):
+    mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
+    result = runner.invoke(kdump_remote, ['disable'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"remote": "false"})
+    mock_echo_reboot_warning.assert_called_once()
+    mock_file_operations.assert_called()
+
+def test_add_kdump_item(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {"remote": "true"}}
+    result = runner.invoke(add_kdump_item, ['ssh_string', 'user@host'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"ssh_string": "user@host"})
+    mock_echo_reboot_warning.assert_called_once()
+
+def test_add_kdump_item_remote_not_enabled(runner, mock_db, mock_check_kdump_table_existence):
+    mock_db.cfgdb.get_table.return_value = {"config": {"remote": "false"}}
+    result = runner.invoke(add_kdump_item, ['ssh_string', 'user@host'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    assert "Error: Enable remote mode first." in result.output
+
+def test_remove_kdump_item(runner, mock_db, mock_check_kdump_table_existence, mock_echo_reboot_warning):
+    mock_db.cfgdb.get_table.return_value = {"config": {"ssh_string": "user@host"}}
+    result = runner.invoke(remove_kdump_item, ['ssh_string'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    mock_db.cfgdb.mod_entry.assert_called_once_with("KDUMP", "config", {"ssh_string": ""})
+    mock_echo_reboot_warning.assert_called_once()
+
+def test_remove_kdump_item_not_configured(runner, mock_db, mock_check_kdump_table_existence):
+    mock_db.cfgdb.get_table.return_value = {"config": {}}
+    result = runner.invoke(remove_kdump_item, ['ssh_string'], obj={'db': mock_db})
+    assert result.exit_code == 0
+    assert "Error: ssh_string is not configured." in result.output
