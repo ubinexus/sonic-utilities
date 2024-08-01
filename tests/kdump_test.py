@@ -68,7 +68,7 @@ class TestKdump(object):
         # Case 1: Enable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Case 2: Enable remote mode when already enabled
