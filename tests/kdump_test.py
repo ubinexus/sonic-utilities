@@ -1,5 +1,7 @@
 from click.testing import CliRunner
 from utilities_common.db import Db
+import tempfile
+import os
 
 
 class TestKdump(object):
@@ -142,42 +144,78 @@ class TestKdump(object):
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
     
-    def test_remove_kdump_item(self, get_cmd_module):
+    def test_config_kdump_remote(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
-        # Case 1: Try to remove ssh_string when it is not configured
+        # Create a temporary file to simulate /etc/default/kdump-tools
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            file_path = temp_file.name
+        
+        # Ensure the temporary file is cleaned up after the test
+        def cleanup():
+            os.remove(file_path)
+        import atexit
+        atexit.register(cleanup)
+
+        def write_to_file(content):
+            with open(file_path, 'w') as file:
+                file.write(content)
+
+        def read_from_file():
+            with open(file_path, 'r') as file:
+                return file.readlines()
+
+        # Case 1: Enable remote mode
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
+
+        # Verify file updates
+        write_to_file("#SSH=\n#SSH_KEY=\n")
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+        lines = read_from_file()
+        assert 'SSH="your_ssh_value"\n' in lines
+        assert 'SSH_KEY="your_ssh_key_value"\n' in lines
+
+        # Case 2: Enable remote mode when already enabled
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: Kdump Remote Mode is already enabled." in result.output
+
+        # Case 3: Disable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
-        assert "Error: ssh_string is not configured." in result.output
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
-        # Case 2: Add ssh_string and then remove it
-        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": "ssh_value", "remote": "true"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
-        print(result.output)
-        assert result.exit_code == 0
-        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_string"] == ""
-        assert "ssh_string removed successfully." in result.output
+        # Verify file updates
+        write_to_file('SSH="your_ssh_value"\nSSH_KEY="your_ssh_key_value"\n')
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+        lines = read_from_file()
+        assert '#SSH="your_ssh_value"\n' in lines
+        assert '#SSH_KEY="your_ssh_key_value"\n' in lines
 
-        # Case 3: Try to remove ssh_path when it is not configured
-        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        # Case 4: Disable remote mode when already disabled
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
-        assert "Error: ssh_path is not configured." in result.output
+        assert "Error: Kdump Remote Mode is already disabled." in result.output
 
-        # Case 4: Add ssh_path and then remove it
-        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": "ssh_key_value", "remote": "true"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        # Case 5: Disable remote mode with ssh_string and ssh_key set
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
+        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == ""
-        assert "ssh_path removed successfully." in result.output
+        assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
 
         # Reset the configuration
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
 
 
 
