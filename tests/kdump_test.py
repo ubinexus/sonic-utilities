@@ -1,7 +1,8 @@
 from unittest import mock
 from click.testing import CliRunner
-from config.main import config
 from utilities_common.db import Db
+from unittest.mock import MagicMock
+
 
 class TestKdump(object):
 
@@ -62,8 +63,9 @@ class TestKdump(object):
         assert result.exit_code == 1
 
     @mock.patch("builtins.open", new_callable=mock.mock_open, read_data="SSH=\n#SSH_KEY=\n")
-    def test_config_kdump_remote(mock_open, get_cmd_module):
-        (config, show) = get_cmd_module
+    @mock.patch("path.to.module.get_cmd_module", return_value=(MagicMock(), MagicMock()))
+    def test_config_kdump_remote(mock_open, mock_get_cmd_module):
+        (config, show) = mock_get_cmd_module.return_value
         db = Db()
         runner = CliRunner()
 
@@ -112,10 +114,12 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
-        assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
+        assert ("Error: Remove SSH_string and SSH_key from Config DB before "
+                "disabling Kdump Remote Mode.") in result.output
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
+
 
     @classmethod
     def teardown_class(cls):
