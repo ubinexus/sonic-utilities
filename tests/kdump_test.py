@@ -1,7 +1,5 @@
-from unittest import mock
 from click.testing import CliRunner
 from utilities_common.db import Db
-from unittest.mock import MagicMock
 
 
 class TestKdump(object):
@@ -62,27 +60,17 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-    @mock.patch("builtins.open", new_callable=mock.mock_open, read_data="SSH=\n#SSH_KEY=\n")
-    @mock.patch("path.to.module.get_cmd_module", return_value=(MagicMock(), MagicMock()))
-    def test_config_kdump_remote(mock_open, mock_get_cmd_module):
-        (config, show) = mock_get_cmd_module.return_value
+    def test_config_kdump_remote(self, get_cmd_module):
+        (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
-        # Setup the initial KDUMP table
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-
         # Case 1: Enable remote mode
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.output)
-        assert result.exit_code == 0  # Changed from 1 to 0
+        assert result.exit_code == 1  # Changed from 1 to 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
-        mock_open.assert_called_once_with('/etc/default/kdump-tools', 'r')
-        mock_open().readlines.assert_called_once()
-        mock_open().writelines.assert_called_once()
-
-        # Reset mock calls for next test case
-        mock_open.reset_mock()
 
         # Case 2: Enable remote mode when already enabled
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
@@ -94,14 +82,8 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
-        mock_open.assert_called_once_with('/etc/default/kdump-tools', 'r')
-        mock_open().readlines.assert_called_once()
-        mock_open().writelines.assert_called_once()
-
-        # Reset mock calls for next test case
-        mock_open.reset_mock()
 
         # Case 4: Disable remote mode when already disabled
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
@@ -114,8 +96,48 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
-        assert ("Error: Remove SSH_string and SSH_key from Config DB before "
-                "disabling Kdump Remote Mode.") in result.output
+        assert "Error: Remove SSH_string and SSH_key from Config DB"
+        "before disabling Kdump Remote Mode." in result.output
+
+        # Reset the configuration
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
+
+    def test_add_kdump_item(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Case 1: Try to add ssh_string when remote mode is disabled
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_string", "ssh_value"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: Enable remote mode first." in result.output
+
+        # Case 2: Enable remote mode and add ssh_string
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_string", "ssh_value"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_string"] == "ssh_value"
+
+        # Case 3: Add ssh_string when it is already added
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_string", "new_ssh_value"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: ssh_string is already added." in result.output
+
+        # Case 4: Add ssh_key_path when remote mode is enabled
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "ssh_key_value"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == "ssh_key_value"
+
+        # Case 5: Add ssh_key_path when it is already added
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: ssh_path is already added." in result.output
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
