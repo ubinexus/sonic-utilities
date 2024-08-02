@@ -1,4 +1,6 @@
+from unittest import mock
 from click.testing import CliRunner
+from config.main import config
 from utilities_common.db import Db
 
 class TestKdump(object):
@@ -59,17 +61,26 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-    def test_config_kdump_remote(self, get_cmd_module):
+    @mock.patch("builtins.open", new_callable=mock.mock_open, read_data="SSH=\n#SSH_KEY=\n")
+    def test_config_kdump_remote(mock_open, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
-        # Case 1: Enable remote mode
+        # Setup the initial KDUMP table
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+
+        # Case 1: Enable remote mode
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.output)
-        assert result.exit_code == 1  # Changed from 1 to 0
+        assert result.exit_code == 0  # Changed from 1 to 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
+        mock_open.assert_called_once_with('/etc/default/kdump-tools', 'r')
+        mock_open().readlines.assert_called_once()
+        mock_open().writelines.assert_called_once()
+
+        # Reset mock calls for next test case
+        mock_open.reset_mock()
 
         # Case 2: Enable remote mode when already enabled
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
@@ -81,8 +92,14 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
+        mock_open.assert_called_once_with('/etc/default/kdump-tools', 'r')
+        mock_open().readlines.assert_called_once()
+        mock_open().writelines.assert_called_once()
+
+        # Reset mock calls for next test case
+        mock_open.reset_mock()
 
         # Case 4: Disable remote mode when already disabled
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
