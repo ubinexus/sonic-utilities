@@ -3253,7 +3253,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
             for ipaddr in ipaddresses[ip_family[ip.version]]:
-                if agent_ip_addr.lower() == ipaddr['addr'].lower():
+                if agentip.lower() == ipaddr['addr'].lower():
                     found = 1
                     break
         if found == 1:
