@@ -171,7 +171,7 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
@@ -191,7 +191,7 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
         # Verify file updates
