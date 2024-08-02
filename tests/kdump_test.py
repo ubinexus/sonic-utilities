@@ -141,6 +141,44 @@ class TestKdump(object):
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
+    
+    def test_remove_kdump_item(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Case 1: Try to remove ssh_string when it is not configured
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: ssh_string is not configured." in result.output
+
+        # Case 2: Add ssh_string and then remove it
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": "ssh_value", "remote": "true"})
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_string"] == ""
+        assert "ssh_string removed successfully." in result.output
+
+        # Case 3: Try to remove ssh_path when it is not configured
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert "Error: ssh_path is not configured." in result.output
+
+        # Case 4: Add ssh_path and then remove it
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": "ssh_key_value", "remote": "true"})
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == ""
+        assert "ssh_path removed successfully." in result.output
+
+        # Reset the configuration
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})
+
 
 
     @classmethod
