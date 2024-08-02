@@ -103,6 +103,7 @@ class TestKdump(object):
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
     
+    
     def test_config_kdump_remote(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -126,31 +127,34 @@ class TestKdump(object):
             with open(file_path, 'r') as file:
                 return file.readlines()
 
-        def mock_open(file, mode='r', *args, **kwargs):
+        def mock_open_func(file, mode='r', *args, **kwargs):
             if file == '/etc/default/kdump-tools':
                 return open(file_path, mode, *args, **kwargs)
             else:
                 return open(file, mode, *args, **kwargs)
 
+        # Patch the open function in the config module to use the temporary file
+        open_patch = patch('builtins.open', mock_open_func)
+
         # Case 1: Enable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-
-        with patch('builtins.open', mock_open):
+        
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.output)
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
         write_to_file("#SSH=\n#SSH_KEY=\n")
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         lines = read_from_file()
         assert 'SSH="your_ssh_value"\n' in lines
         assert 'SSH_KEY="your_ssh_key_value"\n' in lines
 
         # Case 2: Enable remote mode when already enabled
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
@@ -158,7 +162,7 @@ class TestKdump(object):
 
         # Case 3: Disable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
@@ -166,14 +170,14 @@ class TestKdump(object):
 
         # Verify file updates
         write_to_file('SSH="your_ssh_value"\nSSH_KEY="your_ssh_key_value"\n')
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         lines = read_from_file()
         assert '#SSH="your_ssh_value"\n' in lines
         assert '#SSH_KEY="your_ssh_key_value"\n' in lines
 
         # Case 4: Disable remote mode when already disabled
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
@@ -181,7 +185,7 @@ class TestKdump(object):
 
         # Case 5: Disable remote mode with ssh_string and ssh_key set
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
-        with patch('builtins.open', mock_open):
+        with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         print(result.output)
         assert result.exit_code == 0
@@ -189,6 +193,7 @@ class TestKdump(object):
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
+
 
     @classmethod
     def teardown_class(cls):
