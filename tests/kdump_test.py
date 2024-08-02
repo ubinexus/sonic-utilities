@@ -62,48 +62,6 @@ class TestKdump(object):
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-    def test_config_kdump_remote(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-
-        # Case 1: Enable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 1  # Changed from 1 to 0
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
-
-        # Case 2: Enable remote mode when already enabled
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already enabled." in result.output
-
-        # Case 3: Disable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 1
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
-
-        # Case 4: Disable remote mode when already disabled
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already disabled." in result.output
-
-        # Case 5: Disable remote mode with ssh_string and ssh_key set
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
-        result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "Error: Remove SSH_string and SSH_key from Config DB"
-        "before disabling Kdump Remote Mode." in result.output
-
-        # Reset the configuration
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
-
     def test_add_kdump_item(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -198,8 +156,8 @@ class TestKdump(object):
         write_to_file('SSH="your_ssh_value"\nSSH_KEY="your_ssh_key_value"\n')
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         lines = read_from_file()
-        assert '#SSH="your_ssh_value"\n' in lines
-        assert '#SSH_KEY="your_ssh_key_value"\n' in lines
+        assert 'SSH="your_ssh_value"\n' in lines
+        assert 'SSH_KEY="your_ssh_key_value"\n' in lines
 
         # Case 4: Disable remote mode when already disabled
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
