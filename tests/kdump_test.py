@@ -104,7 +104,7 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
     
     
-  def test_config_kdump_remote(self, get_cmd_module):
+def test_config_kdump_remote(self, get_cmd_module):
     (config, show) = get_cmd_module
     db = Db()
     runner = CliRunner()
