@@ -864,8 +864,8 @@ class DBMigrator():
         """
         copp_group_def = self.configDB.get_entry('COPP_GROUP', 'default')
         if 'trap_action' not in copp_group_def:
-           copp_group_def['trap_action'] = 'trap'
-           self.configDB.set_entry('COPP_GROUP', 'default', copp_group_def)
+            copp_group_def['trap_action'] = 'trap'
+            self.configDB.set_entry('COPP_GROUP', 'default', copp_group_def)
 
     def version_unknown(self):
         """
