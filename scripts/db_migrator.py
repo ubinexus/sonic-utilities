@@ -856,6 +856,17 @@ class DBMigrator():
             if keys:
                 self.configDB.delete(self.configDB.CONFIG_DB, authorization_key)
 
+    def migrate_config_db_copp_group_trap_action_mandatory_node(self):
+        """
+        Migrate COPP_GROUP table, for 'default' group Yang mandatory node
+        'trap_action' was missing, so add the same so that Yang validation
+        will go through
+        """
+        copp_group_def = self.configDB.get_entry('COPP_GROUP', 'default')
+        if 'trap_action' not in copp_group_def:
+           copp_group_def['trap_action'] = 'trap'
+           self.configDB.set_entry('COPP_GROUP', 'default', copp_group_def)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -1240,6 +1251,10 @@ class DBMigrator():
         master branch until 202411 branch is created.
         """
         log.log_info('Handling version_202411_01')
+
+        if self.configDB.keys(self.configDB.CONFIG_DB, "COPP_GROUP|default"):
+            self.migrate_config_db_copp_group_trap_action_mandatory_node()
+
         return None
 
     def get_version(self):
