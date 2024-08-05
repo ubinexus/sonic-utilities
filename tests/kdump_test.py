@@ -3,8 +3,6 @@ from utilities_common.db import Db
 import tempfile
 import os
 from unittest.mock import patch
-import tempfile
-
 
 
 class TestKdump(object):
@@ -104,8 +102,7 @@ class TestKdump(object):
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
-    
-    
+
     def test_config_kdump_remote(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
