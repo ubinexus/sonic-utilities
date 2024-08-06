@@ -1245,6 +1245,10 @@ class DBMigrator():
         Version 202405_01.
         """
         log.log_info('Handling version_202405_01')
+
+        if self.configDB.keys(self.configDB.CONFIG_DB, "SNMP|CONTACT"):
+            self.migrate_config_db_snmp_contact()
+
         self.set_version('version_202411_01')
         return 'version_202411_01'
 
@@ -1254,10 +1258,6 @@ class DBMigrator():
         master branch until 202411 branch is created.
         """
         log.log_info('Handling version_202411_01')
-
-        if self.configDB.keys(self.configDB.CONFIG_DB, "SNMP|CONTACT"):
-            self.migrate_config_db_snmp_contact()
-
         return None
 
     def get_version(self):
