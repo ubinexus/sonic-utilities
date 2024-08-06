@@ -279,7 +279,7 @@ class TestSyslogRateLimitMultiAsic:
             ['database', '-n', 'asic0']
         )
         assert result.exit_code == 0
-        
+
     @mock.patch('config.syslog.clicommon.run_command')
     def test_config_log_level(self, mock_run, setup_cmd_module):
         _, config = setup_cmd_module

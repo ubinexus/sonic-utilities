@@ -658,8 +658,8 @@ def disable_rate_limit_feature(db, service_name, namespace):
               help="Program name to which the SIGHUP is sent (provided with --service)")
 @click.option("--pid",
               help="Process ID to which the SIGHUP is sent (provided with --service if PID is from container)")
-@click.option('--namespace', '-n', 'namespace', default=None, 
-              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), 
+@click.option('--namespace', '-n', 'namespace', default=None,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
               show_default=True, help='Namespace name')
 @clicommon.pass_db
 def level(db, component, level, service, program, pid, namespace):
@@ -676,7 +676,7 @@ def level(db, component, level, service, program, pid, namespace):
         asic_id = multi_asic.get_asic_id_from_name(namespace)
         service = f'{service}{asic_id}'
         cfg_db = db.cfgdb_clients[namespace]
-    
+
     cfg_db.mod_entry('LOGGER', component, {'LOGLEVEL': level})
     if not service and not program and not pid:
         return
