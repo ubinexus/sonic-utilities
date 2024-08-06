@@ -96,9 +96,9 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
     echo_reboot_warning()
+
+
 # 'remote' command ('sudo config kdump remote ...')
-
-
 @kdump.command(name="remote", short_help="Enable or Disable Kdump Remote")
 @click.argument('action', required=True, type=click.Choice(['enable', 'disable'], case_sensitive=False))
 @pass_db
@@ -154,9 +154,7 @@ def kdump_remote(db, action):
 
     with open(file_path, 'w') as file:
         file.writelines(updated_lines)
-
     echo_reboot_warning()
-
 
 
 # 'add' command ('sudo config kdump add ...')

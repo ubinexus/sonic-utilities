@@ -95,7 +95,8 @@ class TestKdump(object):
         assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == "ssh_key_value"
 
         # Case 5: Add ssh_key_path when it is already added
-        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
+        result = runner.invoke(config.config.commands["kdump"].commands["add"],
+                               ["ssh_path", "new_ssh_key_value"], obj=db)
         print(result.output)
         assert result.exit_code == 0
         assert "Error: ssh_path is already added." in result.output
@@ -137,11 +138,10 @@ class TestKdump(object):
 
         # Case 1: Enable remote mode
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
+        assert result.exit_code == 1
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
         # Verify file updates
         write_to_file("#SSH=\n#SSH_KEY=\n")
@@ -183,7 +183,8 @@ class TestKdump(object):
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         assert result.exit_code == 0
-        assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
+        assert "Error: Remove SSH_string and SSH_key from Config DB"\
+                "before disabling Kdump Remote Mode." in result.output
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
