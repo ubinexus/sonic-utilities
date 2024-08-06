@@ -276,6 +276,10 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${PRE_REBOOT_HOOK} ]; then
     debug "Executing the pre-reboot script"
     ${DEVPATH}/${PLATFORM}/${PRE_REBOOT_HOOK}
+    EXIT_CODE="$?"
+    if [[ "${EXIT_CODE}" != "${EXIT_SUCCESS}" ]]; then
+        debug "WARNING: Failed to handle pre-reboot script: rc=${EXIT_CODE}"
+    fi
 fi
 
 if [ -x ${WATCHDOG_UTIL} ]; then
