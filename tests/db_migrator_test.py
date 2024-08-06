@@ -1014,6 +1014,7 @@ class TestAAAMigrator(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+
 class TestCoppGroupTrapAction(object):
     @classmethod
     def setup_class(cls):
