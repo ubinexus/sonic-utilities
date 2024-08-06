@@ -1026,11 +1026,11 @@ class TestSnmpContactNameEmailMerge(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
     def test_snmp_contact_name_email_merge_migrator(self):
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'snmp_contact_name_email_input')
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'snmp_contact_input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'snmp_contact_name_email_expected')
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'snmp_contact_expected')
         expected_db = Db()
 
         resulting_table = dbmgtr.configDB.get_table('SNMP')

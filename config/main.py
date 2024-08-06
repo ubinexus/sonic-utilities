@@ -3842,7 +3842,7 @@ def add_contact(db, contact):
             try:
                 config_db.set_entry('SNMP', 'CONTACT', {'Contact': contact})
                 click.echo("SNMP Contact {} has been added to configuration".format(contact))
-            except ValueError:
+            except ValueError as e:
                 ctx = click.get_current_context()
                 ctx.fail("Failed to set SNMP contact. Error: {}".format(e))
             try:
