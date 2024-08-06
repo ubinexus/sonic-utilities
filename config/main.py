@@ -42,6 +42,7 @@ from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding, 
 from utilities_common.general import load_db_config, load_module_from_source
 from .validated_config_db_connector import ValidatedConfigDBConnector
 import utilities_common.multi_asic as multi_asic_util
+from utilities_common.flock import try_lock
 
 from .utils import log
 
@@ -123,6 +124,8 @@ TTL_RANGE = click.IntRange(min=0, max=255)
 QUEUE_RANGE = click.IntRange(min=0, max=255)
 GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
 ADHOC_VALIDATION = True
+
+SYSTEM_RELOAD_LOCK = "/etc/sonic/reload.lock"
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -1968,8 +1971,10 @@ def load_mgmt_config(filename):
 @click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
 @click.option('-o', '--override_config', default=False, is_flag=True, help='Enable config override. Proceed with default path.')
 @click.option('-p', '--golden_config_path', help='Provide golden config path to override. Use with --override_config')
+@click.option('-b', '--bypass-lock', default=False, is_flag=True, help='Do load minigraph without acquiring lock')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, golden_config_path):
+@try_lock(SYSTEM_RELOAD_LOCK, timeout=0)
+def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, golden_config_path, bypass_lock):
     """Reconfigure based on minigraph."""
     argv_str = ' '.join(['config', *sys.argv[1:]])
     log.log_notice(f"'load_minigraph' executing with command: {argv_str}")
