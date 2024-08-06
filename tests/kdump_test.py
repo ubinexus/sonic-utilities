@@ -140,23 +140,20 @@ class TestKdump(object):
 
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        print(result.output)
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
         write_to_file("#SSH=\n#SSH_KEY=\n")
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        print("File content after enabling remote mode:", read_from_file())  # Debugging line
         lines = read_from_file()
-        assert '#SSH"\n' in lines
-        assert '#SSH_KEY"\n' in lines
+        assert 'SSH=<user at server>\n' in lines
+        assert 'SSH_KEY=<path>\n' in lines
 
         # Case 2: Enable remote mode when already enabled
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        print(result.output)
         assert result.exit_code == 0
         assert "Error: Kdump Remote Mode is already enabled." in result.output
 
@@ -164,23 +161,20 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
         assert result.exit_code == 0
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
         # Verify file updates
-        write_to_file('SSH="your_ssh_value"\nSSH_KEY="your_ssh_key_value"\n')
+        write_to_file('SSH=<user at server>\nSSH_KEY=<path>\n')
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print("File content after disabling remote mode:", read_from_file())  # Debugging line
         lines = read_from_file()
-        assert '#SSH="your_ssh_value"\n' in lines
-        assert '#SSH_KEY="your_ssh_key_value"\n' in lines
+        assert '#SSH=<user at server>\n' in lines
+        assert '#SSH_KEY=<path>\n' in lines
 
         # Case 4: Disable remote mode when already disabled
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
         assert result.exit_code == 0
         assert "Error: Kdump Remote Mode is already disabled." in result.output
 
@@ -188,7 +182,6 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        print(result.output)
         assert result.exit_code == 0
         assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
 
