@@ -498,6 +498,8 @@ class TestSyslog:
             ['-c', 'component', '-l', 'DEBUG'], obj=db
         )
         assert result.exit_code == SUCCESS
+        data = db.cfgdb.get_entry('LOGGER', 'component')
+        assert data.get('LOGLEVEL') == 'DEBUG'
 
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
@@ -543,17 +545,9 @@ class TestSyslog:
         )
         assert result.exit_code == SUCCESS
         # Verify it does not send signal to orchagent if require_manual_refresh is not true
-        assert mock_run.call_count == 1
+        assert mock_run.call_count == 0
 
         mock_run.return_value = ('something', -1)
-        result = runner.invoke(
-            config.config.commands["syslog"].commands["level"],
-            ['-c', 'log1', '-l', 'DEBUG'], obj=db
-        )
-
-        assert result.exit_code != SUCCESS
-
-        mock_run.side_effect = [('something', 0), ('something', -1)]
         db.cfgdb.set_entry('LOGGER', 'log1', {'require_manual_refresh': 'true'})
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],

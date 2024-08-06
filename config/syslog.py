@@ -658,8 +658,11 @@ def disable_rate_limit_feature(db, service_name, namespace):
               help="Program name to which the SIGHUP is sent (provided with --service)")
 @click.option("--pid",
               help="Process ID to which the SIGHUP is sent (provided with --service if PID is from container)")
+@click.option('--namespace', '-n', 'namespace', default=None, 
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), 
+              show_default=True, help='Namespace name')
 @clicommon.pass_db
-def level(db, component, level, service, program, pid):
+def level(db, component, level, service, program, pid, namespace):
     """ Configure log level """
     if program and not service:
         raise click.UsageError('--program must be specified with --service')
@@ -667,18 +670,20 @@ def level(db, component, level, service, program, pid):
     if service and not program and not pid:
         raise click.UsageError('--service must be specified with --pid or --program')
 
-    if component and level:
-        output, ret = clicommon.run_command(['swssloglevel', '-c', component, '-l', level], return_cmd=True)
-        if ret != 0:
-            raise click.ClickException(f'Failed: {output}')
-
+    if not namespace:
+        cfg_db = db.cfgdb
+    else:
+        asic_id = multi_asic.get_asic_id_from_name(namespace)
+        service = f'{service}{asic_id}'
+        cfg_db = db.cfgdb_clients[namespace]
+    
+    cfg_db.mod_entry('LOGGER', component, {'LOGLEVEL': level})
     if not service and not program and not pid:
         return
 
-    log_config = db.cfgdb.get_entry('LOGGER', component)
+    log_config = cfg_db.get_entry('LOGGER', component)
     require_manual_refresh = log_config.get('require_manual_refresh')
     if not require_manual_refresh:
-        click.echo(f'Log {component} does not need manual refresh')
         return
 
     if service:
