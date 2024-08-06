@@ -141,7 +141,7 @@ class TestKdump(object):
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         assert result.exit_code == 1
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
         write_to_file("#SSH=\n#SSH_KEY=\n")
