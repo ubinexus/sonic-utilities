@@ -148,8 +148,8 @@ class TestKdump(object):
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         lines = read_from_file()
-        assert '#SSH=<user at server>\n' in lines
-        assert '#SSH_KEY=<path>\n' in lines
+        assert '#SSH="<user at server>"\n' in lines
+        assert '#SSH_KEY="<path>"' in lines
 
         # Case 2: Enable remote mode when already enabled
         with open_patch:
