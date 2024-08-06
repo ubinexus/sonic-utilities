@@ -260,7 +260,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -268,7 +268,7 @@ class TestSNMPConfigCommands(object):
             assert db.cfgdb.get_entry("SNMP", "CONTACT") == {"Contact": "testuser testuser@contoso.com"}
 
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["del"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -281,7 +281,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -289,7 +289,7 @@ class TestSNMPConfigCommands(object):
             assert db.cfgdb.get_entry("SNMP", "CONTACT") == {"Contact": "testuser testuser@contoso.com"}
 
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["blah blah@contoso.com"], obj=db)
+                                   ["blah blah@contoso.com"], obj=db)
             print(result.exit_code)
             assert result.exit_code == 1
             assert 'Contact already exists, Use sudo config snmp contact modify instead' in result.output
@@ -300,7 +300,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -317,7 +317,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -337,7 +337,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -356,7 +356,7 @@ class TestSNMPConfigCommands(object):
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             print(result.output)
             assert result.exit_code == 0
@@ -364,7 +364,7 @@ class TestSNMPConfigCommands(object):
             assert db.cfgdb.get_entry("SNMP", "CONTACT") == {"Contact": "testuser testuser@contoso.com"}
 
             result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["modify"],
-                ["testuser testuser@contoso.com"], obj=db)
+                                   ["testuser testuser@contoso.com"], obj=db)
             print(result.exit_code)
             assert result.exit_code == 1
             assert 'SNMP contact testuser testuser@contoso.com already exists' in result.output
