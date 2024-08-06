@@ -121,7 +121,7 @@ def kdump_remote(db, action):
         ssh_string = kdump_table.get("config", {}).get("ssh_string", None)
         ssh_key = kdump_table.get("config", {}).get("ssh_key", None)
         if ssh_string or ssh_key:
-            click.echo("Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode.")
+            click.echo("Error: Remove SSH_string, SSH_key from Config DB before disabling Kdump Remote Mode.")
             return
 
     remote = 'true' if action.lower() == 'enable' else 'false'
