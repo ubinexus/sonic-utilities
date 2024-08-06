@@ -117,5 +117,8 @@
 		    "trap_group": "queue2_group1",
 		    "trap_ids": "sample_packet"
 	    }
+    },
+    "VERSIONS|DATABASE": {
+        "VERSION": "version_202405_01"
     }
 }
