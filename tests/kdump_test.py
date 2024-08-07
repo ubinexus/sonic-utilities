@@ -183,6 +183,73 @@ class TestKdump:
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
 
+
+    def test_remove_kdump_item(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Create a temporary file to simulate /etc/default/kdump-tools
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            file_path = temp_file.name
+
+        # Ensure the temporary file is cleaned up after the test
+        def cleanup():
+            os.remove(file_path)
+        import atexit
+        atexit.register(cleanup)
+
+        def write_to_file(content):
+            with open(file_path, 'w') as file:
+                file.write(content)
+
+        def read_from_file():
+            with open(file_path, 'r') as file:
+                return file.readlines()
+
+        def mock_open_func(file, mode='r', *args, **kwargs):
+            if file == '/etc/default/kdump-tools':
+                return open(file_path, mode, *args, **kwargs)
+            else:
+                return open(file, mode, *args, **kwargs)
+
+        # Patch the open function in the config module to use the temporary file
+        open_patch = patch('builtins.open', mock_open_func)
+
+        # Case 1: Attempt to remove `ssh_string` when it is not configured
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})  # Ensure KDUMP table exists
+        with open_patch:
+            result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
+        assert result.exit_code == 0
+        assert "Error: ssh_string is not configured." in result.output
+
+        # Case 2: Configure `ssh_string` and then remove it
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": "value", "remote": "true"})
+        with open_patch:
+            result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_string"], obj=db)
+        assert result.exit_code == 0
+        assert "ssh_string removed successfully." in result.output
+        assert db.cfgdb.get_entry("KDUMP", "config").get("ssh_string") == ""
+
+        # Case 3: Attempt to remove `ssh_path` when it is not configured
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})  # Ensure KDUMP table exists
+        with open_patch:
+            result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        assert result.exit_code == 0
+        assert "Error: ssh_path is not configured." in result.output
+
+        # Case 4: Configure `ssh_path` and then remove it
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": "path", "remote": "true"})
+        with open_patch:
+            result = runner.invoke(config.config.commands["kdump"].commands["remove"], ["ssh_path"], obj=db)
+        assert result.exit_code == 0
+        assert "ssh_path removed successfully." in result.output
+        assert db.cfgdb.get_entry("KDUMP", "config").get("ssh_path") == ""
+
+        # Reset the configuration
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})
+
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
