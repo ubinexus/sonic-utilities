@@ -168,25 +168,17 @@ class EcnConfig(object):
 
         return result
 
-    def set_wred_threshold(self, profile, threshold, value):
+    def set_wred_attributes(self, profile, attributes):
         chk_exec_privilege()
 
-        field = WRED_CONFIG_FIELDS[threshold]
-        if self.verbose:
-            print("Setting %s value to %s" % (field, value))
-        self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
-        if self.filename is not None:
-            prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
-            with open(self.filename, "w") as fd:
-                json.dump(prof_table, fd)
-
-    def set_wred_prob(self, profile, drop_color, value):
-        chk_exec_privilege()
-
-        field = WRED_CONFIG_FIELDS[drop_color]
-        if self.verbose:
-            print("Setting %s value to %s%%" % (field, value))
-        self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+        attribute_info = {}
+        for f in attributes:
+            field = WRED_CONFIG_FIELDS[f]
+            value = attributes[f]
+            if self.verbose:
+                print("Setting %s value to %s%%" % (field, value))
+            attribute_info[field] = value
+        self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, attribute_info)
         if self.filename is not None:
             prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
             with open(self.filename, "w") as fd:
@@ -352,24 +344,27 @@ def main():
 
                 # apply new configuration
                 # the following parameters can be combined in one run
+                new_attributes = {}
                 if args.green_max:
-                    prof_cfg.set_wred_threshold(args.profile, "gmax", args.green_max)
+                    new_attributes["gmax"] = args.green_max
                 if args.green_min:
-                    prof_cfg.set_wred_threshold(args.profile, "gmin", args.green_min)
+                    new_attributes["gmin"] = args.green_min
                 if args.yellow_max:
-                    prof_cfg.set_wred_threshold(args.profile, "ymax", args.yellow_max)
+                    new_attributes["ymax"] = args.yellow_max
                 if args.yellow_min:
-                    prof_cfg.set_wred_threshold(args.profile, "ymin", args.yellow_min)
+                    new_attributes["ymin"] = args.yellow_min
                 if args.red_max:
-                    prof_cfg.set_wred_threshold(args.profile, "rmax", args.red_max)
+                    new_attributes["rmax"] = args.red_max
                 if args.red_min:
-                    prof_cfg.set_wred_threshold(args.profile, "rmin", args.red_min)
+                    new_attributes["rmin"] = args.red_min
                 if args.green_drop_prob:
-                    prof_cfg.set_wred_prob(args.profile, "gdrop", args.green_drop_prob)
+                    new_attributes["gdrop"] = args.green_drop_prob
                 if args.yellow_drop_prob:
-                    prof_cfg.set_wred_prob(args.profile, "ydrop", args.yellow_drop_prob)
+                    new_attributes["ydrop"] = args.yellow_drop_prob
                 if args.red_drop_prob:
-                    prof_cfg.set_wred_prob(args.profile, "rdrop", args.red_drop_prob)
+                    new_attributes["rdrop"] = args.red_drop_prob
+                if new_attributes:
+                    prof_cfg.set_wred_attributes(args.profile, new_attributes)
 
         elif args.queue:
             arg_len_min = 3
