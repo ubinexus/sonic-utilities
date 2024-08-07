@@ -162,7 +162,7 @@ class TestKdump:
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
             # Verify file updates
-            write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
+            write_to_file('#SSH="<user at server>"\n#SSH_KEY="<path>"\n')
             with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
                 result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
                 mock_open_func().write.assert_called_with('#SSH="<user at server>"\n#SSH_KEY="<path>"\n')
