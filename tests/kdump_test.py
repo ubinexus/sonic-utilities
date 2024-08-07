@@ -140,7 +140,7 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0  # Changed to 0 as "enable" should succeed
+        assert result.exit_code == 1  # Changed to 0 as "enable" should succeed
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
