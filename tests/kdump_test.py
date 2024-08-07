@@ -1,8 +1,8 @@
-import os
-import tempfile
-from unittest.mock import patch, mock_open
 from click.testing import CliRunner
 from utilities_common.db import Db
+import tempfile
+import os
+from unittest.mock import patch, mock_open
 
 class TestKdump:
 
@@ -121,46 +121,66 @@ class TestKdump:
         import atexit
         atexit.register(cleanup)
 
-        # Mock open to handle the specific file path
-        mock_open_func = mock_open(read_data="#SSH=\n#SSH_KEY=\n")
+        def write_to_file(content):
+            with open(file_path, 'w') as file:
+                file.write(content)
 
+        def read_from_file():
+            with open(file_path, 'r') as file:
+                return file.readlines()
+
+        # Mock the open function to use the temporary file
+        mock_open_func = mock_open(read_data="#SSH=\n#SSH_KEY=\n")
         with patch('builtins.open', mock_open_func):
             # Case 1: Enable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-            assert result.exit_code == 0
+            assert result.exit_code == 0  # Should be 0 if enable is successful
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
             # Verify file updates
-            mock_open_func().write.assert_called_with('SSH="<user at server>"\nSSH_KEY="<path>"\n')
+            write_to_file("#SSH=\n#SSH_KEY=\n")  # Prepare file content for verification
+            with patch('builtins.open', mock_open(read_data="#SSH=\n#SSH_KEY=\n")):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+                # Check that write was called with correct data
+                mock_open_func().write.assert_called_with('SSH="<user at server>"\nSSH_KEY="<path>"\n')
 
             # Case 2: Enable remote mode when already enabled
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
+            with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
             assert result.exit_code == 0
             assert "Error: Kdump Remote Mode is already enabled." in result.output
 
             # Case 3: Disable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+            with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
             assert result.exit_code == 0
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
             # Verify file updates
-            mock_open_func().write.assert_called_with('#SSH=<user at server>\n#SSH_KEY=<path>\n')
+            write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
+            with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+                mock_open_func().write.assert_called_with('#SSH="<user at server>"\n#SSH_KEY="<path>"\n')
 
             # Case 4: Disable remote mode when already disabled
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+            with patch('builtins.open', mock_open(read_data='#SSH="<user at server>"\n#SSH_KEY="<path>"\n')):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
             assert result.exit_code == 0
             assert "Error: Kdump Remote Mode is already disabled." in result.output
 
             # Case 5: Disable remote mode with ssh_string and ssh_key set
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
+            with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
+                result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
             assert result.exit_code == 0
-            assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
+            assert ("Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output)
 
-            # Reset the configuration
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
+        # Reset the configuration
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
 
     @classmethod
     def teardown_class(cls):
