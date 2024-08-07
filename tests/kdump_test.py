@@ -1,7 +1,6 @@
 import os
 import tempfile
-import pytest
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 from click.testing import CliRunner
 from utilities_common.db import Db
 
@@ -122,34 +121,18 @@ class TestKdump:
         import atexit
         atexit.register(cleanup)
 
-        def write_to_file(content):
-            with open(file_path, 'w') as file:
-                file.write(content)
+        # Mock open to handle the specific file path
+        mock_open_func = mock_open(read_data="#SSH=\n#SSH_KEY=\n")
 
-        def read_from_file():
-            with open(file_path, 'r') as file:
-                return file.readlines()
-
-        def mock_open_func(file, mode='r', *args, **kwargs):
-            if file == '/etc/default/kdump-tools':
-                return open(file_path, mode, *args, **kwargs)
-            else:
-                return open(file, mode, *args, **kwargs)
-
-        # Patch the open function in the config module to use the temporary file
         with patch('builtins.open', mock_open_func):
             # Case 1: Enable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-            assert result.exit_code == 1
+            assert result.exit_code == 0
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
             # Verify file updates
-            write_to_file("#SSH=\n#SSH_KEY=\n")
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-            lines = read_from_file()
-            assert 'SSH="<user at server>"\n' in lines
-            assert 'SSH_KEY="<path>"\n' in lines
+            mock_open_func().write.assert_called_with('SSH="<user at server>"\nSSH_KEY="<path>"\n')
 
             # Case 2: Enable remote mode when already enabled
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
@@ -163,11 +146,7 @@ class TestKdump:
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
             # Verify file updates
-            write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
-            result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-            lines = read_from_file()
-            assert '#SSH=<user at server>\n' in lines
-            assert '#SSH_KEY=<path>\n' in lines
+            mock_open_func().write.assert_called_with('#SSH=<user at server>\n#SSH_KEY=<path>\n')
 
             # Case 4: Disable remote mode when already disabled
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
