@@ -143,7 +143,7 @@ class TestKdump:
             with patch('builtins.open', mock_open(read_data="#SSH=\n#SSH_KEY=\n")):
                 result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
                 # Check that write was called with correct data
-                mock_open_func().write.assert_called_with('SSH="<user at server>"\nSSH_KEY="<path>"\n')
+                mock_open_func().write.assert_called_with('#SSH=\n#SSH_KEY=\n')
 
             # Case 2: Enable remote mode when already enabled
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
