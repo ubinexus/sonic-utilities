@@ -114,5 +114,5 @@
 	"COPP_TRAP|sflow": {
 	    "trap_group": "queue2_group1",
 	    "trap_ids": "sample_packet"
-	},
+	}
 }
