@@ -62,15 +62,15 @@ def try_lock(lock_file, timeout=-1):
                     os.truncate(fd, 0)
                     # Write pid and the function name to the lock file as a record
                     os.write(fd, f"{func.__name__} {os.getpid()}\n".encode())
+                    try:
+                        return func(*args, **kwargs)
+                    finally:
+                        release_flock(fd)
+                        os.truncate(fd, 0)
+                        os.close(fd)
                 else:
                     click.echo(f"Failed to acquire lock on {lock_file}")
                     os.close(fd)
                     sys.exit(1)
-
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    release_flock(fd)
-                    os.close(fd)
         return _wrapper
     return _decorator

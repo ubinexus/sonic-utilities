@@ -8,6 +8,7 @@ import traceback
 import json
 import jsonpatch
 import sys
+import tempfile
 import unittest
 import ipaddress
 import shutil
@@ -18,6 +19,7 @@ import click
 from click.testing import CliRunner
 
 from sonic_py_common import device_info, multi_asic
+from utilities_common import flock
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
 from mock import call, patch, mock_open, MagicMock
@@ -45,6 +47,7 @@ load_minigraph_platform_path = os.path.join(load_minigraph_input_path, "platform
 load_minigraph_platform_false_path = os.path.join(load_minigraph_input_path, "platform_false")
 
 load_minigraph_command_output="""\
+Acquired lock on %s
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
@@ -54,7 +57,12 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
+load_minigraph_lock_failure_output="""\
+Failed to acquire lock on %s
+"""
+
 load_minigraph_platform_plugin_command_output="""\
+Acquired lock on %s
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
@@ -878,10 +886,31 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == (load_minigraph_command_output % config.SYSTEM_RELOAD_LOCK)
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 12
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
+    def test_load_minigraph_lock_failure(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, _) = get_cmd_module
+
+            fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
+            assert flock.acquire_flock(fd, 0)
+
+            try:
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                import pdb; pdb.set_trace()
+                assert result.exit_code != 0
+                assert result.output == (load_minigraph_lock_failure_output % config.SYSTEM_RELOAD_LOCK)
+                assert mock_run_command.call_count == 0
+            finally:
+                flock.release_flock(fd)
 
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_path, None)))
     def test_load_minigraph_platform_plugin(self, get_cmd_module, setup_single_broadcom_asic):
@@ -893,7 +922,7 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_platform_plugin_command_output
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == (load_minigraph_platform_plugin_command_output % config.SYSTEM_RELOAD_LOCK)
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 12
