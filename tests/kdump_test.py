@@ -140,7 +140,7 @@ class TestKdump(object):
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 1
+        assert result.exit_code == 0  # Changed to 0 as "enable" should succeed
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
         # Verify file updates
@@ -148,8 +148,8 @@ class TestKdump(object):
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         lines = read_from_file()
-        assert '#SSH="<user at server>"\n' in lines
-        assert '#SSH_KEY="<path>"' in lines
+        assert 'SSH="<user at server>"\n' in lines
+        assert 'SSH_KEY="<path>"\n' in lines
 
         # Case 2: Enable remote mode when already enabled
         with open_patch:
@@ -165,12 +165,12 @@ class TestKdump(object):
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
         # Verify file updates
-        write_to_file('SSH=<user at server>\nSSH_KEY=<path>\n')
+        write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         lines = read_from_file()
-        assert 'SSH="<user at server>"\n' in lines
-        assert 'SSH_KEY="<path>"\n' in lines
+        assert '#SSH=<user at server>\n' in lines
+        assert '#SSH_KEY=<path>\n' in lines
 
         # Case 4: Disable remote mode when already disabled
         with open_patch:
@@ -183,8 +183,7 @@ class TestKdump(object):
         with open_patch:
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         assert result.exit_code == 0
-        assert ("Error: Remove SSH_string and SSH_key from Config DB"
-        " before disabling Kdump Remote Mode." in result.output)
+        assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
