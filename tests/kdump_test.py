@@ -152,6 +152,8 @@ class TestKdump:
             assert result.exit_code == 0
             assert "Error: Kdump Remote Mode is already enabled." in result.output
 
+
+
             # Case 3: Disable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
             with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
