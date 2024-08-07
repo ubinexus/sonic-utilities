@@ -3830,8 +3830,6 @@ def add_contact(db, contact):
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(contact, tuple):
         contact = " ".join(contact)
-    elif isinstance(contact, list):
-        contact = " ".join(contact)
     snmp = config_db.get_table("SNMP")
     try:
         if snmp['CONTACT']:
@@ -3861,8 +3859,6 @@ def delete_contact(db, contact):
     """ Delete snmp contact"""
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(contact, tuple):
-        contact = " ".join(contact)
-    elif isinstance(contact, list):
         contact = " ".join(contact)
     snmp = db.cfgdb.get_table("SNMP")
     try:
@@ -3896,8 +3892,6 @@ def modify_contact(db, contact):
     """ Modify snmp contact"""
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(contact, tuple):
-        contact = " ".join(contact)
-    elif isinstance(contact, list):
         contact = " ".join(contact)
     snmp = config_db.get_table("SNMP")
     try:
