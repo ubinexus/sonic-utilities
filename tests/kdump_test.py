@@ -1,11 +1,11 @@
+import os
+import tempfile
+import pytest
+from unittest.mock import patch
 from click.testing import CliRunner
 from utilities_common.db import Db
-import tempfile
-import os
-from unittest.mock import patch
 
-
-class TestKdump(object):
+class TestKdump:
 
     @classmethod
     def setup_class(cls):
@@ -15,12 +15,13 @@ class TestKdump(object):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
+        
+        # Simulate command execution for 'disable'
         result = runner.invoke(config.config.commands["kdump"].commands["disable"], obj=db)
         assert result.exit_code == 0
 
-        # Delete the 'KDUMP' table.
+        # Delete the 'KDUMP' table to test error case
         db.cfgdb.delete_table("KDUMP")
-
         result = runner.invoke(config.config.commands["kdump"].commands["disable"], obj=db)
         assert result.exit_code == 1
 
@@ -28,12 +29,13 @@ class TestKdump(object):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
+        
+        # Simulate command execution for 'enable'
         result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
         assert result.exit_code == 0
 
-        # Delete the 'KDUMP' table.
+        # Delete the 'KDUMP' table to test error case
         db.cfgdb.delete_table("KDUMP")
-
         result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
         assert result.exit_code == 1
 
@@ -41,12 +43,13 @@ class TestKdump(object):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
+        
+        # Simulate command execution for 'memory'
         result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
         assert result.exit_code == 0
 
-        # Delete the 'KDUMP' table.
+        # Delete the 'KDUMP' table to test error case
         db.cfgdb.delete_table("KDUMP")
-
         result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
         assert result.exit_code == 1
 
@@ -54,12 +57,13 @@ class TestKdump(object):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
+        
+        # Simulate command execution for 'num_dumps'
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 0
 
-        # Delete the 'KDUMP' table.
+        # Delete the 'KDUMP' table to test error case
         db.cfgdb.delete_table("KDUMP")
-
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
@@ -95,8 +99,7 @@ class TestKdump(object):
         assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == "ssh_key_value"
 
         # Case 5: Add ssh_key_path when it is already added
-        result = runner.invoke(config.config.commands["kdump"].commands["add"],
-                               ["ssh_path", "new_ssh_key_value"], obj=db)
+        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
         print(result.output)
         assert result.exit_code == 0
         assert "Error: ssh_path is already added." in result.output
@@ -134,60 +137,51 @@ class TestKdump(object):
                 return open(file, mode, *args, **kwargs)
 
         # Patch the open function in the config module to use the temporary file
-        open_patch = patch('builtins.open', mock_open_func)
-
-        # Case 1: Enable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-        with open_patch:
+        with patch('builtins.open', mock_open_func):
+            # Case 1: Enable remote mode
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 1  # Changed to 0 as "enable" should succeed
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
+            assert result.exit_code == 0
+            assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
-        # Verify file updates
-        write_to_file("#SSH=\n#SSH_KEY=\n")
-        with open_patch:
+            # Verify file updates
+            write_to_file("#SSH=\n#SSH_KEY=\n")
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        lines = read_from_file()
-        assert 'SSH="<user at server>"\n' in lines
-        assert 'SSH_KEY="<path>"\n' in lines
+            lines = read_from_file()
+            assert 'SSH="<user at server>"\n' in lines
+            assert 'SSH_KEY="<path>"\n' in lines
 
-        # Case 2: Enable remote mode when already enabled
-        with open_patch:
+            # Case 2: Enable remote mode when already enabled
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already enabled." in result.output
+            assert result.exit_code == 0
+            assert "Error: Kdump Remote Mode is already enabled." in result.output
 
-        # Case 3: Disable remote mode
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-        with open_patch:
+            # Case 3: Disable remote mode
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
+            assert result.exit_code == 0
+            assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"
 
-        # Verify file updates
-        write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
-        with open_patch:
+            # Verify file updates
+            write_to_file('SSH="<user at server>"\nSSH_KEY="<path>"\n')
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        lines = read_from_file()
-        assert '#SSH=<user at server>\n' in lines
-        assert '#SSH_KEY=<path>\n' in lines
+            lines = read_from_file()
+            assert '#SSH=<user at server>\n' in lines
+            assert '#SSH_KEY=<path>\n' in lines
 
-        # Case 4: Disable remote mode when already disabled
-        with open_patch:
+            # Case 4: Disable remote mode when already disabled
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        assert "Error: Kdump Remote Mode is already disabled." in result.output
+            assert result.exit_code == 0
+            assert "Error: Kdump Remote Mode is already disabled." in result.output
 
-        # Case 5: Disable remote mode with ssh_string and ssh_key set
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
-        with open_patch:
+            # Case 5: Disable remote mode with ssh_string and ssh_key set
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true", "ssh_string": "value", "ssh_key": "value"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
-        assert result.exit_code == 0
-        assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
+            assert result.exit_code == 0
+            assert "Error: Remove SSH_string and SSH_key from Config DB before disabling Kdump Remote Mode." in result.output
 
-        # Reset the configuration
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
-
+            # Reset the configuration
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
 
     @classmethod
     def teardown_class(cls):
