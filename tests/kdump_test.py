@@ -99,7 +99,14 @@ class TestKdump:
         assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == "ssh_key_value"
 
         # Case 5: Add ssh_key_path when it is already added
-        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"],
+            [
+                "ssh_path", "new_ssh_key_value"
+            ],
+            obj=db
+        )
+
         print(result.output)
         assert result.exit_code == 0
         assert "Error: ssh_path is already added." in result.output
