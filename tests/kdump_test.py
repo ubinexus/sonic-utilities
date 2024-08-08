@@ -100,10 +100,7 @@ class TestKdump:
 
         # Case 5: Add ssh_key_path when it is already added
         result = runner.invoke(
-    config.config.commands["kdump"].commands["add"],
-    ["ssh_path", "new_ssh_key_value"],
-    obj=db
-)
+        config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
         print(result.output)
         assert result.exit_code == 0
         assert "Error: ssh_path is already added." in result.output
