@@ -1,5 +1,3 @@
-import click
-import os
 import pytest
 import tempfile
 import threading
@@ -41,12 +39,12 @@ class TestFLock:
         with tempfile.NamedTemporaryFile() as fd0:
             fd1 = open(fd0.name, "r")
 
-            assert flock.acquire_flock(fd0.fileno(), 0) == True
-            assert flock.acquire_flock(fd1.fileno(), 0) == False
+            assert flock.acquire_flock(fd0.fileno(), 0)
+            assert not flock.acquire_flock(fd1.fileno(), 0)
 
             flock.release_flock(fd0.fileno())
 
-            assert flock.acquire_flock(fd1.fileno(), 0) == True
+            assert flock.acquire_flock(fd1.fileno(), 0)
             flock.release_flock(fd1.fileno())
 
     def test_flock_acquire_lock_blocking(self):
@@ -55,7 +53,7 @@ class TestFLock:
             fd1 = open(fd0.name, "r")
             res = []
 
-            assert flock.acquire_flock(fd0.fileno(), 0) == True
+            assert flock.acquire_flock(fd0.fileno(), 0)
             thrd = threading.Thread(target=lambda: res.append(flock.acquire_flock(fd1.fileno(), -1)))
             thrd.start()
 
@@ -64,13 +62,13 @@ class TestFLock:
 
             flock.release_flock(fd0.fileno())
             thrd.join()
-            assert len(res) == 1 and res[0] == True
+            assert len(res) == 1 and res[0]
 
             fd2 = open(fd0.name, "r")
-            assert flock.acquire_flock(fd2.fileno(), 0) == False
+            assert not flock.acquire_flock(fd2.fileno(), 0)
 
             flock.release_flock(fd1.fileno())
-            assert flock.acquire_flock(fd2.fileno(), 0) == True
+            assert flock.acquire_flock(fd2.fileno(), 0)
             flock.release_flock(fd2.fileno())
 
     def test_flock_acquire_lock_timeout(self):
@@ -87,12 +85,12 @@ class TestFLock:
             elapsed = 0
             res = []
 
-            assert flock.acquire_flock(fd0.fileno(), 0) == True
+            assert flock.acquire_flock(fd0.fileno(), 0)
             thrd = threading.Thread(target=acquire_helper)
             thrd.start()
 
             thrd.join()
-            assert len(res) == 1 and res[0] == False
+            assert ((len(res) == 1) and (not res[0]))
             assert elapsed >= 5
 
             flock.release_flock(fd0.fileno())
@@ -133,6 +131,7 @@ class TestFLock:
             try:
                 assert mock_echo.call_args_list == [mock.call(f"Acquired lock on {fd0.name}"),
                                                     mock.call(f"Failed to acquire lock on {fd0.name}"),
+                                                    mock.call(f"Released lock on {fd0.name}"),
                                                     mock.call(f"Acquired lock on {fd0.name}")]
                 assert b"dummy_f1" in get_file_content(fd0)
             finally:

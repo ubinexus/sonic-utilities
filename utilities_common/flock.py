@@ -7,6 +7,11 @@ import os
 import sys
 import time
 
+from sonic_py_common import logger
+
+
+log = logger.Logger()
+
 
 def acquire_flock(fd, timeout=-1):
     """Acquire the flock."""
@@ -66,10 +71,12 @@ def try_lock(lock_file, timeout=-1):
                         return func(*args, **kwargs)
                     finally:
                         release_flock(fd)
+                        click.echo(f"Released lock on {lock_file}")
                         os.truncate(fd, 0)
                         os.close(fd)
                 else:
                     click.echo(f"Failed to acquire lock on {lock_file}")
+                    log.log_notice(f"{func.__name__} failed to acquire lock on {lock_file}, which is taken by {os.read(fd, 1024).decode()}")
                     os.close(fd)
                     sys.exit(1)
         return _wrapper
