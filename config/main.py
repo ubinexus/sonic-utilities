@@ -2365,6 +2365,7 @@ def synchronous_mode(sync_mode):
               config reload -y \n
     Option 2. systemctl restart swss""" % sync_mode)
 
+
 #
 # 'suppress-fib-pending' command ('config suppress-fib-pending ...')
 #
@@ -2372,10 +2373,11 @@ def synchronous_mode(sync_mode):
 @click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
 @clicommon.pass_db
 def suppress_pending_fib(db, state):
-    ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
+    ''' Enable or disable pending FIB suppression. Once enabled,
+        BGP will not advertise routes that are not yet installed in the hardware '''
 
     config_db = db.cfgdb
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-fib-pending" : state})
+    config_db.mod_entry('DEVICE_METADATA', 'localhost', {"suppress-fib-pending": state})
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')

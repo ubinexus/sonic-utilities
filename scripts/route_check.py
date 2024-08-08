@@ -790,7 +790,8 @@ def check_routes(namespace):
 
         if results:
             if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
-                print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR{} but all routes in APPL_DB and ASIC_DB are in sync".format(namespace))
+                print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR{} \
+                              but all routes in APPL_DB and ASIC_DB are in sync".format(namespace))
                 if is_suppress_fib_pending_enabled(namespace):
                     mitigate_installed_not_offloaded_frr_routes(namespace, rt_frr_miss, rt_appl)
 
