@@ -72,7 +72,6 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
-
 load_minigraph_platform_plugin_command_output="""\
 Acquired lock on {0}
 Stopping SONiC target ...

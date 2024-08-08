@@ -126,7 +126,7 @@ GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
 ADHOC_VALIDATION = True
 
 if os.environ.get("UTILITIES_UNIT_TESTING", "0") in ("1", "2"):
-    temp_system_reload_lockfile = tempfile.NamedTemporaryFile(delete=False)
+    temp_system_reload_lockfile = tempfile.NamedTemporaryFile()
     SYSTEM_RELOAD_LOCK = temp_system_reload_lockfile.name
 else:
     SYSTEM_RELOAD_LOCK = "/etc/sonic/reload.lock"
