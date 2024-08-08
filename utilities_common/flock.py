@@ -76,7 +76,10 @@ def try_lock(lock_file, timeout=-1):
                         os.close(fd)
                 else:
                     click.echo(f"Failed to acquire lock on {lock_file}")
-                    log.log_notice(f"{func.__name__} failed to acquire lock on {lock_file}, which is taken by {os.read(fd, 1024).decode()}")
+                    log.log_notice(
+                        (f"{func.__name__} failed to acquire lock on {lock_file},"
+                         " which is taken by {os.read(fd, 1024).decode()}")
+                    )
                     os.close(fd)
                     sys.exit(1)
         return _wrapper

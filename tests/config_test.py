@@ -646,7 +646,7 @@ class TestConfigReload(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == \
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')][:2]) == \
                 reload_config_with_sys_info_command_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_config_reload_stdin(self, get_cmd_module, setup_single_broadcom_asic):
@@ -687,7 +687,7 @@ class TestConfigReload(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == \
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')][:2]) == \
                 reload_config_with_sys_info_command_output.format(config.SYSTEM_RELOAD_LOCK)
 
     @classmethod
@@ -926,15 +926,17 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == \
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
                 (load_minigraph_command_output.format(config.SYSTEM_RELOAD_LOCK))
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 12
 
-    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
+                mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_lock_failure(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, _) = get_cmd_module
 
             fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
@@ -953,9 +955,11 @@ class TestLoadMinigraph(object):
             finally:
                 flock.release_flock(fd)
 
-    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
+                mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_bypass_lock(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, _) = get_cmd_module
 
             fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
@@ -984,7 +988,7 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == \
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
                 (load_minigraph_platform_plugin_command_output.format(config.SYSTEM_RELOAD_LOCK))
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
@@ -1270,7 +1274,7 @@ class TestReloadConfig(object):
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
+        ):
             (config, show) = get_cmd_module
             runner = CliRunner()
 
@@ -1286,7 +1290,7 @@ class TestReloadConfig(object):
                 print(result.output)
                 traceback.print_tb(result.exc_info[2])
                 assert result.exit_code != 0
-                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                assert "\n".join([line.rstrip() for line in result.output.split('\n')]) \
                     == RELOAD_CONFIG_DB_LOCK_FAILURE_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
             finally:
                 flock.release_flock(fd)
@@ -1296,7 +1300,7 @@ class TestReloadConfig(object):
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
+        ):
             (config, show) = get_cmd_module
             runner = CliRunner()
 
@@ -1312,7 +1316,7 @@ class TestReloadConfig(object):
                 print(result.output)
                 traceback.print_tb(result.exc_info[2])
                 assert result.exit_code == 0
-                assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                assert "\n".join([line.rstrip() for line in result.output.split('\n')]) \
                     == RELOAD_CONFIG_DB_BYPASS_LOCK_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
             finally:
                 flock.release_flock(fd)
@@ -1335,7 +1339,7 @@ class TestReloadConfig(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == \
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
                 reload_config_with_disabled_service_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
