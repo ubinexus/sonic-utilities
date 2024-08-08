@@ -4,6 +4,7 @@ import tempfile
 import os
 from unittest.mock import patch, mock_open
 
+
 class TestKdump:
 
     @classmethod
@@ -14,7 +15,7 @@ class TestKdump:
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
-        
+
         # Simulate command execution for 'disable'
         result = runner.invoke(config.config.commands["kdump"].commands["disable"], obj=db)
         assert result.exit_code == 0
@@ -28,7 +29,7 @@ class TestKdump:
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
-        
+
         # Simulate command execution for 'enable'
         result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
         assert result.exit_code == 0
@@ -42,7 +43,7 @@ class TestKdump:
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
-        
+
         # Simulate command execution for 'memory'
         result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
         assert result.exit_code == 0
@@ -56,7 +57,7 @@ class TestKdump:
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
-        
+
         # Simulate command execution for 'num_dumps'
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 0
@@ -98,7 +99,11 @@ class TestKdump:
         assert db.cfgdb.get_entry("KDUMP", "config")["ssh_path"] == "ssh_key_value"
 
         # Case 5: Add ssh_key_path when it is already added
-        result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_path", "new_ssh_key_value"], obj=db)
+        result = runner.invoke(
+    config.config.commands["kdump"].commands["add"],
+    ["ssh_path", "new_ssh_key_value"],
+    obj=db
+)
         print(result.output)
         assert result.exit_code == 0
         assert "Error: ssh_path is already added." in result.output
@@ -152,8 +157,6 @@ class TestKdump:
             assert result.exit_code == 0
             assert "Error: Kdump Remote Mode is already enabled." in result.output
 
-
-
             # Case 3: Disable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
             with patch('builtins.open', mock_open(read_data='SSH="<user at server>"\nSSH_KEY="<path>"\n')):
@@ -183,9 +186,8 @@ class TestKdump:
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_key": ""})
 
-
     def test_remove_kdump_item(self, get_cmd_module):
-        (config, show) = get_cmd_module
+        (config, _) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
@@ -248,7 +250,6 @@ class TestKdump:
 
         # Reset the configuration
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})
-
 
     @classmethod
     def teardown_class(cls):
