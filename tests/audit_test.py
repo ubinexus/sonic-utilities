@@ -21,6 +21,7 @@ class TestConfigAudit(object):
         obj = {'config_db': db.cfgdb}
 
         result = runner.invoke(config.config.commands["audit"].commands["enable"], obj=obj)
+        assert result.exit_code == 0
         assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "true"})]
 
     @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
@@ -41,6 +42,7 @@ class TestConfigAudit(object):
         obj = {'config_db': db.cfgdb}
 
         result = runner.invoke(config.config.commands["audit"].commands["disable"], obj=obj)
+        assert result.exit_code == 0
         assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "false"})]
 
     @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
