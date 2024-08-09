@@ -1,6 +1,6 @@
 import show.main as show
 import config.main as config
-from mock import patch, Mock
+from mock import call, patch, Mock
 from utilities_common.db import Db
 from click.testing import CliRunner
 import config.validated_config_db_connector as validated_config_db_connector # noqa F401
@@ -14,8 +14,18 @@ class TestConfigAudit(object):
         print('SETUP')
 
     @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
+    @patch(validated_mod_entry_patch)
+    def test_config_enable_audit_success(self, mock_mod_entry):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db': db.cfgdb}
+
+        result = runner.invoke(config.config.commands["audit"].commands["enable"], obj=obj)
+        assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "true"})]
+
+    @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
     @patch(validated_mod_entry_patch, Mock(side_effect=ValueError))
-    def test_enable_audit(self):
+    def test_config_enable_audit_failed(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
@@ -24,8 +34,18 @@ class TestConfigAudit(object):
         assert "Invalid ConfigDB. Error" in result.output
 
     @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
+    @patch(validated_mod_entry_patch)
+    def test_config_disable_audit_success(self, mock_mod_entry):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db': db.cfgdb}
+
+        result = runner.invoke(config.config.commands["audit"].commands["disable"], obj=obj)
+        assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "false"})]
+
+    @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
     @patch(validated_mod_entry_patch, Mock(side_effect=ValueError))
-    def test_disable_audit(self):
+    def test_config_disable_audit_failed(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}

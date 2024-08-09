@@ -7035,27 +7035,27 @@ def audit():
 @audit.command('enable')
 @click.pass_context
 def enable(ctx):
-    """Enbale the audit enhancement feature """
+    """Enable the audit enhancement feature"""
 
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     try:
-        config_db.mod_entry('AUDIT', 'config', {"enabled": "true"})
+        config_db.mod_entry("AUDIT", "config", {"enabled": "true"})
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
-# 'audit disable' command ('config audit disable>')
+# 'audit disable' command ('config audit disable')
 #
 @audit.command('disable')
 @click.pass_context
 def disable(ctx):
-    """Disable the audit enhancement feature """
+    """Disable the audit enhancement feature"""
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     try:
-        config_db.mod_entry('AUDIT', 'config', {"enabled": "false"})
+        config_db.mod_entry("AUDIT", "config", {"enabled": "false"})
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
