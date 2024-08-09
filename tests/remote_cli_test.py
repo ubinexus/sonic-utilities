@@ -223,7 +223,7 @@ class TestRemoteExec(object):
             rexec.cli, [LINECARD_NAME, "-c", "show version"])
         print(result.output)
         assert result.exit_code == 1, result.output
-        assert "Timeout when waiting for password input" in result.output
+        assert "Aborted" in result.output
 
 
 class TestRemoteCLI(object):
