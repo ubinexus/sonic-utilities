@@ -1,6 +1,8 @@
 #!/usr/sbin/env python
 
+import threading
 import click
+import concurrent.futures
 import datetime
 import ipaddress
 import json
@@ -1212,6 +1214,11 @@ def multiasic_save_to_singlefile(db, filename):
     with open(filename, 'w') as file:
         json.dump(all_current_config, file, indent=4)
 
+
+def apply_patch_wrapper(args):
+    return apply_patch_for_scope(*args)
+
+
 # Function to apply patch for a single ASIC.
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
@@ -1220,16 +1227,19 @@ def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_ru
         scope = multi_asic.DEFAULT_NAMESPACE
 
     scope_for_log = scope if scope else HOST_NAMESPACE
+    thread_id = threading.get_ident()
+    log.log_notice(f"apply_patch_for_scope started for {scope_for_log} by {changes} in thread:{thread_id}")
+
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
         GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
-                                                    config_format,
-                                                    verbose,
-                                                    dry_run,
-                                                    ignore_non_yang_tables,
-                                                    ignore_path)
+                                                config_format,
+                                                verbose,
+                                                dry_run,
+                                                ignore_non_yang_tables,
+                                                ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
-        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
+        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes} in thread:{thread_id}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
@@ -1549,11 +1559,12 @@ def print_dry_run_message(dry_run):
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang',
                show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-p', '--parallel', is_flag=True, default=False, help='applying the change to all ASICs parallelly')
 @click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, parallel, ignore_non_yang_tables, ignore_path, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1599,8 +1610,26 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
                 changes_by_scope[asic] = []
 
         # Apply changes for each scope
-        for scope_changes in changes_by_scope.items():
-            apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        if parallel:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Prepare the argument tuples
+                arguments = [(scope_changes, results, config_format,
+                              verbose, dry_run, ignore_non_yang_tables, ignore_path)
+                             for scope_changes in changes_by_scope.items()]
+
+                # Submit all tasks and wait for them to complete
+                futures = [executor.submit(apply_patch_wrapper, args) for args in arguments]
+
+                # Wait for all tasks to complete
+                concurrent.futures.wait(futures)
+        else:
+            for scope_changes in changes_by_scope.items():
+                apply_patch_for_scope(scope_changes,
+                                      results,
+                                      config_format,
+                                      verbose, dry_run,
+                                      ignore_non_yang_tables,
+                                      ignore_path)
 
         # Check if any updates failed
         failures = [scope for scope, result in results.items() if not result['success']]
@@ -3469,7 +3498,10 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     """Add the SNMP agent listening IP:Port%Vrf configuration"""
 
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
-    if not clicommon.is_ipaddress(agentip):
+    # Link local IP address should be provided along with zone id
+    # <link_local_ip>%<zone_id> for ex fe80::1%eth0
+    agent_ip_addr = agentip.split('%')[0]
+    if not clicommon.is_ipaddress(agent_ip_addr):
         click.echo("Invalid IP address")
         return False
     config_db = ctx.obj['db']
@@ -3479,7 +3511,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
             click.echo("ManagementVRF is Enabled. Provide vrf.")
             return False
     found = 0
-    ip = ipaddress.ip_address(agentip)
+    ip = ipaddress.ip_address(agent_ip_addr)
     for intf in netifaces.interfaces():
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
@@ -4824,6 +4856,14 @@ def add_interface_ip(ctx, interface_name, ip_addr, gw, secondary):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+        # Add a validation to check this interface is not a member in vlan before
+        # changing it to a router port mode
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+
+    if (interface_is_in_vlan(vlan_member_table, interface_name)):
+        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+        return
+
 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
