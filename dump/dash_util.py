@@ -3,15 +3,7 @@ import uuid
 import socket
 import ipaddress
 from google.protobuf.message import Message
-from dash_api.appliance_pb2 import *
-from dash_api.vnet_pb2 import *
-from dash_api.eni_pb2 import *
-from dash_api.acl_group_pb2 import *
-from dash_api.acl_rule_pb2 import *
-from dash_api.acl_in_pb2 import *
-from dash_api.acl_out_pb2 import *
-from dash_api.prefix_tag_pb2 import *
-from dash_api.types_pb2 import *
+from dash_api.types_pb2 import Guid, IpAddress, IpPrefix
 from google.protobuf.json_format import MessageToDict
 
 
@@ -47,9 +39,8 @@ def get_decoded_value(pb, pb_data):
     json_string = find_known_types_sec(pb, json_string)
     return json_string
 
-
-decode_types = (IpAddress, Guid, IpPrefix)
-
+decode_types = [IpAddress, Guid, IpPrefix]
+decode_types = [cls.__module__ + '.' + cls.__name__ for cls in decode_types]
 decode_fn = {'IpAddress': format_ip_address_dict,
              'Guid': format_guid_dict,
              'mac_address': format_mac,
@@ -60,7 +51,8 @@ def find_known_types_sec(pb2_obj, pb2_dict):
 
     def process_msg_field(obj, proto_dict, field_name):
         class_name = type(obj).__name__
-        if isinstance(obj, decode_types):
+        obj_type = f"{type(obj).__module__}.{type(obj).__name__}"
+        if obj_type in decode_types:
             proto_dict[field_name] = decode_fn[class_name](proto_dict[field_name])
         else:
             find_index(obj, proto_dict[field_name])
@@ -70,7 +62,8 @@ def find_known_types_sec(pb2_obj, pb2_dict):
         requires_change = False
         for ind, value in enumerate(obj):
             if isinstance(value, Message):
-                if isinstance(value, decode_types):
+                obj_type = f"{type(value).__module__}.{type(value).__name__}"
+                if obj_type in decode_types:
                     requires_change = True
                     class_name = type(value).__name__
                     final_list.append(decode_fn[class_name](proto_dict[field_name][ind]))
