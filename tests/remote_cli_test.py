@@ -214,6 +214,17 @@ class TestRemoteExec(object):
         assert result.exit_code == 1, result.output
         assert "Failed to connect to sonic-lc1 with username testuser\n" == result.output
 
+    @mock.patch("sonic_py_common.device_info.is_chassis", mock.MagicMock(return_value=True))
+    @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
+    def test_rexec_with_password_timeout(self):
+        runner = CliRunner()
+        LINECARD_NAME = "all"
+        result = runner.invoke(
+            rexec.cli, [LINECARD_NAME, "-c", "show version"])
+        print(result.output)
+        assert result.exit_code == 1, result.output
+        assert "Timeout when waiting for password input" in result.output
+
 
 class TestRemoteCLI(object):
     @classmethod
