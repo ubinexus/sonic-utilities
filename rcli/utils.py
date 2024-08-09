@@ -154,7 +154,7 @@ def get_password(username=None):
         username = os.getlogin()
 
     def get_password_timeout(*args):
-        print("Timeout when waiting for password input")
+        print("\nAborted! Timeout when waiting for password input.")
         exit(1)
 
     signal.signal(signal.SIGALRM, get_password_timeout)
