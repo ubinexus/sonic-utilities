@@ -19,8 +19,10 @@ class TestConfigAudit(object):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
-
         result = runner.invoke(config.config.commands["audit"].commands["enable"], obj=obj)
+
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "true"})]
 
@@ -30,8 +32,11 @@ class TestConfigAudit(object):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
-
         result = runner.invoke(config.config.commands["audit"].commands["enable"], obj=obj)
+
+        assert result.exit_code == 2
+        print(result.exit_code)
+        print(result.output)
         assert "Invalid ConfigDB. Error" in result.output
 
     @patch(is_yang_config_validation_enabled_patch, Mock(return_value=True))
@@ -40,8 +45,10 @@ class TestConfigAudit(object):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
-
         result = runner.invoke(config.config.commands["audit"].commands["disable"], obj=obj)
+
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert mock_mod_entry.call_args_list == [call("AUDIT", "config", {"enabled": "false"})]
 
@@ -51,8 +58,11 @@ class TestConfigAudit(object):
         runner = CliRunner()
         db = Db()
         obj = {'config_db': db.cfgdb}
-
         result = runner.invoke(config.config.commands["audit"].commands["disable"], obj=obj)
+
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 2
         assert "Invalid ConfigDB. Error" in result.output
 
     def teardown(self):
@@ -67,6 +77,7 @@ class TestShowAudit(object):
     def test_show_audit(self, mock_run_command):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands['audit'])
+
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
