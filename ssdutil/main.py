@@ -55,6 +55,9 @@ def get_default_disk():
     disk_type = json_output['tran']
     default_device = os.path.join("/dev/", blkdev)
 
+    # Disk Type Support for eMMC devices
+    disk_type = 'eMMC' if len(disk_type) == 0 and 'mmcblk' in host_partition.device else disk_type  # noqa: E501
+
     return default_device, disk_type
 
 
