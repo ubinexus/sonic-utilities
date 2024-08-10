@@ -12,7 +12,7 @@ try:
     import psutil
     from blkinfo import BlkDiskInfo
 
-    from sonic_py_common import device_info, syslogger
+    from sonic_py_common import device_info, logger
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -21,7 +21,7 @@ SYSLOG_IDENTIFIER = "ssdutil"
 DISK_TYPE_SSD = "sata"
 
 # Global logger instance
-log = syslogger.SysLogger(SYSLOG_IDENTIFIER)
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 def get_default_disk():
