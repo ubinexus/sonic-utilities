@@ -18,7 +18,7 @@ import click
 import sonic_platform
 import sonic_platform_base.sonic_sfp.sfputilhelper
 from sonic_platform_base.sfp_base import SfpBase
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
@@ -1991,11 +1991,44 @@ def loopback(port_name, loopback_mode):
         click.echo("{}: This functionality is not implemented".format(port_name))
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        if config_db is not None:
+            config_db.connect()
+            subport = int(config_db.get(config_db.CONFIG_DB,
+                                        'PORT|{}'.format(port_name), 'subport'))
+        else:
+            click.echo("Failed to connect to CONFIG_DB")
+            sys.exit(EXIT_FAIL)
+
+        state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        if state_db is not None:
+            state_db.connect(state_db.STATE_DB)
+            host_lane_count = int(state_db.get(state_db.STATE_DB,
+                                               'TRANSCEIVER_INFO|{}'.format(port_name),
+                                               'host_lane_count'))
+            media_lane_count = int(state_db.get(state_db.STATE_DB,
+                                                'TRANSCEIVER_INFO|{}'.format(port_name),
+                                                'media_lane_count'))
+        else:
+            click.echo("Failed to connect to STATE_DB")
+            sys.exit(EXIT_FAIL)
+
+    if loopback_mode in ("host-side-input", "host-side-output"):
+        lane_mask = ((1 << host_lane_count) - 1) << ((subport - 1) * host_lane_count)
+    elif loopback_mode in ("media-side-input", "host-side-output"):
+        lane_mask = ((1 << media_lane_count) - 1) << ((subport - 1) * media_lane_count)
+    else:
+        lane_mask = 0
+
     try:
-        status = api.set_loopback_mode(loopback_mode)
+        status = api.set_loopback_mode(loopback_mode, lane_mask=lane_mask)
     except AttributeError:
         click.echo("{}: Set loopback mode is not applicable for this module".format(port_name))
         sys.exit(ERROR_NOT_IMPLEMENTED)
+    except TypeError:
+        status = api.set_loopback_mode(loopback_mode)
 
     if status:
         click.echo("{}: Set {} loopback".format(port_name, loopback_mode))
