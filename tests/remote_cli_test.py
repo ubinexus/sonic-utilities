@@ -81,18 +81,19 @@ def mock_getpass(prompt="Password:", stream=None):
 
 
 class TestRemoteExec(object):
+    __getpass = getpass.getpass
+
     @classmethod
     def setup_class(cls):
         print("SETUP")
         from .mock_tables import dbconnector
         dbconnector.load_database_config()
-        cls.getpass = getpass.getpass
         getpass.getpass = mock_getpass
 
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        getpass.getpass = cls.getpass
+        getpass.getpass = TestRemoteExec.__getpass
 
     @mock.patch("sonic_py_common.device_info.is_chassis", mock.MagicMock(return_value=True))
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
@@ -220,7 +221,7 @@ class TestRemoteExec(object):
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     def test_rexec_without_password_input(self):
         runner = CliRunner()
-        getpass.getpass = self.getpass
+        getpass.getpass = TestRemoteExec.__getpass
         LINECARD_NAME = "all"
         result = runner.invoke(
             rexec.cli, [LINECARD_NAME, "-c", "show version"])
