@@ -76,7 +76,7 @@ def mock_paramiko_connection(channel):
     return conn
 
 
-def mock_getpass(prompt = "Password:", stream = None):
+def mock_getpass(prompt="Password:", stream=None):
     return "dummy"
 
 
@@ -220,9 +220,11 @@ class TestRemoteExec(object):
     @mock.patch("os.getlogin", mock.MagicMock(return_value="admin"))
     def test_rexec_without_password_input(self):
         runner = CliRunner()
+        getpass.getpass = self.getpass
         LINECARD_NAME = "all"
         result = runner.invoke(
             rexec.cli, [LINECARD_NAME, "-c", "show version"])
+        getpass.getpass = mock_getpass
         print(result.output)
         assert result.exit_code == 1, result.output
         assert "Aborted" in result.output
