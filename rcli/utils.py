@@ -1,5 +1,5 @@
 import click
-from getpass import getpass
+import getpass
 import os
 import signal
 
@@ -159,7 +159,7 @@ def get_password(username=None):
 
     signal.signal(signal.SIGALRM, get_password_timeout)
     signal.alarm(GET_PASSWORD_TIMEOUT)  # Set a timeout of 60 seconds
-    password = getpass(
+    password = getpass.getpass(
         "Password for username '{}': ".format(username),
         # Pass in click stdout stream - this is similar to using click.echo
         stream=click.get_text_stream('stdout')
