@@ -108,7 +108,7 @@ def ssdutil():
     parser.add_argument("-e", "--vendor", action="store_true", default=False, help="Show vendor output (extended output if provided by platform vendor)")  # noqa: E501
     args = parser.parse_args()
 
-    print("Disk type: {0}".format(disk_type.upper()))
+    print("Disk Type: {0}".format(disk_type.upper()))
     ssd = import_ssd_api(args.device)
 
     print("Device Model : {}".format(ssd.get_model()))
