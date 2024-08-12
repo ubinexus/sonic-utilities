@@ -3165,7 +3165,11 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose)
                 buffer_fname = "/tmp/cfg_buffer{}.json".format(asic_id_suffix)
                 qos_fname = "/tmp/cfg_qos{}.json".format(asic_id_suffix)
 
-                command = [SONIC_CFGGEN_PATH] + cmd_ns + from_db + ['-t', '{},{}'.format(buffer_template_file, buffer_fname), '-t', '{},{}'.format(qos_template_file, qos_fname), '-y', sonic_version_file]
+                command = [SONIC_CFGGEN_PATH] + cmd_ns + from_db + [
+                    '-t', '{},{}'.format(buffer_template_file, buffer_fname),
+                    '-t', '{},{}'.format(qos_template_file, qos_fname),
+                    '-y', sonic_version_file
+                ]
                 clicommon.run_command(command, display_cmd=True)
 
                 command = [SONIC_CFGGEN_PATH] + cmd_ns + ["-j", buffer_fname, "-j", qos_fname]
@@ -3173,7 +3177,7 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose)
                     out, rc = clicommon.run_command(command + ["--print-data"], display_cmd=True, return_cmd=True)
                     if rc != 0:
                         # clicommon.run_command does this by default when rc != 0 and return_cmd=False
-                        sys.exit(rc);
+                        sys.exit(rc)
                     with open("{}{}".format(dry_run, asic_id_suffix), 'w') as f:
                         json.dump(json.loads(out), f, sort_keys=True, indent=4)
                 else:
