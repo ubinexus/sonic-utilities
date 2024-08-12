@@ -7035,12 +7035,13 @@ def audit():
 @audit.command('enable')
 @click.pass_context
 def enable(ctx):
-    """Enable the audit enhancement feature"""
+    """Enable the security auditing feature"""
 
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     try:
         config_db.mod_entry("AUDIT", "config", {"enabled": "true"})
+        click.echo("Security auditing is enabled.")
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
@@ -7051,11 +7052,12 @@ def enable(ctx):
 @audit.command('disable')
 @click.pass_context
 def disable(ctx):
-    """Disable the audit enhancement feature"""
+    """Disable the security auditing feature"""
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     try:
         config_db.mod_entry("AUDIT", "config", {"enabled": "false"})
+        click.echo("Security auditing is disabled.")
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
