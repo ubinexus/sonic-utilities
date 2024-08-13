@@ -21,6 +21,13 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector
+
+        if os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] == "1":
+            import mock
+            import sonic_py_common
+            from swsscommon.swsscommon import SonicV2Connector
+            sonic_py_common.device_info.is_supervisor = mock.MagicMock(return_value=True)
+            SonicV2Connector.delete_all_by_pattern = mock.MagicMock()
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
