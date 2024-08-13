@@ -286,8 +286,8 @@ class Portstat(object):
                 return STATUS_NA
         return STATUS_NA
 
-    def cnstat_print(self, cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only,\
-                     rates_only, detail=False):
+    def cnstat_print(self, cnstat_dict, ratestat_dict, intf_list, use_json, print_all,
+                     errors_only, fec_stats_only, rates_only, detail=False):
         """
             Print the cnstat.
         """
