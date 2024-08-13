@@ -234,6 +234,14 @@ Broadcast Packets Transmitted.................. 0
 Time Since Counters Last Cleared............... None
 """
 
+intf_counters_on_sup = """\
+       IFACE    STATE    RX_OK     RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK     TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+------------  -------  -------  ---------  ---------  --------  --------  --------  -------  ---------  ---------  --------  --------  --------
+ Ethernet1/1        U      100  10.00 B/s      0.00%         0         0         0      100  10.00 B/s      0.00%         0         0         0
+ Ethernet2/1        U      100  10.00 B/s      0.00%         0         0         0      100  10.00 B/s      0.00%         0         0         0
+Ethernet11/1        U      100  10.00 B/s      0.00%         0         0         0      100  10.00 B/s      0.00%         0         0         0
+"""
+
 TEST_PERIOD = 3
 
 
@@ -397,12 +405,31 @@ class TestPortStat(object):
         assert return_code == 0
         verify_after_clear(result, intf_counter_after_clear)
 
+    def test_show_intf_counters_on_sup(self):
+        remove_tmp_cnstat_file()
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "1"
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_on_sup
+
+        return_code, result = get_result_and_return_code(['portstat'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_on_sup
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(
             os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
         remove_tmp_cnstat_file()
 
 
