@@ -1,6 +1,8 @@
 #!/usr/sbin/env python
 
+import threading
 import click
+import concurrent.futures
 import datetime
 import ipaddress
 import json
@@ -20,6 +22,7 @@ from jsonpatch import JsonPatchConflict
 from jsonpointer import JsonPointerException
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
+from generic_config_updater.gu_common import HOST_NAMESPACE, GenericConfigUpdaterError
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
@@ -27,9 +30,10 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.general import getstatusoutput_noshell
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
+from sonic_yang_cfg_generator import SonicYangCfgDbGenerator
 from utilities_common import util_base
 from swsscommon import swsscommon
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
@@ -59,6 +63,7 @@ from . import mclag
 from . import syslog
 from . import switchport
 from . import dns
+from . import bgp_cli
 from . import pac
 
 
@@ -247,7 +252,7 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
             click.echo("*** Printing dependencies ***")
             for dep in deps:
                 click.echo(dep)
-            sys.exit(0)
+            sys.exit(1)
         else:
             click.echo("[ERROR] Port breakout Failed!!! Opting Out")
             raise click.Abort()
@@ -896,9 +901,46 @@ def _reset_failed_services():
     for service in _get_sonic_services():
         clicommon.run_command(['systemctl', 'reset-failed', str(service)])
 
+
+def get_service_finish_timestamp(service):
+    out, _ = clicommon.run_command(['sudo',
+                                    'systemctl',
+                                    'show',
+                                    '--no-pager',
+                                    service,
+                                    '-p',
+                                    'ExecMainExitTimestamp',
+                                    '--value'],
+                                   return_cmd=True)
+    return out.strip(' \t\n\r')
+
+
+def wait_service_restart_finish(service, last_timestamp, timeout=30):
+    start_time = time.time()
+    elapsed_time = 0
+    while elapsed_time < timeout:
+        current_timestamp = get_service_finish_timestamp(service)
+        if current_timestamp and (current_timestamp != last_timestamp):
+            return
+
+        time.sleep(1)
+        elapsed_time = time.time() - start_time
+
+    log.log_warning("Service: {} does not restart in {} seconds, stop waiting".format(service, timeout))
+
+
 def _restart_services():
+    last_interface_config_timestamp = get_service_finish_timestamp('interfaces-config')
+    last_networking_timestamp = get_service_finish_timestamp('networking')
+
     click.echo("Restarting SONiC target ...")
     clicommon.run_command(['sudo', 'systemctl', 'restart', 'sonic.target'])
+
+    # These service will restart eth0 and cause device lost network for 10 seconds
+    # When enable TACACS, every remote user commands will authorize by TACACS service via network
+    # If load_minigraph exit before eth0 restart, commands after load_minigraph may failed
+    wait_service_restart_finish('interfaces-config', last_interface_config_timestamp)
+    wait_service_restart_finish('networking', last_networking_timestamp)
 
     try:
         subprocess.check_call(['sudo', 'monit', 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -1156,23 +1198,171 @@ def validate_gre_type(ctx, _, value):
         return gre_type_value
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
-    
+
+
+def multiasic_save_to_singlefile(db, filename):
+    """A function to save all asic's config to single file
+    """
+    all_current_config = {}
+    cfgdb_clients = db.cfgdb_clients
+
+    for ns, config_db in cfgdb_clients.items():
+        current_config = config_db.get_config()
+        sonic_cfggen.FormatConverter.to_serialized(current_config)
+        asic_name = "localhost" if ns == DEFAULT_NAMESPACE else ns
+        all_current_config[asic_name] = sort_dict(current_config)
+    click.echo("Integrate each ASIC's config into a single JSON file {}.".format(filename))
+    with open(filename, 'w') as file:
+        json.dump(all_current_config, file, indent=4)
+
+
+def apply_patch_wrapper(args):
+    return apply_patch_for_scope(*args)
+
+
 # Function to apply patch for a single ASIC.
 def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
     scope, changes = scope_changes
     # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
-    if scope.lower() == "localhost" or scope == "":
+    if scope.lower() == HOST_NAMESPACE or scope == "":
         scope = multi_asic.DEFAULT_NAMESPACE
-        
-    scope_for_log = scope if scope else "localhost"
+
+    scope_for_log = scope if scope else HOST_NAMESPACE
+    thread_id = threading.get_ident()
+    log.log_notice(f"apply_patch_for_scope started for {scope_for_log} by {changes} in thread:{thread_id}")
+
     try:
         # Call apply_patch with the ASIC-specific changes and predefined parameters
-        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        GenericUpdater(scope=scope).apply_patch(jsonpatch.JsonPatch(changes),
+                                                config_format,
+                                                verbose,
+                                                dry_run,
+                                                ignore_non_yang_tables,
+                                                ignore_path)
         results[scope_for_log] = {"success": True, "message": "Success"}
-        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
+        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes} in thread:{thread_id}")
     except Exception as e:
         results[scope_for_log] = {"success": False, "message": str(e)}
         log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
+
+
+def validate_patch(patch):
+    try:
+        command = ["show", "runningconfiguration", "all"]
+        proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+        all_running_config, returncode = proc.communicate()
+        if returncode:
+            log.log_notice(f"Fetch all runningconfiguration failed as output:{all_running_config}")
+            return False
+
+        # Structure validation and simulate apply patch.
+        all_target_config = patch.apply(json.loads(all_running_config))
+
+        # Verify target config by YANG models
+        target_config = all_target_config.pop(HOST_NAMESPACE) if multi_asic.is_multi_asic() else all_target_config
+        target_config.pop("bgpraw", None)
+        if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+            return False
+
+        if multi_asic.is_multi_asic():
+            for asic in multi_asic.get_namespace_list():
+                target_config = all_target_config.pop(asic)
+                target_config.pop("bgpraw", None)
+                if not SonicYangCfgDbGenerator().validate_config_db_json(target_config):
+                    return False
+
+        return True
+    except Exception as e:
+        raise GenericConfigUpdaterError(f"Validate json patch: {patch} failed due to:{e}")
+
+
+def multiasic_validate_single_file(filename):
+    ns_list = [DEFAULT_NAMESPACE, *multi_asic.get_namespace_list()]
+    file_input = read_json_file(filename)
+    file_ns_list = [DEFAULT_NAMESPACE if key == HOST_NAMESPACE else key for key in file_input]
+    if set(ns_list) != set(file_ns_list):
+        click.echo(
+            "Input file {} must contain all asics config. ns_list: {} file ns_list: {}".format(
+                filename, ns_list, file_ns_list)
+        )
+        raise click.Abort()
+
+
+def load_sysinfo_if_missing(asic_config):
+    device_metadata = asic_config.get('DEVICE_METADATA', {})
+    platform = device_metadata.get("localhost", {}).get("platform")
+    mac = device_metadata.get("localhost", {}).get("mac")
+    if not platform:
+        log.log_warning("platform is missing from Input file")
+        return True
+    elif not mac:
+        log.log_warning("mac is missing from Input file")
+        return True
+    else:
+        return False
+
+
+def flush_configdb(namespace=DEFAULT_NAMESPACE):
+    if namespace is DEFAULT_NAMESPACE:
+        config_db = ConfigDBConnector()
+    else:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+    config_db.connect()
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+    return client, config_db
+
+
+def migrate_db_to_lastest(namespace=DEFAULT_NAMESPACE):
+    # Migrate DB contents to latest version
+    db_migrator = '/usr/local/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        if namespace is DEFAULT_NAMESPACE:
+            command = [db_migrator, '-o', 'migrate']
+        else:
+            command = [db_migrator, '-o', 'migrate', '-n', namespace]
+        clicommon.run_command(command, display_cmd=True)
+
+
+def multiasic_write_to_db(filename, load_sysinfo):
+    file_input = read_json_file(filename)
+    for ns in [DEFAULT_NAMESPACE, *multi_asic.get_namespace_list()]:
+        asic_name = HOST_NAMESPACE if ns == DEFAULT_NAMESPACE else ns
+        asic_config = file_input[asic_name]
+
+        asic_load_sysinfo = True if load_sysinfo else False
+        if not asic_load_sysinfo:
+            asic_load_sysinfo = load_sysinfo_if_missing(asic_config)
+
+        if asic_load_sysinfo:
+            cfg_hwsku = asic_config.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("hwsku")
+            if not cfg_hwsku:
+                click.secho("Could not get the HWSKU from config file,  Exiting!", fg='magenta')
+                sys.exit(1)
+
+        client, _ = flush_configdb(ns)
+
+        if asic_load_sysinfo:
+            if ns is DEFAULT_NAMESPACE:
+                command = [str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '--write-to-db']
+            else:
+                command = [str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '-n', str(ns), '--write-to-db']
+            clicommon.run_command(command, display_cmd=True)
+
+        if ns is DEFAULT_NAMESPACE:
+            config_db = ConfigDBPipeConnector(use_unix_socket_path=True)
+        else:
+            config_db = ConfigDBPipeConnector(use_unix_socket_path=True, namespace=ns)
+
+        config_db.connect(False)
+        sonic_cfggen.FormatConverter.to_deserialized(asic_config)
+        data = sonic_cfggen.FormatConverter.output_to_db(asic_config)
+        config_db.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
+        client.set(config_db.INIT_INDICATOR, 1)
+
+        migrate_db_to_lastest(ns)
 
 
 # This is our main entrypoint - the main 'config' command
@@ -1243,7 +1433,8 @@ config.add_command(switchport.switchport)
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Existing files will be overwritten, continue?')
 @click.argument('filename', required=False)
-def save(filename):
+@clicommon.pass_db
+def save(db, filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
@@ -1258,7 +1449,13 @@ def save(filename):
     if filename is not None:
         cfg_files = filename.split(',')
 
-        if len(cfg_files) != num_cfg_file:
+        # If only one filename is provided in multi-ASIC mode,
+        # save all ASIC configurations to that single file.
+        if len(cfg_files) == 1 and multi_asic.is_multi_asic():
+            filename = cfg_files[0]
+            multiasic_save_to_singlefile(db, filename)
+            return
+        elif len(cfg_files) != num_cfg_file:
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
@@ -1364,11 +1561,12 @@ def print_dry_run_message(dry_run):
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang',
                show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-p', '--parallel', is_flag=True, default=False, help='applying the change to all ASICs parallelly')
 @click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, parallel, ignore_non_yang_tables, ignore_path, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1382,6 +1580,9 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             text = fh.read()
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
+
+        if not validate_patch(patch):
+            raise GenericConfigUpdaterError(f"Failed validating patch:{patch}")
 
         results = {}
         config_format = ConfigFormat[format.upper()]
@@ -1405,20 +1606,39 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
         # Empty case to force validate YANG model.
         if not changes_by_scope:
             asic_list = [multi_asic.DEFAULT_NAMESPACE]
-            asic_list.extend(multi_asic.get_namespace_list())
+            if multi_asic.is_multi_asic():
+                asic_list.extend(multi_asic.get_namespace_list())
             for asic in asic_list:
                 changes_by_scope[asic] = []
 
         # Apply changes for each scope
-        for scope_changes in changes_by_scope.items():
-            apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        if parallel:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Prepare the argument tuples
+                arguments = [(scope_changes, results, config_format,
+                              verbose, dry_run, ignore_non_yang_tables, ignore_path)
+                             for scope_changes in changes_by_scope.items()]
+
+                # Submit all tasks and wait for them to complete
+                futures = [executor.submit(apply_patch_wrapper, args) for args in arguments]
+
+                # Wait for all tasks to complete
+                concurrent.futures.wait(futures)
+        else:
+            for scope_changes in changes_by_scope.items():
+                apply_patch_for_scope(scope_changes,
+                                      results,
+                                      config_format,
+                                      verbose, dry_run,
+                                      ignore_non_yang_tables,
+                                      ignore_path)
 
         # Check if any updates failed
         failures = [scope for scope, result in results.items() if not result['success']]
 
         if failures:
             failure_messages = '\n'.join([f"- {failed_scope}: {results[failed_scope]['message']}" for failed_scope in failures])
-            raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
+            raise GenericConfigUpdaterError(f"Failed to apply patch on the following scopes:\n{failure_messages}")
 
         log.log_notice(f"Patch applied successfully for {patch}.")
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
@@ -1570,11 +1790,15 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
     if multi_asic.is_multi_asic() and file_format == 'config_db':
         num_cfg_file += num_asic
 
+    multiasic_single_file_mode = False
     # If the user give the filename[s], extract the file names.
     if filename is not None:
         cfg_files = filename.split(',')
 
-        if len(cfg_files) != num_cfg_file:
+        if len(cfg_files) == 1 and multi_asic.is_multi_asic():
+            multiasic_validate_single_file(cfg_files[0])
+            multiasic_single_file_mode = True
+        elif len(cfg_files) != num_cfg_file:
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
@@ -1583,127 +1807,109 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         log.log_notice("'reload' stopping services...")
         _stop_services()
 
-    # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
-    # service running in the host + DB services running in each ASIC namespace created per ASIC.
-    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
-    # denoting the current namespace which we are in ( the linux host )
-    for inst in range(-1, num_cfg_file-1):
-        # Get the namespace name, for linux host it is None
-        if inst == -1:
-            namespace = None
-        else:
-            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+    if multiasic_single_file_mode:
+        multiasic_write_to_db(cfg_files[0], load_sysinfo)
+    else:
+        # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+        # service running in the host + DB services running in each ASIC namespace created per ASIC.
+        # In the below logic, we get all namespaces in this platform and add an empty namespace ''
+        # denoting the current namespace which we are in ( the linux host )
+        for inst in range(-1, num_cfg_file-1):
+            # Get the namespace name, for linux host it is DEFAULT_NAMESPACE
+            if inst == -1:
+                namespace = DEFAULT_NAMESPACE
+            else:
+                namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
 
-        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
-        if cfg_files:
-            file = cfg_files[inst+1]
-            # Save to tmpfile in case of stdin input which can only be read once
-            if file == "/dev/stdin":
-                file_input = read_json_file(file)
-                (_, tmpfname) = tempfile.mkstemp(dir="/tmp", suffix="_configReloadStdin")
-                write_json_file(file_input, tmpfname)
-                file = tmpfname
-        else:
-            if file_format == 'config_db':
-                if namespace is None:
-                    file = DEFAULT_CONFIG_DB_FILE
+            # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+            if cfg_files:
+                file = cfg_files[inst+1]
+                # Save to tmpfile in case of stdin input which can only be read once
+                if file == "/dev/stdin":
+                    file_input = read_json_file(file)
+                    (_, tmpfname) = tempfile.mkstemp(dir="/tmp", suffix="_configReloadStdin")
+                    write_json_file(file_input, tmpfname)
+                    file = tmpfname
+            else:
+                if file_format == 'config_db':
+                    if namespace is DEFAULT_NAMESPACE:
+                        file = DEFAULT_CONFIG_DB_FILE
+                    else:
+                        file = "/etc/sonic/config_db{}.json".format(inst)
                 else:
-                    file = "/etc/sonic/config_db{}.json".format(inst)
+                    file = DEFAULT_CONFIG_YANG_FILE
+
+            # Check the file exists before proceeding.
+            if not os.path.exists(file):
+                click.echo("The config file {} doesn't exist".format(file))
+                continue
+
+            if file_format == 'config_db':
+                file_input = read_json_file(file)
+                if not load_sysinfo:
+                    load_sysinfo = load_sysinfo_if_missing(file_input)
+
+            if load_sysinfo:
+                try:
+                    command = [SONIC_CFGGEN_PATH, "-j", file, '-v', "DEVICE_METADATA.localhost.hwsku"]
+                    proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
+                    output, err = proc.communicate()
+
+                except FileNotFoundError as e:
+                    click.echo("{}".format(str(e)), err=True)
+                    raise click.Abort()
+                except Exception as e:
+                    click.echo("{}\n{}".format(type(e), str(e)), err=True)
+                    raise click.Abort()
+
+                if not output:
+                    click.secho("Could not get the HWSKU from config file,  Exiting!!!", fg='magenta')
+                    sys.exit(1)
+
+                cfg_hwsku = output.strip()
+
+            client, config_db = flush_configdb(namespace)
+
+            if load_sysinfo:
+                if namespace is DEFAULT_NAMESPACE:
+                    command = [
+                        str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '--write-to-db']
+                else:
+                    command = [
+                        str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '-n', str(namespace), '--write-to-db']
+                clicommon.run_command(command, display_cmd=True)
+
+            # For the database service running in linux host we use the file user gives as input
+            # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
+            # the default config_db<namespaceID>.json format is used.
+
+            config_gen_opts = []
+
+            if os.path.isfile(INIT_CFG_FILE):
+                config_gen_opts += ['-j', str(INIT_CFG_FILE)]
+
+            if file_format == 'config_db':
+                config_gen_opts += ['-j', str(file)]
             else:
-                file = DEFAULT_CONFIG_YANG_FILE
+                config_gen_opts += ['-Y', str(file)]
 
+            if namespace is not DEFAULT_NAMESPACE:
+                config_gen_opts += ['-n', str(namespace)]
 
-        # Check the file exists before proceeding.
-        if not os.path.exists(file):
-            click.echo("The config file {} doesn't exist".format(file))
-            continue
+            command = [SONIC_CFGGEN_PATH] + config_gen_opts + ['--write-to-db']
 
-        if file_format == 'config_db':
-            file_input = read_json_file(file)
-
-            platform = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("platform")
-            mac = file_input.get("DEVICE_METADATA", {}).\
-                get("localhost", {}).get("mac")
-
-            if not platform or not mac:
-                log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
-                    .format(None if platform is None else platform, None if mac is None else mac))
-                load_sysinfo = True
-
-        if load_sysinfo:
-            try:
-                command = [SONIC_CFGGEN_PATH, "-j", file, '-v', "DEVICE_METADATA.localhost.hwsku"]
-                proc = subprocess.Popen(command, text=True, stdout=subprocess.PIPE)
-                output, err = proc.communicate()
-
-            except FileNotFoundError as e:
-                click.echo("{}".format(str(e)), err=True)
-                raise click.Abort()
-            except Exception as e:
-                click.echo("{}\n{}".format(type(e), str(e)), err=True)
-                raise click.Abort()
-
-            if not output:
-                click.secho("Could not get the HWSKU from config file,  Exiting!!!", fg='magenta')
-                sys.exit(1)
-
-            cfg_hwsku = output.strip()
-
-        if namespace is None:
-            config_db = ConfigDBConnector()
-        else:
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-
-        config_db.connect()
-        client = config_db.get_redis_client(config_db.CONFIG_DB)
-        client.flushdb()
-
-        if load_sysinfo:
-            if namespace is None:
-                command = [str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '--write-to-db']
-            else:
-                command = [str(SONIC_CFGGEN_PATH), '-H', '-k', str(cfg_hwsku), '-n', str(namespace), '--write-to-db']
             clicommon.run_command(command, display_cmd=True)
+            client.set(config_db.INIT_INDICATOR, 1)
 
-        # For the database service running in linux host we use the file user gives as input
-        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
-        # the default config_db<namespaceID>.json format is used.
+            if os.path.exists(file) and file.endswith("_configReloadStdin"):
+                # Remove tmpfile
+                try:
+                    os.remove(file)
+                except OSError as e:
+                    click.echo("An error occurred while removing the temporary file: {}".format(str(e)), err=True)
 
-
-        config_gen_opts = []
-
-        if os.path.isfile(INIT_CFG_FILE):
-            config_gen_opts += ['-j', str(INIT_CFG_FILE)]
-
-        if file_format == 'config_db':
-            config_gen_opts += ['-j', str(file)]
-        else:
-            config_gen_opts += ['-Y', str(file)]
-
-        if namespace is not None:
-            config_gen_opts += ['-n', str(namespace)]
-
-        command = [SONIC_CFGGEN_PATH] + config_gen_opts + ['--write-to-db']
-
-        clicommon.run_command(command, display_cmd=True)
-        client.set(config_db.INIT_INDICATOR, 1)
-
-        if os.path.exists(file) and file.endswith("_configReloadStdin"):
-            # Remove tmpfile
-            try:
-                os.remove(file)
-            except OSError as e:
-                click.echo("An error occurred while removing the temporary file: {}".format(str(e)), err=True)
-
-        # Migrate DB contents to latest version
-        db_migrator='/usr/local/bin/db_migrator.py'
-        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-            if namespace is None:
-                command = [db_migrator, '-o', 'migrate']
-            else:
-                command = [db_migrator, '-o', 'migrate', '-n', str(namespace)]
-            clicommon.run_command(command, display_cmd=True)
+            # Migrate DB contents to latest version
+            migrate_db_to_lastest(namespace)
 
     # Re-generate the environment variable in case config_db.json was edited
     update_sonic_environment()
@@ -1778,6 +1984,14 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
             click.secho("Cannot find '{}'!".format(golden_config_path),
                         fg='magenta')
             raise click.Abort()
+
+        # Dependency check golden config json
+        config_to_check = read_json_file(golden_config_path)
+        if multi_asic.is_multi_asic():
+            host_config = config_to_check.get('localhost', {})
+        else:
+            host_config = config_to_check
+        table_hard_dependency_check(host_config)
 
     #Stop services before config push
     if not no_service_restart:
@@ -1997,8 +2211,8 @@ def override_config_table(db, input_config_db, dry_run):
         if multi_asic.is_multi_asic() and len(config_input):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
-                if "localhost" in config_input.keys():
-                    ns_config_input = config_input["localhost"]
+                if HOST_NAMESPACE in config_input.keys():
+                    ns_config_input = config_input[HOST_NAMESPACE]
                 else:
                     click.secho("Wrong config format! 'localhost' not found in host config! cannot override.. abort")
                     sys.exit(1)
@@ -2152,18 +2366,6 @@ def synchronous_mode(sync_mode):
     Option 1. config save -y \n
               config reload -y \n
     Option 2. systemctl restart swss""" % sync_mode)
-
-#
-# 'suppress-fib-pending' command ('config suppress-fib-pending ...')
-#
-@config.command('suppress-fib-pending')
-@click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
-@clicommon.pass_db
-def suppress_pending_fib(db, state):
-    ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
-
-    config_db = db.cfgdb
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-fib-pending" : state})
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')
@@ -3298,7 +3500,10 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     """Add the SNMP agent listening IP:Port%Vrf configuration"""
 
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
-    if not clicommon.is_ipaddress(agentip):
+    # Link local IP address should be provided along with zone id
+    # <link_local_ip>%<zone_id> for ex fe80::1%eth0
+    agent_ip_addr = agentip.split('%')[0]
+    if not clicommon.is_ipaddress(agent_ip_addr):
         click.echo("Invalid IP address")
         return False
     config_db = ctx.obj['db']
@@ -3308,7 +3513,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
             click.echo("ManagementVRF is Enabled. Provide vrf.")
             return False
     found = 0
-    ip = ipaddress.ip_address(agentip)
+    ip = ipaddress.ip_address(agent_ip_addr)
     for intf in netifaces.interfaces():
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
@@ -3986,6 +4191,11 @@ def bgp():
     """BGP-related configuration tasks"""
     pass
 
+
+
+# BGP module extensions
+config.commands['bgp'].add_command(bgp_cli.DEVICE_GLOBAL)
+
 #
 # 'shutdown' subgroup ('config bgp shutdown ...')
 #
@@ -4521,7 +4731,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     except Exception as e:
         click.secho("Failed to break out Port. Error: {}".format(str(e)), fg='magenta')
 
-        sys.exit(0)
+        sys.exit(1)
 
 def _get_all_mgmtinterface_keys():
     """Returns list of strings containing mgmt interface keys
@@ -4632,12 +4842,14 @@ def validate_vlan_exists(db,text):
 # 'add' subcommand
 #
 
-@ip.command()
+
+@ip.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.argument('gw', metavar='<default gateway IP address>', required=False)
+@click.option('--secondary', "-s", is_flag=True, default=False)
 @click.pass_context
-def add(ctx, interface_name, ip_addr, gw):
+def add_interface_ip(ctx, interface_name, ip_addr, gw, secondary):
     """Add an IP address towards the interface"""
     # Get the config_db connector
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
@@ -4646,6 +4858,14 @@ def add(ctx, interface_name, ip_addr, gw):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+        # Add a validation to check this interface is not a member in vlan before
+        # changing it to a router port mode
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+
+    if (interface_is_in_vlan(vlan_member_table, interface_name)):
+        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+        return
+
 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
@@ -4722,7 +4942,25 @@ def add(ctx, interface_name, ip_addr, gw):
             config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
         else:
             config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
-    config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
+
+    if secondary:
+        # We update the secondary flag only in case of VLAN Interface.
+        if table_name == "VLAN_INTERFACE":
+            vlan_interface_table = config_db.get_table(table_name)
+            contains_primary = False
+            for key, value in vlan_interface_table.items():
+                if not isinstance(key, tuple):
+                    continue
+                name, prefix = key
+                if name == interface_name and "secondary" not in value:
+                    contains_primary = True
+            if contains_primary:
+                config_db.set_entry(table_name, (interface_name, str(ip_address)), {"secondary": "true"})
+            else:
+                ctx.fail("Primary for the interface {} is not set, so skipping adding the interface"
+                         .format(interface_name))
+    else:
+        config_db.set_entry(table_name, (interface_name, str(ip_address)), {"NULL": "NULL"})
 
 #
 # 'del' subcommand

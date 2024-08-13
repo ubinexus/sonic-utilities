@@ -47,6 +47,8 @@
   * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
   * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-commands)
   * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
+* [CMIS debug](#cmis-debug)
+* [CMIS debug loopback](#cmis-debug-loopback)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
   * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
@@ -96,6 +98,11 @@
 * [Linux Kernel Dump](#linux-kernel-dump)
   * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
   * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-commands)
+* [LDAP](#LDAP)
+  * [show LDAP global commands](#LDAP-global-show-commands)
+  * [LDAP global config commands](#LDAP-global-config-commands)
+  * [show LDAP server commands](#LDAP-server-show-commands)
+  * [LDAP server config commands](#LDAP-server-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -2605,24 +2612,24 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
-**show suppress-fib-pending**
+**show bgp device-global**
 
-This command is used to show the status of suppress pending FIB feature.
-When enabled, BGP will not advertise routes which aren't yet offloaded.
+This command displays BGP device global configuration.
 
 - Usage:
-  ```
-  show suppress-fib-pending
+  ```bash
+  show bgp device-global
   ```
 
-- Examples:
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Enabled
-  ```
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Disabled
+- Options:
+  - _-j,--json_: display in JSON format
+
+- Example:
+  ```bash
+  admin@sonic:~$ show bgp device-global
+  TSA      W-ECMP
+  -------  -------
+  enabled  enabled
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -2717,22 +2724,24 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
   ```
 
-**config suppress-fib-pending**
+**config bgp device-global tsa/w-ecmp**
 
-This command is used to enable or disable announcements of routes not yet installed in the HW.
-Once enabled, BGP will not advertise routes which aren't yet offloaded.
+This command is used to manage BGP device global configuration.
+
+Feature list:
+1. TSA - Traffic-Shift-Away
+2. W-ECMP - Weighted-Cost Multi-Path
 
 - Usage:
-  ```
-  config suppress-fib-pending <enabled|disabled>
+  ```bash
+  config bgp device-global tsa <enabled|disabled>
+  config bgp device-global w-ecmp <enabled|disabled>
   ```
 
 - Examples:
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending enabled
-  ```
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending disabled 
+  ```bash
+  admin@sonic:~$ config bgp device-global tsa enabled
+  admin@sonic:~$ config bgp device-global w-ecmp enabled
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -3085,6 +3094,31 @@ Example of the module supporting target mode
   ```
   admin@sonic:~$ sfputil firmware target Ethernet180 1
   Target Mode set to 1
+  ```
+
+## CMIS debug
+
+### CMIS debug loopback
+
+This command is the standard CMIS diagnostic control used for troubleshooting link and performance issues between the host switch and transceiver module.
+
+**sfputil debug loopback**
+
+- Usage:
+  ```
+  sfputil debug loopback PORT_NAME LOOPBACK_MODE
+
+  Set the loopback mode
+  host-side-input: host side input loopback mode
+  host-side-output: host side output loopback mode
+  media-side-input: media side input loopback mode
+  media-side-output: media side output loopback mode
+  none: disable loopback mode
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil debug loopback Ethernet88 host-side-input
   ```
 
 ## DHCP Relay
@@ -6298,6 +6332,86 @@ This command displays the kubernetes server status.
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#Kubernetes)
 
+## LDAP
+
+### show LDAP global commands
+
+This command displays the global LDAP configuration that includes the following parameters: base_dn, bind_password, bind_timeout, version, port, timeout.
+
+- Usage:
+  ```
+  show ldap global
+  ```
+- Example:
+
+  ```
+  admin@sonic:~$ show ldap global
+  		base-dn        Ldap user base dn <string>
+  		bind-dn        LDAP global bind dn <string>
+  		bind-password  Shared secret used for encrypting the communication <password>
+  		bind-timeout   Ldap bind timeout <0-120>
+  		port           TCP port to communicate with LDAP server <1-65535>
+  		timeout        Ldap timeout duration in sec <1-60>
+  		version        Ldap version <1-3>
+
+  ```
+
+### LDAP global config commands
+
+These commands are used to configure the LDAP global parameters
+
+ - Usage:
+  ```
+  config ldap global
+  ```
+- Example:
+  ```
+  admin@sonic:~$ config ldap global
+
+  host 		 <ADDRESS> --prio <1 - 8>
+  base-dn        Ldap user base dn <string>
+  bind-dn        LDAP global bind dn <string>
+  bind-password  Shared secret used for encrypting the communication <password>
+  bind-timeout   Ldap bind timeout <0-120>
+  port           TCP port to communicate with LDAP server <1-65535>
+  timeout        Ldap timeout duration in sec <1-60>
+  version        Ldap version <1-3>
+  ```
+
+### show LDAP server commands
+
+This command displays the global LDAP configuration that includes the following parameters: base_dn, bind_password, bind_timeout, version, port, timeout.
+
+- Usage:
+  ```
+  show ldap-server
+  ```
+- Example:
+
+  ```
+  admin@sonic:~$ show ldap-server
+  		hostname        Ldap hostname or IP of the configured LDAP server
+  		priority        priority for the relevant LDAP server <1-8>
+  ```
+
+### LDAP server config commands
+
+These commands are used to manage the LDAP servers in the system, they are created in correspondance to the global config parameters mentioned earlier.
+
+ - Usage:
+  ```
+  config ldap-server
+  ```
+- Example:
+  ```
+  admin@sonic:~$ config ldap-server
+
+  add 		 Add a new LDAP server <ip> --priority <1-8>
+  delete         Delete an existing LDAP server from the list <ip> --priority <1-8>
+  update         Update and existing LDAP server
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#LDAP)
+  
 ## Linux Kernel Dump
 
 This section demonstrates the show commands and configuration commands of Linux kernel dump mechanism in SONiC.

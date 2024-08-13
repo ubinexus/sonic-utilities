@@ -58,7 +58,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_202405_01'
+        self.CURRENT_VERSION = 'version_202411_01'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -840,6 +840,22 @@ class DBMigrator():
             self.configDB.set_entry("AAA", "accounting", accounting_new)
             log.log_info('Migrate AAA accounting: {}'.format(accounting_new))
 
+        # setup per-command authorization
+        tacplus_config = self.configDB.get_entry('TACPLUS', 'global')
+        if 'passkey' in tacplus_config and '' != tacplus_config.get('passkey'):
+            authorization = self.configDB.get_entry('AAA', 'authorization')
+            if not authorization:
+                authorization_new = aaa_new.get("authorization")
+                self.configDB.set_entry("AAA", "authorization", authorization_new)
+                log.log_info('Migrate AAA authorization: {}'.format(authorization_new))
+        else:
+            # If no passkey, setup per-command authorization will block remote user command
+            log.log_info('TACACS passkey does not exist, disable per-command authorization.')
+            authorization_key = "AAA|authorization"
+            keys = self.configDB.keys(self.configDB.CONFIG_DB, authorization_key)
+            if keys:
+                self.configDB.delete(self.configDB.CONFIG_DB, authorization_key)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -1212,10 +1228,18 @@ class DBMigrator():
 
     def version_202405_01(self):
         """
-        Version 202405_01, this version should be the final version for
-        master branch until 202405 branch is created.
+        Version 202405_01.
         """
         log.log_info('Handling version_202405_01')
+        self.set_version('version_202411_01')
+        return 'version_202411_01'
+
+    def version_202411_01(self):
+        """
+        Version 202411_01, this version should be the final version for
+        master branch until 202411 branch is created.
+        """
+        log.log_info('Handling version_202411_01')
         return None
 
     def get_version(self):
