@@ -259,7 +259,8 @@ class Portstat(object):
             Get the port state
         """
         if device_info.is_supervisor():
-            return self.db.get(self.db.CHASSIS_STATE_DB, port_name, "state")
+            self.db.connect(self.db.CHASSIS_STATE_DB, False)
+            return self.db.get(self.db.CHASSIS_STATE_DB, LINECARD_PORT_STAT_TABLE + "|" + port_name, "state")
 
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
         for ns in self.multi_asic.get_ns_list_based_on_options():
