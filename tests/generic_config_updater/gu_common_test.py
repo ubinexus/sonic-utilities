@@ -363,8 +363,8 @@ class TestConfigWrapper(unittest.TestCase):
 
     def test_validate_lanes_default_value_duplicate_check(self):
         config = {"PORT": {
-            "Ethernet0": {"lanes": "0", "speed":"10000"},
-            "Ethernet1": {"lanes": "0", "speed":"10000"},
+            "Ethernet0": {"lanes": "0", "speed": "10000"},
+            "Ethernet1": {"lanes": "0", "speed": "10000"},
             }}
         self.validate_lanes(config)
 
