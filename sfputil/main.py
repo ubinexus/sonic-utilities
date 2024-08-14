@@ -1997,6 +1997,11 @@ def loopback(port_name, loopback_mode):
         config_db.connect()
         subport = int(config_db.get(config_db.CONFIG_DB,
                                     'PORT|{}'.format(port_name), 'subport'))
+
+        # If it is not defined (None) or if it is set to 0, assign a default value of 1
+        # to ensure valid subport configuration.
+        if subport is None or subport == 0:
+            subport = 1
     else:
         click.echo("Failed to connect to CONFIG_DB")
         sys.exit(EXIT_FAIL)
