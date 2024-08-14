@@ -174,7 +174,7 @@ class Portstat(object):
             tx_ovr = self.db.get(self.db.CHASSIS_STATE_DB, key, "tx_ovr")
             port_alias = key.split("|")[-1]
             cnstat_dict[port_alias] = NStats._make([rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,
-                                                    tx_err, tx_drop, tx_ovr] + [STATUS_NA] * (len(NStats._fields) - 8))
+                                                    tx_err, tx_drop, tx_ovr] + [STATUS_NA] * (len(NStats._fields) - 8))._asdict()
             ratestat_dict[port_alias] = RateStats._make([rx_bps, rx_pps, rx_util, tx_bps, tx_pps, tx_util])
         self.cnstat_dict.update(cnstat_dict)
         self.ratestat_dict.update(ratestat_dict)
@@ -209,7 +209,7 @@ class Portstat(object):
                     elif fields[pos] != STATUS_NA:
                         fields[pos] = str(int(fields[pos]) + int(counter_data))
 
-            cntr = NStats._make(fields)
+            cntr = NStats._make(fields)._asdict()
             return cntr
 
         def get_rates(table_id):
