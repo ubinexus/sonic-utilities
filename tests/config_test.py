@@ -3775,7 +3775,7 @@ class TestConfigLogrotate(object):
         obj = {'db': Db().cfgdb}
 
         result = runner.invoke(config.config.commands['logrotate'],
-            ['syslog', 'size', '30.0'], obj=obj)
+                               ['syslog', 'size', '30.0'], obj=obj)
         assert result.exit_code == 0
 
     @classmethod
