@@ -1991,29 +1991,28 @@ def loopback(port_name, loopback_mode):
         click.echo("{}: This functionality is not implemented".format(port_name))
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
-    namespaces = multi_asic.get_front_end_namespaces()
-    for namespace in namespaces:
-        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        if config_db is not None:
-            config_db.connect()
-            subport = int(config_db.get(config_db.CONFIG_DB,
-                                        'PORT|{}'.format(port_name), 'subport'))
-        else:
-            click.echo("Failed to connect to CONFIG_DB")
-            sys.exit(EXIT_FAIL)
+    namespace = multi_asic.get_namespace_for_port(port_name)
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    if config_db is not None:
+        config_db.connect()
+        subport = int(config_db.get(config_db.CONFIG_DB,
+                                    'PORT|{}'.format(port_name), 'subport'))
+    else:
+        click.echo("Failed to connect to CONFIG_DB")
+        sys.exit(EXIT_FAIL)
 
-        state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        if state_db is not None:
-            state_db.connect(state_db.STATE_DB)
-            host_lane_count = int(state_db.get(state_db.STATE_DB,
-                                               'TRANSCEIVER_INFO|{}'.format(port_name),
-                                               'host_lane_count'))
-            media_lane_count = int(state_db.get(state_db.STATE_DB,
-                                                'TRANSCEIVER_INFO|{}'.format(port_name),
-                                                'media_lane_count'))
-        else:
-            click.echo("Failed to connect to STATE_DB")
-            sys.exit(EXIT_FAIL)
+    state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+    if state_db is not None:
+        state_db.connect(state_db.STATE_DB)
+        host_lane_count = int(state_db.get(state_db.STATE_DB,
+                                           'TRANSCEIVER_INFO|{}'.format(port_name),
+                                           'host_lane_count'))
+        media_lane_count = int(state_db.get(state_db.STATE_DB,
+                                            'TRANSCEIVER_INFO|{}'.format(port_name),
+                                            'media_lane_count'))
+    else:
+        click.echo("Failed to connect to STATE_DB")
+        sys.exit(EXIT_FAIL)
 
     if loopback_mode in ("host-side-input", "host-side-output"):
         lane_mask = ((1 << host_lane_count) - 1) << ((subport - 1) * host_lane_count)
