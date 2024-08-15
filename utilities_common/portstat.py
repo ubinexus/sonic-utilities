@@ -430,7 +430,7 @@ class Portstat(object):
 
             print("")
             print("Jabbers Received............................... {}".format(ns_diff(cntr['rx_jbr'],
-                                                                                      old_cntr['x_jbr'])))
+                                                                                      old_cntr['tx_jbr'])))
             print("Fragments Received............................. {}".format(ns_diff(cntr['rx_frag'],
                                                                                       old_cntr['rx_frag'])))
             print("Undersize Received............................. {}".format(ns_diff(cntr['rx_usize'],
@@ -461,10 +461,14 @@ class Portstat(object):
                                                                                       old_cntr['tx_9217_16383'])))
 
             print("")
-            print("Total Packets Transmitted Successfully......... {}".format(ns_diff(cntr['tx_all'], old_cntr['tx_all'])))
-            print("Unicast Packets Transmitted.................... {}".format(ns_diff(cntr['tx_uca'], old_cntr['tx_uca'])))
-            print("Multicast Packets Transmitted.................. {}".format(ns_diff(cntr['tx_mca'], old_cntr['tx_mca'])))
-            print("Broadcast Packets Transmitted.................. {}".format(ns_diff(cntr['tx_bca'], old_cntr['tx_bca'])))
+            print("Total Packets Transmitted Successfully......... {}".format(ns_diff(cntr['tx_all'],
+                                                                                      old_cntr['tx_all'])))
+            print("Unicast Packets Transmitted.................... {}".format(ns_diff(cntr['tx_uca'],
+                                                                                      old_cntr['tx_uca'])))
+            print("Multicast Packets Transmitted.................. {}".format(ns_diff(cntr['tx_mca'],
+                                                                                      old_cntr['tx_mca'])))
+            print("Broadcast Packets Transmitted.................. {}".format(ns_diff(cntr['tx_bca'],
+                                                                                      old_cntr['tx_bca'])))
 
             print("Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time')))
 
