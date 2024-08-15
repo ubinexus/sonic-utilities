@@ -430,7 +430,7 @@ class Portstat(object):
 
             print("")
             print("Jabbers Received............................... {}".format(ns_diff(cntr['rx_jbr'],
-                                                                                      old_cntr['tx_jbr'])))
+                                                                                      old_cntr['rx_jbr'])))
             print("Fragments Received............................. {}".format(ns_diff(cntr['rx_frag'],
                                                                                       old_cntr['rx_frag'])))
             print("Undersize Received............................. {}".format(ns_diff(cntr['rx_usize'],
