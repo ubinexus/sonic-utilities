@@ -1469,10 +1469,10 @@ def is_fw_switch_done(port_name):
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
                 click.echo("FW images switch successful : ImageA is running")
-                status = 1  # run_firmware is done. 
+                status = 1  # run_firmware is done.
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
                 click.echo("FW images switch successful : ImageB is running")
-                status = 1  # run_firmware is done. 
+                status = 1  # run_firmware is done.
             else:                                                   # No image is running, or running and committed image is same.
                 click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
@@ -1970,7 +1970,9 @@ def debug():
 @click.argument('port_name', required=True, default=None)
 @click.argument('loopback_mode', required=True, default="none",
                 type=click.Choice(["none", "host-side-input", "host-side-output",
-                                   "media-side-input", "media-side-output"]))
+                                   "media-side-input", "media-side-output",
+                                   "host-side-input-none", "host-side-output-none",
+                                   "media-side-input-none", "media-side-output-none"]))
 def loopback(port_name, loopback_mode):
     """Set module diagnostic loopback mode
     """
@@ -1998,7 +2000,7 @@ def loopback(port_name, loopback_mode):
         subport = int(config_db.get(config_db.CONFIG_DB,
                                     'PORT|{}'.format(port_name), 'subport'))
 
-        # If it is not defined (None) or if it is set to 0, assign a default value of 1
+        # If subport is not defined (None) or set to 0, assign a default value of 1
         # to ensure valid subport configuration.
         if subport is None or subport == 0:
             subport = 1
@@ -2019,9 +2021,11 @@ def loopback(port_name, loopback_mode):
         click.echo("Failed to connect to STATE_DB")
         sys.exit(EXIT_FAIL)
 
-    if loopback_mode in ("host-side-input", "host-side-output"):
+    if loopback_mode in ("host-side-input", "host-side-output",
+                         "host-side-input-none", "host-side-output-none"):
         lane_mask = ((1 << host_lane_count) - 1) << ((subport - 1) * host_lane_count)
-    elif loopback_mode in ("media-side-input", "host-side-output"):
+    elif loopback_mode in ("media-side-input", "media-side-output",
+                           "media-side-input-none", "media-side-output-none"):
         lane_mask = ((1 << media_lane_count) - 1) << ((subport - 1) * media_lane_count)
     else:
         lane_mask = 0
