@@ -1469,10 +1469,10 @@ def is_fw_switch_done(port_name):
                 status = -1 # Abnormal status.
             elif (ImageARunning == 1) and (ImageACommitted == 0):   # ImageA is running, but not committed.
                 click.echo("FW images switch successful : ImageA is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             elif (ImageBRunning == 1) and (ImageBCommitted == 0):   # ImageB is running, but not committed.
                 click.echo("FW images switch successful : ImageB is running")
-                status = 1  # run_firmware is done.
+                status = 1  # run_firmware is done. 
             else:                                                   # No image is running, or running and committed image is same.
                 click.echo("FW info error : Failed to switch into uncommitted image!")
                 status = -1 # Failure for Switching images.
@@ -2021,11 +2021,9 @@ def loopback(port_name, loopback_mode):
         click.echo("Failed to connect to STATE_DB")
         sys.exit(EXIT_FAIL)
 
-    if loopback_mode in ("host-side-input", "host-side-output",
-                         "host-side-input-none", "host-side-output-none"):
+    if 'host-side' in loopback_mode:
         lane_mask = ((1 << host_lane_count) - 1) << ((subport - 1) * host_lane_count)
-    elif loopback_mode in ("media-side-input", "media-side-output",
-                           "media-side-input-none", "media-side-output-none"):
+    elif 'media-side' in loopback_mode:
         lane_mask = ((1 << media_lane_count) - 1) << ((subport - 1) * media_lane_count)
     else:
         lane_mask = 0
