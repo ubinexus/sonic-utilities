@@ -1997,28 +1997,39 @@ def loopback(port_name, loopback_mode):
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
     if config_db is not None:
         config_db.connect()
-        subport = int(config_db.get(config_db.CONFIG_DB,
-                                    'PORT|{}'.format(port_name), 'subport'))
+        try:
+            subport = int(config_db.get(config_db.CONFIG_DB, f'PORT|{port_name}', 'subport'))
+        except TypeError:
+            click.echo(f"{port_name}: subport is not present in CONFIG_DB")
+            sys.exit(EXIT_FAIL)
 
-        # If subport is not defined (None) or set to 0, assign a default value of 1
-        # to ensure valid subport configuration.
-        if subport is None or subport == 0:
+        # If subport is set to 0, assign a default value of 1 to ensure valid subport configuration
+        if subport == 0:
             subport = 1
     else:
-        click.echo("Failed to connect to CONFIG_DB")
+        click.echo(f"{port_name}: Failed to connect to CONFIG_DB")
         sys.exit(EXIT_FAIL)
 
     state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
     if state_db is not None:
         state_db.connect(state_db.STATE_DB)
-        host_lane_count = int(state_db.get(state_db.STATE_DB,
-                                           'TRANSCEIVER_INFO|{}'.format(port_name),
-                                           'host_lane_count'))
-        media_lane_count = int(state_db.get(state_db.STATE_DB,
-                                            'TRANSCEIVER_INFO|{}'.format(port_name),
-                                            'media_lane_count'))
+        try:
+            host_lane_count = int(state_db.get(state_db.STATE_DB,
+                                               f'TRANSCEIVER_INFO|{port_name}',
+                                               'host_lane_count'))
+        except TypeError:
+            click.echo(f"{port_name}: host_lane_count is not present in STATE_DB")
+            sys.exit(EXIT_FAIL)
+
+        try:
+            media_lane_count = int(state_db.get(state_db.STATE_DB,
+                                                f'TRANSCEIVER_INFO|{port_name}',
+                                                'media_lane_count'))
+        except TypeError:
+            click.echo(f"{port_name}: media_lane_count is not present in STATE_DB")
+            sys.exit(EXIT_FAIL)
     else:
-        click.echo("Failed to connect to STATE_DB")
+        click.echo(f"{port_name}: Failed to connect to STATE_DB")
         sys.exit(EXIT_FAIL)
 
     if 'host-side' in loopback_mode:

@@ -3109,11 +3109,15 @@ This command is the standard CMIS diagnostic control used for troubleshooting li
   sfputil debug loopback PORT_NAME LOOPBACK_MODE
 
   Set the loopback mode
-  host-side-input: host side input loopback mode
-  host-side-output: host side output loopback mode
-  media-side-input: media side input loopback mode
-  media-side-output: media side output loopback mode
-  none: disable loopback mode
+  host-side-input: enable host side input loopback mode
+  host-side-output: enable host side output loopback mode
+  media-side-input: enable media side input loopback mode
+  media-side-output: enable media side output loopback mode
+  host-side-input-none: disable host side input loopback mode
+  host-side-output-none: disable host side output loopback mode
+  media-side-input-none: disable media side input loopback mode
+  media-side-output-none: disable media side output loopback mode
+  none: disable all loopback mode
   ```
 
 - Example:

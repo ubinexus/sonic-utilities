@@ -1631,14 +1631,16 @@ EEPROM hexdump for port Ethernet4
 
     @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
     @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.ConfigDBConnector')
+    @patch('sfputil.main.SonicV2Connector')
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sonic_py_common.multi_asic.get_front_end_namespaces', MagicMock(return_value=['']))
-    @patch('sfputil.main.ConfigDBConnector', MagicMock())
-    @patch('sfputil.main.SonicV2Connector', MagicMock())
-    def test_debug_loopback(self, mock_chassis):
+    def test_debug_loopback(self, mock_sonic_v2_connector, mock_config_db_connector, mock_chassis):
         mock_sfp = MagicMock()
         mock_api = MagicMock()
+        mock_config_db_connector.return_value = MagicMock()
+        mock_sonic_v2_connector.return_value = MagicMock()
         mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
         mock_sfp.get_presence.return_value = True
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
@@ -1685,3 +1687,24 @@ EEPROM hexdump for port Ethernet4
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
                                ["Ethernet0", "none"])
         assert result.output == 'Ethernet0: Set none loopback\n'
+
+        mock_config_db = MagicMock()
+        mock_config_db.get.side_effect = TypeError
+        mock_config_db_connector.return_value = mock_config_db
+        result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
+                               ["Ethernet0", "none"])
+        assert result.output == 'Ethernet0: subport is not present in CONFIG_DB\n'
+        assert result.exit_code == EXIT_FAIL
+
+        mock_config_db_connector.return_value = None
+        result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
+                               ["Ethernet0", "none"])
+        assert result.output == 'Ethernet0: Failed to connect to CONFIG_DB\n'
+        assert result.exit_code == EXIT_FAIL
+
+        mock_config_db_connector.return_value = MagicMock()
+        mock_sonic_v2_connector.return_value = None
+        result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
+                               ["Ethernet0", "none"])
+        assert result.output == 'Ethernet0: Failed to connect to STATE_DB\n'
+        assert result.exit_code == EXIT_FAIL
