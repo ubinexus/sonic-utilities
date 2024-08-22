@@ -783,7 +783,14 @@ def watermark():
 
 # 'unicast' subcommand ("show queue watermarks unicast")
 @watermark.command('unicast')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_q_uni(namespace):
     """Show user WM for unicast queues"""
     command = ['watermarkstat', '-t', 'q_shared_uni']
@@ -793,7 +800,14 @@ def wm_q_uni(namespace):
 
 # 'multicast' subcommand ("show queue watermarks multicast")
 @watermark.command('multicast')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_q_multi(namespace):
     """Show user WM for multicast queues"""
     command = ['watermarkstat', '-t', 'q_shared_multi']
@@ -803,7 +817,14 @@ def wm_q_multi(namespace):
 
 # 'all' subcommand ("show queue watermarks all")
 @watermark.command('all')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_q_all(namespace):
     """Show user WM for all queues"""
     command = ['watermarkstat', '-t', 'q_shared_all']
@@ -822,7 +843,14 @@ def persistent_watermark():
 
 # 'unicast' subcommand ("show queue persistent-watermarks unicast")
 @persistent_watermark.command('unicast')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_q_uni(namespace):
     """Show persistent WM for unicast queues"""
     command = ['watermarkstat', '-p', '-t', 'q_shared_uni']
@@ -832,7 +860,14 @@ def pwm_q_uni(namespace):
 
 # 'multicast' subcommand ("show queue persistent-watermarks multicast")
 @persistent_watermark.command('multicast')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_q_multi(namespace):
     """Show persistent WM for multicast queues"""
     command = ['watermarkstat', '-p', '-t', 'q_shared_multi']
@@ -842,7 +877,14 @@ def pwm_q_multi(namespace):
 
 # 'all' subcommand ("show queue persistent-watermarks all")
 @persistent_watermark.command('all')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_q_all(namespace):
     """Show persistent WM for all queues"""
     command = ['watermarkstat', '-p', '-t', 'q_shared_all']
@@ -864,7 +906,14 @@ def watermark():
     pass
 
 @watermark.command('headroom')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_pg_headroom(namespace):
     """Show user headroom WM for pg"""
     command = ['watermarkstat', '-t', 'pg_headroom']
@@ -873,7 +922,14 @@ def wm_pg_headroom(namespace):
     run_command(command)
 
 @watermark.command('shared')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_pg_shared(namespace):
     """Show user shared WM for pg"""
     command = ['watermarkstat', '-t', 'pg_shared']
@@ -901,7 +957,14 @@ def persistent_watermark():
     pass
 
 @persistent_watermark.command('headroom')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_pg_headroom(namespace):
     """Show persistent headroom WM for pg"""
     command = ['watermarkstat', '-p', '-t', 'pg_headroom']
@@ -909,8 +972,16 @@ def pwm_pg_headroom(namespace):
         command += ['-n', str(namespace)]
     run_command(command)
 
+
 @persistent_watermark.command('shared')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_pg_shared(namespace):
     """Show persistent shared WM for pg"""
     command = ['watermarkstat', '-p', '-t', 'pg_shared']
@@ -928,16 +999,31 @@ def buffer_pool():
     """Show details of the buffer pools"""
 
 @buffer_pool.command('watermark')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_buffer_pool(namespace):
     """Show user WM for buffer pools"""
-    command = ['watermarkstat', '-t' ,'buffer_pool']
+    command = ['watermarkstat', '-t', 'buffer_pool']
     if namespace is not None:
         command += ['-n', str(namespace)]
     run_command(command)
 
+
 @buffer_pool.command('persistent-watermark')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_buffer_pool(namespace):
     """Show persistent WM for buffer pools"""
     command = ['watermarkstat', '-p', '-t', 'buffer_pool']
@@ -955,7 +1041,14 @@ def headroom_pool():
     """Show details of headroom pool"""
 
 @headroom_pool.command('watermark')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def wm_headroom_pool(namespace):
     """Show user WM for headroom pool"""
     command = ['watermarkstat', '-t', 'headroom_pool']
@@ -963,8 +1056,16 @@ def wm_headroom_pool(namespace):
         command += ['-n', str(namespace)]
     run_command(command)
 
+
 @headroom_pool.command('persistent-watermark')
-@multi_asic_util.multi_asic_click_option_namespace
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def pwm_headroom_pool(namespace):
     """Show persistent WM for headroom pool"""
     command = ['watermarkstat', '-p', '-t', 'headroom_pool']
