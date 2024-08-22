@@ -26,8 +26,7 @@ except ImportError:
 def register(cli):
     version_info = device_info.get_sonic_version_info()
     if version_info and version_info.get("asic_type") == "cisco-8000":
-        for c in PLATFORM_CLIS:
-            cli.commands["platform"].add_command(c)
+        VENDOR_CLIS["platform"] = PLATFORM_CLIS
         for command, subcommands in VENDOR_CLIS.items():
             for subcommand in subcommands:
                 cli.commands[command].add_command(subcommand)
