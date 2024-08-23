@@ -114,6 +114,8 @@ PORT_STATE_DOWN = 'D'
 PORT_STATE_DISABLED = 'X'
 
 LINECARD_PORT_STAT_TABLE = 'LINECARD_PORT_STAT_TABLE'
+LINECARD_PORT_STAT_MARK_TABLE = 'LINECARD_PORT_STAT_MARK_TABLE'
+CHASSIS_MIDPLANE_INFO_TABLE = 'CHASSIS_MIDPLANE_TABLE'
 
 
 class Portstat(object):
@@ -139,16 +141,36 @@ class Portstat(object):
 
         # Clear stale records
         self.db.delete_all_by_pattern(self.db.CHASSIS_STATE_DB, LINECARD_PORT_STAT_TABLE + "*")
+        self.db.delete_all_by_pattern(self.db.CHASSIS_STATE_DB, LINECARD_PORT_STAT_MARK_TABLE + "*")
+
+        # Check how many linecards are connected
+        tempdb = SonicV2Connector(use_unix_socket_path=False)
+        tempdb.connect(tempdb.STATE_DB, False)
+        linecard_midplane_keys = tempdb.keys(tempdb.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + "*")
+        lc_count = 0
+        if not linecard_midplane_keys:
+            # LC has not published it's Counter which could be due to chassis_port_counter_monitor.service not running
+            print("No linecards are connected!")
+            return
+        else:
+            for key in linecard_midplane_keys:
+                linecard_status = tempdb.get(tempdb.STATE_DB, key, "access")
+                if linecard_status == "True":
+                    lc_count += 1
 
         # Notify the Linecards to publish their counter values instantly
         self.db.set(self.db.CHASSIS_STATE_DB, "GET_LINECARD_COUNTER|pull", "enable", "true")
-        time.sleep(1)
+        time.sleep(2)
 
-        # Check if LC has published it's Counter
+        # Check if all LCs have published counters
+        linecard_names = self.db.keys(self.db.CHASSIS_STATE_DB, LINECARD_PORT_STAT_MARK_TABLE + "*")
         linecard_port_aliases = self.db.keys(self.db.CHASSIS_STATE_DB, LINECARD_PORT_STAT_TABLE + "*")
         if not linecard_port_aliases:
             # LC has not published it's Counter which could be due to chassis_port_counter_monitor.service not running
             print("Linecard Counter Table is not available.")
+            return
+        if len(linecard_names) != lc_count:
+            print("Not all linecards have published their counter values.")
             return
 
         # Create the dictornaries to store the counter values
@@ -385,7 +407,8 @@ class Portstat(object):
             Print the difference between two cnstat results for interface.
         """
 
-        for key, cntr in cnstat_new_dict.items():
+        for key in natsorted(cnstat_new_dict.keys()):
+            cntr = cnstat_new_dict.get(key)
             if key == 'time':
                 continue
 
@@ -487,7 +510,8 @@ class Portstat(object):
         table = []
         header = None
 
-        for key, cntr in cnstat_new_dict.items():
+        for key in natsorted(cnstat_new_dict.keys()):
+            cntr = cnstat_new_dict.get(key)
             if key == 'time':
                 continue
             old_cntr = None
