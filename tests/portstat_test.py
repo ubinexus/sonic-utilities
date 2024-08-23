@@ -8,8 +8,8 @@ import show.main as show
 from .utils import get_result_and_return_code
 from utilities_common.cli import UserCache
 
-root_path = os.path.dirname(os.path.abspath(__file__))
-modules_path = os.path.dirname(root_path)
+test_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 intf_counters_before_clear = """\
@@ -247,6 +247,10 @@ Ethernet11/1        U      100  10.00 B/s      0.00%         0         0        
          0         0         0
 """
 
+intf_counters_on_sup_no_counters = "Linecard Counter Table is not available.\n"
+
+intf_counters_on_sup_partial_lc = "Not all linecards have published their counter values.\n"
+
 TEST_PERIOD = 3
 
 
@@ -428,6 +432,54 @@ class TestPortStat(object):
         assert result == intf_counters_on_sup
         os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
 
+    def test_show_intf_counters_on_sup_no_counters(self):
+        remove_tmp_cnstat_file()
+        os.system("cp {} /tmp/".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.system("cp {} {}".format(os.path.join(test_path, "portstat_db/on_sup_no_counters/chassis_state_db.json"),
+                                    os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "1"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_on_sup_no_counters
+
+        return_code, result = get_result_and_return_code(['portstat'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_on_sup_no_counters
+
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
+        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+
+    def test_show_intf_counters_on_sup_partial_lc(self):
+        remove_tmp_cnstat_file()
+        os.system("cp {} /tmp/".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.system("cp {} {}".format(os.path.join(test_path, "portstat_db/on_sup_partial_lc/chassis_state_db.json"),
+                                    os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "1"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_on_sup_partial_lc
+
+        return_code, result = get_result_and_return_code(['portstat'])
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_on_sup_partial_lc
+
+        os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
+        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -436,6 +488,7 @@ class TestPortStat(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
         remove_tmp_cnstat_file()
+        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
 
 
 class TestMultiAsicPortStat(object):
