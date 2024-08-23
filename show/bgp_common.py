@@ -3,7 +3,7 @@ import ipaddress
 import json
 
 import utilities_common.multi_asic as multi_asic_util
-from sonic_py_common import multi_asic
+from sonic_py_common import  device_info, multi_asic
 from utilities_common import constants
 
 '''
@@ -60,10 +60,12 @@ def get_nexthop_info_str(nxhp_info, filterByIp):
         else:
             str_2_return = " via {},".format(nxhp_info['ip'])
         if "interfaceName" in nxhp_info:
+            intfs = nxhp_info['interfaceName']
             if filterByIp:
-                str_2_return += ", via {}".format(nxhp_info['interfaceName'])
+                str_2_return += ", via {}".format(intfs)
             else:
-                str_2_return += " {},".format(nxhp_info['interfaceName'])
+                str_2_return += " {},".format(intfs)
+
     elif "directlyConnected" in nxhp_info:
         str_2_return = " is directly connected,"
         if "interfaceName" in nxhp_info:
@@ -80,10 +82,14 @@ def get_nexthop_info_str(nxhp_info, filterByIp):
         str_2_return += "(vrf {}, {},".format(nxhp_info['vrf'], nxhp_info['interfaceName'])
     if "active" not in nxhp_info:
         str_2_return += " inactive"
+
     if "onLink" in nxhp_info:
         str_2_return += " onlink"
     if "recursive" in nxhp_info:
-        str_2_return += " (recursive)"
+        if device_info.is_voq_chassis():
+            str_2_return = "  " + str_2_return + " recursive via iBGP"
+        else:
+            str_2_return += " (recursive)"
     if "source" in nxhp_info:
         str_2_return += ", src {}".format(nxhp_info['source'])
     if "labels" in nxhp_info:
@@ -220,6 +226,12 @@ def merge_to_combined_route(combined_route, route, new_info_l):
                                     if nh['interfaceName'] == combined_route[route][j]['nexthops'][y]['interfaceName']:
                                         found = True
                                         break
+                                if device_info.is_voq_chassis():
+                                    if nh['ip'] == combined_route[route][j]['nexthops'][y]['ip']:
+                                        if 'interfaceName' not in combined_route[route][j]['nexthops'][y]:
+                                            combined_route[route][j]['nexthops'][y] = nh
+                                        found = True
+                                        break
                                 elif "active" not in nh and "active" not in combined_route[route][j]['nexthops'][y]:
                                     if nh['ip'] == combined_route[route][j]['nexthops'][y]['ip']:
                                         found = True
@@ -253,7 +265,7 @@ def process_route_info(route_info, device, filter_back_end, print_ns_str, asic_c
             while len(new_info['nexthops']):
                 nh = new_info['nexthops'].pop()
                 if filter_back_end and back_end_intf_set != None and "interfaceName" in nh:
-                    if nh['interfaceName'] in back_end_intf_set:
+                    if nh['interfaceName'] in back_end_intf_set or nh['interfaceName'].startswith('Ethernet-IB'):
                         del_cnt += 1
                     else:
                         new_nhop_l.append(copy.deepcopy(nh))
