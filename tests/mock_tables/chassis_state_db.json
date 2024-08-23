@@ -8,6 +8,12 @@
     "CHASSIS_MODULE_HOSTNAME_TABLE|LINE-CARD2": {
         "module_hostname": "sonic-lc3"
     },
+    "LINECARD_PORT_STAT_MARK_TABLE|sonic-lc1": {
+        "timestamp": "2020-07-01 00:00:00"
+    },
+    "LINECARD_PORT_STAT_MARK_TABLE|sonic-lc3": {
+        "timestamp": "2020-07-01 00:00:00"
+    },
     "LINECARD_PORT_STAT_TABLE|Ethernet1/1": {
         "state": "U",
         "rx_ok": 100,
