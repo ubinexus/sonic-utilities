@@ -1264,9 +1264,17 @@ collect_mellanox() {
 collect_mellanox_dfw_dumps() {
     trap 'handle_error $? $LINENO' ERR
     local platform=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_platform())")
+    local platform_folder="/usr/share/sonic/device/${platform}"
     local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
+    local sku_folder="/usr/share/sonic/device/${platform}/${hwsku}"
     local def_dump_path="/var/log/mellanox/sdk-dumps"
     local sdk_dump_path=`cat /usr/share/sonic/device/${platform}/${hwsku}/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
+    local cmis_host_mgmt_files=(
+        "sai.profile"
+        "pmon_daemon_control.json"
+        "media_settings.json"
+        "optics_si_settings.json"
+    )
 
     if [ -z $sdk_dump_path ]; then
         # If the SAI_DUMP_STORE_PATH is not found in device specific sai profile, check in common sai profile
@@ -1310,14 +1318,7 @@ collect_mellanox_dfw_dumps() {
     done
 
     # Save CMIS-host-management related files
-    cmis_host_mgmt_files=(
-        "sai.profile"
-        "pmon_daemon_control.json"
-        "media_settings.json"
-        "optics_si_settings.json"
-    )
-    sku_folder="/usr/share/sonic/device/${platform}/${hwsku}"
-    host_cmis_mgmt_path="etc/cmis-host-mgmt"
+    local host_cmis_mgmt_path="etc/cmis-host-mgmt"
 
     for file in "${cmis_host_mgmt_files[@]}"; do
         if [[ -f "${sku_folder}/${file}" ]]; then
@@ -1325,16 +1326,15 @@ collect_mellanox_dfw_dumps() {
         fi
     done
 
-    platform_folder="/usr/share/sonic/device/${platform}"
     if [[ ! -f "${sku_folder}/pmon_daemon_control.json" && -f "${platform_folder}/pmon_daemon_control.json" ]]; then
         ${CMD_PREFIX}save_file "${platform_folder}/pmon_daemon_control.json" "$host_cmis_mgmt_path" false true
     fi
 
-    autoneg_status_file="/tmp/autoneg.status"
-    if show int autoneg sta > "$autoneg_status_file"; then
+    local autoneg_status_file="/tmp/autoneg.status"
+    if show interfaces autoneg status > "$autoneg_status_file"; then
         ${CMD_PREFIX}save_file "$autoneg_status_file" "$host_cmis_mgmt_path" false true
     else
-        echo "ERROR: Failed to save autoneg.status."
+        echo "ERROR: Failed to save autoneg.status"
     fi
 }
 
