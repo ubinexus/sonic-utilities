@@ -1261,16 +1261,16 @@ collect_mellanox() {
     fi
 
     # Save CMIS-host-management related files
-    local host_cmis_mgmt_path="cmis-host-mgmt"
+    local cmis_host_mgmt_path="cmis-host-mgmt"
 
     for file in "${cmis_host_mgmt_files[@]}"; do
         if [[ -f "${file}" ]]; then
-            ${CMD_PREFIX}save_file "${file}" "$host_cmis_mgmt_path" false true
+            ${CMD_PREFIX}save_file "${file}" "$cmis_host_mgmt_path" false true
         fi
     done
 
     if [[ ! -f "${sku_folder}/pmon_daemon_control.json" && -f "${platform_folder}/pmon_daemon_control.json" ]]; then
-        ${CMD_PREFIX}save_file "${platform_folder}/pmon_daemon_control.json" "$host_cmis_mgmt_path" false true
+        ${CMD_PREFIX}save_file "${platform_folder}/pmon_daemon_control.json" "$cmis_host_mgmt_path" false true
     fi
 
     save_cmd "show interfaces autoneg status" "autoneg.status"
