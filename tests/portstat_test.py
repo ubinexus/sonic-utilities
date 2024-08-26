@@ -454,7 +454,8 @@ class TestPortStat(object):
         assert result == intf_counters_on_sup_no_counters
 
         os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
-        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.system("cp /tmp/chassis_state_db.json {}"
+                  .format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
 
     def test_show_intf_counters_on_sup_partial_lc(self):
         remove_tmp_cnstat_file()
@@ -478,7 +479,8 @@ class TestPortStat(object):
         assert result == intf_counters_on_sup_partial_lc
 
         os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
-        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.system("cp /tmp/chassis_state_db.json {}"
+                  .format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
 
     @classmethod
     def teardown_class(cls):
@@ -488,7 +490,8 @@ class TestPortStat(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_IS_SUP"] = "0"
         remove_tmp_cnstat_file()
-        os.system("cp /tmp/chassis_state_db.json {}".format(os.path.join(test_path, "mock_tables/chassis_state_db.json")))
+        os.system("cp /tmp/chassis_state_db.json {}"
+                  .format(os.path.join(test_path,"mock_tables/chassis_state_db.json")))
 
 
 class TestMultiAsicPortStat(object):
