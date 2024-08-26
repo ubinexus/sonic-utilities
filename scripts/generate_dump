@@ -1214,10 +1214,10 @@ collect_mellanox() {
     local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
     local sku_folder="/usr/share/sonic/device/${platform}/${hwsku}"
     local cmis_host_mgmt_files=(
-        "sai.profile"
-        "pmon_daemon_control.json"
-        "media_settings.json"
-        "optics_si_settings.json"
+        "/tmp/nv-syncd-shared/sai.profile"
+        "${sku_folder}/pmon_daemon_control.json"
+        "${sku_folder}/media_settings.json"
+        "${sku_folder}/optics_si_settings.json"
     )
 
     if [[ "$( docker container inspect -f '{{.State.Running}}' syncd )" == "true" ]]; then
@@ -1266,8 +1266,8 @@ collect_mellanox() {
     local host_cmis_mgmt_path="cmis-host-mgmt"
 
     for file in "${cmis_host_mgmt_files[@]}"; do
-        if [[ -f "${sku_folder}/${file}" ]]; then
-            ${CMD_PREFIX}save_file "${sku_folder}/${file}" "$host_cmis_mgmt_path" false true
+        if [[ -f "${file}" ]]; then
+            ${CMD_PREFIX}save_file "${file}" "$host_cmis_mgmt_path" false true
         fi
     done
 
