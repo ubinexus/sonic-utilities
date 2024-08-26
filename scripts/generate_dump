@@ -1209,6 +1209,16 @@ collect_mellanox() {
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+    local platform=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_platform())")
+    local platform_folder="/usr/share/sonic/device/${platform}"
+    local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
+    local sku_folder="/usr/share/sonic/device/${platform}/${hwsku}"
+    local cmis_host_mgmt_files=(
+        "sai.profile"
+        "pmon_daemon_control.json"
+        "media_settings.json"
+        "optics_si_settings.json"
+    )
 
     if [[ "$( docker container inspect -f '{{.State.Running}}' syncd )" == "true" ]]; then
         if [[ x"$(sonic-db-cli APPL_DB EXISTS PORT_TABLE:PortInitDone)" == x"1" ]]; then
@@ -1250,6 +1260,20 @@ collect_mellanox() {
       echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
     fi
 
+    # Save CMIS-host-management related files
+    local host_cmis_mgmt_path="cmis-host-mgmt"
+
+    for file in "${cmis_host_mgmt_files[@]}"; do
+        if [[ -f "${sku_folder}/${file}" ]]; then
+            ${CMD_PREFIX}save_file "${sku_folder}/${file}" "$host_cmis_mgmt_path" false true
+        fi
+    done
+
+    if [[ ! -f "${sku_folder}/pmon_daemon_control.json" && -f "${platform_folder}/pmon_daemon_control.json" ]]; then
+        ${CMD_PREFIX}save_file "${platform_folder}/pmon_daemon_control.json" "$host_cmis_mgmt_path" false true
+    fi
+
+    save_cmd "show interfaces autoneg status" "autoneg.status"
 }
 
 ###############################################################################
@@ -1264,17 +1288,9 @@ collect_mellanox() {
 collect_mellanox_dfw_dumps() {
     trap 'handle_error $? $LINENO' ERR
     local platform=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_platform())")
-    local platform_folder="/usr/share/sonic/device/${platform}"
     local hwsku=$(python3 -c "from sonic_py_common import device_info; print(device_info.get_hwsku())")
-    local sku_folder="/usr/share/sonic/device/${platform}/${hwsku}"
     local def_dump_path="/var/log/mellanox/sdk-dumps"
     local sdk_dump_path=`cat /usr/share/sonic/device/${platform}/${hwsku}/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
-    local cmis_host_mgmt_files=(
-        "sai.profile"
-        "pmon_daemon_control.json"
-        "media_settings.json"
-        "optics_si_settings.json"
-    )
 
     if [ -z $sdk_dump_path ]; then
         # If the SAI_DUMP_STORE_PATH is not found in device specific sai profile, check in common sai profile
@@ -1316,26 +1332,6 @@ collect_mellanox_dfw_dumps() {
             fi
         fi
     done
-
-    # Save CMIS-host-management related files
-    local host_cmis_mgmt_path="etc/cmis-host-mgmt"
-
-    for file in "${cmis_host_mgmt_files[@]}"; do
-        if [[ -f "${sku_folder}/${file}" ]]; then
-            ${CMD_PREFIX}save_file "${sku_folder}/${file}" "$host_cmis_mgmt_path" false true
-        fi
-    done
-
-    if [[ ! -f "${sku_folder}/pmon_daemon_control.json" && -f "${platform_folder}/pmon_daemon_control.json" ]]; then
-        ${CMD_PREFIX}save_file "${platform_folder}/pmon_daemon_control.json" "$host_cmis_mgmt_path" false true
-    fi
-
-    local autoneg_status_file="/tmp/autoneg.status"
-    if show interfaces autoneg status > "$autoneg_status_file"; then
-        ${CMD_PREFIX}save_file "$autoneg_status_file" "$host_cmis_mgmt_path" false true
-    else
-        echo "ERROR: Failed to save autoneg.status"
-    fi
 }
 
 ###############################################################################
