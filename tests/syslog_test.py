@@ -495,7 +495,7 @@ class TestSyslog:
         mock_run.return_value = ('something', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'component', '-l', 'DEBUG'], obj=db
+            ['-i', 'component', '-l', 'DEBUG'], obj=db
         )
         assert result.exit_code == SUCCESS
         data = db.cfgdb.get_entry('LOGGER', 'component')
@@ -503,19 +503,19 @@ class TestSyslog:
 
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'component', '-l', 'DEBUG', '--pid', '123'], obj=db
+            ['-i', 'component', '-l', 'DEBUG', '--pid', '123'], obj=db
         )
         assert result.exit_code == SUCCESS
 
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'component', '-l', 'DEBUG', '--service', 'pmon', '--pid', '123'], obj=db
+            ['-i', 'component', '-l', 'DEBUG', '--container', 'pmon', '--pid', '123'], obj=db
         )
         assert result.exit_code == SUCCESS
 
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'component', '-l', 'DEBUG', '--service', 'pmon', '--program', 'xcvrd'], obj=db
+            ['-i', 'component', '-l', 'DEBUG', '--container', 'pmon', '--program', 'xcvrd'], obj=db
         )
         assert result.exit_code == SUCCESS
 
@@ -528,20 +528,20 @@ class TestSyslog:
         mock_run.return_value = ('something', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'log1', '-l', 'DEBUG', '--service', 'pmon'], obj=db
+            ['-i', 'log1', '-l', 'DEBUG', '--container', 'pmon'], obj=db
         )
         assert result.exit_code != SUCCESS
 
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'log1', '-l', 'DEBUG', '--program', 'xcvrd'], obj=db
+            ['-i', 'log1', '-l', 'DEBUG', '--program', 'xcvrd'], obj=db
         )
         assert result.exit_code != SUCCESS
 
         mock_run.reset_mock()
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'log1', '-l', 'DEBUG', '--service', 'swss', '--program', 'orchagent'], obj=db
+            ['-i', 'log1', '-l', 'DEBUG', '--container', 'swss', '--program', 'orchagent'], obj=db
         )
         assert result.exit_code == SUCCESS
         # Verify it does not send signal to orchagent if require_manual_refresh is not true
@@ -551,6 +551,6 @@ class TestSyslog:
         db.cfgdb.set_entry('LOGGER', 'log1', {'require_manual_refresh': 'true'})
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'log1', '-l', 'DEBUG', '--service', 'pmon', '--program', 'xcvrd'], obj=db
+            ['-i', 'log1', '-l', 'DEBUG', '--container', 'pmon', '--program', 'xcvrd'], obj=db
         )
         assert result.exit_code != SUCCESS

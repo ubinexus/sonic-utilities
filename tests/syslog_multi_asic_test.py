@@ -289,7 +289,7 @@ class TestSyslogRateLimitMultiAsic:
         mock_run.return_value = ('something', 0)
         result = runner.invoke(
             config.config.commands["syslog"].commands["level"],
-            ['-c', 'component', '-l', 'DEBUG', '-n', 'asic0'], obj=db
+            ['-i', 'component', '-l', 'DEBUG', '-n', 'asic0'], obj=db
         )
         assert result.exit_code == 0
         cfg_db = db.cfgdb_clients['asic0']

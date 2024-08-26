@@ -645,52 +645,52 @@ def disable_rate_limit_feature(db, service_name, namespace):
 
 
 @syslog.command('level')
-@click.option("-c", "--component",
+@click.option("-i", "--identifier",
               required=True,
-              help="Component name in DB for which loglevel is applied (provided with -l)")
+              help="Log identifier in DB for which loglevel is applied (provided with -l)")
 @click.option("-l", "--level",
               required=True,
               help="Loglevel value",
               type=click.Choice(['DEBUG', 'INFO', 'NOTICE', 'WARN', 'ERROR']))
-@click.option("--service",
+@click.option("--container",
               help="Container name to which the SIGHUP is sent (provided with --pid or --program)")
 @click.option("--program",
-              help="Program name to which the SIGHUP is sent (provided with --service)")
+              help="Program name to which the SIGHUP is sent (provided with --container)")
 @click.option("--pid",
-              help="Process ID to which the SIGHUP is sent (provided with --service if PID is from container)")
+              help="Process ID to which the SIGHUP is sent (provided with --container if PID is from container)")
 @click.option('--namespace', '-n', 'namespace', default=None,
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
               show_default=True, help='Namespace name')
 @clicommon.pass_db
-def level(db, component, level, service, program, pid, namespace):
+def level(db, identifier, level, container, program, pid, namespace):
     """ Configure log level """
-    if program and not service:
-        raise click.UsageError('--program must be specified with --service')
+    if program and not container:
+        raise click.UsageError('--program must be specified with --container')
 
-    if service and not program and not pid:
-        raise click.UsageError('--service must be specified with --pid or --program')
+    if container and not program and not pid:
+        raise click.UsageError('--container must be specified with --pid or --program')
 
     if not namespace:
         cfg_db = db.cfgdb
     else:
         asic_id = multi_asic.get_asic_id_from_name(namespace)
-        service = f'{service}{asic_id}'
+        container = f'{container}{asic_id}'
         cfg_db = db.cfgdb_clients[namespace]
 
-    cfg_db.mod_entry('LOGGER', component, {'LOGLEVEL': level})
-    if not service and not program and not pid:
+    cfg_db.mod_entry('LOGGER', identifier, {'LOGLEVEL': level})
+    if not container and not program and not pid:
         return
 
-    log_config = cfg_db.get_entry('LOGGER', component)
+    log_config = cfg_db.get_entry('LOGGER', identifier)
     require_manual_refresh = log_config.get('require_manual_refresh')
     if not require_manual_refresh:
         return
 
-    if service:
+    if container:
         if program:
-            command = ['docker', 'exec', '-i', service, 'supervisorctl', 'signal', 'HUP', program]
+            command = ['docker', 'exec', '-i', container, 'supervisorctl', 'signal', 'HUP', program]
         else:
-            command = ['docker', 'exec', '-i', service, 'kill', '-s', 'SIGHUP', pid]
+            command = ['docker', 'exec', '-i', container, 'kill', '-s', 'SIGHUP', pid]
     else:
         command = ['kill', '-s', 'SIGHUP', pid]
     output, ret = clicommon.run_command(command, return_cmd=True)
