@@ -857,9 +857,12 @@ def drop():
     pass
 
 @drop.command('counters')
-def pg_drop_counters():
+@multi_asic_util.multi_asic_click_option_namespace
+def pg_drop_counters(namespace):
     """Show dropped packets for priority-group"""
     command = ['pg-drop', '-c', 'show']
+    if namespace is not None:
+        command += ['-n', str(namespace)]
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -1187,7 +1190,11 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
-
+elif device_info.is_supervisor():
+    from .bgp_frr_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
 #
 # 'link-local-mode' subcommand ("show ipv6 link-local-mode")
 #
@@ -2001,10 +2008,13 @@ def policer(policer_name, verbose):
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
+@multi_asic_util.multi_asic_click_option_namespace
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ecn(verbose):
+def ecn(namespace, verbose):
     """Show ECN configuration"""
     cmd = ['ecnconfig', '-l']
+    if namespace is not None:
+        cmd += ['-n', str(namespace)]
     run_command(cmd, display_cmd=verbose)
 
 
