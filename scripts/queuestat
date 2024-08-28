@@ -18,7 +18,6 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic, device_info
-from swsscommon import swsscommon
 
 # mock the redis for unit test purposes #
 try:
@@ -68,7 +67,7 @@ SAI_QUEUE_TYPE_UNICAST_VOQ = "SAI_QUEUE_TYPE_UNICAST_VOQ"
 SAI_QUEUE_TYPE_ALL = "SAI_QUEUE_TYPE_ALL"
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
-VOQ_COUNTERS_PREFIX = "COUNTERS|"
+VOQ_COUNTERS_PREFIX = "COUNTERS_VOQ:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 COUNTERS_SYSTEM_PORT_NAME_MAP = "COUNTERS_SYSTEM_PORT_NAME_MAP"
 COUNTERS_QUEUE_NAME_MAP = "COUNTERS_QUEUE_NAME_MAP"
@@ -84,7 +83,7 @@ class voqCounterUtil():
     @staticmethod
     def parse_key(key):
         # COUNTERS|nfc406-7|Asic0|Ethernet164@nfc406-9|Asic0:3
-        _, sysPort, fapId, voqIdx = re.search(r"(COUNTERS).([a-zA-Z0-9\-\|]+).([a-zA-Z0-9\-\|]+).(\d)",key).groups()
+        _, sysPort, fapId, voqIdx = re.search(r"(COUNTERS_VOQ).([a-zA-Z0-9\-\|]+).([a-zA-Z0-9\-\|]+).(\d)",key).groups()
         return sysPort, fapId, voqIdx
         # sysPort = nfc406-7|Asic0|Ethernet164
         # fapId = nfc406-9:Asic0
@@ -139,7 +138,7 @@ class Queuestat(object):
         else:
             self.db = SonicV2Connector(use_unix_socket_path=False)
             if voq and device_info.is_supervisor():
-                self.db.connect(self.db.CHASSIS_APP_DB)
+                self.db.connect(self.db.CHASSIS_COUNTERS_DB)
             else:
                 self.db.connect(self.db.COUNTERS_DB)
         self.voq = voq
@@ -175,9 +174,12 @@ class Queuestat(object):
             self.port_queues_map[port] = {}
             self.port_name_map[self.counter_port_name_map[port]] = port
 
+        if self.voq:
+           counter_bucket_dict.update(voq_counter_bucket_dict)
+
         counter_queue_name_map = None
         if voq and device_info.is_supervisor():
-            keys = self.db.keys(self.db.CHASSIS_APP_DB, VOQ_COUNTERS_PREFIX + "*")
+            keys = self.db.keys(self.db.CHASSIS_COUNTERS_DB, VOQ_COUNTERS_PREFIX + "*")
             self.metaData, self.ports = voqCounterUtil.process_keys(keys)
             self.counter_port_name_map = self.ports
             return
@@ -204,7 +206,7 @@ class Queuestat(object):
                 key = voqCounterUtil.get_key(port,fapId,idx)
                 for counter_name in counter_bucket_dict:
                     voqCnt.setdefault(idx,{}).setdefault(counter_name,0)
-                    counter_data = self.db.get(self.db.CHASSIS_APP_DB, key, counter_name)
+                    counter_data = self.db.get(self.db.CHASSIS_COUNTERS_DB, key, counter_name)
                     if counter_data is not None:
                         voqCnt[idx][counter_name] += int(counter_data)
 
@@ -212,12 +214,12 @@ class Queuestat(object):
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
         for idx in sorted(voqCnt.keys()):
-            fields = ["0"]*6
+            fields = ["0"]*len(voq_header)
             fields[0] = idx
             fields[1] = QUEUE_TYPE_VOQ
             for counter_name, pos in counter_bucket_dict.items():
                 fields[pos] = str(voqCnt[idx][counter_name])
-            cntr = QueueStats._make(fields)._asdict()
+            cntr = VoqStats._make(fields)._asdict()
             cnstat_dict[port+":"+idx] = cntr
         return cnstat_dict
 
@@ -255,16 +257,14 @@ class Queuestat(object):
                     sys.exit(1)
 
             if self.voq:
-               fields = ["0","0","0","0","0","0","0"]
+               fields = ["0"]*len(voq_header)
             else:
-               fields = ["0","0","0","0","0","0"]
+               fields = ["0"]*len(header)
             fields[0] = get_queue_index(table_id)
             fields[1] = get_queue_type(table_id)
 
             counter_dict = {}
             counter_dict.update(counter_bucket_dict)
-            if self.voq:
-               counter_dict.update(voq_counter_bucket_dict)
 
             for counter_name, pos in counter_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
