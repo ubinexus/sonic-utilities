@@ -16,7 +16,7 @@ class TestShowBmp(object):
 
     def set_db_values(self, db, key, kvs):
         for field, value in kvs.items():
-            db.set(db.STATE_DB, key, field, value)
+            db.set(db.BMP_STATE_DB, key, field, value)
 
     def test_show_bmp_neighbor_table(self):
         runner = CliRunner()
