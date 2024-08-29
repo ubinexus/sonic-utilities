@@ -165,7 +165,7 @@ def get_config_json_by_namespace(namespace):
 iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
 
 #
-# Display all storm-control data 
+# Display all storm-control data
 #
 def display_storm_all():
     """ Show storm-control """
@@ -465,7 +465,7 @@ def is_mgmt_vrf_enabled(ctx):
     return False
 
 #
-# 'storm-control' group 
+# 'storm-control' group
 # "show storm-control [interface <interface>]"
 #
 @cli.group('storm-control', invoke_without_command=True)
@@ -857,9 +857,12 @@ def drop():
     pass
 
 @drop.command('counters')
-def pg_drop_counters():
+@multi_asic_util.multi_asic_click_option_namespace
+def pg_drop_counters(namespace):
     """Show dropped packets for priority-group"""
     command = ['pg-drop', '-c', 'show']
+    if namespace is not None:
+        command += ['-n', str(namespace)]
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -1187,7 +1190,11 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
-
+elif device_info.is_supervisor():
+    from .bgp_frr_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
 #
 # 'link-local-mode' subcommand ("show ipv6 link-local-mode")
 #
@@ -2001,10 +2008,13 @@ def policer(policer_name, verbose):
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
+@multi_asic_util.multi_asic_click_option_namespace
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ecn(verbose):
+def ecn(namespace, verbose):
     """Show ECN configuration"""
     cmd = ['ecnconfig', '-l']
+    if namespace is not None:
+        cmd += ['-n', str(namespace)]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -2111,7 +2121,7 @@ def summary(db):
             key_values = key.split('|')
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
-                values["local_discriminator"] = "NA"            
+                values["local_discriminator"] = "NA"
             bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
                                 values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"], values["local_discriminator"]])
 
@@ -2142,22 +2152,11 @@ def peer(db, peer_ip):
             key_values = key.split(delimiter)
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
-                values["local_discriminator"] = "NA"            
+                values["local_discriminator"] = "NA"
             bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
                                 values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 
     click.echo(tabulate(bfd_body, bfd_headers))
-
-
-# 'suppress-fib-pending' subcommand ("show suppress-fib-pending")
-@cli.command('suppress-fib-pending')
-@clicommon.pass_db
-def suppress_pending_fib(db):
-    """ Show the status of suppress pending FIB feature """
-
-    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
-    state = field_values.get('suppress-fib-pending', 'disabled').title()
-    click.echo(state)
 
 
 # asic-sdk-health-event subcommand ("show asic-sdk-health-event")

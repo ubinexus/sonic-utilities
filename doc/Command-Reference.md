@@ -47,6 +47,8 @@
   * [CMIS firmware version show commands](#cmis-firmware-version-show-commands)
   * [CMIS firmware upgrade commands](#cmis-firmware-upgrade-commands)
   * [CMIS firmware target mode commands](#cmis-firmware-target-mode-commands)
+* [CMIS debug](#cmis-debug)
+* [CMIS debug loopback](#cmis-debug-loopback)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay show commands](#dhcp-relay-show-commands)
   * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
@@ -2610,26 +2612,6 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
-**show suppress-fib-pending**
-
-This command is used to show the status of suppress pending FIB feature.
-When enabled, BGP will not advertise routes which aren't yet offloaded.
-
-- Usage:
-  ```
-  show suppress-fib-pending
-  ```
-
-- Examples:
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Enabled
-  ```
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Disabled
-  ```
-
 **show bgp device-global**
 
 This command displays BGP device global configuration.
@@ -2740,24 +2722,6 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
-  ```
-
-**config suppress-fib-pending**
-
-This command is used to enable or disable announcements of routes not yet installed in the HW.
-Once enabled, BGP will not advertise routes which aren't yet offloaded.
-
-- Usage:
-  ```
-  config suppress-fib-pending <enabled|disabled>
-  ```
-
-- Examples:
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending enabled
-  ```
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 **config bgp device-global tsa/w-ecmp**
@@ -3130,6 +3094,31 @@ Example of the module supporting target mode
   ```
   admin@sonic:~$ sfputil firmware target Ethernet180 1
   Target Mode set to 1
+  ```
+
+## CMIS debug
+
+### CMIS debug loopback
+
+This command is the standard CMIS diagnostic control used for troubleshooting link and performance issues between the host switch and transceiver module.
+
+**sfputil debug loopback**
+
+- Usage:
+  ```
+  sfputil debug loopback PORT_NAME LOOPBACK_MODE
+
+  Set the loopback mode
+  host-side-input: host side input loopback mode
+  host-side-output: host side output loopback mode
+  media-side-input: media side input loopback mode
+  media-side-output: media side output loopback mode
+  none: disable loopback mode
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sfputil debug loopback Ethernet88 host-side-input
   ```
 
 ## DHCP Relay
