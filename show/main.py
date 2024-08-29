@@ -72,7 +72,7 @@ from . import bgp_cli
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
-BMP_STATE_DB = 'STATE_DB'
+BMP_STATE_DB = 'BMP_STATE_DB'
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
