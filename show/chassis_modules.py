@@ -40,9 +40,9 @@ def status(db, chassis_module_name):
     state_db = SonicV2Connector(host="127.0.0.1", port="6379")
     state_db.connect(state_db.STATE_DB)
 
-    key_pattern = 'CHASSIS_MODULE_TABLE|*'
+    key_pattern = CHASSIS_MODULE_INFO_TABLE + '|*'
     if chassis_module_name:
-        key_pattern = 'CHASSIS_MODULE_TABLE|' + chassis_module_name
+        key_pattern = CHASSIS_MODULE_INFO_TABLE + '|' + chassis_module_name
 
     keys = state_db.keys(state_db.STATE_DB, key_pattern)
     if not keys:
