@@ -56,8 +56,7 @@ PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
 OPTICS_TYPE_RJ45 = RJ45_PORT_TYPE
-TYPE_DPC = 'DPU-NPU Data Port'
-ROLE_DPC = 'Dpc'
+TYPE_DPC = 'Dpc'
 PORT_LINK_TRAINING = 'link_training'
 PORT_LINK_TRAINING_STATUS = 'link_training_status'
 
@@ -230,8 +229,8 @@ def port_optics_get(db, intf_name, type):
     if optics_type is None:
         if is_rj45_port(intf_name):
             return OPTICS_TYPE_RJ45
-        elif port_role == ROLE_DPC:
-            return ROLE_DPC
+        elif port_role == TYPE_DPC:
+            return TYPE_DPC
         else:
             return "N/A"
     return optics_type

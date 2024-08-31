@@ -15,7 +15,8 @@ show_interface_status_output="""\
 ---------------  ---------------  -------  -----  -----  ---------  ---------------  ------  -------  -----------------  ----------
       Ethernet0                0      25G   9100     rs  Ethernet0           routed    down       up    QSFP28 or later         off
      Ethernet16               16     100M   9100    N/A       etp5            trunk      up       up               RJ45         off
-     Ethernet24               24       1G   9100    N/A       etp6            trunk      up       up  DPU-NPU Data Port         off
+     Ethernet24               24       1G   9100    N/A       etp6            trunk      up       up\
+                   Dpc         off\
      Ethernet28               28    1000M   9100    N/A       etp8            trunk      up       up               RJ45         off
      Ethernet32      13,14,15,16      40G   9100     rs       etp9  PortChannel1001      up       up                N/A         off
      Ethernet36       9,10,11,12      10M   9100    N/A      etp10           routed      up       up               RJ45         off

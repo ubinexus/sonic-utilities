@@ -98,7 +98,7 @@
         "tpid": "0x8100",
         "pfc_asym": "off",
         "speed": "1000",
-        "role": "Dpc"
+        "role": "DPU-NPU Data Port"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",

@@ -80,7 +80,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "admin_status": "up",
-        "role": "Dpc"
+        "role": "DPU-NPU Data Port"
     },
     "PORT_TABLE:Ethernet28": {
         "index": "7",
