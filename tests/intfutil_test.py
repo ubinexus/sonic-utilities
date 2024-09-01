@@ -28,7 +28,7 @@ PortChannel0002              N/A      40G   9100    N/A        N/A           rou
 PortChannel0003              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
 PortChannel0004              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
 PortChannel1001              N/A      40G   9100    N/A        N/A            trunk     N/A      N/A              N/A         N/A
-""" # noqa: E501
+"""  # noqa: E501
 
 show_interface_status_Ethernet32_output="""\
   Interface        Lanes    Speed    MTU    FEC    Alias             Vlan    Oper    Admin    Type    Asym PFC
