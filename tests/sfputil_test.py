@@ -1648,63 +1648,64 @@ EEPROM hexdump for port Ethernet4
         runner = CliRunner()
         mock_sfp.get_presence.return_value = False
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "host-side-input"])
+                               ["Ethernet0", "host-side-input", "enable"])
         assert result.output == 'Ethernet0: SFP EEPROM not detected\n'
         mock_sfp.get_presence.return_value = True
 
         mock_sfp.get_xcvr_api = MagicMock(side_effect=NotImplementedError)
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "host-side-input"])
+                               ["Ethernet0", "host-side-input", "enable"])
         assert result.output == 'Ethernet0: This functionality is not implemented\n'
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "host-side-input"])
+                               ["Ethernet0", "host-side-input", "enable"])
         assert result.output == 'Ethernet0: Set host-side-input loopback\n'
         assert result.exit_code != ERROR_NOT_IMPLEMENTED
 
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "media-side-input"])
+                               ["Ethernet0", "media-side-input", "enable"])
         assert result.output == 'Ethernet0: Set media-side-input loopback\n'
         assert result.exit_code != ERROR_NOT_IMPLEMENTED
 
         mock_api.set_loopback_mode.return_value = False
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
-        assert result.output == 'Ethernet0: Set none loopback failed\n'
+                               ["Ethernet0", "media-side-output", "enable"])
+        assert result.output == 'Ethernet0: Set media-side-output loopback failed\n'
         assert result.exit_code == EXIT_FAIL
 
         mock_api.set_loopback_mode.return_value = True
         mock_api.set_loopback_mode.side_effect = AttributeError
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
+                               ["Ethernet0", "host-side-input", "enable"])
         assert result.output == 'Ethernet0: Set loopback mode is not applicable for this module\n'
         assert result.exit_code == ERROR_NOT_IMPLEMENTED
 
         mock_api.set_loopback_mode.side_effect = [TypeError, True]
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
-        assert result.output == 'Ethernet0: Set none loopback\n'
+                               ["Ethernet0", "host-side-input", "enable"])
+        assert result.output == 'Ethernet0: Set loopback mode failed. Parameter is not supported\n'
+        assert result.exit_code == EXIT_FAIL
 
         mock_config_db = MagicMock()
         mock_config_db.get.side_effect = TypeError
         mock_config_db_connector.return_value = mock_config_db
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
+                               ["Ethernet0", "media-side-input", "enable"])
         assert result.output == 'Ethernet0: subport is not present in CONFIG_DB\n'
         assert result.exit_code == EXIT_FAIL
 
         mock_config_db_connector.return_value = None
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
+                               ["Ethernet0", "media-side-input", "enable"])
         assert result.output == 'Ethernet0: Failed to connect to CONFIG_DB\n'
         assert result.exit_code == EXIT_FAIL
 
         mock_config_db_connector.return_value = MagicMock()
         mock_sonic_v2_connector.return_value = None
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
-                               ["Ethernet0", "none"])
+                               ["Ethernet0", "media-side-input", "enable"])
         assert result.output == 'Ethernet0: Failed to connect to STATE_DB\n'
         assert result.exit_code == EXIT_FAIL

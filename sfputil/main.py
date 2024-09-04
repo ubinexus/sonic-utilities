@@ -1967,13 +1967,12 @@ def debug():
 
 # 'loopback' subcommand
 @debug.command()
-@click.argument('port_name', required=True, default=None)
-@click.argument('loopback_mode', required=True, default="none",
-                type=click.Choice(["none", "host-side-input", "host-side-output",
-                                   "media-side-input", "media-side-output",
-                                   "host-side-input-none", "host-side-output-none",
-                                   "media-side-input-none", "media-side-output-none"]))
-def loopback(port_name, loopback_mode):
+@click.argument('port_name', required=True)
+@click.argument('loopback_mode', required=True,
+                type=click.Choice(["host-side-input", "host-side-output",
+                                   "media-side-input", "media-side-output"]))
+@click.argument('enable', required=True, type=click.Choice(["enable", "disable"]))
+def loopback(port_name, loopback_mode, enable):
     """Set module diagnostic loopback mode
     """
     physical_port = logical_port_to_physical_port_index(port_name)
@@ -2040,12 +2039,15 @@ def loopback(port_name, loopback_mode):
         lane_mask = 0
 
     try:
-        status = api.set_loopback_mode(loopback_mode, lane_mask=lane_mask)
+        status = api.set_loopback_mode(loopback_mode,
+                                       lane_mask=lane_mask,
+                                       enable=enable == 'enable')
     except AttributeError:
         click.echo("{}: Set loopback mode is not applicable for this module".format(port_name))
         sys.exit(ERROR_NOT_IMPLEMENTED)
     except TypeError:
-        status = api.set_loopback_mode(loopback_mode)
+        click.echo("{}: Set loopback mode failed. Parameter is not supported".format(port_name))
+        sys.exit(EXIT_FAIL)
 
     if status:
         click.echo("{}: Set {} loopback".format(port_name, loopback_mode))
