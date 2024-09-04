@@ -234,9 +234,6 @@ def populate_row(row, key, value, table):
             row[6] = value
 
 
-def display_system_health_summary(stat, led):
-    click.echo("System status summary\n\n  System status LED  " + led)
-
 @system_health.command()
 @click.argument('module_name', required=False)
 def dpu(module_name):
@@ -491,4 +488,3 @@ def sysready_status_detail():
     except Exception as e:
         click.echo("Exception: {}".format(str(e)))
 '''
-
