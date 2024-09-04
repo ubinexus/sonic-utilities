@@ -3878,3 +3878,24 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         dbconnector.load_database_config()
+
+
+class TestMgmtUnsolicited(object):
+    @classmethod
+    def setup_class(cls):
+        print('SETUP')
+        import config.main
+        importlib.reload(config.main)
+
+    @patch('utilities_common.cli.run_command')
+    def test_disable_mgmt_unsolicited(self, mock_run_command):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        result = runner.invoke(
+            config.config.commands['mgmt-unsolicited'], ['disabled'], obj=obj)
+        assert result.exit_code != 0
+
+    @classmethod
+    def teardown_class(cls):
+        print('TEARDOWN')

@@ -7949,5 +7949,18 @@ def notice(db, category_list, max_events, namespace):
     handle_asic_sdk_health_suppress(db, 'notice', category_list, max_events, namespace)
 
 
+# 'mgmt-unsolicited' group ('config mgmt-unsolicited ...')
+#
+@config.command('mgmt-unsolicited')
+@click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
+@clicommon.pass_db
+def mgmt_unsolicited(db, state):
+    ''' Enable or disable mgmt-unsolicited feature.
+        Once enabled, unsolicited advertisement for router discovery will be enabled '''
+
+    config_db = db.cfgdb
+    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"mgmt_unsolicited_state" : state})
+
+
 if __name__ == '__main__':
     config()
