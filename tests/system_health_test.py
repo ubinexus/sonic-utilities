@@ -1,7 +1,6 @@
 import sys
 import os
-# TBD: uncomment in phase:2 when system-health is supported
-# from unittest import mock
+from unittest import mock
 
 import click
 from click.testing import CliRunner
@@ -352,7 +351,6 @@ swss            OK                OK                  -              -
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
-
     def test_health_dpu(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
@@ -380,7 +378,6 @@ swss            OK                OK                  -              -
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
             click.echo(result.output)
-
 
 '''
 #
