@@ -4806,6 +4806,7 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
   show interfaces counters errors
   show interfaces counters rates
   show interfaces counters rif [-p|--period <period>] [-i <interface_name>]
+  show interfaces counters fec-histogram [-i <interface_name>]
   ```
 
 - Example:
@@ -4922,6 +4923,41 @@ Optionally, you can specify a period (in seconds) with which to gather counters 
   ```
   admin@sonic:~$ sonic-clear rifcounters
   ```
+
+The "fec-histogram" subcommand is used to display the fec histogram for the port.
+
+When data is transmitted, it's broken down into units called codewords. FEC algorithms add extra data to each codeword that can be used to detect and correct errors in transmission.
+In a FEC histogram, "bins" represent ranges of errors or specific categories of errors. For instance, Bin0 might represent codewords with no errors, while Bin1 could represent codewords with a single bit error, and so on. The histogram shows how many codewords fell into each bin. A high number in the higher bins might indicate a problem with the transmission link, such as signal degradation.
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:/usr/bin$ show interface counters fec-histogram -i <PORT>
+
+  Symbol Errors Per Codeword  Codewords
+  --------------------------  ---------
+  BIN_FEC_CODEWORD_S0         4075208478588
+  BIN_FEC_CODEWORD_S1         7
+  BIN_FEC_CODEWORD_S2         0
+  BIN_FEC_CODEWORD_S3         0
+  BIN_FEC_CODEWORD_S4         0
+  BIN_FEC_CODEWORD_S5         0
+  BIN_FEC_CODEWORD_S6         0
+  BIN_FEC_CODEWORD_S7         0
+  BIN_FEC_CODEWORD_S8         0
+  BIN_FEC_CODEWORD_S9         0
+  BIN_FEC_CODEWORD_S10        0
+  BIN_FEC_CODEWORD_S11        0
+  BIN_FEC_CODEWORD_S12        0
+  BIN_FEC_CODEWORD_S13        0
+  BIN_FEC_CODEWORD_S14        0
+  BIN_FEC_CODEWORD_S15        0
+  BIN_FEC_CODEWORD_S16        0
+
+
+   ```
+
+
+
 
 **show interfaces description**
 
