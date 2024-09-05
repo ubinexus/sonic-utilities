@@ -6,7 +6,7 @@ Interface    Asymmetric
 """
 
 pfc_cannot_find_intf = """\
-Cannot find interface Ethernet1234 for 
+Cannot find interface Ethernet1234
 """
 
 pfc_show_asymmetric_all = """\

@@ -168,35 +168,35 @@ testData = {
                                                             'asic0'],
                                                     'rc': 0,
                                                     'rc_output': show_asym_intf_one_masic
-                                                     },
+                                                    },
              'pfc_show_asymmetric_intf_all_masic': {'cmd': ['show', 'asymmetric',
                                                             'Ethernet0'],
                                                     'rc': 0,
                                                     'rc_output': show_asym_intf_all_masic
-                                                     },
+                                                    },
              'pfc_show_asymmetric_intf_fake_one_masic': {'cmd': ['show', 'asymmetric',
-                                                             'Ethernet1234', '--namespace',
-                                                             'asic0'],
-                                                    'rc': 0,
-                                                    'rc_output': show_asym_intf_fake_one_masic
-                                                     },
+                                                                 'Ethernet1234', '--namespace',
+                                                                 'asic0'],
+                                                         'rc': 0,
+                                                         'rc_output': show_asym_intf_fake_one_masic
+                                                         },
              'pfc_show_priority_all_asic0_masic': {'cmd': ['show', 'priority',
                                                            '--namespace', 'asic0'],
-                                                     'rc': 0,
-                                                     'rc_output': show_prio_all_asic0_masic
-                                                     },
+                                                   'rc': 0,
+                                                   'rc_output': show_prio_all_asic0_masic
+                                                   },
              'pfc_show_priority_all_asic1_masic': {'cmd': ['show', 'priority',
-                                                             '--namespace', 'asic1'],
-                                                     'rc': 0,
-                                                     'rc_output': show_prio_all_asic1_masic
-                                                     },
+                                                           '--namespace', 'asic1'],
+                                                   'rc': 0,
+                                                   'rc_output': show_prio_all_asic1_masic
+                                                   },
              'pfc_show_priority_all_masic': {'cmd': ['show', 'priority'],
-                                               'rc': 0,
-                                               'rc_output': show_prio_all_masic
-                                               },
+                                             'rc': 0,
+                                             'rc_output': show_prio_all_masic
+                                             },
              'pfc_show_priority_intf_one_masic': {'cmd': ['show', 'priority',
-                                                            'Ethernet0', '--namespace',
-                                                            'asic0'],
+                                                          'Ethernet0', '--namespace',
+                                                          'asic0'],
                                                   'rc': 0,
                                                   'rc_output': show_prio_intf_one_masic
                                                   },
@@ -206,21 +206,21 @@ testData = {
                                                   'rc_output': show_prio_intf_all_masic
                                                   },
              'pfc_show_priority_intf_fake_one_masic': {'cmd': ['show', 'priority',
-                                                             'Ethernet1234', '--namespace',
-                                                             'asic0'],
-                                                    'rc': 0,
-                                                    'rc_output': show_prio_intf_fake_one_masic
-                                                     },
+                                                               'Ethernet1234', '--namespace',
+                                                               'asic0'],
+                                                       'rc': 0,
+                                                       'rc_output': show_prio_intf_fake_one_masic
+                                                       },
              'pfc_show_priority_intf_fake_all_masic': {'cmd': ['show', 'priority',
-                                                             'Ethernet1234'],
+                                                               'Ethernet1234'],
                                                        'rc': 0,
                                                        'rc_output': show_prio_intf_fake_all_masic
-                                                     },
+                                                       },
              'pfc_config_asymmetric_one_masic': {'cmd': ['config', 'asymmetric',
                                                          'on', 'Ethernet0', '--namespace',
                                                          'asic0'],
                                                  'rc': 0,
-                                                 'cmp_args': [['asic0','PORT','Ethernet0','pfc_asym','on']]
+                                                 'cmp_args': [['asic0', 'PORT', 'Ethernet0', 'pfc_asym', 'on']]
                                                  },
              'pfc_config_asymmetric_invalid_one_masic': {'cmd': ['config', 'asymmetric',
                                                                  'onn', 'Ethernet0', '--namespace',
@@ -231,12 +231,12 @@ testData = {
                                                                     'asymmetric --help" for help.\n\n'
                                                                     'Error: Invalid value for "[on|off]": '
                                                                     'invalid choice: onn. (choose from on, off)')
-                                                 },
+                                                         },
              'pfc_config_asymmetric_all_masic': {'cmd': ['config', 'asymmetric',
                                                          'on', 'Ethernet0'],
                                                  'rc': 0,
-                                                 'cmp_args': [['asic0','PORT','Ethernet0','pfc_asym','on'],
-                                                              ['asic1','PORT','Ethernet0','pfc_asym','on']]
+                                                 'cmp_args': [['asic0', 'PORT', 'Ethernet0', 'pfc_asym', 'on'],
+                                                              ['asic1', 'PORT', 'Ethernet0', 'pfc_asym', 'on']]
                                                  },
              'pfc_config_asymmetric_invalid_all_masic': {'cmd': ['config', 'asymmetric',
                                                                  'onn', 'Ethernet0'],
@@ -246,38 +246,41 @@ testData = {
                                                                     'asymmetric --help" for help.\n\n'
                                                                     'Error: Invalid value for "[on|off]": '
                                                                     'invalid choice: onn. (choose from on, off)')
-                                                        },
+                                                         },
              'pfc_config_priority_one_masic': {'cmd': ['config', 'priority',
                                                        'on', 'Ethernet0', '5',
                                                        '--namespace', 'asic0'],
                                                'rc': 0,
-                                               'cmp_args': [['asic0','PORT_QOS_MAP','Ethernet0','pfc_enable','3,4,5']]
+                                               'cmp_args': [['asic0', 'PORT_QOS_MAP', 'Ethernet0',
+                                                             'pfc_enable', '3,4,5']]
                                                },
              'pfc_config_priority_invalid_one_masic': {'cmd': ['config', 'priority',
                                                                'onn', 'Ethernet0', '5',
                                                                '--namespace', 'asic0'],
-                                                         'rc': 2,
-                                                         'rc_msg': ('Usage: cli config priority [OPTIONS] '
-                                                                    '[on|off] INTERFACE [0|1|2|3|4|5|6|7]\n'
-                                                                    'Try "cli config priority --help" for '
-                                                                    'help.\n\nError: Invalid value for '
-                                                                    '"[on|off]": invalid choice: onn. '
-                                                                    '(choose from on, off)')
-                                                 },
+                                                       'rc': 2,
+                                                       'rc_msg': ('Usage: cli config priority [OPTIONS] '
+                                                                  '[on|off] INTERFACE [0|1|2|3|4|5|6|7]\n'
+                                                                  'Try "cli config priority --help" for '
+                                                                  'help.\n\nError: Invalid value for '
+                                                                  '"[on|off]": invalid choice: onn. '
+                                                                  '(choose from on, off)')
+                                                       },
              'pfc_config_priority_all_masic': {'cmd': ['config', 'priority',
-                                                         'on', 'Ethernet0', '5'],
-                                                 'rc': 0,
-                                                 'cmp_args': [['asic0','PORT_QOS_MAP','Ethernet0','pfc_enable','3,4,5'],
-                                                              ['asic1','PORT_QOS_MAP','Ethernet0', 'pfc_enable', '3,4,5']]
-                                                 },
+                                                       'on', 'Ethernet0', '5'],
+                                               'rc': 0,
+                                               'cmp_args': [['asic0', 'PORT_QOS_MAP', 'Ethernet0',
+                                                             'pfc_enable', '3,4,5'],
+                                                            ['asic1', 'PORT_QOS_MAP', 'Ethernet0',
+                                                             'pfc_enable', '3,4,5']]
+                                               },
              'pfc_config_priority_invalid_all_masic': {'cmd': ['config', 'priority',
-                                                                 'onn', 'Ethernet0', '5'],
-                                                         'rc': 2,
-                                                         'rc_msg': ('Usage: cli config priority [OPTIONS] '
-                                                                    '[on|off] INTERFACE [0|1|2|3|4|5|6|7]\n'
-                                                                    'Try "cli config priority --help" for '
-                                                                    'help.\n\nError: Invalid value for '
-                                                                    '"[on|off]": invalid choice: onn. '
-                                                                    '(choose from on, off)')
-                                                        },
+                                                               'onn', 'Ethernet0', '5'],
+                                                       'rc': 2,
+                                                       'rc_msg': ('Usage: cli config priority [OPTIONS] '
+                                                                  '[on|off] INTERFACE [0|1|2|3|4|5|6|7]\n'
+                                                                  'Try "cli config priority --help" for '
+                                                                  'help.\n\nError: Invalid value for '
+                                                                  '"[on|off]": invalid choice: onn. '
+                                                                  '(choose from on, off)')
+                                                       },
 }

@@ -91,7 +91,7 @@ class Pfc(object):
 
         namespace_str = f" for namespace {self.multi_asic.current_namespace}" if multi_asic.is_multi_asic() else ''
         if status == 'on' and priority in enable_prio:
-            click.echo('Priority {0} has already been enabled on {1}{2}'.format(priority, interfacei, namespace_str))
+            click.echo('Priority {0} has already been enabled on {1}{2}'.format(priority, interface, namespace_str))
             return
 
         if status == 'off' and priority not in enable_prio:
@@ -122,7 +122,10 @@ class Pfc(object):
         """The user specifies an interface but we cannot find it"""
         namespace_str = f"Namespace {self.multi_asic.current_namespace}" if multi_asic.is_multi_asic() else ''
         if interface and interface not in intfs:
-            click.echo('Cannot find interface {0} for {1}'.format(interface, namespace_str))
+            if multi_asic.is_multi_asic():
+                click.echo('Cannot find interface {0} for {1}'.format(interface, namespace_str))
+            else:
+                click.echo('Cannot find interface {0}'.format(interface))
             return
 
         if interface:
@@ -194,4 +197,3 @@ config.add_command(configAsym, "asymmetric")
 config.add_command(configPrio, "priority")
 show.add_command(showAsym, "asymmetric")
 show.add_command(showPrio, "priority")
-

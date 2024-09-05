@@ -131,4 +131,3 @@ class TestPfcMultiAsic(TestPfcBase):
 
         super().teardown_class()
         os.environ.pop("UTILITIES_UNIT_TESTING_TOPOLOGY")
-
