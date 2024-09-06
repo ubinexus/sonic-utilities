@@ -680,7 +680,8 @@ def fetch_fec_histogram(port_oid_map, target_port):
 
     if asic_db_kvp is not None:
         # Capture and display only the relevant FEC codeword errors
-        fec_errors = {f'BIN{i}': asic_db_kvp.get(f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0') for i in range(17)}
+        fec_errors = {f'BIN{i}': asic_db_kvp.get
+                      (f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0') for i in range(17)}
 
         # Print FEC histogram
         for bin_label, error_value in fec_errors.items():
@@ -782,7 +783,7 @@ def autoneg_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'autoneg']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
@@ -815,7 +816,7 @@ def link_training_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'link_training']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
@@ -848,7 +849,7 @@ def fec_status(interfacename, namespace, display, verbose):
 
     cmd = ['intfutil', '-c', 'fec']
 
-    #ignore the display option when interface name is passed
+    # ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
@@ -860,3 +861,74 @@ def fec_status(interfacename, namespace, display, verbose):
         cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+#
+# switchport group (show interfaces switchport ...)
+#
+
+
+@interfaces.group(name='switchport', cls=clicommon.AliasedGroup)
+def switchport():
+    """Show interface switchport information"""
+    pass
+
+
+@switchport.command(name="config")
+@clicommon.pass_db
+def switchport_mode_config(db):
+    """Show interface switchport config information"""
+
+    port_data = list(db.cfgdb.get_table('PORT').keys())
+    portchannel_data = list(db.cfgdb.get_table('PORTCHANNEL').keys())
+
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    for interface in port_data:
+        if clicommon.interface_is_in_portchannel(portchannel_member_table, interface):
+            port_data.remove(interface)
+
+    keys = port_data + portchannel_data
+
+    def tablelize(keys):
+        table = []
+
+        for key in natsorted(keys):
+            r = [clicommon.get_interface_name_for_display(db, key),
+                 clicommon.get_interface_switchport_mode(db, key),
+                 clicommon.get_interface_untagged_vlan_members(db, key),
+                 clicommon.get_interface_tagged_vlan_members(db, key)]
+            table.append(r)
+
+        return table
+
+    header = ['Interface', 'Mode', 'Untagged', 'Tagged']
+    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
+
+
+@switchport.command(name="status")
+@clicommon.pass_db
+def switchport_mode_status(db):
+    """Show interface switchport status information"""
+
+    port_data = list(db.cfgdb.get_table('PORT').keys())
+    portchannel_data = list(db.cfgdb.get_table('PORTCHANNEL').keys())
+
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    for interface in port_data:
+        if clicommon.interface_is_in_portchannel(portchannel_member_table, interface):
+            port_data.remove(interface)
+
+    keys = port_data + portchannel_data
+
+    def tablelize(keys):
+        table = []
+
+        for key in natsorted(keys):
+            r = [clicommon.get_interface_name_for_display(db, key), clicommon.get_interface_switchport_mode(db, key)]
+            table.append(r)
+
+        return table
+
+    header = ['Interface', 'Mode']
+    click.echo(tabulate(tablelize(keys), header, tablefmt="simple", stralign='left'))
