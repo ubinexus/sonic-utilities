@@ -110,7 +110,7 @@ def kdump_remote(db, action):
     current_remote_status = kdump_table.get("config", {}).get("remote", "false").lower()
 
     if action.lower() == 'enable' and current_remote_status == 'true':
-        click.echo("Error: Kdump Remote Mode is already enabled.")
+        click.echo("INFO: Kdump Remote Mode is already enabled.")
         return
 
     elif action.lower() == 'disable' and current_remote_status == 'false':
