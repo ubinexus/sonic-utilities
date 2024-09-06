@@ -42,6 +42,26 @@ Ethernet4      N/A     110,412             1                 0
 Ethernet8      N/A     100,317             0                 0
 """
 
+intf_fec_counters_fec_hist = """\
+BIN0: 1000000
+BIN1: 900000
+BIN2: 800000
+BIN3: 700000
+BIN4: 600000
+BIN5: 500000
+BIN6: 400000
+BIN7: 300000
+BIN8: 0
+BIN9: 0
+BIN10: 0
+BIN11: 0
+BIN12: 0
+BIN13: 0
+BIN14: 0
+BIN15: 0
+BIN16: 0
+"""
+
 intf_fec_counters_period = """\
 The rates are calculated within 3 seconds period
     IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
@@ -337,7 +357,6 @@ class TestPortStat(object):
         assert return_code == 0
         assert result == intf_fec_counters
 
-
     def test_show_intf_counters_fec_histogram(self):
         runner = CliRunner()
         result = runner.invoke(
@@ -345,8 +364,7 @@ class TestPortStat(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == intf_fec_counters
-
+        assert result.output == intf_fec_counters_fec_hist
 
     def test_show_intf_fec_counters_period(self):
         runner = CliRunner()
