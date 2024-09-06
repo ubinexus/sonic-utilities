@@ -660,6 +660,7 @@ def get_port_oid_mapping():
 
     return port_oid_map
 
+
 def fetch_fec_histogram(port_oid_map, target_port):
     ''' Fetch and display FEC histogram for the given port. '''
     asic_db = SonicV2Connector(host=REDIS_HOSTIP)
@@ -702,10 +703,10 @@ def fetch_fec_histogram(port_oid_map, target_port):
 def fec_histogram(interfacename, namespace, display):
     """Show interface counters fec-histogram"""
     port_oid_map = get_port_oid_mapping()
-    
+
     # Try to convert interface name from alias
     interfacename = try_convert_interfacename_from_alias(click.get_current_context(), interfacename)
-    
+
     # Fetch and display the FEC histogram
     fetch_fec_histogram(port_oid_map, interfacename)
 
@@ -799,6 +800,8 @@ def autoneg_status(interfacename, namespace, display, verbose):
 #
 # link-training group (show interfaces link-training ...)
 #
+
+
 @interfaces.group(name='link-training', cls=clicommon.AliasedGroup)
 def link_training():
     """Show interface link-training information"""
