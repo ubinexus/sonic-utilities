@@ -337,6 +337,17 @@ class TestPortStat(object):
         assert return_code == 0
         assert result == intf_fec_counters
 
+
+    def test_show_intf_counters_fec_histogram(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"].commands["fec-histogram"], ["Ethernet0"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters
+
+
     def test_show_intf_fec_counters_period(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"],
