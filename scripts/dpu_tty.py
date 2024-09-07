@@ -56,7 +56,11 @@ def main():
     parser.add_argument('-s', '--slot', type=int, required=True)
     parser.add_argument('-t', '--tty')
     parser.add_argument('-b', '--baud', type=int)
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except:
+        # parser.parse_args() printed error message
+        return 0
 
     dpu_tty, dpu_baud = get_dpu_tty(args.slot, args.tty, args.baud)
     # Use UART console utility for error checking of dpu_tty and dpu_baud.
@@ -68,9 +72,9 @@ def main():
     if p.returncode:
         print('{} failed'.format(p.args))
         if p.stdout:
-             print(p.stdout)
+            print(p.stdout)
         if p.stderr:
-             print(p.stderr)
+            print(p.stderr)
     return p.returncode
 
 
