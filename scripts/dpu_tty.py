@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2024 Cisco Systems, Inc.
+#
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from sonic_py_common import device_info
+
+UART_CON = '/usr/bin/picocom'
+
+def get_dpu_tty(dpu_id, tty, baud):
+
+    platform = device_info.get_platform()
+    if not platform:
+        print("No platform")
+        return None
+
+    # Get platform path.
+    platform_path = device_info.get_path_to_platform_dir()
+
+    if os.path.isfile(os.path.join(platform_path, device_info.PLATFORM_JSON_FILE)):
+        json_file = os.path.join(platform_path, device_info.PLATFORM_JSON_FILE)
+
+        try:
+            with open(json_file, 'r') as file:
+                platform_data = json.load(file)
+        except (json.JSONDecodeError, IOError, TypeError, ValueError):
+            print("No platform.json")
+            return None
+
+    dpus = platform_data.get('DPUS', None)
+    if dpus is None:
+        print("No DPUs in platform.json")
+        return None
+
+    dpu = 'dpu' + str(dpu_id)
+
+    if tty is None:
+        dev = dpus[dpu]["serial-console"]["device"]
+    else:
+        # overwrite tty device in platform.json
+        dev = tty
+
+    if baud is None:
+        baud = dpus[dpu]["serial-console"]["baud-rate"]
+    return dev, baud
+
+def main():
+
+    parser = argparse.ArgumentParser(description='DPU TTY Console Utility')
+    parser.add_argument('-s', '--slot', type=int, required=True)
+    parser.add_argument('-t', '--tty')
+    parser.add_argument('-b', '--baud', type=int)
+    args = parser.parse_args()
+
+    dpu_tty, dpu_baud = get_dpu_tty(args.slot, args.tty, args.baud)
+    # Use UART console utility for error checking of dpu_tty and dpu_baud.
+
+    cmd = "%s -b %s /dev/%s" %(UART_CON, dpu_baud, dpu_tty)
+    print(cmd)
+    p = subprocess.run(cmd, shell=True, universal_newlines=True)
+
+    if p.returncode:
+        print('{} failed'.format(p.args))
+        if p.stdout:
+           print(p.stdout)
+        if p.stderr:
+           print(p.stderr)
+    return p.returncode
+
+if __name__ == "__main__":
+        exit(main())
+

@@ -120,6 +120,7 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/disk_check.py',
+        'scripts/dpu_tty.py',
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/dualtor_neighbor_check.py',
