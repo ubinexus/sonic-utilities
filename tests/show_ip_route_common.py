@@ -923,3 +923,12 @@ Routing entry for 0.0.0.0/0
   * 20.1.0.128, via PortChannel1
 
 """
+
+
+SHOW_IP_ROUTE_LC_DEFAULT_ROUTE_2 = """\
+Routing entry for 0.0.0.0/0
+  Known via "bgp", distance 20, metric 0, best
+  Last update 01:01:51 ago
+  * 10.0.0.7, via PortChannel106
+  * 10.0.0.1, via PortChannel102
+"""

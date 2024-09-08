@@ -312,6 +312,8 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_route_lc.json'
     elif request.param == 'ip_route_remote_lc':
         m_asic_json_file = 'ip_route_remote_lc.json'
+    elif request.param == 'ip_route_lc_2':
+        m_asic_json_file = 'ip_route_lc_2.json'
     else:
         m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')

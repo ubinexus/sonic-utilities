@@ -3,7 +3,6 @@ from importlib import reload
 import pytest
 from unittest import mock
 
-import show.main as show
 
 from . import show_ip_route_common
 from click.testing import CliRunner
@@ -280,7 +279,9 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
     @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
     def test_voq_chassis_lc(
             self,
+            setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dfrontend"])
@@ -308,8 +309,9 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
     @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
     def test_voq_chassis_lc_def_route(
             self,
+            setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        runner = CliRunner()
+        show = setup_ip_route_commands
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
         print("{}".format(result.output))
@@ -330,6 +332,20 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_ip_route_common.SHOW_IP_ROUTE_REMOTE_LC_DEFAULT_ROUTE
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ip_route_lc_2'], indirect=['setup_multi_asic_bgp_instance'])
+    @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
+    def test_voq_chassis_lc_def_route_2(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.SHOW_IP_ROUTE_LC_DEFAULT_ROUTE_2
 
     @classmethod
     def teardown_class(cls):
