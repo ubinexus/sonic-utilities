@@ -912,7 +912,7 @@ Routing entry for 0.0.0.0/0
     * 20.1.0.128 recursive via iBGP
 
 """
-    
+
 SHOW_IP_ROUTE_LC_DEFAULT_ROUTE = """\
 Routing entry for 0.0.0.0/0
   Known via "bgp", distance 20, metric 0, best
@@ -923,7 +923,6 @@ Routing entry for 0.0.0.0/0
   * 20.1.0.128, via PortChannel1
 
 """
-
 
 SHOW_IP_ROUTE_LC_DEFAULT_ROUTE_2 = """\
 Routing entry for 0.0.0.0/0

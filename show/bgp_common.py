@@ -3,7 +3,7 @@ import ipaddress
 import json
 
 import utilities_common.multi_asic as multi_asic_util
-from sonic_py_common import  device_info, multi_asic
+from sonic_py_common import device_info, multi_asic
 from utilities_common import constants
 
 '''

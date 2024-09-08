@@ -312,6 +312,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
         show = setup_ip_route_commands
+        runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
         print("{}".format(result.output))
@@ -341,6 +342,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
         show = setup_ip_route_commands
+        runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
         print("{}".format(result.output))
