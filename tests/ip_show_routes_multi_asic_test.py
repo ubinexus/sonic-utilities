@@ -1,7 +1,6 @@
 import os
 from importlib import reload
 import pytest
-from unittest import mock
 
 
 from . import show_ip_route_common

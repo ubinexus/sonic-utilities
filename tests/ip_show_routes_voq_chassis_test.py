@@ -12,6 +12,7 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
+
 class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
     @classmethod
     def setup_class(cls):
@@ -31,7 +32,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        #show = setup_ip_route_commands
+
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dfrontend"])
@@ -46,7 +47,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        #show = setup_ip_route_commands
+
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dfrontend"])
@@ -61,7 +62,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        #show = setup_ip_route_commands
+
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
@@ -76,7 +77,7 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        #show = setup_ip_route_commands
+
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
@@ -87,12 +88,13 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route_lc_2'], indirect=['setup_multi_asic_bgp_instance'])
     @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
-    @mock.patch.object(multi_asic_util.MultiAsic, "get_ns_list_based_on_options",  mock.MagicMock(return_value=["asic0", "asic1"]))
+    @mock.patch.object(multi_asic_util.MultiAsic, "get_ns_list_based_on_options",
+                       mock.MagicMock(return_value=["asic0", "asic1"]))
     def test_voq_chassis_lc_def_route_2(
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
-        #show = setup_ip_route_commands
+
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
