@@ -82,14 +82,13 @@ def get_nexthop_info_str(nxhp_info, filterByIp):
         str_2_return += "(vrf {}, {},".format(nxhp_info['vrf'], nxhp_info['interfaceName'])
     if "active" not in nxhp_info:
         str_2_return += " inactive"
-
-    if "onLink" in nxhp_info:
-        str_2_return += " onlink"
     if "recursive" in nxhp_info:
         if device_info.is_voq_chassis():
             str_2_return = "  " + str_2_return + " recursive via iBGP"
         else:
             str_2_return += " (recursive)"
+    if "onLink" in nxhp_info:
+        str_2_return += " onlink"
     if "source" in nxhp_info:
         str_2_return += ", src {}".format(nxhp_info['source'])
     if "labels" in nxhp_info:
@@ -339,6 +338,7 @@ def show_routes(args, namespace, display, verbose, ipver):
             if display not in ['frontend', 'all']:
                 print("dislay option '{}' is not a valid option.".format(display))
                 return
+
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
@@ -388,7 +388,6 @@ def show_routes(args, namespace, display, verbose, ipver):
         # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
         cmd = "show {} route {}".format(ipver, arg_strg)
         output = bgp_util.run_bgp_show_command(cmd, ns)
-
         # in case no output or something went wrong with user specified cmd argument(s) error it out
         # error from FRR always start with character "%"
         if output == "":
