@@ -680,13 +680,18 @@ def fetch_fec_histogram(port_oid_map, target_port):
     asic_db_kvp = counter_db.get_all(counter_db.COUNTERS_DB, 'COUNTERS:{}'.format(port_oid))
 
     if asic_db_kvp is not None:
-        # Capture and display only the relevant FEC codeword errors
-        fec_errors = {f'BIN{i}': asic_db_kvp.get
-                      (f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0') for i in range(17)}
+    fec_errors = {f'BIN{i}': asic_db_kvp.get(f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0') for i in range(16)}
+    
+    # Prepare the data for tabulation
+    table_data = [(bin_label, error_value) for bin_label, error_value in fec_errors.items()]
+    
+    # Define headers
+    headers = ["Symbol Errors Per Codeword", "Codewords"]
+    
+    # Print FEC histogram using tabulate
+    click.echo(tabulate(table_data, headers=headers, tablefmt="plain"))
 
-        # Print FEC histogram
-        for bin_label, error_value in fec_errors.items():
-            click.echo(f'{bin_label}: {error_value}')
+
     else:
         click.echo('No kvp found in ASIC DB for port {}, exiting'.format(target_port), err=True)
         raise click.Abort()
