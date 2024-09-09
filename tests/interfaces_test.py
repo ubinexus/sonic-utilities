@@ -263,13 +263,13 @@ PortChannel0004  routed
 PortChannel1001  trunk               4000
 """
 
-show_dhcp_rate_limit_in_alias_mode_output = """\
+'''show_dhcp_rate_limit_in_alias_mode_output = """\
 Interface      DHCP Mitigation Rate
 -----------  ----------------------
 etp1                            300
 etp2
 """
-
+'''
 
 class TestInterfaces(object):
     @classmethod
