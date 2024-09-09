@@ -2433,6 +2433,17 @@ def received(db, namespace):
         ctx.fail("ASIC/SDK health event is not supported on the platform")
 
 
+# 'mgmt-unsolicited' subcommand ("show mgmt-unsolicited")
+@cli.command('mgmt-unsolicited')
+@clicommon.pass_db
+def mgmt_unsolicited(db):
+    """ Show the status of mgmt-unsolicited feature """
+
+    field_values = db.cfgdb.get_entry('DEVICE_METADATA', 'localhost')
+    state = field_values.get('mgmt_unsolicited_state', 'enabled').title()
+    click.echo(state)
+
+
 # Load plugins and register them
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)
