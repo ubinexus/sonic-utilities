@@ -681,10 +681,8 @@ def fetch_fec_histogram(port_oid_map, target_port):
 
     if asic_db_kvp is not None:
 
-        fec_errors = {
-            f'BIN{i}': asic_db_kvp.get(f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0')
-            for i in range(16)
-        }
+        fec_errors = {f'BIN{i}': asic_db_kvp.get
+                      (f'SAI_PORT_STAT_IF_IN_FEC_CODEWORD_ERRORS_S{i}', '0') for i in range(16)}
 
         # Prepare the data for tabulation
         table_data = [(bin_label, error_value) for bin_label, error_value in fec_errors.items()]
