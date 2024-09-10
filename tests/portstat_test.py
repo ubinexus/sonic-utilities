@@ -43,24 +43,24 @@ Ethernet8      N/A     100,317             0                 0
 """
 
 intf_fec_counters_fec_hist = """\
-Symbol Errors Per Codeword  Codewords
---------------------------  ---------
-BIN0:                       1000000
-BIN1:                       900000
-BIN2:                       800000
-BIN3:                       700000
-BIN4:                       600000
-BIN5:                       500000
-BIN6:                       400000
-BIN7:                       300000
-BIN8:                       0
-BIN9:                       0
-BIN10:                      0
-BIN11:                      0
-BIN12:                      0
-BIN13:                      0
-BIN14:                      0
-BIN15:                      0
+Symbol Errors Per Codeword      Codewords
+----------------------------  -----------
+BIN0                              1000000
+BIN1                               900000
+BIN2                               800000
+BIN3                               700000
+BIN4                               600000
+BIN5                               500000
+BIN6                               400000
+BIN7                               300000
+BIN8                                    0
+BIN9                                    0
+BIN10                                   0
+BIN11                                   0
+BIN12                                   0
+BIN13                                   0
+BIN14                                   0
+BIN15                                   0
 """
 
 intf_fec_counters_period = """\
