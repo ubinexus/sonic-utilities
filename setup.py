@@ -187,7 +187,8 @@ setup(
         'scripts/verify_image_sign.sh',
         'scripts/verify_image_sign_common.sh',
         'scripts/check_db_integrity.py',
-        'scripts/sysreadyshow'
+        'scripts/sysreadyshow',
+        'scripts/debug_voq_chassis_packet_drops.sh'
     ],
     entry_points={
         'console_scripts': [
