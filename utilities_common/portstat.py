@@ -229,7 +229,11 @@ class Portstat(object):
                     if counter_name not in fvs:
                         fields[pos] = STATUS_NA
                     elif fields[pos] != STATUS_NA:
-                        fields[pos] = str(int(fields[pos]) + int(fvs[counter_name]))
+                        # fvs[counter_name] will be a string. To support scientific number, we convert it to float
+                        # first since scientific number internally is a float.
+                        # https://stackoverflow.com/questions/32861429/converting-number-in-scientific-notation-to-int
+                        counter_value = int(float(fvs[counter_name]))
+                        fields[pos] = str(int(fields[pos]) + counter_value)
 
             cntr = NStats._make(fields)._asdict()
             return cntr
