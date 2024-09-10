@@ -2032,9 +2032,9 @@ def loopback(port_name, loopback_mode, enable):
         sys.exit(EXIT_FAIL)
 
     if 'host-side' in loopback_mode:
-        lane_mask = ((1 << host_lane_count) - 1) << ((subport - 1) * host_lane_count)
+        lane_mask = get_subport_lane_mask(subport, host_lane_count)
     elif 'media-side' in loopback_mode:
-        lane_mask = ((1 << media_lane_count) - 1) << ((subport - 1) * media_lane_count)
+        lane_mask = get_subport_lane_mask(subport, media_lane_count)
     else:
         lane_mask = 0
 
@@ -2050,10 +2050,24 @@ def loopback(port_name, loopback_mode, enable):
         sys.exit(EXIT_FAIL)
 
     if status:
-        click.echo("{}: Set {} loopback".format(port_name, loopback_mode))
+        click.echo("{}: {} {} loopback".format(port_name, enable, loopback_mode))
     else:
-        click.echo("{}: Set {} loopback failed".format(port_name, loopback_mode))
+        click.echo("{}: {} {} loopback failed".format(port_name, enable, loopback_mode))
         sys.exit(EXIT_FAIL)
+
+
+def get_subport_lane_mask(subport, lane_count):
+    """Get the lane mask for the given subport and lane count
+
+    Args:
+        subport (int): Subport number
+        lane_count (int): Lane count for the subport
+
+    Returns:
+        int: Lane mask for the given subport and lane count
+    """
+    return ((1 << lane_count) - 1) << ((subport - 1) * lane_count)
+
 
 if __name__ == '__main__':
     cli()

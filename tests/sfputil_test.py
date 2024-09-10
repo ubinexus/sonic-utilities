@@ -1661,19 +1661,19 @@ EEPROM hexdump for port Ethernet4
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
                                ["Ethernet0", "host-side-input", "enable"])
-        assert result.output == 'Ethernet0: Set host-side-input loopback\n'
+        assert result.output == 'Ethernet0: enable host-side-input loopback\n'
         assert result.exit_code != ERROR_NOT_IMPLEMENTED
 
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
                                ["Ethernet0", "media-side-input", "enable"])
-        assert result.output == 'Ethernet0: Set media-side-input loopback\n'
+        assert result.output == 'Ethernet0: enable media-side-input loopback\n'
         assert result.exit_code != ERROR_NOT_IMPLEMENTED
 
         mock_api.set_loopback_mode.return_value = False
         result = runner.invoke(sfputil.cli.commands['debug'].commands['loopback'],
                                ["Ethernet0", "media-side-output", "enable"])
-        assert result.output == 'Ethernet0: Set media-side-output loopback failed\n'
+        assert result.output == 'Ethernet0: enable media-side-output loopback failed\n'
         assert result.exit_code == EXIT_FAIL
 
         mock_api.set_loopback_mode.return_value = True
@@ -1709,3 +1709,14 @@ EEPROM hexdump for port Ethernet4
                                ["Ethernet0", "media-side-input", "enable"])
         assert result.output == 'Ethernet0: Failed to connect to STATE_DB\n'
         assert result.exit_code == EXIT_FAIL
+
+    @pytest.mark.parametrize("subport, lane_count, expected_mask", [
+        (1, 1, 0x1),
+        (1, 4, 0xf),
+        (2, 1, 0x2),
+        (2, 4, 0xf0),
+        (3, 2, 0x30),
+        (4, 1, 0x8),
+    ])
+    def test_get_subport_lane_mask(self, subport, lane_count, expected_mask):
+        assert sfputil.get_subport_lane_mask(subport, lane_count) == expected_mask
