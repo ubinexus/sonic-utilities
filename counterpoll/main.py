@@ -479,7 +479,7 @@ def show():
                      route_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     if is_dpu(config_db) and eni_info:
-        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_1_SEC), eni_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_10_SEC), eni_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
