@@ -3108,7 +3108,7 @@ This command is the standard CMIS diagnostic control used for troubleshooting li
   ```
   sfputil debug loopback PORT_NAME LOOPBACK_MODE <enable/disable>
 
-  Set the loopback mode
+  Valid values for loopback mode
   host-side-input: host side input loopback mode
   host-side-output: host side output loopback mode
   media-side-input: media side input loopback mode
