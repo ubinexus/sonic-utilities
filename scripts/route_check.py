@@ -338,6 +338,7 @@ def is_suppress_fib_pending_enabled(namespace):
 
     return state == 'enabled'
 
+
 def fetch_routes(cmd):
     """
     Fetch routes using the given command.
@@ -747,7 +748,6 @@ def check_routes_for_namespace(namespace):
     rt_asic_miss = filter_out_standalone_tunnel_routes(namespace, rt_asic_miss)
     rt_asic_miss = filter_out_soc_ip_routes(namespace, rt_asic_miss)
 
-
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
 
@@ -794,6 +794,7 @@ def check_routes_for_namespace(namespace):
                 mitigate_installed_not_offloaded_frr_routes(namespace, rt_frr_miss, rt_appl)
 
     return results, adds, deletes
+
 
 def check_routes(namespace):
     """
@@ -890,7 +891,6 @@ def main():
                 return ret, res
         else:
             return ret, res
-
 
 
 if __name__ == "__main__":
