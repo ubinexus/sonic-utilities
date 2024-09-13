@@ -61,10 +61,7 @@ def main():
     dpu_tty, dpu_baud = get_dpu_tty(args.slot, args.tty, args.baud)
     # Use UART console utility for error checking of dpu_tty and dpu_baud.
 
-    cmd = "%s -b %s /dev/%s" % (UART_CON, dpu_baud, dpu_tty)
-    print(cmd)
-    p = subprocess.run(cmd, shell=True, universal_newlines=True)
-
+    p = subprocess.run([UART_CON, '-b', dpu_baud, '/dev/%s' % dpu_tty])
     if p.returncode:
         print('{} failed'.format(p.args))
         if p.stdout:
