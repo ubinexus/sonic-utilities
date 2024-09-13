@@ -247,8 +247,6 @@ class TestCounterpoll(object):
     @pytest.mark.parametrize("status", ["disable", "enable"])
     def test_update_eni_status(self, status):
         runner = CliRunner()
-        db = Db()
-
         result = runner.invoke(counterpoll.cli, ["eni", status])
         assert result.exit_code == 1
         assert result.output == "ENI counters are not supported on non DPU platforms\n"

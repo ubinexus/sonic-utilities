@@ -16,6 +16,7 @@ DEFLT_60_SEC= "default (60000)"
 DEFLT_10_SEC= "default (10000)"
 DEFLT_1_SEC = "default (1000)"
 
+
 def is_dpu(db):
     """ Check if the device is DPU """
     platform_info = device_info.get_platform_info(db)
@@ -394,6 +395,7 @@ def disable(ctx):
     fc_info['FLEX_COUNTER_STATUS'] = 'disable'
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_ROUTE", fc_info)
 
+
 # ENI counter commands
 @cli.group()
 @click.pass_context
@@ -405,15 +407,16 @@ def eni(ctx):
         click.echo("ENI counters are not supported on non DPU platforms")
         exit(1)
 
+
 @eni.command()
 @click.argument('poll_interval', type=click.IntRange(1000, 30000))
 @click.pass_context
 def interval(ctx, poll_interval):
     """ Set eni counter query interval """
     eni_info = {}
-    if poll_interval is not None:
-        eni_info['POLL_INTERVAL'] = poll_interval
+    eni_info['POLL_INTERVAL'] = poll_interval
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ENI, eni_info)
+
 
 @eni.command()
 @click.pass_context
@@ -423,6 +426,7 @@ def enable(ctx):
     eni_info['FLEX_COUNTER_STATUS'] = 'enable'
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ENI, eni_info)
 
+
 @eni.command()
 @click.pass_context
 def disable(ctx):
@@ -430,6 +434,7 @@ def disable(ctx):
     eni_info = {}
     eni_info['FLEX_COUNTER_STATUS'] = 'disable'
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ENI, eni_info)
+
 
 @cli.command()
 def show():
@@ -479,7 +484,8 @@ def show():
                      route_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     if is_dpu(config_db) and eni_info:
-        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_10_SEC), eni_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_10_SEC), 
+                    eni_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
