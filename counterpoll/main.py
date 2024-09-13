@@ -408,28 +408,28 @@ def eni(ctx):
         exit(1)
 
 
-@eni.command()
+@eni.command(name='interval')
 @click.argument('poll_interval', type=click.IntRange(1000, 30000))
 @click.pass_context
-def interval(ctx, poll_interval):
+def eni_interval(ctx, poll_interval):
     """ Set eni counter query interval """
     eni_info = {}
     eni_info['POLL_INTERVAL'] = poll_interval
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ENI, eni_info)
 
 
-@eni.command()
+@eni.command(name='enable')
 @click.pass_context
-def enable(ctx):
+def eni_enable(ctx):
     """ Enable eni counter query """
     eni_info = {}
     eni_info['FLEX_COUNTER_STATUS'] = 'enable'
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ENI, eni_info)
 
 
-@eni.command()
+@eni.command(name='disable')
 @click.pass_context
-def disable(ctx):
+def eni_disable(ctx):
     """ Disable eni counter query """
     eni_info = {}
     eni_info['FLEX_COUNTER_STATUS'] = 'disable'
@@ -484,7 +484,7 @@ def show():
                      route_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     if is_dpu(config_db) and eni_info:
-        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_10_SEC), 
+        data.append(["ENI_STAT", eni_info.get("POLL_INTERVAL", DEFLT_10_SEC),
                     eni_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
