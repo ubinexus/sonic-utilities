@@ -2,16 +2,15 @@
 
 from scapy.config import conf
 conf.ipv6_enabled = False
-from scapy.fields import ByteField, ShortField, MACField, XStrFixedLenField, ConditionalField
-from scapy.layers.l2 import Ether
-from scapy.sendrecv import sendp, sniff
-from scapy.packet import Packet, split_layers, bind_layers
-import scapy.contrib.lacp
-import subprocess
-import json
-from swsscommon.swsscommon import ConfigDBConnector
-import time, traceback
-import syslog
+from scapy.layers.l2 import Ether  # noqa: E402
+from scapy.sendrecv import sendp  # noqa: E402
+import scapy.contrib.lacp  # noqa: E402
+import subprocess  # noqa: E402
+import json  # noqa: E402
+import time  # noqa: E402
+import traceback  # noqa: E402
+import syslog  # noqa: E402
+from swsscommon.swsscommon import ConfigDBConnector  # noqa: E402
 
 SYSLOG_ID = 'lag_keepalive'
 SLOW_PROTOCOL_MAC_ADDRESS = "01:80:c2:00:00:02"
@@ -72,7 +71,7 @@ def get_lacpdu_per_lag_member():
     lag_member_to_packet = dict()
     for lag_entry in appDB_lag_info:
         lag_name = str(lag_entry[0])
-        oper_status = appDB.get(appDB.APPL_DB,"LAG_TABLE:{}".format(lag_name), "oper_status")
+        oper_status = appDB.get(appDB.APPL_DB, "LAG_TABLE:{}".format(lag_name), "oper_status")
         if oper_status == "up":
             # only apply the workaround for active lags
             lag_member = str(lag_entry[1])
@@ -104,9 +103,9 @@ def main():
         try:
             active_lag_members, lag_member_to_packet = get_lacpdu_per_lag_member()
             if len(active_lag_members) != len(lag_member_to_packet.keys()):
-                log_error("Failed to craft LACPDU packets for some lag members. " +\
-                "Active lag members: {}. LACPDUs craft for: {}".format(
-                    active_lag_members, lag_member_to_packet.keys()))
+                log_error("Failed to craft LACPDU packets for some lag members. " +
+                          "Active lag members: {}. LACPDUs craft for: {}".format(
+                              active_lag_members, lag_member_to_packet.keys()))
 
             log_info("ready to send LACPDU packets via {}".format(lag_member_to_packet.keys()))
         except Exception:
@@ -121,6 +120,7 @@ def main():
     if lag_member_to_packet:
         # start an infinite loop to keep sending lacpdus from lag member ports
         lag_keepalive(lag_member_to_packet)
+
 
 if __name__ == "__main__":
     main()
