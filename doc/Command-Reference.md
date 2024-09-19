@@ -3144,19 +3144,19 @@ This command is the standard CMIS diagnostic control used for troubleshooting li
 
 - Usage:
   ```
-  sfputil debug loopback PORT_NAME LOOPBACK_MODE
+  sfputil debug loopback PORT_NAME LOOPBACK_MODE <enable/disable>
 
-  Set the loopback mode
+  Valid values for loopback mode
   host-side-input: host side input loopback mode
   host-side-output: host side output loopback mode
   media-side-input: media side input loopback mode
   media-side-output: media side output loopback mode
-  none: disable loopback mode
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sfputil debug loopback Ethernet88 host-side-input
+  admin@sonic:~$ sfputil debug loopback Ethernet88 host-side-input enable
+  admin@sonic:~$ sfputil debug loopback Ethernet88 media-side-output disable
   ```
 
 ## DHCP Relay
@@ -4806,6 +4806,7 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
   show interfaces counters errors
   show interfaces counters rates
   show interfaces counters rif [-p|--period <period>] [-i <interface_name>]
+  show interfaces counters fec-histogram [-i <interface_name>]
   ```
 
 - Example:
@@ -4922,6 +4923,39 @@ Optionally, you can specify a period (in seconds) with which to gather counters 
   ```
   admin@sonic:~$ sonic-clear rifcounters
   ```
+
+The "fec-histogram" subcommand is used to display the fec histogram for the port.
+
+When data is transmitted, it's broken down into units called codewords. FEC algorithms add extra data to each codeword that can be used to detect and correct errors in transmission.
+In a FEC histogram, "bins" represent ranges of errors or specific categories of errors. For instance, Bin0 might represent codewords with no errors, while Bin1 could represent codewords with a single bit error, and so on. The histogram shows how many codewords fell into each bin. A high number in the higher bins might indicate a problem with the transmission link, such as signal degradation.
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:/usr/bin$ show interface counters fec-histogram -i <PORT>
+
+Symbol Errors Per Codeword  Codewords
+--------------------------  ---------
+BIN0:                       1000000
+BIN1:                       900000
+BIN2:                       800000
+BIN3:                       700000
+BIN4:                       600000
+BIN5:                       500000
+BIN6:                       400000
+BIN7:                       300000
+BIN8:                       0
+BIN9:                       0
+BIN10:                      0
+BIN11:                      0
+BIN12:                      0
+BIN13:                      0
+BIN14:                      0
+BIN15:                      0
+
+   ```
+
+
+
 
 **show interfaces description**
 
