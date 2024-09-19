@@ -12,7 +12,7 @@ from sonic_py_common import device_info
 UART_CON = '/usr/bin/picocom'
 
 
-def get_dpu_tty(dpu_id, tty, baud):
+def get_dpu_tty(dpu, tty, baud):
 
     platform = device_info.get_platform()
     if not platform:
@@ -37,8 +37,6 @@ def get_dpu_tty(dpu_id, tty, baud):
         print("No DPUs in platform.json")
         return None
 
-    dpu = 'dpu' + str(dpu_id)
-
     if tty is None:
         dev = dpus[dpu]["serial-console"]["device"]
     else:
@@ -53,12 +51,12 @@ def get_dpu_tty(dpu_id, tty, baud):
 def main():
 
     parser = argparse.ArgumentParser(description='DPU TTY Console Utility')
-    parser.add_argument('-s', '--slot', type=int, required=True)
+    parser.add_argument('-n', '--name', required=True)
     parser.add_argument('-t', '--tty')
-    parser.add_argument('-b', '--baud', type=int)
+    parser.add_argument('-b', '--baud')
     args = parser.parse_args()
 
-    dpu_tty, dpu_baud = get_dpu_tty(args.slot, args.tty, args.baud)
+    dpu_tty, dpu_baud = get_dpu_tty(args.name, args.tty, args.baud)
     # Use UART console utility for error checking of dpu_tty and dpu_baud.
 
     p = subprocess.run([UART_CON, '-b', dpu_baud, '/dev/%s' % dpu_tty])
