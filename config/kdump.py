@@ -127,7 +127,7 @@ def remote(action):
 
 @kdump.command(name="add", help="Add SSH key or path for remote KDUMP configuration")
 @click.argument('option', metavar='<option>', required=True, type=click.Choice(['ssh_key', 'ssh_path']))
-@click.argument('value', metavar='<value>', required=True, help="USER@IP_SSH_SERVER")
+@click.argument('value', metavar='<value>', required=True)
 @pass_db
 def add(db, option, value):
     """Add SSH key or path for remote KDUMP configuration"""
