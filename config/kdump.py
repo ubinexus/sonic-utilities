@@ -29,6 +29,7 @@ def check_kdump_table_existence(kdump_table):
         click.echo("Unable to retrieve key 'config' from KDUMP table.")
         sys.exit(2)
 
+
 def echo_reboot_warning():
     """Prints the warning message about reboot requirements."""
     click.echo("KDUMP configuration changes may require a reboot to take effect.")
@@ -104,7 +105,7 @@ def remote(action):
     config_db = ConfigDBConnector()
     if config_db is not None:
         config_db.connect()
-        
+
         # Get the current status of the remote feature
         current_status = config_db.get_entry("KDUMP", "config").get("remote", False)
 
