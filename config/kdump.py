@@ -38,7 +38,7 @@ def echo_reboot_warning():
 #
 
 
-@kdump.command(name="disable", short_help="Disable the KDUMP mechanism")
+@kdump.command(name="disable", help="Disable the KDUMP mechanism")
 @pass_db
 def kdump_disable(db):
     """Disable the KDUMP mechanism"""
@@ -53,7 +53,7 @@ def kdump_disable(db):
 #
 
 
-@kdump.command(name="enable", short_help="Enable the KDUMP mechanism")
+@kdump.command(name="enable", help="Enable the KDUMP mechanism")
 @pass_db
 def kdump_enable(db):
     """Enable the KDUMP mechanism"""
@@ -68,7 +68,7 @@ def kdump_enable(db):
 #
 
 
-@kdump.command(name="memory", short_help="Configure the memory for KDUMP mechanism")
+@kdump.command(name="memory", help="Configure the memory for KDUMP mechanism")
 @click.argument('kdump_memory', metavar='<kdump_memory>', required=True)
 @pass_db
 def kdump_memory(db, kdump_memory):
@@ -84,7 +84,7 @@ def kdump_memory(db, kdump_memory):
 #
 
 
-@kdump.command(name="num_dumps", short_help="Configure the maximum dump files of KDUMP mechanism")
+@kdump.command(name="num_dumps", help="Configure the maximum dump files of KDUMP mechanism")
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
 @pass_db
 def kdump_num_dumps(db, kdump_num_dumps):
@@ -124,9 +124,9 @@ def remote(action):
             click.echo("Invalid action. Use 'enable' or 'disable'.")
 
 
-@kdump.command(name="add", short_help="Add SSH key or path for remote KDUMP configuration")
+@kdump.command(name="add", help="Add SSH key or path for remote KDUMP configuration")
 @click.argument('option', metavar='<option>', required=True, type=click.Choice(['ssh_key', 'ssh_path']))
-@click.argument('value', metavar='<value>', required=True, short_help="USER@IP_SSH_SERVER")
+@click.argument('value', metavar='<value>', required=True, help="USER@IP_SSH_SERVER")
 @pass_db
 def add(db, option, value):
     """Add SSH key or path for remote KDUMP configuration"""
@@ -150,7 +150,7 @@ def add(db, option, value):
     echo_reboot_warning()
 
 
-@kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
+@kdump.command(name="remove", help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
 @pass_db
 def remove_kdump_item(db, item):
