@@ -1,8 +1,7 @@
 import sys
 import click
-
+from utilities_common.db import ConfigDBConnector
 from utilities_common.cli import AbbreviationGroup, pass_db
-from pathlib import Path
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -29,7 +28,6 @@ def check_kdump_table_existence(kdump_table):
     if "config" not in kdump_table:
         click.echo("Unable to retrieve key 'config' from KDUMP table.")
         sys.exit(2)
-
 
 def echo_reboot_warning():
     """Prints the warning message about reboot requirements."""
@@ -126,7 +124,6 @@ def remote(action):
             click.echo("Invalid action. Use 'enable' or 'disable'.")
 
 
-
 @kdump.command(name="add", short_help="Add SSH key or path for remote KDUMP configuration")
 @click.argument('option', metavar='<option>', required=True, type=click.Choice(['ssh_key', 'ssh_path']))
 @click.argument('value', metavar='<value>', required=True, short_help="USER@IP_SSH_SERVER")
@@ -151,6 +148,7 @@ def add(db, option, value):
         db.cfgdb.mod_entry("KDUMP", "config", {"SSH_PATH": value})
 
     echo_reboot_warning()
+
 
 @kdump.command(name="remove", short_help="Remove SSH connection string or SSH key path.")
 @click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
