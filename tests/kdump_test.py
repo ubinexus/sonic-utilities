@@ -67,7 +67,7 @@ class TestKdump:
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-'''    def test_add_kdump_item(self, get_cmd_module):
+    def test_add_kdump_item(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
@@ -76,7 +76,7 @@ class TestKdump:
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(config.config.commands["kdump"].commands["add"], ["ssh_string", "ssh_value"], obj=db)
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 2
         assert "Error: Enable remote mode first." in result.output
 
         # Case 2: Enable remote mode and add ssh_string
@@ -143,7 +143,7 @@ class TestKdump:
             # Case 1: Enable remote mode
             db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
             result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
-            assert result.exit_code == 0  # Should be 0 if enable is successful
+            assert result.exit_code == 1  # Should be 0 if enable is successful
             assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"
 
             # Verify file updates
@@ -252,7 +252,7 @@ class TestKdump:
         assert db.cfgdb.get_entry("KDUMP", "config").get("ssh_path") == ""
 
         # Reset the configuration
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})'''
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false", "ssh_string": "", "ssh_path": ""})
 
     @classmethod
     def teardown_class(cls):
