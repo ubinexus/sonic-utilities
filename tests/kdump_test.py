@@ -67,35 +67,38 @@ class TestKdump:
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-    def test_remote_enable(self, get_cmd_module):
+    def test_config_kdump_remote_enable(self, get_cmd_module):
+    
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
         # Simulate command execution for 'remote enable'
         # Assume the current status is disabled
-        db.cfgdb.set_entry("KDUMP", "config", {"remote": False})
+        db.cfgdb.set_entry("KDUMP", "config", {"remote": "false"})  # Set as string
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["enable"], obj=db)
         assert result.exit_code == 0
         assert "Remote kdump feature enabled." in result.output
 
         # Check if the remote feature was enabled in the database
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] is True
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"  # Compare with string
 
-    def test_remote_disable(self, get_cmd_module):
+    def test_config_kdump_remote_disable(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
         # Simulate command execution for 'remote disable'
         # Assume the current status is enabled
-        db.cfgdb.set_entry("KDUMP", "config", {"remote": True})
+        db.cfgdb.set_entry("KDUMP", "config", {"remote": "true"})  # Set as string
         result = runner.invoke(config.config.commands["kdump"].commands["remote"], ["disable"], obj=db)
         assert result.exit_code == 0
         assert "Remote kdump feature disabled." in result.output
 
         # Check if the remote feature was disabled in the database
-        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] is False
+        assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"  # Compare with string
+         
+    
 
     def test_remote_already_enabled(self, get_cmd_module):
         (config, show) = get_cmd_module
