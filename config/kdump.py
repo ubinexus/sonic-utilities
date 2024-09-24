@@ -96,10 +96,10 @@ def kdump_num_dumps(db, kdump_num_dumps):
     echo_reboot_warning()
 
 
-@kdump.command(name ="remote", help="Configure the remote enable/disable for KDUMP mechanism")
+@kdump.command(name="remote", help="Configure the remote enable/disable for KDUMP mechanism")
 @click.argument('action', metavar='<enable/disable>', required=True, type=click.STRING)  # Corrected this line
 @pass_db
-def remote(db,action):
+def remote(db, action):
     """Enable or disable remote kdump feature"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
