@@ -83,23 +83,23 @@ class voqCounterUtil():
     @staticmethod
     def parse_key(key):
         # COUNTERS|nfc406-7|Asic0|Ethernet164@nfc406-9|Asic0:3
-        _, sysPort, fapId, voqIdx = re.search(r"(COUNTERS_VOQ).([a-zA-Z0-9\-\|]+).([a-zA-Z0-9\-\|]+).(\d)",key).groups()
-        return sysPort, fapId, voqIdx
+        _, sysPort, asic, voqIdx = re.search(r"(COUNTERS_VOQ).([a-zA-Z0-9\-\|]+).([a-zA-Z0-9\-\|]+).(\d)",key).groups()
+        return sysPort, asic, voqIdx
         # sysPort = nfc406-7|Asic0|Ethernet164
-        # fapId = nfc406-9:Asic0
+        # asic = nfc406-9:Asic0
 
     @staticmethod
-    def get_key(sysPort, fapId, voqIdx):
-        return VOQ_COUNTERS_PREFIX +  sysPort + "@" + fapId + ":" + voqIdx
+    def get_key(sysPort, asic, voqIdx):
+        return VOQ_COUNTERS_PREFIX +  sysPort + "@" + asic + ":" + voqIdx
 
     @staticmethod
     def process_keys(keys):
         metaData = {}
         ports = set()
         for key in keys:
-            sysPort, fapId, voqIdx = voqCounterUtil.parse_key(key)
+            sysPort, asic, voqIdx = voqCounterUtil.parse_key(key)
             ports.add(sysPort)
-            metaData.setdefault(sysPort,{}).setdefault(fapId,set()).add(voqIdx)
+            metaData.setdefault(sysPort,{}).setdefault(asic,set()).add(voqIdx)
         return metaData, ports
 
 def build_json(port, cnstat, voq=False):
@@ -201,9 +201,9 @@ class Queuestat(object):
     def getAggregatePortStats( self, port ):
         voqCnt = {}
 
-        for fapId in self.metaData[port]:
-            for idx in self.metaData[port][fapId]:
-                key = voqCounterUtil.get_key(port,fapId,idx)
+        for asic in self.metaData[port]:
+            for idx in self.metaData[port][asic]:
+                key = voqCounterUtil.get_key(port,asic,idx)
                 for counter_name in counter_bucket_dict:
                     voqCnt.setdefault(idx,{}).setdefault(counter_name,0)
                     counter_data = self.db.get(self.db.CHASSIS_COUNTERS_DB, key, counter_name)
