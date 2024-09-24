@@ -97,7 +97,7 @@ def kdump_num_dumps(db, kdump_num_dumps):
 
 
 @kdump.command('remote')
-@click.argument('action', metavar='<enable/disable>', required=True)
+@click.argument('action', metavar='<enable/disable>', required=True,type=string)
 @pass_db
 def remote(action, db):
     """Enable or disable remote kdump feature"""
