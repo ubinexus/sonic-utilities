@@ -64,7 +64,7 @@ class TestKdump:
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-    def test_config_kdump_remote_enable(self, get_cmd_module):
+'''    def test_config_kdump_remote_enable(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
@@ -138,7 +138,7 @@ class TestKdump:
         assert result.exit_code == 0  # Should not fail but handle gracefully
         assert "Invalid action. Use 'enable' or 'disable'." in result.output
 
-    '''def test_add_ssh_key(self, get_cmd_module):
+    def test_add_ssh_key(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()

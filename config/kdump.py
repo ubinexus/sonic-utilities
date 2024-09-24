@@ -96,76 +96,30 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
     echo_reboot_warning()
 
-
 @kdump.command('remote')
 @click.argument('action', metavar='<enable/disable>', required=True)
 @pass_db
-def remote(action):
+def remote(action, db):
     """Enable or disable remote kdump feature"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
 
-        # Get the current status of the remote feature as string
-        current_status = config_db.get_entry("KDUMP", "config").get("remote", "false").lower()
+    # Get the current status of the remote feature as string
+    current_status = kdump_table["config"].get("remote", "false").lower()
 
-        if action.lower() == 'enable':
-            if current_status == "true":
-                click.echo("Remote kdump feature is already enabled.")
-            else:
-                config_db.mod_entry("KDUMP", "config", {"remote": "true"})
-                click.echo("Remote kdump feature enabled.")
-        elif action.lower() == 'disable':
-            if current_status == "false":
-                click.echo("Remote kdump feature is already disabled.")
-            else:
-                config_db.mod_entry("KDUMP", "config", {"remote": "false"})
-                click.echo("Remote kdump feature disabled.")
+    if action.lower() == 'enable':
+        if current_status == "true":
+            click.echo("Remote kdump feature is already enabled.")
         else:
-            click.echo("Invalid action. Use 'enable' or 'disable'.")
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
+            click.echo("Remote kdump feature enabled.")
+    elif action.lower() == 'disable':
+        if current_status == "false":
+            click.echo("Remote kdump feature is already disabled.")
+        else:
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+            click.echo("Remote kdump feature disabled.")
+    else:
+        click.echo("Invalid action. Use 'enable' or 'disable'.")
 
 
-@kdump.command(name="add", help="Add SSH key or path for remote KDUMP configuration")
-@click.argument('option', metavar='<option>', required=True, type=click.Choice(['ssh_key', 'ssh_path']))
-@click.argument('value', metavar='<value>', required=True)
-@pass_db
-def add(db, option, value):
-    """Add SSH key or path for remote KDUMP configuration"""
-    kdump_table = db.cfgdb.get_table("KDUMP")
-    check_kdump_table_existence(kdump_table)
-
-    # Check if remote is enabled
-    remote_config = kdump_table.get("config", {})
-    remote_enabled = remote_config.get("remote", "false") == "true"
-
-    if not remote_enabled:
-        click.echo("Remote KDUMP is not enabled. Please enable remote KDUMP first.")
-        sys.exit(3)
-
-    # Update the database with the new SSH key or path
-    if option == 'ssh_key':
-        db.cfgdb.mod_entry("KDUMP", "config", {"SSH_KEY": value})
-    elif option == 'ssh_path':
-        db.cfgdb.mod_entry("KDUMP", "config", {"SSH_PATH": value})
-
-    echo_reboot_warning()
-
-
-@kdump.command(name="remove", help="Remove SSH connection string or SSH key path.")
-@click.argument('item', type=click.Choice(['ssh_string', 'ssh_path']))
-@pass_db
-def remove_kdump_item(db, item):
-    """Remove SSH connection string or SSH key path for kdump"""
-    kdump_table = db.cfgdb.get_table("KDUMP")
-    check_kdump_table_existence(kdump_table)
-
-    # Check if the item is already configured
-    existing_value = kdump_table.get("config", {}).get(item)
-    if not existing_value:
-        click.echo(f"Error: {item} is not configured.")
-        return
-
-    # Remove item from config_db
-    db.cfgdb.mod_entry("KDUMP", "config", {item: ""})
-    click.echo(f"{item} removed successfully.")
-    echo_reboot_warning()
