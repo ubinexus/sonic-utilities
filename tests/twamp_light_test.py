@@ -115,13 +115,13 @@ config_twamp_light_while_session_exist_error_info = \
     """Usage: add [OPTIONS] <session_name> <sender_ip:port> <reflector_ip:port>
            <packet_count> <tx_interval> <timeout> <statistics_interval>
 
-Error: Invalid value for "<session_name>": """ + TL_SESSION_NAME + """. TWAMP-Light session already exist
+Error: Invalid value for "<session_name>": """ + TL_SESSION_NAME + """. TWAMP-Light session already exists
 """
 
 twamp_light_start_session_without_session_output = \
     """Usage: start [OPTIONS] <session_name|all>
 
-Error: Invalid value for "<session_name>": """ + TL_SESSION_NAME + """. TWAMP-Light session not exist
+Error: Invalid value for "<session_name>": """ + TL_SESSION_NAME + """. TWAMP-Light session does not exist
 """
 
 twamp_light_add_continous_sender_with_invalid_monitor_time_output = \
