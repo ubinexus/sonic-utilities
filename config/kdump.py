@@ -124,6 +124,7 @@ def remote(db, action):
     else:
         click.echo("Invalid action. Use 'enable' or 'disable'.")
 
+
 @kdump.group(name="add", help="Add configuration items to KDUMP")
 def add():
     """Group of commands to add configuration items to KDUMP"""
@@ -146,7 +147,7 @@ def add_ssh_key(db, ssh_key):
 @add.command(name="ssh_path", help="Add an SSH path to the KDUMP configuration")
 @click.argument('ssh_path', metavar='<ssh_key>', required=True)
 @pass_db
-def add_ssh_key(db, ssh_path):
+def add_ssh_path(db, ssh_path):
     """Add an SSH key to KDUMP configuration"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
