@@ -64,7 +64,7 @@ class TestKdump:
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         assert result.exit_code == 1
 
-        def test_config_kdump_remote(self, get_cmd_module):
+    def test_config_kdump_remote(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
