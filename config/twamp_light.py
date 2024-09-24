@@ -41,7 +41,7 @@ def validate_twamp_session_exist_cb(ctx, param, name):
     config_db.connect()
     if check_if_twamp_session_exist(config_db, name) is True:
         raise click.UsageError('Invalid value for "<{}>": {}. '
-                               'TWAMP-Light session already exist'.format(param.name, name))
+                               'TWAMP-Light session already exists'.format(param.name, name))
     return name
 
 
@@ -53,14 +53,14 @@ def validate_twamp_session_cb(ctx, param, name):
         session_keys = config_db.get_table(CFG_TWAMP_SESSION_TABLE_NAME).keys()
         if len(session_keys) == 0:
             raise click.UsageError('Invalid value for "<{}>": {}. '
-                                   'TWAMP-Light session not exist'.format(param.name, name))
+                                   'TWAMP-Light session does not exist'.format(param.name, name))
         return session_keys
     else:
         session_keys = name.split(",")
         for key in session_keys:
             if check_if_twamp_session_exist(config_db, key) is False:
                 raise click.UsageError('Invalid value for "<{}>": {}.'
-                                       ' TWAMP-Light session not exist'.format(param.name, key))
+                                       ' TWAMP-Light session does not exist'.format(param.name, key))
         return session_keys
 
 
