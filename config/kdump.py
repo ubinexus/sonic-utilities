@@ -97,7 +97,6 @@ def kdump_num_dumps(db, kdump_num_dumps):
     echo_reboot_warning()
 
 
-# 'remote' command ('sudo config kdump remote ...')
 @kdump.command('remote')
 @click.argument('action', metavar='<enable/disable>', required=True)
 def remote(action):
@@ -106,20 +105,20 @@ def remote(action):
     if config_db is not None:
         config_db.connect()
 
-        # Get the current status of the remote feature
-        current_status = config_db.get_entry("KDUMP", "config").get("remote", False)
+        # Get the current status of the remote feature as string
+        current_status = config_db.get_entry("KDUMP", "config").get("remote", "false").lower()
 
         if action.lower() == 'enable':
-            if current_status:
+            if current_status == "true":
                 click.echo("Remote kdump feature is already enabled.")
             else:
-                config_db.mod_entry("KDUMP", "config", {"remote": True})
+                config_db.mod_entry("KDUMP", "config", {"remote": "true"})
                 click.echo("Remote kdump feature enabled.")
         elif action.lower() == 'disable':
-            if not current_status:
+            if current_status == "false":
                 click.echo("Remote kdump feature is already disabled.")
             else:
-                config_db.mod_entry("KDUMP", "config", {"remote": False})
+                config_db.mod_entry("KDUMP", "config", {"remote": "false"})
                 click.echo("Remote kdump feature disabled.")
         else:
             click.echo("Invalid action. Use 'enable' or 'disable'.")
