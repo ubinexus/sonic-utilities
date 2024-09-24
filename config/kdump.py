@@ -96,10 +96,10 @@ def kdump_num_dumps(db, kdump_num_dumps):
     echo_reboot_warning()
 
 
-@kdump.command('remote')
+@kdump.command(name ="remote", help="Configure the remote enable/disable for KDUMP mechanism")
 @click.argument('action', metavar='<enable/disable>', required=True, type=click.STRING)  # Corrected this line
 @pass_db
-def remote(action, db):
+def remote(db,action):
     """Enable or disable remote kdump feature"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
@@ -111,13 +111,15 @@ def remote(action, db):
         if current_status == "true":
             click.echo("Remote kdump feature is already enabled.")
         else:
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": action})
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
             click.echo("Remote kdump feature enabled.")
+            echo_reboot_warning()
     elif action.lower() == 'disable':
         if current_status == "false":
             click.echo("Remote kdump feature is already disabled.")
         else:
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": action})
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
             click.echo("Remote kdump feature disabled.")
+            echo_reboot_warning()
     else:
         click.echo("Invalid action. Use 'enable' or 'disable'.")
