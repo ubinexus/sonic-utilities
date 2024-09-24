@@ -1,8 +1,5 @@
 from click.testing import CliRunner
 from utilities_common.db import Db
-import tempfile
-import os
-from unittest.mock import patch, mock_open
 
 
 class TestKdump:
@@ -84,7 +81,6 @@ class TestKdump:
         # Check if the remote feature was enabled in the database
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "true"  # Should be a string
 
-
     def test_config_kdump_remote_disable(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -102,7 +98,6 @@ class TestKdump:
         # Check if the remote feature was disabled in the database
         assert db.cfgdb.get_entry("KDUMP", "config")["remote"] == "false"  # Should be a string
 
-
     def test_config_kdump_remote_already_enabled(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -116,7 +111,6 @@ class TestKdump:
         # Assert exit code and output
         assert result.exit_code == 0
         assert "Remote kdump feature is already enabled." in result.output
-
 
     def test_config_kdump_remote_already_disabled(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -132,7 +126,6 @@ class TestKdump:
         assert result.exit_code == 0
         assert "Remote kdump feature is already disabled." in result.output
 
-
     def test_config_kdump_remote_invalid_action(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -144,7 +137,7 @@ class TestKdump:
         # Assert exit code and output
         assert result.exit_code == 0  # Should not fail but handle gracefully
         assert "Invalid action. Use 'enable' or 'disable'." in result.output
-    
+
     '''def test_add_ssh_key(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
