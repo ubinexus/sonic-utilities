@@ -111,13 +111,13 @@ def remote(action, db):
         if current_status == "true":
             click.echo("Remote kdump feature is already enabled.")
         else:
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": action})
             click.echo("Remote kdump feature enabled.")
     elif action.lower() == 'disable':
         if current_status == "false":
             click.echo("Remote kdump feature is already disabled.")
         else:
-            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": action})
             click.echo("Remote kdump feature disabled.")
     else:
         click.echo("Invalid action. Use 'enable' or 'disable'.")
