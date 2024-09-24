@@ -712,7 +712,25 @@ This command displays the cause of the previous reboot
   admin@sonic:~$ show reboot-cause
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
   ```
+#### Applicable only to SmartSwitch platforms
+**show reboot-cause all**
 
+This command displays the cause of the previous reboot for the Switch and the enabled DPUs
+
+- Usage:
+  ```
+  show reboot-cause all
+  ```
+
+- Example:
+  ```
+  root@MtFuji:~$  show reboot-cause all
+  Device    Name                 Cause                      Time    User
+  --------  -------------------  ----------                 ------  ------
+  SWITCH    2024_07_24_20_43_22  Power Loss                 N/A     N/A
+  DPU2      2024_07_24_20_43_22  Software causes (Reboot)   N/A     N/A
+  DPU1      2024_07_24_20_43_22  Software causes (Reboot)   N/A     N/A
+  ```
 **show reboot-cause history**
 
 This command displays the history of the previous reboots up to 10 entry
@@ -731,6 +749,60 @@ This command displays the history of the previous reboots up to 10 entry
   2020_10_09_01_56_59  reboot       Fri Oct  9 01:53:49 UTC 2020  admin
   2020_10_09_02_00_53  fast-reboot  Fri Oct  9 01:58:04 UTC 2020  admin
   2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
+  ```
+
+#### Applicable only to SmartSwitch platforms
+**show reboot-cause history all**
+
+This command displays the history of the previous reboots up to 10 entry of the Switch and the DPUs that are enabled
+
+- Usage:
+  ```
+  show reboot-cause history all
+  ```
+
+- Example:
+  ```
+  root@MtFuji:~# show reboot-cause history all
+  Device    Name                 Cause                                      Time                             User    Comment
+  --------  -------------------  -----------------------------------------  -------------------------------  ------  -------
+  SWITCH    2024_07_23_23_06_57  Kernel Panic                               Tue Jul 23 11:02:27 PM UTC 2024  N/A     N/A
+  SWITCH    2024_07_23_11_21_32  Power Loss                                 N/A                              N/A     Unknown
+  ```
+
+**show reboot-cause history DPU1**
+
+This command displays the history of the previous reboots up to 10 entry of DPU1
+
+- Usage:
+  ```
+  show reboot-cause history DPU1
+  ```
+
+- Example:
+  ```
+  root@MtFuji:~# show reboot-cause history DPU1
+  Device    Name    Cause                                      Time    User    Comment
+  --------  ------  -----------------------------------------  ------  ------  ---------
+  DPU1      DPU1    Software causes (Hardware watchdog reset)  N/A     N/A     N/A
+  ```
+
+**show reboot-cause history SWITCH**
+
+This command displays the history of the previous reboots up to 10 entry of the SWITCH
+
+- Usage:
+  ```
+  show reboot-cause history SWITCH
+  ```
+
+- Example:
+  ```
+  root@MtFuji:~# show reboot-cause history SWITCH
+  Device    Name                 Cause         Time                             User    Comment
+  --------  -------------------  ------------  -------------------------------  ------  ----------
+  SWITCH    2024_07_23_23_06_57  Kernel Panic  Tue Jul 23 11:02:27 PM UTC 2024  N/A     N/A
+  SWITCH    2024_07_23_09_51_35  Power Loss    N/A                              N/A     First boot
   ```
 
 **show uptime**
