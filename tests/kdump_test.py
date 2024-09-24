@@ -100,6 +100,52 @@ class TestKdump:
         assert result.exit_code == 0
         assert db.cfgdb.get_table("KDUMP")["config"]["remote"] == "false"
 
+    def test_config_kdump_add_ssh_key(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Simulate command execution for 'add ssh_key'
+        ssh_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArV1..."
+        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_key"], [ssh_key], obj=db)
+
+        # Assert that the command executed successfully
+        assert result.exit_code == 0
+        assert f"SSH key added to KDUMP configuration: {ssh_key}" in result.output
+
+        # Retrieve the updated table to ensure the SSH key was added
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        assert kdump_table["config"]["ssh_key"] == ssh_key
+
+        # Test case where KDUMP table is missing
+        db.cfgdb.delete_table("KDUMP")
+        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_key"], [ssh_key], obj=db)
+        assert result.exit_code == 1
+        assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
+
+    def test_config_kdump_add_ssh_path(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Simulate command execution for 'add ssh_path'
+        ssh_path = "/root/.ssh/id_rsa"
+        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_path"], [ssh_path], obj=db)
+
+        # Assert that the command executed successfully
+        assert result.exit_code == 0
+        assert f"SSH key added to KDUMP configuration: {ssh_path}" in result.output
+
+        # Retrieve the updated table to ensure the SSH path was added
+        kdump_table = db.cfgdb.get_table("KDUMP")
+        assert kdump_table["config"]["ssh_path"] == ssh_path
+
+        # Test case where KDUMP table is missing
+        db.cfgdb.delete_table("KDUMP")
+        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_path"], [ssh_path], obj=db)
+        assert result.exit_code == 1
+        assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
