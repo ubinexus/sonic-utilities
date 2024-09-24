@@ -1,6 +1,5 @@
 import sys
 import click
-from utilities_common.db import ConfigDBConnector
 from utilities_common.cli import AbbreviationGroup, pass_db
 #
 # 'kdump' group ('sudo config kdump ...')
@@ -96,6 +95,7 @@ def kdump_num_dumps(db, kdump_num_dumps):
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
     echo_reboot_warning()
 
+
 @kdump.command('remote')
 @click.argument('action', metavar='<enable/disable>', required=True)
 @pass_db
@@ -121,5 +121,3 @@ def remote(action, db):
             click.echo("Remote kdump feature disabled.")
     else:
         click.echo("Invalid action. Use 'enable' or 'disable'.")
-
-
