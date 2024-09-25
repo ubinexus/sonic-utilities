@@ -107,7 +107,12 @@ class TestKdump:
 
         # Simulate command execution for 'add ssh_string'
         ssh_string = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArV1..."
-        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_string"], [ssh_string], obj=db)
+        
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_string"],
+            [ssh_string],
+            obj=db
+        )
 
         # Assert that the command executed successfully
         assert result.exit_code == 0
@@ -119,7 +124,11 @@ class TestKdump:
 
         # Test case where KDUMP table is missing
         db.cfgdb.delete_table("KDUMP")
-        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_string"], [ssh_string], obj=db)
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_string"],
+            [ssh_string],
+            obj=db
+        )
         
         # Assert that the command fails when the table is missing
         assert result.exit_code == 1
