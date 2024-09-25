@@ -191,4 +191,3 @@ def remove_ssh_path(db):
         click.echo("SSH path removed from KDUMP configuration.")
     else:
         click.echo("SSH path not found in KDUMP configuration.")
-
