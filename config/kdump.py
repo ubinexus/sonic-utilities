@@ -131,17 +131,17 @@ def add():
     pass
 
 
-@add.command(name="ssh_key", help="Add an SSH key to the KDUMP configuration")
-@click.argument('ssh_key', metavar='<ssh_key>', required=True)
+@add.command(name="ssh_string", help="Add an SSH string to the KDUMP configuration")
+@click.argument('ssh_string', metavar='<ssh_key>', required=True)
 @pass_db
-def add_ssh_key(db, ssh_key):
-    """Add an SSH key to KDUMP configuration"""
+def add_ssh_key(db, ssh_string):
+    """Add an SSH string to KDUMP configuration"""
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
 
     # Add or update the 'ssh_key' entry in the KDUMP table
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_key": ssh_key})
-    click.echo(f"SSH key added to KDUMP configuration: {ssh_key}")
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_key": ssh_string})
+    click.echo(f"SSH string added to KDUMP configuration: {ssh_string}")
 
 
 @add.command(name="ssh_path", help="Add an SSH path to the KDUMP configuration")
@@ -154,4 +154,41 @@ def add_ssh_path(db, ssh_path):
 
     # Add or update the 'ssh_key' entry in the KDUMP table
     db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": ssh_path})
-    click.echo(f"SSH key added to KDUMP configuration: {ssh_path}")
+    click.echo(f"SSH path added to KDUMP configuration: {ssh_path}")
+
+
+@kdump.group(name="remove", help="remove configuration items to KDUMP")
+def remove():
+    """Group of commands to remove configuration items to KDUMP"""
+    pass
+
+
+@remove.command(name="ssh_string", help="Remove the SSH string from the KDUMP configuration")
+@pass_db
+def remove_ssh_string(db):
+    """Remove the SSH string from KDUMP configuration"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    # Check if ssh_string exists
+    if "ssh_string" in kdump_table["config"]:
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": None})
+        click.echo("SSH string removed from KDUMP configuration.")
+    else:
+        click.echo("SSH string not found in KDUMP configuration.")
+
+
+@remove.command(name="ssh_path", help="Remove the SSH path from the KDUMP configuration")
+@pass_db
+def remove_ssh_path(db):
+    """Remove the SSH path from KDUMP configuration"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    # Check if ssh_string exists
+    if "ssh_path" in kdump_table["config"]:
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": None})
+        click.echo("SSH path removed from KDUMP configuration.")
+    else:
+        click.echo("SSH path not found in KDUMP configuration.")
+

@@ -146,6 +146,42 @@ class TestKdump:
         assert result.exit_code == 1
         assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
 
+    def test_config_kdump_remove_ssh_string(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Add an SSH string for testing removal
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": "test_ssh_string"})
+
+        # Simulate command execution for 'remove ssh_string'
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"].commands["ssh_string"], obj=db)
+        assert result.exit_code == 0
+        assert "SSH string removed from KDUMP configuration." in result.output
+
+        # Test case when SSH string does not exist
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"].commands["ssh_string"], obj=db)
+        assert result.exit_code == 0
+        assert "SSH string not found in KDUMP configuration." in result.output
+
+    def test_config_kdump_remove_ssh_path(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # Add an SSH string for testing removal
+        db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": "test_ssh_path"})
+
+        # Simulate command execution for 'remove ssh_string'
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"].commands["ssh_path"], obj=db)
+        assert result.exit_code == 0
+        assert "SSH path removed from KDUMP configuration." in result.output
+
+        # Test case when SSH path does not exist
+        result = runner.invoke(config.config.commands["kdump"].commands["remove"].commands["ssh_path"], obj=db)
+        assert result.exit_code == 0
+        assert "SSH path not found in KDUMP configuration." in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
