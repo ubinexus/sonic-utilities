@@ -140,7 +140,7 @@ def add_ssh_key(db, ssh_string):
     check_kdump_table_existence(kdump_table)
 
     # Add or update the 'ssh_key' entry in the KDUMP table
-    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_key": ssh_string})
+    db.cfgdb.mod_entry("KDUMP", "config", {"ssh_string": ssh_string})
     click.echo(f"SSH string added to KDUMP configuration: {ssh_string}")
 
 
