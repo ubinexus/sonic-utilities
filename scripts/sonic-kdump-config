@@ -799,6 +799,7 @@ def main():
     parser.add_argument("-v", "--verbose", action='store_true',
         help='displays detailed kdump status information. Used with status command.')
 
+
     # How many lines should we display from the kernel log
     parser.add_argument("-l", "--lines", default=75, type=int,
         help="Number of lines displayed from the kernel log")
@@ -823,7 +824,7 @@ def main():
             changed = cmd_kdump_disable(options.verbose)
         elif options.memory != False:
             cmd_kdump_memory(options.verbose, options.memory)
-        elif options.ssh_string
+        elif options.ssh_string:
             cmd_kdump_ssh_string(options.verbose, options.ssh_string)
         elif options.ssh_path:
             cmd_kdump_ssh_path(options.verbos, options.ssh_path)
