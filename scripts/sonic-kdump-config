@@ -678,7 +678,7 @@ def cmd_kdump_disable(verbose):
     ssh_path = get_kdump_ssh_path()
 
     if verbose:
-        print("configDB: kdump_enabled=%d kdump_remote=%s memory=[%s] ssh_string=[%s] num_nums=%d ssh_path=[%ss]" % (kdump_enabled, kdump_remote, memory, ssh_string, num_dumps, ssh_path))
+        print("configDB: kdump_enabled=%d kdump_remote=%s memory=[%s] ssh_string=[%s] num_nums=%d ssh_path=[%ss]" % (kdump_enabled, remote, memory, ssh_string, num_dumps, ssh_path))
     if os.path.exists(grub_cfg):
         return kdump_disable(verbose, image, grub_cfg)
     elif open(machine_cfg, 'r').read().find('aboot_platform') >= 0:
