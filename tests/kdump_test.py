@@ -105,6 +105,9 @@ class TestKdump:
         db = Db()
         runner = CliRunner()
 
+        # Simulate enabling the remote feature
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": True})
+        
         # Simulate command execution for 'add ssh_string'
         ssh_string = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArV1..."
 
@@ -134,14 +137,34 @@ class TestKdump:
         assert result.exit_code == 1
         assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
 
+        # Test case when remote feature is not enabled
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": False})
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_string"],
+            [ssh_string],
+            obj=db
+        )
+
+        # Assert that the command fails because remote feature is disabled
+        assert result.exit_code == 1
+        assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
+
+
     def test_config_kdump_add_ssh_path(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
+        # Simulate enabling the remote feature
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": True})
+
         # Simulate command execution for 'add ssh_path'
         ssh_path = "/root/.ssh/id_rsa"
-        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_path"], [ssh_path], obj=db)
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+            [ssh_path],
+            obj=db
+        )
 
         # Assert that the command executed successfully
         assert result.exit_code == 0
@@ -153,9 +176,26 @@ class TestKdump:
 
         # Test case where KDUMP table is missing
         db.cfgdb.delete_table("KDUMP")
-        result = runner.invoke(config.config.commands["kdump"].commands["add"].commands["ssh_path"], [ssh_path], obj=db)
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+            [ssh_path],
+            obj=db
+        )
         assert result.exit_code == 1
         assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
+
+        # Test case when remote feature is not enabled
+        db.cfgdb.mod_entry("KDUMP", "config", {"remote": False})
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+            [ssh_path],
+            obj=db
+        )
+
+        # Assert that the command fails because remote feature is disabled
+        assert result.exit_code == 1
+        assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
+
 
     def test_config_kdump_remove_ssh_string(self, get_cmd_module):
         (config, show) = get_cmd_module
