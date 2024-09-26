@@ -108,7 +108,7 @@ class TestKdump:
         # Test case where KDUMP table does not exist
         ssh_string = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArV1..."
         db.cfgdb.delete_table("KDUMP")
-        
+
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_string"],
             [ssh_string],
@@ -155,7 +155,7 @@ class TestKdump:
         # Test case where KDUMP table does not exist
         ssh_path = "/root/.ssh/id_rsa"
         db.cfgdb.delete_table("KDUMP")
-        
+
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_path"],
             [ssh_path],

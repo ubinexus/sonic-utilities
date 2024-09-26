@@ -164,7 +164,7 @@ def add_ssh_key(db, ssh_string):
 @pass_db
 def add_ssh_path(db, ssh_path):
     """Add an SSH path to KDUMP configuration"""
-    
+
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
     current_status = kdump_table["config"].get("remote", "false").lower()
