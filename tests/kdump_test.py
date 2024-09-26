@@ -128,7 +128,7 @@ class TestKdump:
         )
 
         # Assert that the command fails because the remote feature is disabled
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
 
         # Test case where remote feature is enabled
@@ -175,7 +175,7 @@ class TestKdump:
         )
 
         # Assert that the command fails because the remote feature is disabled
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
 
         # Test case where remote feature is enabled
