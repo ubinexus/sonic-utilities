@@ -3,7 +3,6 @@ import os
 import sys
 import unittest
 from unittest.mock import patch, mock_open, Mock
-from sonic_kdump_config import read_ssh_string, write_ssh_path, kdump_cfg, read_ssh_path, write_ssh_string
 from utilities_common.general import load_module_from_source
 from sonic_installer.common import IMAGE_PREFIX
 
@@ -291,17 +290,20 @@ class TestSonicKdumpConfig(unittest.TestCase):
         self.assertEqual(ssh_string, 'user@ip_address')
 
     @patch('sonic_kdump_config.run_command')
-    def test_write_ssh_string(self, mock_run_command):
+    @patch('sonic_kdump_config.write_ssh_string')
+    def test_write_ssh_string(self, mock_run_command, write_ssh_string):
         mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
 
         write_ssh_string('user@ip_address')  # Call the function to test
+        kdump_cfg = '/etc/default/kdump-tools'
 
         # Verify that run_command was called with the correct command
         expected_cmd = '/bin/sed -i -e \'s/#*SSH=.*/SSH="user@ip_address"\' %s' % kdump_cfg
         mock_run_command.assert_called_once_with(expected_cmd, use_shell=True)
 
     @patch('sonic_kdump_config.run_command')
-    def test_read_ssh_path(self, mock_run_command):
+    @patch('sonic_kdump_cfg.read_ssh_path')
+    def test_read_ssh_path(self, mock_run_command, read_ssh_path):
         # Mocking the output of the run_command function
         mock_run_command.return_value = (0, ['/path/to/keys'], '')
 
@@ -310,10 +312,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
 
     @patch('sonic_kdump_config.run_command')
     @patch("os.path.exists")
-    def test_write_ssh_path(self, mock_path_exist, mock_run_command):
+    def test_write_ssh_path(self, mock_path_exist, mock_run_command, write_ssh_path):
         mock_path_exist.return_value = True
         mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
-
+        kdump_cfg = '/etc/default/kdump-tools'
         write_ssh_path('/path/to/keys')  # Call the function to test
         # Verify that run_command was called with the correct command
         expected_cmd = '/bin/sed -i -e \'s/#*SSH_PATH=.*/SSH_PATH="/path/to/keys"/\' %s' % kdump_cfg
