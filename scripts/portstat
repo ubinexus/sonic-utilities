@@ -39,7 +39,6 @@ from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
 
 from utilities_common.cli import json_serial, UserCache
-
 from utilities_common.portstat import Portstat
 
 def main():
