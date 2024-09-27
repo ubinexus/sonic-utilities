@@ -370,7 +370,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         #/bin/sed -i -e \'s/#*SSH_KEY=.*/SSH_KEY="/path/to/keys"/\' /etc/default/kdump-tools
         # Ensure the correct command is being run
         expected_cmd = (
-            "/bin/sed -i -e \'s/#*SSH_KEY=.*/SSH_KEY="/path/to/keys"/\' %s" 
+            "/bin/sed -i -e 's/#*SSH_KEY=.*/SSH_KEY=\"/path/to/keys\"/' %s" 
             % sonic_kdump_config.kdump_cfg
         )
         mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
