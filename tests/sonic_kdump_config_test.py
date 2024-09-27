@@ -4,6 +4,9 @@ import sys
 import unittest
 from unittest.mock import patch, mock_open, Mock
 from utilities_common.general import load_module_from_source
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../scripts')))
+from sonic_kdump_config import read_ssh_string, write_ssh_string, read_ssh_path, write_ssh_path
+
 from sonic_installer.common import IMAGE_PREFIX
 
 TESTS_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +37,6 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_run_cmd.return_value = (0, ["0"], None)
         num_dumps = sonic_kdump_config.read_num_dumps()
         assert num_dumps == 0
-
         logger.info("Value of 'num_dumps' is: '{}'.".format(num_dumps))
         logger.info("Expected value of 'num_dumps' is: '0'.")
 
@@ -281,34 +283,112 @@ class TestSonicKdumpConfig(unittest.TestCase):
             return_result = sonic_kdump_config.get_next_image()
         self.assertEqual(sys_exit.exception.code, 1)
 
-    @patch('sonic_kdump_config.run_command')
-    def test_read_ssh_string(self, mock_run_command, read_ssh_string):
-        # Mocking the output of the run_command function
-        mock_run_command.return_value = (0, ['user@ip_address'], '')
-
-        ssh_string = read_ssh_string()  # Call the function to test
+    @patch("sonic_kdump_config.run_command")
+    def test_read_ssh_string(self, mock_run_cmd):
+        """Tests the function `read_ssh_string(...)` in script `sonic-kdump-config`."""
+        
+        # Test case for successful read
+        mock_run_cmd.return_value = (0, ['user@ip_address'], None)  # Simulate successful command execution
+        ssh_string = sonic_kdump_config.read_ssh_string()
         self.assertEqual(ssh_string, 'user@ip_address')
+        
+        # Test case for non-integer output
+        mock_run_cmd.return_value = (0, ['NotAString'], None)  # Simulate command execution returning a non-string
+        ssh_string = sonic_kdump_config.read_ssh_string()
+        self.assertEqual(ssh_string, 'NotAString')
 
-    @patch('sonic_kdump_config.run_command')
-    @patch('sonic_kdump_config.write_ssh_string')
-    def test_write_ssh_string(self, mock_run_command, write_ssh_string):
-        mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
+        # Test case for empty output
+        mock_run_cmd.return_value = (0, [], None)  # Simulate command execution with empty output
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.read_ssh_string()
+        self.assertEqual(sys_exit.exception.code, 1)
 
-        write_ssh_string('user@ip_address')  # Call the function to test
-        kdump_cfg = '/etc/default/kdump-tools'
+        # Test case for command failure
+        mock_run_cmd.return_value = (1, [], None)  # Simulate command failure
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.read_ssh_string()
+        self.assertEqual(sys_exit.exception.code, 1)
 
+    @patch("sonic_kdump_config.run_command")
+    @patch("sonic_kdump_config.read_ssh_string")
+    def test_write_ssh_string(self, mock_read_ssh_string, mock_run_cmd):
+        """Tests the function `write_ssh_string(...)` in script `sonic-kdump-config`."""
+
+        # Test successful case
+        mock_run_cmd.return_value = (0, [], None)  # Simulate successful command execution
+        mock_read_ssh_string.return_value = 'user@ip_address'  # Simulate reading existing SSH string
+        
+        # Call the function to test
+        sonic_kdump_config.write_ssh_string('user@ip_address')
+        
         # Verify that run_command was called with the correct command
-        expected_cmd = '/bin/sed -i -e \'s/#*SSH=.*/SSH="user@ip_address"\' %s' % kdump_cfg
-        mock_run_command.assert_called_once_with(expected_cmd, use_shell=True)
+        expected_cmd = '/bin/sed -i -e \'s/#*SSH=.*/SSH="user@ip_address"/\' %s' % sonic_kdump_config.kdump_cfg
+        mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
 
-    @patch('sonic_kdump_config.run_command')
-    @patch('sonic_kdump_cfg.read_ssh_path')
-    def test_read_ssh_path(self, mock_run_command, read_ssh_path):
-        # Mocking the output of the run_command function
-        mock_run_command.return_value = (0, ['/path/to/keys'], '')
+        # Test case where write fails
+        mock_run_cmd.return_value = (1, [], None)  # Simulate command failure
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_ssh_string('user@ip_address')
+        self.assertEqual(sys_exit.exception.code, 1)
 
-        ssh_path = read_ssh_path()  # Call the function to test
+        # Test case where the written SSH string doesn't match the expected value
+        mock_run_cmd.return_value = (0, [], None)
+        mock_read_ssh_string.return_value = 'different_user@ip_address'  # Simulate reading a different SSH string
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_ssh_string('user@ip_address')
+        self.assertEqual(sys_exit.exception.code, 1)
+
+    @patch("sonic_kdump_config.run_command")
+    def test_read_ssh_path(self, mock_run_cmd):
+        """Tests the function `read_ssh_path(...)` in script `sonic-kdump-config`."""
+
+        # Test successful case with valid SSH path
+        mock_run_cmd.return_value = (0, ['/path/to/keys'], None)
+        ssh_path = sonic_kdump_config.read_ssh_path()
         self.assertEqual(ssh_path, '/path/to/keys')
+
+        # Test case where SSH path is not an integer (invalid output)
+        mock_run_cmd.return_value = (0, ['NotAPath'], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            ssh_path = sonic_kdump_config.read_ssh_path()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        # Test case with empty output
+        mock_run_cmd.return_value = (0, [], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            ssh_path = sonic_kdump_config.read_ssh_path()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        # Test case with run_command failure
+        mock_run_cmd.return_value = (1, [], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            ssh_path = sonic_kdump_config.read_ssh_path()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+    @patch("sonic_kdump_config.run_command")
+    @patch("sonic_kdump_config.read_ssh_path")
+    def test_write_ssh_path(self, mock_read_ssh_path, mock_run_cmd):
+        """Tests the function `write_ssh_path(...)` in script `sonic-kdump-config`."""
+        
+        # Test case for successful write
+        mock_run_cmd.return_value = (0, [], None)  # Simulate successful command execution
+        mock_read_ssh_path.return_value = '/path/to/keys'  # Return the same SSH_PATH
+        sonic_kdump_config.write_ssh_path('/path/to/keys')
+        expected_cmd = '/bin/sed -i -e \'s/#*SSH_PATH=.*/SSH_PATH="\\/path\\/to\\/keys"/\' %s' % sonic_kdump_config.kdump_cfg
+        mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
+
+        # Test case for SSH_PATH not being written correctly
+        mock_run_cmd.return_value = (0, [], None)  # Simulate command execution
+        mock_read_ssh_path.return_value = '/wrong/path'  # Return a different SSH_PATH
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_ssh_path('/path/to/keys')
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        # Test case for command failure
+        mock_run_cmd.return_value = (1, [], None)  # Simulate command failure
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_ssh_path('/path/to/keys')
+        self.assertEqual(sys_exit.exception.code, 1)
 
     @patch('sonic_kdump_config.run_command')
     @patch("os.path.exists")
