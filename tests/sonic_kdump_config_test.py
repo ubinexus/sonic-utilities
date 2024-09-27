@@ -315,10 +315,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
         # Test successful case
         mock_run_cmd.return_value = (0, [], None)  # Simulate successful command execution
         mock_read_ssh_string.return_value = 'user@ip_address'  # Simulate reading existing SSH string
-        
+
         # Call the function to test
         sonic_kdump_config.write_ssh_string('user@ip_address')
-        
+
         # Verify that run_command was called with the correct command
         expected_cmd = '/bin/sed -i -e \'s/#*SSH=.*/SSH="user@ip_address"/\' %s' % sonic_kdump_config.kdump_cfg
         mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
@@ -372,7 +372,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_run_cmd.return_value = (0, [], None)  # Simulate successful command execution
         mock_read_ssh_path.return_value = '/path/to/keys'  # Return the same SSH_PATH
         sonic_kdump_config.write_ssh_path('/path/to/keys')
-        expected_cmd = '/bin/sed -i -e \'s/#*SSH_PATH=.*/SSH_PATH="\\/path\\/to\\/keys"/\' %s' % sonic_kdump_config.kdump_cfg
+        expected_cmd = (
+                    '/bin/sed -i -e \'s/#*SSH_PATH=.*/'
+                    'SSH_PATH="\\/path\\/to\\/keys"/\' %s'
+                        ) % sonic_kdump_config.kdump_cfg
         mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
 
         # Test case for SSH_PATH not being written correctly
@@ -387,17 +390,6 @@ class TestSonicKdumpConfig(unittest.TestCase):
         with self.assertRaises(SystemExit) as sys_exit:
             sonic_kdump_config.write_ssh_path('/path/to/keys')
         self.assertEqual(sys_exit.exception.code, 1)
-
-    @patch('sonic_kdump_config.run_command')
-    @patch("os.path.exists")
-    def test_write_ssh_path(self, mock_path_exist, mock_run_command, write_ssh_path):
-        mock_path_exist.return_value = True
-        mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
-        kdump_cfg = '/etc/default/kdump-tools'
-        write_ssh_path('/path/to/keys')  # Call the function to test
-        # Verify that run_command was called with the correct command
-        expected_cmd = '/bin/sed -i -e \'s/#*SSH_PATH=.*/SSH_PATH="/path/to/keys"/\' %s' % kdump_cfg
-        mock_run_command.assert_called_once_with(expected_cmd, use_shell=True)
 
     @patch("sonic_kdump_config.write_use_kdump")
     @patch("os.path.exists")
