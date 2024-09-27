@@ -472,7 +472,6 @@ def read_ssh_path():
         sys.exit(1)
 
 def write_ssh_path(ssh_path):
-    ssh_path = ssh_path.replace('/', '\/')  # Escape slashes in the SSH_PATH
     cmd = "/bin/sed -i -e 's/#*SSH_KEY=.*/SSH_KEY=\"%s\"/' %s" % (ssh_path, kdump_cfg)
 
     (rc, lines, err_str) = run_command(cmd, use_shell=True)  # Make sure to set use_shell=True
