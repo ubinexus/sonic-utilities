@@ -460,7 +460,10 @@ def read_ssh_path():
     (rc, lines, err_str) = run_command("grep '#*SSH_KEY=.*' %s | cut -d '=' -f 2 | tr -d '\"'" % kdump_cfg, use_shell=True)
     if rc == 0 and type(lines) == list and len(lines) >= 1:
         try:
-            return lines[0].strip()  # Return the SSH_PATH (e.g., /path/to/keys)
+            ssh_path = lines[0].strip()
+            if not ssh_path.startswith('/'):  # Validate that the path starts with a slash
+                raise ValueError("Invalid SSH path format.")
+            return ssh_path
         except Exception as e:
             print_err('Error! Exception[%s] occurred while reading SSH_PATH from %s' % (str(e), kdump_cfg))
             sys.exit(1)
