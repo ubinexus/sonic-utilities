@@ -131,15 +131,6 @@ def add():
     pass
 
 
-def is_remote_enabled(db):
-    """Check if the remote feature is enabled in the KDUMP configuration."""
-    kdump_table = db.cfgdb.get_table("KDUMP")
-    check_kdump_table_existence(kdump_table)
-
-    # Assuming there is a field 'remote' that indicates if the remote feature is enabled
-    return kdump_table.get("config", {}).get("remote", False)
-
-
 @add.command(name="ssh_string", help="Add an SSH string to the KDUMP configuration")
 @click.argument('ssh_string', metavar='<ssh_key>', required=True)
 @pass_db

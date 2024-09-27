@@ -282,6 +282,39 @@ class TestSonicKdumpConfig(unittest.TestCase):
             return_result = sonic_kdump_config.get_next_image()
         self.assertEqual(sys_exit.exception.code, 1)
 
+    @patch('sonic_kdump_config.read_ssh_string')
+    @patch("os.path.exists")
+    def test_read_ssh_string(self, mock_run_command,read_ssh_string):
+        # Mocking the output of the run_command function
+        mock_run_command.return_value = (0, ['user@ip_address'], '')
+
+        ssh_string = read_ssh_string()  # Call the function to test
+        self.assertEqual(ssh_string, 'user@ip_address')
+
+    @patch('sonic_kdump_config.write_ssh_string')
+    def test_write_ssh_string(self, mock_run_command, write_ssh_string):
+        mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
+        
+        write_ssh_string('user@ip_address')  # Call the function to test
+        mock_run_command.assert_called_once()
+    
+    @patch('sonic_kdump_config.read_ssh_path')
+    @patch("os.path.exists")
+    def test_read_ssh_path(self, mock_run_command, read_ssh_path):
+        # Mocking the output of the run_command function
+        mock_run_command.return_value = (0, ['/path/to/keys'], '')
+
+        ssh_path = read_ssh_path()  # Call the function to test
+        self.assertEqual(ssh_path, '/path/to/keys')
+
+    @patch('sonic_kdump_config.write_ssh_path')
+    def test_write_ssh_path(self, mock_run_command, write_ssh_path):
+        # Mocking a successful command execution
+        mock_run_command.return_value = (0, [], '')
+
+        write_ssh_path('/path/to/keys')  # Call the function to test
+        mock_run_command.assert_called_once()
+
     @patch("sonic_kdump_config.write_use_kdump")
     @patch("os.path.exists")
     def test_kdump_disable(self, mock_path_exist, mock_write_kdump):
