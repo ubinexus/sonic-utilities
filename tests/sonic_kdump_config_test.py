@@ -4,8 +4,6 @@ import sys
 import unittest
 from unittest.mock import patch, mock_open, Mock
 from utilities_common.general import load_module_from_source
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../scripts')))
-from sonic_kdump_config import read_ssh_string, write_ssh_string, read_ssh_path, write_ssh_path
 
 from sonic_installer.common import IMAGE_PREFIX
 
@@ -286,12 +284,12 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch("sonic_kdump_config.run_command")
     def test_read_ssh_string(self, mock_run_cmd):
         """Tests the function `read_ssh_string(...)` in script `sonic-kdump-config`."""
-        
+
         # Test case for successful read
         mock_run_cmd.return_value = (0, ['user@ip_address'], None)  # Simulate successful command execution
         ssh_string = sonic_kdump_config.read_ssh_string()
         self.assertEqual(ssh_string, 'user@ip_address')
-        
+
         # Test case for non-integer output
         mock_run_cmd.return_value = (0, ['NotAString'], None)  # Simulate command execution returning a non-string
         ssh_string = sonic_kdump_config.read_ssh_string()
@@ -369,7 +367,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch("sonic_kdump_config.read_ssh_path")
     def test_write_ssh_path(self, mock_read_ssh_path, mock_run_cmd):
         """Tests the function `write_ssh_path(...)` in script `sonic-kdump-config`."""
-        
+
         # Test case for successful write
         mock_run_cmd.return_value = (0, [], None)  # Simulate successful command execution
         mock_read_ssh_path.return_value = '/path/to/keys'  # Return the same SSH_PATH
