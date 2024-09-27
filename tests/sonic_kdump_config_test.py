@@ -373,8 +373,8 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_read_ssh_path.return_value = '/path/to/keys'  # Return the same SSH_PATH
         sonic_kdump_config.write_ssh_path('/path/to/keys')
         expected_cmd = (
-                    '/bin/sed -i -e \'s/#*SSH_PATH=.*/'
-                    'SSH_PATH="\\/path\\/to\\/keys"/\' %s'
+                    '/bin/sed -i -e \'s/#*SSH_KEY=.*/'
+                    'SSH_KEY="\\/path\\/to\\/keys"/\' %s'
                         ) % sonic_kdump_config.kdump_cfg
         mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
 
