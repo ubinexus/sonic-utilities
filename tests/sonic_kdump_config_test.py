@@ -284,7 +284,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
 
     @patch('sonic_kdump_config.read_ssh_string')
     @patch("os.path.exists")
-    def test_read_ssh_string(self, mock_run_command,read_ssh_string):
+    def test_read_ssh_string(self, mock_run_command, read_ssh_string):
         # Mocking the output of the run_command function
         mock_run_command.return_value = (0, ['user@ip_address'], '')
 
@@ -294,10 +294,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch('sonic_kdump_config.write_ssh_string')
     def test_write_ssh_string(self, mock_run_command, write_ssh_string):
         mock_run_command.return_value = (0, [], '')  # Mocking a successful command execution
-        
+
         write_ssh_string('user@ip_address')  # Call the function to test
         mock_run_command.assert_called_once()
-    
+
     @patch('sonic_kdump_config.read_ssh_path')
     @patch("os.path.exists")
     def test_read_ssh_path(self, mock_run_command, read_ssh_path):
