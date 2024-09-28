@@ -89,7 +89,7 @@ Name                 Cause        Time                          User    Comment
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
-        with mock.patch("device_info.is_smartswitch", return_value=True):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
             with mock.patch("show.reboot_cause.fetch_data_from_db",
                             return_value={
                                 "comment": "",
