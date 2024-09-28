@@ -463,10 +463,11 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_run.return_value = (0, [], '')  # Simulate successful remote configuration
 
         # Call the function with remote enabled
-        changed = sonic_kdump_config.kdump_enable(verbose=True, kdump_enabled=True, memory='128M', num_dumps=3,
-            image='myimage', cmdline_file='cmdline.txt',
-            remote=True, ssh_string='user@remote', ssh_path='/path/to/keys'
-            )
+        changed = sonic_kdump_config.kdump_enable(
+                    verbose=True, kdump_enabled=True, memory='128M', num_dumps=3,
+                    image='myimage', cmdline_file='cmdline.txt',
+                    remote=True, ssh_string='user@remote', ssh_path='/path/to/keys'
+        )
 
         # Assertions
         self.assertTrue(changed)  # Expect some changes to be made
@@ -479,9 +480,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch('sonic_kdump_config.search_for_crash_kernel_in_cmdline')
     @patch('sonic_kdump_config.search_for_crash_kernel')
     @patch('sonic_kdump_config.locate_image')
-    def test_kdump_enable_remote_error(self, mock_locate, mock_search_kernel, mock_search_cmdline,
+    def test_kdump_enable_remote_error(
+            self, mock_locate, mock_search_kernel, mock_search_cmdline,
             mock_rewrite, mock_write_kdump, mock_run, mock_open
-            ):
+        ):
         # Setup mocks
         mock_locate.return_value = 0  # Image found at index 0
         mock_search_cmdline.return_value = None  # No crashkernel set in cmdline
