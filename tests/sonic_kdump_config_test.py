@@ -454,7 +454,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     def test_cmd_kdump_ssh_path_update(self, mock_print, mock_write, mock_read, mock_run):
         # Mock read_ssh_path to return the current SSH path
         mock_read.return_value = '/old/path/to/keys'
-        
+
         # Call the function with a new SSH path
         sonic_kdump_config.cmd_kdump_ssh_path(verbose=True, ssh_path='/new/path/to/keys')
 
