@@ -159,9 +159,9 @@ def reboot_cause(ctx):
 smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 # 'all' command within 'reboot-cause'
-if smartswitch:
-    @reboot_cause.command()
-    def all():
+@reboot_cause.command()
+def all():
+    if smartswitch:
         """Show cause of most recent reboot"""
         reboot_cause_data = fetch_reboot_cause_from_db("all")
         header = ['Device', 'Name', 'Cause', 'Time', 'User']
