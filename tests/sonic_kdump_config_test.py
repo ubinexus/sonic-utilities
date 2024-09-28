@@ -433,6 +433,54 @@ class TestSonicKdumpConfig(unittest.TestCase):
             sonic_kdump_config.write_ssh_path('/path/to/keys')
         self.assertEqual(sys_exit.exception.code, 1)
 
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_path')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_path_none(self, mock_print, mock_read, mock_run):
+        # Mock the output of run_command when ssh_path is None
+        mock_run.return_value = (0, ['current_ssh_path'], '')  # Simulated output
+        sonic_kdump_config.cmd_kdump_ssh_path(verbose=True, ssh_path=None)
+
+        # Check that run_command was called with the correct command
+        mock_run.assert_called_once_with("show kdump ssh_path", use_shell=False)
+
+        # Verify that the printed output is correct
+        mock_print.assert_called_once_with('current_ssh_path')
+
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_path')
+    @patch('sonic_kdump_config.write_ssh_path')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_path_update(self, mock_print, mock_write, mock_read, mock_run):
+        # Mock read_ssh_path to return the current SSH path
+        mock_read.return_value = '/old/path/to/keys'
+        
+        # Call the function with a new SSH path
+        sonic_kdump_config.cmd_kdump_ssh_path(verbose=True, ssh_path='/new/path/to/keys')
+
+        # Check that write_ssh_path was called with the new SSH path
+        mock_write.assert_called_once_with('/new/path/to/keys')
+
+        # Verify that the correct message is printed
+        mock_print.assert_called_once_with("SSH path updated. Changes will take effect after reboot.")
+
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_path')
+    @patch('sonic_kdump_config.write_ssh_path')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_path_no_update(self, mock_print, mock_write, mock_read, mock_run):
+        # Mock read_ssh_path to return the same SSH path provided
+        mock_read.return_value = '/same/path/to/keys'
+
+        # Call the function with the same SSH path
+        sonic_kdump_config.cmd_kdump_ssh_path(verbose=True, ssh_path='/same/path/to/keys')
+
+        # Check that write_ssh_path was not called
+        mock_write.assert_not_called()
+
+        # Check that no message is printed for update
+        mock_print.assert_not_called()
+
     @patch("sonic_kdump_config.write_use_kdump")
     @patch("os.path.exists")
     def test_kdump_disable(self, mock_path_exist, mock_write_kdump):
