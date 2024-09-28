@@ -246,7 +246,6 @@ class TestSonicKdumpConfig(unittest.TestCase):
     def test_cmd_kdump_ssh_string_update(self, mock_print, mock_write, mock_read, mock_run):
         # Mock read_ssh_string to return the current SSH string
         mock_read.return_value = 'old_ssh_string'
-        
         # Call the function with a new SSH string
         sonic_kdump_config.cmd_kdump_ssh_string(verbose=True, ssh_string='new_ssh_string')
 
@@ -417,8 +416,8 @@ class TestSonicKdumpConfig(unittest.TestCase):
         sonic_kdump_config.write_ssh_path('/path/to/keys')  # Call function with valid path
         # Ensure the correct command is being run
         expected_cmd = (
-        "/bin/sed -i -e 's/#*SSH_KEY=.*/SSH_KEY=\"/path/to/keys\"/' %s"
-        % sonic_kdump_config.kdump_cfg
+            "/bin/sed -i -e 's/#*SSH_KEY=.*/SSH_KEY=\"/path/to/keys\"/' %s"
+            % sonic_kdump_config.kdump_cfg
         )
         mock_run_cmd.assert_called_once_with(expected_cmd, use_shell=True)
 
