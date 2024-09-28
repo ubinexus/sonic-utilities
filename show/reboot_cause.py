@@ -167,6 +167,7 @@ if smartswitch:
         header = ['Device', 'Name', 'Cause', 'Time', 'User']
         click.echo(tabulate(reboot_cause_data, header, numalign="left"))
 
+
 # utility to get options
 def get_dynamic_dpus():
     if smartswitch:
