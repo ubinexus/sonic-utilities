@@ -1,11 +1,11 @@
 import sys
 import os
 from unittest import mock
-from sonic_py_common import device_info
 
 import click
 from click.testing import CliRunner
 from .mock_tables import dbconnector
+from sonic_py_common import device_info
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)

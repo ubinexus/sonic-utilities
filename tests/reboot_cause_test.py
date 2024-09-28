@@ -100,9 +100,9 @@ Name                 Cause        Time                          User    Comment
                             "user": "admin",
                             "time": "Thu Oct 22 03:11:08 UTC 2020"
                         }):
-            runner = CliRunner()
-            result = runner.invoke(show.cli.commands["reboot-cause"].commands.get("all"), [])
-            print(result.output)
+                runner = CliRunner()
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands.get("all"), [])
+                print(result.output)
 
     @classmethod
     def teardown_class(cls):
