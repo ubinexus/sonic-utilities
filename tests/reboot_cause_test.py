@@ -87,8 +87,10 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
         print(result.output)
 
-    # Test 'show reboot-cause all'
-    def test_reboot_cause_all(self):
+    # Test 'show reboot-cause all on smartswitch'
+    @patch('sonic_py_common.device_info')
+    def test_reboot_cause_all(self, mock_device_info):
+        mock_device_info.is_smartswitch.return_value = True
         with mock.patch("show.reboot_cause.fetch_data_from_db",
                         return_value={
                             "comment": "",

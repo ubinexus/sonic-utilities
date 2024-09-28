@@ -349,7 +349,9 @@ swss            OK                OK                  -              -
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
-    def test_health_dpu(self):
+    @patch('sonic_py_common.device_info')
+    def test_health_dpu(self, mock_device_info):
+        mock_device_info.is_smartswitch.return_value = True
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
