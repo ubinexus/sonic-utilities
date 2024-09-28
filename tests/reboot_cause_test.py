@@ -91,14 +91,14 @@ Name                 Cause        Time                          User    Comment
     def test_reboot_cause_all(self):
         with mock.patch("device_info.is_smartswitch", return_value=True):
             with mock.patch("show.reboot_cause.fetch_data_from_db",
-                        return_value={
-                            "comment": "",
-                            "gen_time": "2020_10_22_03_14_07",
-                            "device": "DPU0",
-                            "cause": "reboot",
-                            "user": "admin",
-                            "time": "Thu Oct 22 03:11:08 UTC 2020"
-                        }):
+                            return_value={
+                                "comment": "",
+                                "gen_time": "2020_10_22_03_14_07",
+                                "device": "DPU0",
+                                "cause": "reboot",
+                                "user": "admin",
+                                "time": "Thu Oct 22 03:11:08 UTC 2020"
+                            }):
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
                 print(result.output)
