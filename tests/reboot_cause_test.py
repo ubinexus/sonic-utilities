@@ -2,8 +2,8 @@ import os
 import sys
 import textwrap
 from unittest import mock
-from unittest.mock import patch
 
+from sonic_py_common import device_info
 from click.testing import CliRunner
 
 from .mock_tables import dbconnector
@@ -89,10 +89,9 @@ Name                 Cause        Time                          User    Comment
         print(result.output)
 
     # Test 'show reboot-cause all on smartswitch'
-    @patch('sonic_py_common.device_info')
-    def test_reboot_cause_all(self, mock_device_info):
-        mock_device_info.is_smartswitch.return_value = True
-        with mock.patch("show.reboot_cause.fetch_data_from_db",
+    def test_reboot_cause_all(self):
+        with mock.patch("device_info.is_smartswitch", return_value=True):
+            with mock.patch("show.reboot_cause.fetch_data_from_db",
                         return_value={
                             "comment": "",
                             "gen_time": "2020_10_22_03_14_07",
@@ -102,7 +101,7 @@ Name                 Cause        Time                          User    Comment
                             "time": "Thu Oct 22 03:11:08 UTC 2020"
                         }):
             runner = CliRunner()
-            result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
+            result = runner.invoke(show.cli.commands["reboot-cause"].commands.get("all"), [])
             print(result.output)
 
     @classmethod

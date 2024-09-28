@@ -1,7 +1,7 @@
 import sys
 import os
 from unittest import mock
-from unittest.mock import patch
+from sonic_py_common import device_info
 
 import click
 from click.testing import CliRunner
@@ -350,9 +350,7 @@ swss            OK                OK                  -              -
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
-    @patch('sonic_py_common.device_info')
-    def test_health_dpu(self, mock_device_info):
-        mock_device_info.is_smartswitch.return_value = True
+    def test_health_dpu(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
@@ -375,7 +373,8 @@ swss            OK                OK                  -              -
                  "dpu_data_plane_reason", "Polaris is UP")
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
                  "dpu_midplane_link_time", "20240608 09:11:13")
-        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
-            runner = CliRunner()
-            result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
-            click.echo(result.output)
+        with mock.patch("device_info.is_smartswitch", return_value=True):
+            with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+                runner = CliRunner()
+                result = runner.invoke(show.cli.commands["system-health"].commands.get("dpu"), ["DPU0"])
+                click.echo(result.output)
