@@ -447,7 +447,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         # Verify that the printed output is correct
         mock_print.assert_called_once_with('current_ssh_path')
 
-     @patch('builtins.open', new_callable=mock_open, read_data='loop=image-myimage crashkernel=128M')
+    @patch('builtins.open', new_callable=mock_open, read_data='loop=image-myimage crashkernel=128M')
     @patch('sonic_kdump_config.run_command')
     @patch('sonic_kdump_config.write_use_kdump')
     @patch('sonic_kdump_config.rewrite_cfg')
