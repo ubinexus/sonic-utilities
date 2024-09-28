@@ -3,7 +3,6 @@ import sys
 import textwrap
 from unittest import mock
 
-from sonic_py_common import device_info
 from click.testing import CliRunner
 
 from .mock_tables import dbconnector
@@ -101,7 +100,7 @@ Name                 Cause        Time                          User    Comment
                             "time": "Thu Oct 22 03:11:08 UTC 2020"
                         }):
                 runner = CliRunner()
-                result = runner.invoke(show.cli.commands["reboot-cause"].commands.get("all"), [])
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands.["all"], [])
                 print(result.output)
 
     @classmethod

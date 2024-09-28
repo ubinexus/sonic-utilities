@@ -5,7 +5,6 @@ from unittest import mock
 import click
 from click.testing import CliRunner
 from .mock_tables import dbconnector
-from sonic_py_common import device_info
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -376,5 +375,5 @@ swss            OK                OK                  -              -
         with mock.patch("device_info.is_smartswitch", return_value=True):
             with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
                 runner = CliRunner()
-                result = runner.invoke(show.cli.commands["system-health"].commands.get("dpu"), ["DPU0"])
+                result = runner.invoke(show.cli.commands["system-health"].commands.["dpu"], ["DPU0"])
                 click.echo(result.output)
