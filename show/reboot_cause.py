@@ -195,4 +195,3 @@ def history(module_name=None):
 
     if reboot_cause_history:
         click.echo(tabulate(reboot_cause_history, header, numalign="left"))
-

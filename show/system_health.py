@@ -171,6 +171,7 @@ def sysready_status_detail():
 
 smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
+
 def show_module_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
     chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
@@ -221,6 +222,7 @@ def show_module_state(module_name):
 
     headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
     click.echo(tabulate(table, headers=headers))
+
 
 def populate_row(row, key, value, table):
     if key.endswith('_state'):

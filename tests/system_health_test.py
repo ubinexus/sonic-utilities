@@ -375,5 +375,5 @@ swss            OK                OK                  -              -
         with mock.patch("device_info.is_smartswitch", return_value=True):
             with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
                 runner = CliRunner()
-                result = runner.invoke(show.cli.commands["system-health"].commands.["dpu"], ["DPU0"])
+                result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
                 click.echo(result.output)
