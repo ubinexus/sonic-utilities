@@ -457,7 +457,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     def test_kdump_enable_remote(
         self, mock_locate, mock_search_kernel, mock_search_cmdline,
         mock_rewrite, mock_write_kdump, mock_run, mock_open
-        ):
+    ):
         # Setup mocks
         mock_locate.return_value = 0  # Image found at index 0
         mock_search_cmdline.return_value = None  # No crashkernel set in cmdline
@@ -483,9 +483,9 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch('sonic_kdump_config.search_for_crash_kernel')
     @patch('sonic_kdump_config.locate_image')
     def test_kdump_enable_remote_error(
-        self, mock_locate, mock_search_kernel, mock_search_cmdline,
-        mock_rewrite, mock_write_kdump, mock_run, mock_open
-        ):
+            self, mock_locate, mock_search_kernel, mock_search_cmdline,
+            mock_rewrite, mock_write_kdump, mock_run, mock_open
+            ):
         # Setup mocks
         mock_locate.return_value = 0  # Image found at index 0
         mock_search_cmdline.return_value = None  # No crashkernel set in cmdline
