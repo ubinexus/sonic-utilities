@@ -5,6 +5,7 @@ import sys
 import click
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
+from sonic_py_common import device_info
 import utilities_common.cli as clicommon
 
 
@@ -155,24 +156,42 @@ def reboot_cause(ctx):
         click.echo(reboot_cause_str)
 
 
+smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
+
 # 'all' command within 'reboot-cause'
-@reboot_cause.command()
-def all():
-    """Show cause of most recent reboot"""
-    reboot_cause_data = fetch_reboot_cause_from_db("all")
-    header = ['Device', 'Name', 'Cause', 'Time', 'User']
-    click.echo(tabulate(reboot_cause_data, header, numalign="left"))
+if smartswitch:
+    @reboot_cause.command()
+    def all():
+        """Show cause of most recent reboot"""
+        reboot_cause_data = fetch_reboot_cause_from_db("all")
+        header = ['Device', 'Name', 'Cause', 'Time', 'User']
+        click.echo(tabulate(reboot_cause_data, header, numalign="left"))
+
+# utility to get options
+def get_dynamic_dpus():
+    if smartswitch:
+        max_dpus = 8
+        return ['DPU{}'.format(i) for i in range(max_dpus)] + ['all', 'SWITCH']
+    return []
 
 
 # 'history' command within 'reboot-cause'
 @reboot_cause.command()
-@click.argument('module_name', required=False)
-def history(module_name):
+@click.argument(
+        'module_name',
+        required=False,
+        type=click.Choice(get_dynamic_dpus(), case_sensitive=False) if smartswitch else None
+        )
+def history(module_name=None):
     """Show history of reboot-cause"""
+    if not smartswitch and module_name:
+        return
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if module_name is not None:
+    if smartswitch and module_name:
         header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
-        click.echo(tabulate(reboot_cause_history, header, numalign="left"))
     else:
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']
+
+    if reboot_cause_history:
         click.echo(tabulate(reboot_cause_history, header, numalign="left"))
+
