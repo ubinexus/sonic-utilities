@@ -172,74 +172,75 @@ def sysready_status_detail():
 smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 
-def show_module_state(module_name):
-    chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
-    chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
-    key = 'DPU_STATE|'
-    suffix = '*' if not module_name or not module_name.startswith("DPU") else module_name
-    key = key + suffix
-    keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
-    if not keys:
-        return
+if smartswitch:
+    def show_module_state(module_name):
+        chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
+        chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
+        key = 'DPU_STATE|'
+        suffix = '*' if not module_name or not module_name.startswith("DPU") else module_name
+        key = key + suffix
+        keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB, key)
+        if not keys:
+            return
 
-    table = []
-    for dbkey in natsorted(keys):
-        key_list = dbkey.split('|')
-        if len(key_list) != 2:  # error data in DB, log it and ignore
-            continue
-        state_info = chassis_state_db.get_all(chassis_state_db.CHASSIS_STATE_DB, dbkey)
-        # Determine operational status
-        # dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
+        table = []
+        for dbkey in natsorted(keys):
+            key_list = dbkey.split('|')
+            if len(key_list) != 2:  # error data in DB, log it and ignore
+                continue
+            state_info = chassis_state_db.get_all(chassis_state_db.CHASSIS_STATE_DB, dbkey)
+            # Determine operational status
+            # dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
 
-        midplanedown = False
-        up_cnt = 0
-        for key, value in state_info.items():
-            if key.endswith('_state'):
-                if value.lower() == 'up':
-                    up_cnt = up_cnt + 1
-                if 'midplane' in key and value.lower() == 'down':
-                    midplanedown = True
-
-        if midplanedown:
-            oper_status = "Offline"
-        elif up_cnt == 3:
-            oper_status = "Online"
-        else:
-            oper_status = "Partial Online"
-
-        for dpustates in range(3):
-            if dpustates == 0:
-                row = [key_list[1], state_info.get('id', ''), oper_status, "", "", "", ""]
-            else:
-                row = ["", "", "", "", "", "", ""]
+            midplanedown = False
+            up_cnt = 0
             for key, value in state_info.items():
-                if dpustates == 0 and 'midplane' in key:
-                    populate_row(row, key, value, table)
-                elif dpustates == 1 and 'control' in key:
-                    populate_row(row, key, value, table)
-                elif dpustates == 2 and 'data' in key:
-                    populate_row(row, key, value, table)
+                if key.endswith('_state'):
+                    if value.lower() == 'up':
+                        up_cnt = up_cnt + 1
+                    if 'midplane' in key and value.lower() == 'down':
+                        midplanedown = True
 
-    headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
-    click.echo(tabulate(table, headers=headers))
+            if midplanedown:
+                oper_status = "Offline"
+            elif up_cnt == 3:
+                oper_status = "Online"
+            else:
+                oper_status = "Partial Online"
+
+            for dpustates in range(3):
+                if dpustates == 0:
+                    row = [key_list[1], state_info.get('id', ''), oper_status, "", "", "", ""]
+                else:
+                    row = ["", "", "", "", "", "", ""]
+                for key, value in state_info.items():
+                    if dpustates == 0 and 'midplane' in key:
+                        populate_row(row, key, value, table)
+                    elif dpustates == 1 and 'control' in key:
+                        populate_row(row, key, value, table)
+                    elif dpustates == 2 and 'data' in key:
+                        populate_row(row, key, value, table)
+
+        headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
+        click.echo(tabulate(table, headers=headers))
 
 
-def populate_row(row, key, value, table):
-    if key.endswith('_state'):
-        row[3] = key
-        row[4] = value
-        if "up" in row[4]:
-            row[6] = ""
-        table.append(row)
-    elif key.endswith('_time'):
-        row[5] = value
-    elif key.endswith('_reason'):
-        if "up" not in row[4]:
-            row[6] = value
+    def populate_row(row, key, value, table):
+        if key.endswith('_state'):
+            row[3] = key
+            row[4] = value
+            if "up" in row[4]:
+                row[6] = ""
+            table.append(row)
+        elif key.endswith('_time'):
+            row[5] = value
+        elif key.endswith('_reason'):
+            if "up" not in row[4]:
+                row[6] = value
+
 
     @system_health.command()
     @click.argument('module_name', required=False)
     def dpu(module_name):
-        if smartswitch:
-            """Show system-health dpu information"""
-            show_module_state(module_name)
+        """Show system-health dpu information"""
+        show_module_state(module_name)
