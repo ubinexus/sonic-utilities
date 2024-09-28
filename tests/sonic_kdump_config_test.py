@@ -225,6 +225,54 @@ class TestSonicKdumpConfig(unittest.TestCase):
             sonic_kdump_config.write_use_kdump(0)
         self.assertEqual(sys_exit.exception.code, 1)
 
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_string')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_string_none(self, mock_print, mock_read, mock_run):
+        # Mock the output of run_command when ssh_string is None
+        mock_run.return_value = (0, ['current_ssh_string'], '')  # Simulated output
+        sonic_kdump_config.cmd_kdump_ssh_string(verbose=True, ssh_string=None)
+
+        # Check that run_command was called with the correct command
+        mock_run.assert_called_once_with("show kdump ssh_string", use_shell=False)
+
+        # Verify that the printed output is correct
+        mock_print.assert_called_once_with('current_ssh_string')
+
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_string')
+    @patch('sonic_kdump_config.write_ssh_string')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_string_update(self, mock_print, mock_write, mock_read, mock_run):
+        # Mock read_ssh_string to return the current SSH string
+        mock_read.return_value = 'old_ssh_string'
+        
+        # Call the function with a new SSH string
+        sonic_kdump_config.cmd_kdump_ssh_string(verbose=True, ssh_string='new_ssh_string')
+
+        # Check that write_ssh_string was called with the new SSH string
+        mock_write.assert_called_once_with('new_ssh_string')
+
+        # Verify that the correct message is printed
+        mock_print.assert_called_once_with("SSH string updated. Changes will take effect after the next reboot.")
+
+    @patch('sonic_kdump_config.run_command')
+    @patch('sonic_kdump_config.read_ssh_string')
+    @patch('sonic_kdump_config.write_ssh_string')
+    @patch('builtins.print')  # Mock print to capture printed output
+    def test_cmd_kdump_ssh_string_no_update(self, mock_print, mock_write, mock_read, mock_run):
+        # Mock read_ssh_string to return the same SSH string provided
+        mock_read.return_value = 'same_ssh_string'
+
+        # Call the function with the same SSH string
+        sonic_kdump_config.cmd_kdump_ssh_string(verbose=True, ssh_string='same_ssh_string')
+
+        # Check that write_ssh_string was not called
+        mock_write.assert_not_called()
+
+        # Check that no message is printed for update
+        mock_print.assert_not_called()
+
     @patch("sonic_kdump_config.kdump_disable")
     @patch("sonic_kdump_config.get_current_image")
     @patch("sonic_kdump_config.get_kdump_administrative_mode")
