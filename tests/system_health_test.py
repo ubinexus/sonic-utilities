@@ -1,6 +1,7 @@
 import sys
 import os
 from unittest import mock
+from unittest.mock import patch
 
 import click
 from click.testing import CliRunner

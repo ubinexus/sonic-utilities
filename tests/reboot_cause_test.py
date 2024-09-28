@@ -2,6 +2,7 @@ import os
 import sys
 import textwrap
 from unittest import mock
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
