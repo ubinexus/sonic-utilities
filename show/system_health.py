@@ -224,7 +224,6 @@ if smartswitch:
         headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
         click.echo(tabulate(table, headers=headers))
 
-
     def populate_row(row, key, value, table):
         if key.endswith('_state'):
             row[3] = key
@@ -237,7 +236,6 @@ if smartswitch:
         elif key.endswith('_reason'):
             if "up" not in row[4]:
                 row[6] = value
-
 
     @system_health.command()
     @click.argument('module_name', required=False)
