@@ -488,9 +488,11 @@ class TestSonicKdumpConfig(unittest.TestCase):
 
         # Expecting sys.exit to be called on failure
         with self.assertRaises(SystemExit):
-            sonic_kdump_config.kdump_enable(verbose=True, kdump_enabled=True, memory='128M', num_dumps=3,
-            image='myimage', cmdline_file='cmdline.txt',
-            remote=True, ssh_string='user@remote', ssh_path='/path/to/keys')
+            sonic_kdump_config.kdump_enable(
+                verbose=True, kdump_enabled=True, memory='128M', num_dumps=3,
+                image='myimage', cmdline_file='cmdline.txt',
+                remote=True, ssh_string='user@remote', ssh_path='/path/to/keys'
+                )
 
         # Check that the error message was printed
         mock_run.assert_called_once_with("/usr/sbin/kdump-config set-remote user@remote /path/to/keys", use_shell=False)
@@ -502,7 +504,8 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch('sonic_kdump_config.search_for_crash_kernel_in_cmdline')
     @patch('sonic_kdump_config.search_for_crash_kernel')
     @patch('sonic_kdump_config.locate_image')
-    def test_kdump_enable_local(self, mock_locate, mock_search_kernel, mock_search_cmdline,
+    def test_kdump_enable_local(
+        self, mock_locate, mock_search_kernel, mock_search_cmdline,
         mock_rewrite, mock_write_kdump, mock_run, mock_open):
         # Setup mocks
         mock_locate.return_value = 0  # Image found at index 0
@@ -517,6 +520,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         # Assertions
         self.assertTrue(changed)  # Expect some changes to be made
         mock_run.assert_not_called()  # Ensure no remote commands were run
+
     @patch('sonic_kdump_config.run_command')
     @patch('sonic_kdump_config.read_ssh_path')
     @patch('sonic_kdump_config.write_ssh_path')
@@ -591,4 +595,3 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-
