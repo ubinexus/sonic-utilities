@@ -518,6 +518,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         remote=False, ssh_string='user@remote', ssh_path='/path/to/keys')
 
         # Assertions
+
         self.assertTrue(changed)  # Expect some changes to be made
         mock_run.assert_not_called()  # Ensure no remote commands were run
 
