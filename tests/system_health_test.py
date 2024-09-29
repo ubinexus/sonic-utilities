@@ -366,7 +366,7 @@ swss            OK                OK                  -              -
 
                 # Call the CLI command using CliRunner
                 runner = CliRunner()
-                result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
+                result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
                 print("command:", show.cli.commands)
                 # Assert the output and exit code
                 print("exit Coce:", result.exit_code)
