@@ -374,7 +374,7 @@ swss            OK                OK                  -              -
                  "dpu_midplane_link_time", "20240608 09:11:13")
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
             with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
-                runner = CliRunner()
+                # runner = CliRunner()
                 print(show.cli.commands)
                 print(show.cli.commands["system-health"].commands)
                 # result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
