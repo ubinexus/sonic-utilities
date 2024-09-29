@@ -6,6 +6,9 @@ import click
 from click.testing import CliRunner
 from .mock_tables import dbconnector
 
+import show.main as show
+import show.system_health
+
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
@@ -59,9 +62,6 @@ class MockerChassis(object):
         else:
             MockerChassis.counter += 1
             return "red"
-
-import show.main as show
-import show.system_health
 
 class TestHealth(object):
     @classmethod
