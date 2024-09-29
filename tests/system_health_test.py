@@ -346,7 +346,9 @@ swss            OK                OK                  -              -
     def test_health_dpu_patch(self):
         # Mock is_smartswitch to return True
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
-            print(f"is_smartswitch: {show.system_health.is_smartswitch()}", flush=True)
+            # Assert that is_smartswitch is returning True
+            assert show.system_health.is_smartswitch() is True, "is_smartswitch() did not return True!"
+
             # Create a mock SonicV2Connector
             with mock.patch("show.system_health.SonicV2Connector") as mock_sonic_v2_connector:
                 conn = mock_sonic_v2_connector.return_value
@@ -367,13 +369,10 @@ swss            OK                OK                  -              -
                 # Call the CLI command using CliRunner
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
-                print("command:", show.cli.commands)
-                # Assert the output and exit code
-                print("exit Coce:", result.exit_code)
-                assert "DPU0" in result.output
 
-                # Print output for verification
-                print(result.output)
+                # Assert the output and exit code
+                assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
+                assert "DPU0" in result.output, f"Expected 'DPU0' in output, got: {result.output}"
 
 
     @classmethod
