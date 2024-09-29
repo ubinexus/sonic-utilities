@@ -377,7 +377,7 @@ swss            OK                OK                  -              -
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
             with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
                 sys.modules['sonic_py_common.device_info'].is_smartswitch = lambda: True
-                assert sys.modules['sonic_py_common.device_info'].is_smartswitch() == True
+                assert sys.modules['sonic_py_common.device_info'].is_smartswitch() is True
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
                 click.echo(result.output)
