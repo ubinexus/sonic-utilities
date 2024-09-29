@@ -88,7 +88,7 @@ Name                 Cause        Time                          User    Comment
         print(result.output)
 
     # Test 'show reboot-cause all on smartswitch'
-    @patch ("show.reboot_cause.is_smartswitch", return_value=True)
+    @patch("show.reboot_cause.is_smartswitch", return_value=True)
     def test_reboot_cause_all(self, mock_is_smartswitch):
         # with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
         with mock.patch("show.reboot_cause.fetch_data_from_db",
