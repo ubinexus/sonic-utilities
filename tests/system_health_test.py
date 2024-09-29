@@ -63,11 +63,14 @@ class MockerChassis(object):
 import show.main as show
 
 class TestHealth(object):
+    self.original_cli = None
+
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
+        self.original_cli = show.cli
 
     def test_health_summary(self):
         runner = CliRunner()
@@ -347,9 +350,7 @@ swss            OK                OK                  -              -
         # Mock is_smartswitch to return True
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
 
-            # After mocking is_smartswitch, re-register the CLI commands
-            show.cli = show.cli.__class__(name='cli')  # Reinitialize the CLI
-            show.register_commands()  # This is the function that registers commands
+            import show.main as show
 
             # Create a mock SonicV2Connector
             with mock.patch("show.system_health.SonicV2Connector") as mock_sonic_v2_connector:
@@ -386,3 +387,4 @@ swss            OK                OK                  -              -
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        show.cli = self.original_cli
