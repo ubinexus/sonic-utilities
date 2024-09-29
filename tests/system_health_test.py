@@ -378,4 +378,3 @@ swss            OK                OK                  -              -
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
                 click.echo(result.output)
-
