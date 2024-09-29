@@ -368,7 +368,7 @@ swss            OK                OK                  -              -
 
                 # Check if 'dpu' command is available under system-health
                 available_commands = show.cli.commands["system-health"].commands
-                assert "dpu" in available_commands, f"'dpu' command not found in available commands: {available_commands}"
+                assert "dpu" in available_commands, f"'dpu' command not found: {available_commands}"
 
                 # Call the CLI command using CliRunner
                 runner = CliRunner()
