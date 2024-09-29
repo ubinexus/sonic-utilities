@@ -156,7 +156,7 @@ def reboot_cause(ctx):
         click.echo(reboot_cause_str)
 
 
-def id_smartswitch():
+def is_smartswitch():
     hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 # 'all' command within 'reboot-cause'
