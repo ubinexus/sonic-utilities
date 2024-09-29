@@ -343,7 +343,6 @@ pmon            OK                OK                  -              -
 swss            OK                OK                  -              -
 """
 
-
     def test_health_dpu(self):
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
