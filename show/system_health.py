@@ -169,10 +169,11 @@ def sysready_status_detail():
         click.echo("Exception: {}".format(str(e)))
 
 
-smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
+def id_smartswitch():
+    hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 
-if smartswitch:
+if is_smartswitch():
     def show_module_state(module_name):
         chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
         chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)

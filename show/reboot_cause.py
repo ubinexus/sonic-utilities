@@ -156,10 +156,11 @@ def reboot_cause(ctx):
         click.echo(reboot_cause_str)
 
 
-smartswitch = hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
+def id_smartswitch():
+    hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 # 'all' command within 'reboot-cause'
-if smartswitch:
+if is_smartswitch():
     @reboot_cause.command()
     def all():
         """Show cause of most recent reboot"""
@@ -170,7 +171,7 @@ if smartswitch:
 
 # utility to get options
 def get_dynamic_dpus():
-    if smartswitch:
+    if is_smartswitch():
         max_dpus = 8
         return ['DPU{}'.format(i) for i in range(max_dpus)] + ['all', 'SWITCH']
     return []
@@ -181,14 +182,14 @@ def get_dynamic_dpus():
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_dynamic_dpus(), case_sensitive=False) if smartswitch else None
+        type=click.Choice(get_dynamic_dpus(), case_sensitive=False) if is_smartswitch() else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""
-    if not smartswitch and module_name:
+    if not is_smartswitch() and module_name:
         return
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if smartswitch and module_name:
+    if is_smartswitch() and module_name:
         header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
     else:
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']
