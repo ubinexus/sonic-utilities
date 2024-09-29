@@ -385,11 +385,11 @@ swss            OK                OK                  -              -
     def test_health_dpu_1(self, mock_is_smartswitch):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
-            click.echo(result.output)
+        click.echo(result.output)
 
 
     @patch('show.system_health.is_smartswitch', return_value=True)
     def test_health_dpu_2(self, mock_is_smartswitch):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
-            click.echo(result.output)
+        click.echo(result.output)
