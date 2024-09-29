@@ -346,8 +346,10 @@ swss            OK                OK                  -              -
     def test_health_dpu_patch(self):
         # Mock is_smartswitch to return True
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
-            # Assert that is_smartswitch is returning True
-            assert show.system_health.is_smartswitch() is True, "is_smartswitch() did not return True!"
+
+            # After mocking is_smartswitch, re-register the CLI commands
+            show.cli = show.cli.__class__(name='cli')  # Reinitialize the CLI
+            show.register_commands()  # This is the function that registers commands
 
             # Create a mock SonicV2Connector
             with mock.patch("show.system_health.SonicV2Connector") as mock_sonic_v2_connector:
