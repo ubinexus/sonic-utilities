@@ -366,6 +366,10 @@ swss            OK                OK                  -              -
                 conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_data_plane_reason", "Polaris is UP")
                 conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_midplane_link_time", "20240608 09:11:13")
 
+                # Check if 'dpu' command is available under system-health
+                available_commands = show.cli.commands["system-health"].commands
+                assert "dpu" in available_commands, f"'dpu' command not found in available commands: {available_commands}"
+
                 # Call the CLI command using CliRunner
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
