@@ -52,18 +52,18 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
         else:
             entry = rdb.get_all(rdb.STATE_DB, tk)
 
-        device = entry.get('device', "SWITCH")
         if module_name is not None:
-            if device != module_name and module_name != "all":
-                continue
-            if device in d and not history:
-                append = False
-                continue
-            elif device not in d or device in d and history:
-                if device not in d:
-                    d.append(device)
-                    append = True
-        r.append(device)
+            if 'device' in entry:
+                if module_name != entry['device'] and module_name != "all":
+                    continue
+                if entry['device'] in d and not history:
+                    append = False
+                    continue
+                elif not entry['device'] in d or entry['device'] in d and history:
+                    if not entry['device'] in d:
+                        d.append(entry['device'])
+                        append = True
+            r.append(entry['device'] if 'device' in entry else "SWITCH")
 
         name = tk.replace(prefix, "")
         if "|" in name:

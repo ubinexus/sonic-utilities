@@ -2,7 +2,7 @@ import os
 import sys
 import textwrap
 from unittest import mock
-
+from unittest.mock import patch
 from click.testing import CliRunner
 
 from .mock_tables import dbconnector
@@ -88,22 +88,21 @@ Name                 Cause        Time                          User    Comment
         print(result.output)
 
     # Test 'show reboot-cause all on smartswitch'
-    def test_reboot_cause_all(self):
-        with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
-            with mock.patch("show.reboot_cause.fetch_data_from_db",
-                            return_value={
-                                "comment": "",
-                                "gen_time": "2020_10_22_03_14_07",
-                                "device": "DPU0",
-                                "cause": "reboot",
-                                "user": "admin",
-                                "time": "Thu Oct 22 03:11:08 UTC 2020"
-                            }):
-                runner = CliRunner()
-                print(show.cli.commands)
-                print(show.cli.commands["reboot-cause"].commands)
-                result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
-                print(result.output)
+    @patch ("show.reboot_cause.is_smartswitch", return_value=True)
+    def test_reboot_cause_all(self, mock_is_smartswitch):
+        # with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
+        with mock.patch("show.reboot_cause.fetch_data_from_db",
+                        return_value={
+                            "comment": "",
+                            "gen_time": "2020_10_22_03_14_07",
+                            "device": "DPU0",
+                            "cause": "reboot",
+                            "user": "admin",
+                            "time": "Thu Oct 22 03:11:08 UTC 2020"
+                        }):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
+            print(result.output)
 
     @classmethod
     def teardown_class(cls):
