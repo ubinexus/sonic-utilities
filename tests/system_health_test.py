@@ -63,14 +63,14 @@ class MockerChassis(object):
 import show.main as show
 
 class TestHealth(object):
-    self.original_cli = None
+    original_cli = None
 
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
-        self.original_cli = show.cli
+        original_cli = show.cli
 
     def test_health_summary(self):
         runner = CliRunner()
@@ -387,4 +387,4 @@ swss            OK                OK                  -              -
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
-        show.cli = self.original_cli
+        show.cli = original_cli
