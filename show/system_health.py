@@ -169,7 +169,7 @@ def sysready_status_detail():
         click.echo("Exception: {}".format(str(e)))
 
 
-def id_smartswitch():
+def is_smartswitch():
     hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 

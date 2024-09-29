@@ -159,6 +159,7 @@ def reboot_cause(ctx):
 def is_smartswitch():
     hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
+
 # 'all' command within 'reboot-cause'
 if is_smartswitch():
     @reboot_cause.command()
