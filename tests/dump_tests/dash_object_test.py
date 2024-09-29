@@ -2,17 +2,20 @@ import os
 import sys
 import pytest
 from dump.match_infra import MatchEngine, MatchRequest, ConnectionPool, CONN
-from dump.plugins.dash_acl_out import Dash_Acl_Out
-from dump.plugins.dash_acl_in import Dash_Acl_In
-from dump.plugins.dash_acl_group import Dash_Acl_Group
-from dump.plugins.dash_prefix_tag import Dash_Prefix_Tag
-from dump.plugins.dash_acl_rule import Dash_Acl_Rule
-from dump.plugins.dash_appliance import Dash_Appliance
-from dump.plugins.dash_eni import Dash_Eni
-from dump.plugins.dash_qos import Dash_Qos
-from dump.plugins.dash_vnet import Dash_Vnet
-from dump.plugins.dash_vnet_mapping import Dash_Vnet_mapping
-from dump.plugins.dash_route import Dash_Route
+try:
+    from dump.plugins.dash_acl_out import Dash_Acl_Out
+    from dump.plugins.dash_acl_in import Dash_Acl_In
+    from dump.plugins.dash_acl_group import Dash_Acl_Group
+    from dump.plugins.dash_prefix_tag import Dash_Prefix_Tag
+    from dump.plugins.dash_acl_rule import Dash_Acl_Rule
+    from dump.plugins.dash_appliance import Dash_Appliance
+    from dump.plugins.dash_eni import Dash_Eni
+    from dump.plugins.dash_qos import Dash_Qos
+    from dump.plugins.dash_vnet import Dash_Vnet
+    from dump.plugins.dash_vnet_mapping import Dash_Vnet_mapping
+    from dump.plugins.dash_route import Dash_Route
+except ModuleNotFoundError:
+    pytest.skip("Skipping Dash tests since it is not supported in this Platform", allow_module_level=True)
 from utilities_common.constants import DEFAULT_NAMESPACE
 from dump.helper import populate_mock
 from .mock_redis import RedisMock

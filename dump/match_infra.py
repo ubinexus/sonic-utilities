@@ -7,7 +7,10 @@ from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from sonic_py_common import multi_asic
 from utilities_common.constants import DEFAULT_NAMESPACE
 import redis
-from dump.dash_util import get_decoded_value
+try:
+    from dump.dash_util import get_decoded_value
+except ModuleNotFoundError:
+    pass
 
 # Constants
 CONN = "conn"

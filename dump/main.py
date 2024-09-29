@@ -9,7 +9,10 @@ from utilities_common.constants import DEFAULT_NAMESPACE
 from dump.match_infra import RedisSource, JsonSource, MatchEngine, CONN
 from swsscommon.swsscommon import ConfigDBConnector
 from dump import plugins
-from dump.dash_util import get_decoded_value
+try:
+    from dump.dash_util import get_decoded_value
+except ModuleNotFoundError:
+    pass
 
 # Autocompletion Helper
 def get_available_modules(ctx, args, incomplete):

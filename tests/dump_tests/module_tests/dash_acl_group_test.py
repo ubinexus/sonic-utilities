@@ -3,7 +3,10 @@ import os
 import pytest
 from deepdiff import DeepDiff
 from dump.helper import create_template_dict, populate_mock
-from dump.plugins.dash_acl_group import Dash_Acl_Group
+try:
+    from dump.plugins.dash_acl_group import Dash_Acl_Group
+except ModuleNotFoundError:
+    pytest.skip("Skipping Dash tests since it is not supported in this Platform", allow_module_level=True)
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
