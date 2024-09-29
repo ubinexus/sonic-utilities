@@ -1,6 +1,7 @@
 import sys
 import os
 from unittest import mock
+from unittest.mock import patch
 
 import click
 from click.testing import CliRunner
@@ -380,13 +381,11 @@ swss            OK                OK                  -              -
             result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
             click.echo(result.output)
 
-
     @patch('show.system_health.is_smartswitch', return_value=True)
     def test_health_dpu_1(self, mock_is_smartswitch):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
         click.echo(result.output)
-
 
     @patch('show.system_health.is_smartswitch', return_value=True)
     def test_health_dpu_2(self, mock_is_smartswitch):
