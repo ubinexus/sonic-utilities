@@ -372,10 +372,13 @@ swss            OK                OK                  -              -
                  "dpu_data_plane_reason", "Polaris is UP")
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
                  "dpu_midplane_link_time", "20240608 09:11:13")
+
+        click.echo(show.system_health.is_smartswitch())
         with mock.patch("show.system_health.is_smartswitch", return_value=True):
             with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
                 # runner = CliRunner()
-                print(show.cli.commands)
-                print(show.cli.commands["system-health"].commands)
+                click.echo(show.system_health.is_smartswitch())
+                click.echo(show.cli.commands)
+                click.echo(show.cli.commands["system-health"].commands)
                 # result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
                 # click.echo(result.output)
