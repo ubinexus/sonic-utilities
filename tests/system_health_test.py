@@ -349,7 +349,9 @@ swss            OK                OK                  -              -
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
-    def test_health_dpu(self):
+    @patch('show.system_health.is_smartswitch', return_value=True)
+    def test_health_dpu(self, mock_is_smartswitch):
+        runner = CliRunner()
         conn = dbconnector.SonicV2Connector()
         conn.connect(conn.CHASSIS_STATE_DB)
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
@@ -373,11 +375,21 @@ swss            OK                OK                  -              -
         conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
                  "dpu_midplane_link_time", "20240608 09:11:13")
 
-        click.echo(show.system_health.is_smartswitch())
-        with mock.patch("show.system_health.is_smartswitch", return_value=True):
-            with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
-                sys.modules['sonic_py_common.device_info'].is_smartswitch = lambda: True
-                assert sys.modules['sonic_py_common.device_info'].is_smartswitch() is True
-                runner = CliRunner()
-                result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
-                click.echo(result.output)
+        # assert show.system_health.is_smartswitch() is True
+        with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
+            result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
+            click.echo(result.output)
+
+
+    @patch('show.system_health.is_smartswitch', return_value=True)
+    def test_health_dpu_1(self, mock_is_smartswitch):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
+            click.echo(result.output)
+
+
+    @patch('show.system_health.is_smartswitch', return_value=True)
+    def test_health_dpu_2(self, mock_is_smartswitch):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
+            click.echo(result.output)
