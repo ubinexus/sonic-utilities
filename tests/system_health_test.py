@@ -61,6 +61,7 @@ class MockerChassis(object):
             return "red"
 
 import show.main as show
+import show.system_health
 
 class TestHealth(object):
     @classmethod
@@ -343,35 +344,35 @@ pmon            OK                OK                  -              -
 swss            OK                OK                  -              -
 """
 
-    def test_health_dpu(self):
-        conn = dbconnector.SonicV2Connector()
-        conn.connect(conn.CHASSIS_STATE_DB)
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "id", "0")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_midplane_link_reason", "OK")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_midplane_link_state", "UP")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_data_plane_time", "20240607 15:08:51")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_control_plane_time", "20240608 09:11:13")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_data_plane_state", "UP")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_control_plane_reason", "Uplink is UP")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_control_plane_state", "UP")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_data_plane_reason", "Polaris is UP")
-        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0',
-                 "dpu_midplane_link_time", "20240608 09:11:13")
+    @mock.patch("show.system_health.is_smartswitch", return_value=True)
+    @mock.patch("show.system_health.SonicV2Connector")
+    def test_health_dpu(self, mock_sonic_v2_connector, mock_is_smartswitch):
+        # Create a mock connector
+        conn = mock_sonic_v2_connector.return_value
+        conn.connect.return_value = None
 
-        with mock.patch("show.system_health.is_smartswitch", return_value=True):
-            with mock.patch("show.system_health.SonicV2Connector", return_value=conn):
-                runner = CliRunner()
-                result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
-                click.echo(result.output)
+        # Set the DPU data
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "id", "0")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_midplane_link_reason", "OK")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_midplane_link_state", "UP")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_data_plane_time", "20240607 15:08:51")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_control_plane_time", "20240608 09:11:13")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_data_plane_state", "UP")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_control_plane_reason", "Uplink is UP")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_control_plane_state", "UP")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_data_plane_reason", "Polaris is UP")
+        conn.set(conn.CHASSIS_STATE_DB, 'DPU_STATE|DPU0', "dpu_midplane_link_time", "20240608 09:11:13")
+
+        # Call the CLI command
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
+
+        # Check output and exit code
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("DPU0", result.output)
+
+        # Print output to see what was returned
+        print(result.output)
 
 
     @classmethod
