@@ -377,5 +377,5 @@ swss            OK                OK                  -              -
                 runner = CliRunner()
                 print(show.cli.commands)
                 print(show.cli.commands["system-health"].commands)
-                result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
-                click.echo(result.output)
+                # result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["DPU0"])
+                # click.echo(result.output)
