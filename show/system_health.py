@@ -170,7 +170,12 @@ def sysready_status_detail():
 
 
 def is_smartswitch():
-    hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
+    if hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch():
+        click.echo("is_smartswitch returning True")
+        return True
+    else:
+        click.echo("is_smartswitch returning False")
+        return False
 
 
 if is_smartswitch():

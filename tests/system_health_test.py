@@ -343,11 +343,6 @@ pmon            OK                OK                  -              -
 swss            OK                OK                  -              -
 """
 
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
     def test_health_dpu(self):
         conn = dbconnector.SonicV2Connector()
@@ -378,3 +373,10 @@ swss            OK                OK                  -              -
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["system-health"], ["dpu", "DPU0"])
                 click.echo(result.output)
+
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
