@@ -349,7 +349,7 @@ swss            OK                OK                  -              -
 
     def test_health_dpu_patch(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.system_health.is_smartswitch", return_value=True):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
             import show.main as show
 
