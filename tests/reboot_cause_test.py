@@ -98,9 +98,21 @@ Name                 Cause        Time                          User    Comment
                             "user": "admin",
                             "time": "Thu Oct 22 03:11:08 UTC 2020"
                         }):
-            with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
+            with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
+                # Check if 'dpu' command is available under system-health
+                available_commands = show.cli.commands["system-health"].commands
+                assert "all" in available_commands, f"'all' command not found: {available_commands}"
+
+                import show.main as show
+                import importlib
+                importlib.reload(show)
+
+                # Check if 'dpu' command is available under system-health
+                available_commands = show.cli.commands["system-health"].commands
+                assert "all" in available_commands, f"'all' command not found: {available_commands}"
+
                 runner = CliRunner()
-                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["all"])
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"].commands["all"])
                 print(result.output)
 
     @classmethod
