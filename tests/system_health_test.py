@@ -352,6 +352,11 @@ swss            OK                OK                  -              -
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
             import show.main as show
+            importlib.reload(show.main)
+
+            # Check if 'dpu' command is available under system-health
+            available_commands = show.cli.commands["system-health"].commands
+            assert "dpu" in available_commands, f"'dpu' command not found: {available_commands}"
 
             # Create a mock SonicV2Connector
             with mock.patch("show.system_health.SonicV2Connector") as mock_sonic_v2_connector:
