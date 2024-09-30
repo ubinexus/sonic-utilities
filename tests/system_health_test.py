@@ -351,10 +351,6 @@ swss            OK                OK                  -              -
         # Mock is_smartswitch to return True
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
-            # import show.main as show
-            # import importlib
-            # importlib.reload(show)
-
             # Check if 'dpu' command is available under system-health
             available_commands = show.cli.commands["system-health"].commands
             assert "dpu" in available_commands, f"'dpu' command not found: {available_commands}"

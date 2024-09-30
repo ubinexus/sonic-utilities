@@ -23,10 +23,14 @@ import show.main as show
 """
 
 class TestShowRebootCause(object):
+    original_cli = None
+
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
+        global original_cli
+        original_cli = show.cli
 
     # Test 'show reboot-cause' without previous-reboot-cause.json 
     def test_reboot_cause_no_history_file(self):
@@ -88,25 +92,26 @@ Name                 Cause        Time                          User    Comment
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
-        # with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
-        with mock.patch("show.reboot_cause.fetch_data_from_db",
-                        return_value={
-                            "comment": "",
-                            "gen_time": "2020_10_22_03_14_07",
-                            "device": "DPU0",
-                            "cause": "reboot",
-                            "user": "admin",
-                            "time": "Thu Oct 22 03:11:08 UTC 2020"
-                        }):
-            with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
-                # Check if 'dpu' command is available under reboot-cause
-                available_commands = show.cli.commands["reboot-cause"]
-                assert "all" in available_commands, f"'all' command not found: {available_commands}"
+        # Mock is_smartswitch to return True
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
                 # import show.main as show
                 # import importlib
                 # importlib.reload(show)
 
+                # Check if 'dpu' command is available under reboot-cause
+                available_commands = show.cli.commands["reboot-cause"]
+                assert "all" in available_commands, f"'all' command not found: {available_commands}"
+
+            with mock.patch("show.reboot_cause.fetch_data_from_db",
+                            return_value={
+                                "comment": "",
+                                "gen_time": "2020_10_22_03_14_07",
+                                "device": "DPU0",
+                                "cause": "reboot",
+                                "user": "admin",
+                                "time": "Thu Oct 22 03:11:08 UTC 2020"
+                            }):
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"].commands["all"])
                 print(result.output)
@@ -116,3 +121,4 @@ Name                 Cause        Time                          User    Comment
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        show.cli = original_cli

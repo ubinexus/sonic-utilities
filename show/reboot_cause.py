@@ -168,7 +168,8 @@ def all():
     """Show cause of most recent reboot"""
     reboot_cause_data = fetch_reboot_cause_from_db("all")
     header = ['Device', 'Name', 'Cause', 'Time', 'User']
-    click.echo(tabulate(reboot_cause_data, header, numalign="left"))
+    if reboot_cause_data:
+        click.echo(tabulate(reboot_cause_data, header, numalign="left"))
 
 
 # utility to get options
