@@ -95,13 +95,13 @@ Name                 Cause        Time                          User    Comment
         # Mock is_smartswitch to return True
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
-                # import show.main as show
-                # import importlib
-                # importlib.reload(show)
+            # import show.main as show
+            # import importlib
+            # importlib.reload(show)
 
-                # Check if 'dpu' command is available under reboot-cause
-                available_commands = show.cli.commands["reboot-cause"]
-                assert "all" in available_commands, f"'all' command not found: {available_commands}"
+            # Check if 'dpu' command is available under reboot-cause
+            available_commands = show.cli.commands["reboot-cause"]
+            assert "all" in available_commands, f"'all' command not found: {available_commands}"
 
             with mock.patch("show.reboot_cause.fetch_data_from_db",
                             return_value={
