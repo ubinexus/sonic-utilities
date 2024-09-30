@@ -224,6 +224,7 @@ def show_module_state(module_name):
     headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
     click.echo(tabulate(table, headers=headers))
 
+
 def populate_row(row, key, value, table):
     if key.endswith('_state'):
         row[3] = key
@@ -237,12 +238,14 @@ def populate_row(row, key, value, table):
         if "up" not in row[4]:
             row[6] = value
 
+
 # utility to get options
 def get_dynamic_dpus():
     if not is_smartswitch():
         return []
     max_dpus = 8
     return ['DPU{}'.format(i) for i in range(max_dpus)] + ['all']
+
 
 @system_health.command()
 @click.argument('module_name',
