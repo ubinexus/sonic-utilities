@@ -1,7 +1,6 @@
 import sys
 import os
 from unittest import mock
-import importlib
 
 import click
 from click.testing import CliRunner
@@ -353,7 +352,8 @@ swss            OK                OK                  -              -
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
             import show.main as show
-            importlib.reload(show.main)
+            import importlib
+            importlib.reload(show)
 
             # Check if 'dpu' command is available under system-health
             available_commands = show.cli.commands["system-health"].commands
