@@ -106,6 +106,12 @@ Name                 Cause        Time                          User    Comment
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
                 print(result.output)
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["all"])
+                print(result.output)
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["SWITCH"])
+                print(result.output)
+                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
+                print(result.output)
 
     @classmethod
     def teardown_class(cls):

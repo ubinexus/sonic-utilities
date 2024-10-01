@@ -712,10 +712,19 @@ This command displays the cause of the previous reboot
   admin@sonic:~$ show reboot-cause
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
   ```
-#### Applicable only to SmartSwitch platforms
+
+```
+Note: The CLI extensions shown in this block are applicable only to smartswitch platforms. When these extensions are used on a regular switch the extension will be ignored and the output will be the same irrespective of the options.
+
+CLI Extensions Applicable to Smartswtich
+  - show reboot-cause all
+  - show reboot-cause history all
+  - show reboot-cause history DPUx
+  - show reboot-cause history SWITCH
+```
 **show reboot-cause all**
 
-This command displays the cause of the previous reboot for the Switch and the enabled DPUs
+This command displays the cause of the previous reboot for the Switch and the DPUs for which the midplane interfaces are up.
 
 - Usage:
   ```
@@ -751,10 +760,9 @@ This command displays the history of the previous reboots up to 10 entry
   2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
   ```
 
-#### Applicable only to SmartSwitch platforms
 **show reboot-cause history all**
 
-This command displays the history of the previous reboots up to 10 entry of the Switch and the DPUs that are enabled
+This command displays the history of the previous reboots up to 10 entry of the Switch and the DPUs for which the midplane interfaces are up.
 
 - Usage:
   ```
@@ -772,7 +780,7 @@ This command displays the history of the previous reboots up to 10 entry of the 
 
 **show reboot-cause history DPU1**
 
-This command displays the history of the previous reboots up to 10 entry of DPU1
+This command displays the history of the previous reboots up to 10 entry of DPU1. If DPU1 is powered down then there won't be any data in the DB and the "show reboot-cause history DPU1" output will be blank.
 
 - Usage:
   ```
