@@ -378,7 +378,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         # Test case: Checking output messages
         with patch("builtins.print") as mock_print:
             sonic_kdump_config.cmd_kdump_remote(verbose=True)
-            mock_print.assert_called_with("SSH and SSH_KEY uncommented for remote configuration.")
+            mock_print.assert_called_with("SSH and SSH_KEY commented out for local configuration.")
 
             mock_read_remote.return_value = False
             sonic_kdump_config.cmd_kdump_remote(verbose=True)
