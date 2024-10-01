@@ -403,7 +403,7 @@ swss            OK                OK                  -              -
 
                 # Assert the output and exit code
                 assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
-                assert "DPU0" in result.output, f"Expected 'DPU0' in output, got: {result.output}"
+                assert "DPU0" not in result.output, f"Output contained DPU0: {result.output}"
 
 
     @classmethod
