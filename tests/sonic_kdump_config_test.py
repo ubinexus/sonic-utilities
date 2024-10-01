@@ -329,7 +329,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_kdump_config.run_command")
-    @patch("sonic_kdump_config.read_remote_value_from_config_db")
+    @patch("sonic_kdump_config.get_kdump_remote")
     def test_write_kdump_remote_true(self, mock_read_remote, mock_run_command):
         """Test when remote is true, SSH and SSH_KEY should be uncommented."""
         mock_read_remote.return_value = True  # Simulate that remote is true
@@ -342,7 +342,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         self.assertEqual(mock_run_command.call_count, 2)  # Ensure both commands were called
 
     @patch("sonic_kdump_config.run_command")
-    @patch("sonic_kdump_config.read_remote_value_from_config_db")
+    @patch("sonic_kdump_config.get_kdump_remote")
     def test_write_kdump_remote_false(self, mock_read_remote, mock_run_command):
         """Test when remote is false, SSH and SSH_KEY should be commented."""
         mock_read_remote.return_value = False  # Simulate that remote is false
@@ -354,7 +354,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_run_command.assert_any_call("/bin/sed -i 's/SSH_KEY/#SSH_KEY/' /etc/default/kdump-tools", use_shell=True)
         self.assertEqual(mock_run_command.call_count, 2)
 
-    @patch("sonic_kdump_config.read_remote_value_from_config_db")
+    @patch("sonic_kdump_config.get_kdump_remote")
     @patch("sonic_kdump_config.run_command")
     def test_cmd_kdump_remote(self, mock_run_command, mock_read_remote):
         """Tests the function `cmd_kdump_remote(...)` in script `sonic-kdump-config`."""
