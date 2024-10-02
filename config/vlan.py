@@ -83,6 +83,10 @@ def add_vlan(db, vid, multiple):
 
             # set dhcpv4_relay table
             set_dhcp_relay_table('VLAN', config_db, vlan, {'vlanid': str(vid)})
+            
+            # Enable STP on VLAN if PVST is enabled globally
+            if stp.is_global_stp_enabled(db.cfgdb):
+                stp.vlan_enable_stp(db.cfgdb, vlan)
 
 
 def is_dhcpv6_relay_config_exist(db, vlan_name):
@@ -160,14 +164,6 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
                 if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
                     ctx.fail("vlan: {} can not be removed. "
                             "First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)))
-
-            # Delete STP_VLAN & STP_VLAN_PORT entries when VLAN is deleted.
-            db.cfgdb.set_entry('STP_VLAN', 'Vlan{}'.format(vid), None)
-            stp_intf_list = stp.get_intf_list_from_stp_vlan_intf_table(db.cfgdb, 'Vlan{}'.format(vid))
-            for intf_name in stp_intf_list:
-                key = 'Vlan{}'.format(vid) + "|" + intf_name
-                db.cfgdb.set_entry('STP_VLAN_PORT', key, None)
-
             # set dhcpv4_relay table
             set_dhcp_relay_table('VLAN', config_db, vlan, None)
 
@@ -180,6 +176,14 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
 
             delete_db_entry("DHCPv6_COUNTER_TABLE|{}".format(vlan), db.db, db.db.STATE_DB)
             delete_db_entry("DHCP_COUNTER_TABLE|{}".format(vlan), db.db, db.db.STATE_DB)
+
+            # Delete STP_VLAN & STP_VLAN_PORT entries when VLAN is deleted.
+            db.cfgdb.set_entry('STP_VLAN', 'Vlan{}'.format(vid), None)
+            stp_intf_list = stp.get_intf_list_from_stp_vlan_intf_table(db.cfgdb, 'Vlan{}'.format(vid))
+            for intf_name in stp_intf_list:
+                key = 'Vlan{}'.format(vid) + "|" + intf_name
+                db.cfgdb.set_entry('STP_VLAN_PORT', key, None)
+
 
     vlans = db.cfgdb.get_keys('VLAN')
     if not vlans:
