@@ -79,13 +79,10 @@ def import_ssd_api(diskdev):
     except ImportError as e:
         log.log_warning("Platform specific SsdUtil module not found. Falling down to the generic implementation")  # noqa: E501
         try:
-            from sonic_platform_base.sonic_ssd.ssd_generic import SsdUtil
+            from sonic_platform_base.sonic_storage.ssd import SsdUtil
         except ImportError as e:
-            try:
-                from sonic_platform_base.sonic_storage.ssd import SsdUtil
-            except ImportError as e:
-                log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)  # noqa: E501
-                raise e
+            log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)  # noqa: E501
+            raise e
 
     return SsdUtil(diskdev)
 
