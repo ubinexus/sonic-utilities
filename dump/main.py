@@ -9,10 +9,6 @@ from utilities_common.constants import DEFAULT_NAMESPACE
 from dump.match_infra import RedisSource, JsonSource, MatchEngine, CONN
 from swsscommon.swsscommon import ConfigDBConnector
 from dump import plugins
-try:
-    from dump.dash_util import get_decoded_value
-except ModuleNotFoundError:
-    pass
 
 # Autocompletion Helper
 def get_available_modules(ctx, args, incomplete):
@@ -177,8 +173,13 @@ def populate_fv(info, module, namespace, conn_pool, dash_object):
                 if db_name == "CONFIG_FILE":
                     fv = db_cfg_file.get(db_name, key)
                 elif dash_object and db_name == "APPL_DB":
-                    pb_data = redis_conn.hgetall(key)
-                    fv = get_decoded_value(dash_object, pb_data)
+                    try:
+                        from dump.dash_util import get_decoded_value
+                        pb_data = redis_conn.hgetall(key)
+                        fv = get_decoded_value(dash_object, pb_data)
+                    except ModuleNotFoundError:
+                        print("Issue in importing dash module!")
+                        return final_info
                 else:
                     fv = db_conn.get_all(db_name, key)
                 final_info[id][db_name]["keys"].append({key: fv})

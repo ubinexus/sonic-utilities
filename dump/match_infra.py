@@ -7,10 +7,7 @@ from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from sonic_py_common import multi_asic
 from utilities_common.constants import DEFAULT_NAMESPACE
 import redis
-try:
-    from dump.dash_util import get_decoded_value
-except ModuleNotFoundError:
-    pass
+
 
 # Constants
 CONN = "conn"
@@ -207,6 +204,14 @@ class RedisPySource(SourceAdapter):
         self.pool = conn_pool
         self.pb_obj = pb_obj
 
+    def get_decoded_value(self, pb_obj, key_val):
+        try:
+            from dump.dash_util import get_decoded_value
+        except ModuleNotFoundError as e:
+            verbose_print("RedisPySource: decoded value cannot be obtained since dash related library import issues\n" + str(e))
+            return
+        return get_decoded_value(pb_obj, key_val)
+
     def connect(self, db, ns):
         try:
             self.conn = self.pool.get_dash_conn(ns)
@@ -224,16 +229,16 @@ class RedisPySource(SourceAdapter):
 
     def get(self, db, key):
         key_val  = self.conn.hgetall(key)
-        return get_decoded_value(self.pb_obj, key_val)
+        return self.get_decoded_value(self.pb_obj, key_val)
 
     def hget(self, db, key, field):
         key_val  = self.conn.hgetall(key)
-        decoded_dict= get_decoded_value(self.pb_obj, key_val)
+        decoded_dict= self.get_decoded_value(self.pb_obj, key_val)
         return decoded_dict.get(field)
 
     def hgetall(self, db, key):
         key_val  = self.conn.hgetall(key)
-        return get_decoded_value(self.pb_obj, key_val)
+        return self.get_decoded_value(self.pb_obj, key_val)
 
 class JsonSource(SourceAdapter):
     """ Concrete Adaptor Class for connecting to JSON Data Sources """
