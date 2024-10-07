@@ -173,7 +173,7 @@ def all():
 
 
 # utility to get options
-def get_dynamic_dpus():
+def get_all_dpus():
     if not is_smartswitch():
         return []
     max_dpus = 8
@@ -185,7 +185,7 @@ def get_dynamic_dpus():
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_dynamic_dpus(), case_sensitive=False) if is_smartswitch() else None
+        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""

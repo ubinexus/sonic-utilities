@@ -173,7 +173,7 @@ def is_smartswitch():
     return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
 
-def show_module_state(module_name):
+def show_dpu_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
     chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
     key = 'DPU_STATE|'
@@ -240,7 +240,7 @@ def populate_row(row, key, value, table):
 
 
 # utility to get options
-def get_dynamic_dpus():
+def get_all_dpus():
     if not is_smartswitch():
         return []
     max_dpus = 8
@@ -249,11 +249,11 @@ def get_dynamic_dpus():
 
 @system_health.command()
 @click.argument('module_name',
-                required=False,
-                type=click.Choice(get_dynamic_dpus(), case_sensitive=False) if is_smartswitch() else None
+                required=True,
+                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
                 )
 def dpu(module_name):
+    """Show system-health dpu information"""
     if not is_smartswitch():
         return
-    """Show system-health dpu information"""
-    show_module_state(module_name)
+    show_dpu_state(module_name)
