@@ -174,10 +174,31 @@ def all():
 
 # utility to get options
 def get_all_dpus():
+    dpu_list = []
+
     if not is_smartswitch():
-        return []
-    max_dpus = 8
-    return ['DPU{}'.format(i) for i in range(max_dpus)] + ['all', 'SWITCH']
+        return dpu_list
+
+    # Load config_db.json
+    try:
+        with open('/etc/sonic/config_db.json', 'r') as config_file:
+            config_data = json.load(config_file)
+
+            # Extract DPUs dictionary
+            dpus = config_data.get("DPUS", {})
+
+            # Convert DPU names to uppercase and append to the list
+            dpu_list = [dpu.upper() for dpu in dpus.keys()]
+
+    except FileNotFoundError:
+        print("Error: config_db.json not found")
+    except json.JSONDecodeError:
+        print("Error: Failed to parse config_db.json")
+
+    # Add 'all' and 'SWITCH' to the list
+    dpu_list += ['all', 'SWITCH']
+
+    return dpu_list
 
 
 # 'history' command within 'reboot-cause'
