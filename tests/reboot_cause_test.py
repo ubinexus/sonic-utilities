@@ -91,7 +91,7 @@ Name                 Cause        Time                          User    Comment
         print(result.output)
 
     # Test 'show reboot-cause history -h'
-    def test_reboot_cause_history_dpu(self):
+    def test_reboot_cause_history_dpu_help(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
         print(result.output)
