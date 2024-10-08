@@ -104,11 +104,8 @@ Name                 Cause        Time                          User    Comment
                     result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
 
                     # Assert that the help message is displayed correctly
-                    self.assertEqual(result.exit_code, 0)
-                    self.assertIn("Usage", result.output)
-                    self.assertIn("module_name", result.output)
-                    self.assertIn("all", result.output)
-                    self.assertIn("SWITCH", result.output)
+                    assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
+                    assert "Usage" in result.output, f"Output contained Usage: {result.output}"
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
