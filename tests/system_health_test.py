@@ -376,6 +376,10 @@ swss            OK                OK                  -              -
                 assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
                 assert "DPU0" in result.output, f"Expected 'DPU0' in output, got: {result.output}"
 
+                # check -h option
+                result = runner.invoke(show.cli.commands["system-health"].commands["dpu"], ["-h"])
+                print(result.output)
+
     def test_health_dpu_non_smartswitch(self):
         # Mock is_smartswitch to return True
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=False):

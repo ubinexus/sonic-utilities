@@ -90,6 +90,12 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
         print(result.output)
 
+    # Test 'show reboot-cause history -h'
+    def test_reboot_cause_history_dpu(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
+        print(result.output)
+
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
         # Mock is_smartswitch to return True
