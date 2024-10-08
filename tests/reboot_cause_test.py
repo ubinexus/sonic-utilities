@@ -92,9 +92,22 @@ Name                 Cause        Time                          User    Comment
 
     # Test 'show reboot-cause history -h'
     def test_reboot_cause_history_dpu_help(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
-        print(result.output)
+        # Mock is_smartswitch to return True
+        with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
+            # Mock the open() call to simulate platform.json contents
+            mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
+            with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
+                # Mock json.load to return the parsed JSON data
+                with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
+                    runner = CliRunner()
+                    result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
+
+                    # Assert that the help message is displayed correctly
+                    self.assertEqual(result.exit_code, 0)
+                    self.assertIn("Usage", result.output)
+                    self.assertIn("module_name", result.output)
+                    self.assertIn("all", result.output)
+                    self.assertIn("SWITCH", result.output)
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):

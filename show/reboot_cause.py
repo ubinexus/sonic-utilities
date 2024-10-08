@@ -179,10 +179,13 @@ def get_all_dpus():
     if not is_smartswitch():
         return dpu_list
 
-    # Load config_db.json
+    # Load platform.json
+    platform_info = device_info.get_platform_info()
+    platform = platform_info['platform']
+    platform_file = os.path.join("/usr/share/sonic/device", platform, "platform.json")
     try:
-        with open('/etc/sonic/config_db.json', 'r') as config_file:
-            config_data = json.load(config_file)
+        with open(platform_file, 'r') as platform_json:
+            config_data = json.load(platform_json)
 
             # Extract DPUs dictionary
             dpus = config_data.get("DPUS", {})
@@ -191,9 +194,9 @@ def get_all_dpus():
             dpu_list = [dpu.upper() for dpu in dpus.keys()]
 
     except FileNotFoundError:
-        print("Error: config_db.json not found")
+        print("Error: platform.json not found")
     except json.JSONDecodeError:
-        print("Error: Failed to parse config_db.json")
+        print("Error: Failed to parse platform.json")
 
     # Add 'all' and 'SWITCH' to the list
     dpu_list += ['all', 'SWITCH']
