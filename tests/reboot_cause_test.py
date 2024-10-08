@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import textwrap
 from unittest import mock
 from click.testing import CliRunner
