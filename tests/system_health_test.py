@@ -409,6 +409,26 @@ swss            OK                OK                  -              -
                 assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
                 assert "DPU0" not in result.output, f"Output contained DPU0: {result.output}"
 
+    # Test 'get_all_dpus' function
+    def test_get_all_dpus(self):
+        # Mock is_smartswitch to return True
+        with mock.patch("show.system_health.device_info.is_smartswitch", return_value=True):
+
+            # Mock platform info to simulate a valid platform returned from get_platform_info
+            mock_platform_info = {'platform': 'mock_platform'}
+            with mock.patch("show.system_health.device_info.get_platform_info", return_value=mock_platform_info):
+
+                # Mock open to simulate reading a platform.json file
+                mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
+                with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
+
+                    # Mock json.load to return parsed JSON content from the mocked file
+                    with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
+
+                        # Import the actual get_all_dpus function and invoke it
+                        from show.system_health import get_all_dpus
+                        dpu_list = get_all_dpus()
+                        print(dpu_list)
 
     @classmethod
     def teardown_class(cls):
