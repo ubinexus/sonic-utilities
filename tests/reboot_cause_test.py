@@ -100,15 +100,17 @@ Name                 Cause        Time                          User    Comment
             with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
                 # Mock json.load to return the parsed JSON data
                 with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
-                    # Import the actual get_all_dpus function and invoke it
-                    from show.reboot_cause import get_all_dpus
-                    dpu_list = get_all_dpus()
+                    # Mock the function that fetches the platform
+                    with mock.patch("show.reboot_cause.device_info.get_platform", return_value="mock_platform"):
+                        # Import the actual get_all_dpus function and invoke it
+                        from show.reboot_cause import get_all_dpus
+                        dpu_list = get_all_dpus()
 
-                    # Assert the returned list contains expected DPUs, 'all', and 'SWITCH'
-                    assert 'DPU0' in dpu_list
-                    assert 'DPU1' in dpu_list
-                    assert 'all' in dpu_list
-                    assert 'SWITCH' in dpu_list
+                        # Assert the returned list contains expected DPUs, 'all', and 'SWITCH'
+                        assert 'DPU0' in dpu_list
+                        assert 'DPU1' in dpu_list
+                        assert 'all' in dpu_list
+                        assert 'SWITCH' in dpu_list
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
