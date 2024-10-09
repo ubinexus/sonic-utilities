@@ -91,8 +91,8 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
         print(result.output)
 
-    # Test 'show reboot-cause history -h'
-    def test_reboot_cause_history_dpu_help(self):
+    # Test 'get_all_dpus' function
+    def test_get_all_dpus(self):
         # Mock is_smartswitch to return True
         with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
             # Mock the open() call to simulate platform.json contents
@@ -100,12 +100,16 @@ Name                 Cause        Time                          User    Comment
             with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
                 # Mock json.load to return the parsed JSON data
                 with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
-                    runner = CliRunner()
-                    result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["-h"])
-                    print(result.output)
-                    # Assert that the help message is displayed correctly
-                    # assert result.exit_code == 0, f"Exp 0, got {result.exit_code}. Output: {result.output}"
-                    # assert "Usage" in result.output, f"Output contained Usage: {result.output}"
+                    # Import the actual get_all_dpus function and invoke it
+                    from show.reboot_cause import get_all_dpus
+                    dpu_list = get_all_dpus()
+
+                    # Assert the returned list contains expected DPUs, 'all', and 'SWITCH'
+                    assert 'DPU0' in dpu_list
+                    assert 'DPU1' in dpu_list
+                    assert 'all' in dpu_list
+                    assert 'SWITCH' in dpu_list
+
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
