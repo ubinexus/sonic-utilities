@@ -105,6 +105,7 @@ Name                 Cause        Time                          User    Comment
                         # Import the actual get_all_dpus function and invoke it
                         from show.reboot_cause import get_all_dpus
                         dpu_list = get_all_dpus()  # This will run without assertion
+                        print(dpu_list)
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
