@@ -94,17 +94,21 @@ Name                 Cause        Time                          User    Comment
     # Test 'get_all_dpus' function
     def test_get_all_dpus(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
-            # Mock the open() call to simulate platform.json contents
-            mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
-            with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
-                # Mock json.load to return the parsed JSON data
-                with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
-                    # Mock the function that fetches the platform info to return None
-                    with mock.patch("show.reboot_cause.get_platform_info", return_value=None):
-                        # Import the actual get_all_dpus function and invoke it
-                        from show.reboot_cause import get_all_dpus
-                        dpu_list = get_all_dpus()  # This will run without assertion
+        with mock.patch("show.reboot_cause.device_info.is_smartswitch", return_value=True):
+
+            # Mock platform info to simulate a valid platform returned from get_platform_info
+            mock_platform_info = {'platform': 'mock_platform'}
+            with mock.patch("show.reboot_cause.device_info.get_platform_info", return_value=mock_platform_info):
+
+                # Mock open to simulate reading a platform.json file
+                mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
+                with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
+
+                    # Mock json.load to return parsed JSON content from the mocked file
+                    with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
+
+                        # Call the function under test
+                        dpu_list = get_all_dpus()
                         print(dpu_list)
 
     # Test 'show reboot-cause all on smartswitch'
