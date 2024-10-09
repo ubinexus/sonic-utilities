@@ -3,11 +3,13 @@ import os
 import sys
 from swsscommon.swsscommon import ConfigDBConnector
 
+
 # Simulate the AbbreviationGroup from utilities_common.cli
 class AbbreviationGroup(click.Group):
     def get_command(self, ctx, cmd_name):
         # Fallback to default command if abbreviation not found
         return super().get_command(ctx, cmd_name)
+
 
 
 #
@@ -76,6 +78,7 @@ def memory_stats_retention_period(retention_period):
     db = ConfigDBConnector()
     db.connect()
 
+
     memory_stats_table = db.get_table("MEMORY_STATISTICS")
     check_memory_stats_table_existence(memory_stats_table)
 
@@ -100,6 +103,7 @@ def memory_stats_sampling_interval(sampling_interval):
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
     click.echo(f"Memory Statistics sampling interval set to {sampling_interval} minutes.")
     click.echo("Save SONiC configuration using 'config save' to persist the changes.")
+
 
 if __name__ == "__main__":
     memory_stats()
