@@ -107,7 +107,8 @@ Name                 Cause        Time                          User    Comment
                     # Mock json.load to return parsed JSON content from the mocked file
                     with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
 
-                        # Call the function under test
+                        # Import the actual get_all_dpus function and invoke it
+                        from show.reboot_cause import get_all_dpus
                         dpu_list = get_all_dpus()
                         print(dpu_list)
 
