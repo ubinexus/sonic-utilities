@@ -1,54 +1,7 @@
 import click
-import json
 import os
 import sys
-
-# Path to the dummy config DB file
-CONFIG_DB_FILE = "config_db.json"
-
-
-# Dummy ConfigDBConnector for testing locally
-class DummyConfigDBConnector:
-    def __init__(self, config_file):
-        self.config_file = config_file
-        self.db = self.load_db()
-
-    def load_db(self):
-        """Loads the configuration from the JSON file"""
-        if not os.path.exists(self.config_file):
-            # Create the file if it doesn't exist
-            with open(self.config_file, 'w') as f:
-                json.dump({}, f)
-
-        with open(self.config_file, 'r') as f:
-            return json.load(f)
-
-    def save_db(self):
-        """Saves the configuration back to the JSON file"""
-        with open(self.config_file, 'w') as f:
-            json.dump(self.db, f, indent=4)
-
-    def get_table(self, table_name):
-        return self.db.get(table_name, {})
-
-    def mod_entry(self, table, key, data):
-        if table not in self.db:
-            self.db[table] = {}
-        if key not in self.db[table]:
-            self.db[table][key] = {}
-
-        # Update the key-value pairs instead of overwriting
-        self.db[table][key].update(data)
-        self.save_db()  # Save changes back to the file
-
-
-# Simulate the @pass_db decorator
-def pass_db(f):
-    def new_func(*args, **kwargs):
-        db = DummyConfigDBConnector(CONFIG_DB_FILE)
-        return f(db, *args, **kwargs)
-    return new_func
-
+from swsscommon.swsscommon import ConfigDBConnector
 
 # Simulate the AbbreviationGroup from utilities_common.cli
 class AbbreviationGroup(click.Group):
@@ -81,9 +34,11 @@ def check_memory_stats_table_existence(memory_stats_table):
 # 'enable' command ('sudo config memory-stats enable')
 #
 @memory_stats.command(name="enable", short_help="Enable the Memory Statistics feature")
-@pass_db
-def memory_stats_enable(db):
+def memory_stats_enable():
     """Enable the Memory Statistics feature"""
+    db = ConfigDBConnector()
+    db.connect()
+
     memory_stats_table = db.get_table("MEMORY_STATISTICS")
     check_memory_stats_table_existence(memory_stats_table)
 
@@ -97,9 +52,11 @@ def memory_stats_enable(db):
 # 'disable' command ('sudo config memory-stats disable')
 #
 @memory_stats.command(name="disable", short_help="Disable the Memory Statistics feature")
-@pass_db
-def memory_stats_disable(db):
+def memory_stats_disable():
     """Disable the Memory Statistics feature"""
+    db = ConfigDBConnector()
+    db.connect()
+
     memory_stats_table = db.get_table("MEMORY_STATISTICS")
     check_memory_stats_table_existence(memory_stats_table)
 
@@ -114,9 +71,11 @@ def memory_stats_disable(db):
 #
 @memory_stats.command(name="retention-period", short_help="Configure the retention period for Memory Statistics")
 @click.argument('retention_period', metavar='<retention_period>', required=True, type=int)
-@pass_db
-def memory_stats_retention_period(db, retention_period):
+def memory_stats_retention_period(retention_period):
     """Set the retention period for Memory Statistics"""
+    db = ConfigDBConnector()
+    db.connect()
+
     memory_stats_table = db.get_table("MEMORY_STATISTICS")
     check_memory_stats_table_existence(memory_stats_table)
 
@@ -130,9 +89,11 @@ def memory_stats_retention_period(db, retention_period):
 #
 @memory_stats.command(name="sampling-interval", short_help="Configure the sampling interval for Memory Statistics")
 @click.argument('sampling_interval', metavar='<sampling_interval>', required=True, type=int)
-@pass_db
-def memory_stats_sampling_interval(db, sampling_interval):
+def memory_stats_sampling_interval(sampling_interval):
     """Set the sampling interval for Memory Statistics"""
+    db = ConfigDBConnector()
+    db.connect()
+
     memory_stats_table = db.get_table("MEMORY_STATISTICS")
     check_memory_stats_table_existence(memory_stats_table)
 
