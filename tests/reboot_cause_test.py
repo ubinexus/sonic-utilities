@@ -110,7 +110,6 @@ Name                 Cause        Time                          User    Comment
                     assert 'all' in dpu_list
                     assert 'SWITCH' in dpu_list
 
-
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
         # Mock is_smartswitch to return True
