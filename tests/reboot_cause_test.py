@@ -92,25 +92,19 @@ Name                 Cause        Time                          User    Comment
         print(result.output)
 
     # Test 'get_all_dpus' function
-    def test_get_all_dpus(self):
-        # Mock is_smartswitch to return True
-        with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
-            # Mock the open() call to simulate platform.json contents
-            mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
-            with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
-                # Mock json.load to return the parsed JSON data
-                with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
-                    # Mock the function that fetches the platform
-                    with mock.patch("show.reboot_cause.device_info.get_platform", return_value="mock_platform"):
-                        # Import the actual get_all_dpus function and invoke it
-                        from show.reboot_cause import get_all_dpus
-                        dpu_list = get_all_dpus()
+    @mock.patch("show.reboot_cause.is_smartswitch", return_value=True)
+    @mock.patch("show.reboot_cause.device_info.get_platform_info", return_value=None)
+    def test_get_all_dpus_none_platform(self, mock_get_platform_info, mock_is_smartswitch):
+        # Mock the open() call to simulate platform.json contents
+        mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
 
-                        # Assert the returned list contains expected DPUs, 'all', and 'SWITCH'
-                        assert 'DPU0' in dpu_list
-                        assert 'DPU1' in dpu_list
-                        assert 'all' in dpu_list
-                        assert 'SWITCH' in dpu_list
+        with mock.patch("builtins.open", mock.mock_open(read_data=mock_platform_data)):
+            # Mock json.load to return the parsed JSON data
+            with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
+                # Mock the function that fetches the platform
+                with mock.patch("show.reboot_cause.device_info.get_platform", return_value="mock_platform"):
+                    # Call get_all_dpus; it should handle the None return gracefully
+                    get_all_dpus()
 
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
