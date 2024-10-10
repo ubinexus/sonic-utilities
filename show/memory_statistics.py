@@ -28,10 +28,13 @@ def get_memory_statistics_config(field_name):
     config_db = ConfigDBConnector()
     config_db.connect()
     memory_statistics_table = config_db.get_table("MEMORY_STATISTICS")
-    if (memory_statistics_table and
-        "memory_statistics" in memory_statistics_table and
-        field_name in memory_statistics_table["config"]):
+    if (
+    memory_statistics_table and
+    "memory_statistics" in memory_statistics_table and
+    field_name in memory_statistics_table["memory_statistics"]
+    ):
         field_value = memory_statistics_table["memory_statistics"][field_name]
+
 
     return field_value
 

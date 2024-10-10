@@ -1,4 +1,3 @@
-import importlib
 from click.testing import CliRunner
 from utilities_common.db import Db
 
