@@ -1,5 +1,4 @@
 import click
-import os
 import sys
 from swsscommon.swsscommon import ConfigDBConnector
 
@@ -105,4 +104,3 @@ def memory_statistics_sampling_interval(sampling_interval):
 
 if __name__ == "__main__":
     memory_statistics()
-    
