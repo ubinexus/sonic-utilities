@@ -2,8 +2,7 @@ import logging
 import os
 import sys
 import unittest
-from unittest.mock import patch, mock_open, Mock
-
+from unittest.mock import patch  # Added patch import
 from utilities_common.general import load_module_from_source
 
 TESTS_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -69,11 +68,11 @@ class TestSonicMemoryStatistics(unittest.TestCase):
         mock_enable.return_value = True
 
         return_result = sonic_memory_statistics.memory_statistics_enable(True)
-        assert return_result == True
+        assert return_result is True  # Changed comparison to 'is True'
 
         mock_enable.return_value = False
         return_result = sonic_memory_statistics.memory_statistics_enable(False)
-        assert return_result == False
+        assert return_result is False  # Changed comparison to 'is False'
 
     @patch("sonic_memory_statistics.get_current_sampling_interval")
     def test_get_sampling_interval(self, mock_sampling_interval):
@@ -92,6 +91,7 @@ class TestSonicMemoryStatistics(unittest.TestCase):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
+
 
 if __name__ == '__main__':
     unittest.main()
