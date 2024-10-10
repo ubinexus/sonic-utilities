@@ -4,6 +4,7 @@ from tabulate import tabulate
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import ConfigDBConnector
 
+
 #
 # 'memory-statistics' group (show memory-statistics ...)
 #
@@ -11,6 +12,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 def memory_statistics():
     """Show memory statistics configuration and logs"""
     pass
+
 
 def get_memory_statistics_config(field_name):
     """Fetches the configuration of memory_statistics from `CONFIG_DB`.
@@ -26,10 +28,13 @@ def get_memory_statistics_config(field_name):
     config_db = ConfigDBConnector()
     config_db.connect()
     memory_statistics_table = config_db.get_table("MEMORY_STATISTICS")
-    if memory_statistics_table and "memory_statistics" in memory_statistics_table and field_name in memory_statistics_table["config"]:
+    if (memory_statistics_table and
+        "memory_statistics" in memory_statistics_table and
+        field_name in memory_statistics_table["config"]):
         field_value = memory_statistics_table["memory_statistics"][field_name]
 
     return field_value
+
 
 @memory_statistics.command(name="memory_statitics", short_help="Show the configuration of memory statistics")
 def config():
@@ -45,6 +50,7 @@ def config():
 
     sampling_interval = get_memory_statistics_config("sampling_interval")
     click.echo("Memory Statistics sampling interval (minutes): {}".format(sampling_interval))
+
 
 def fetch_memory_statistics(starting_time=None, ending_time=None, select=None):
     """Fetch memory statistics from the database.
@@ -72,13 +78,14 @@ def fetch_memory_statistics(starting_time=None, ending_time=None, select=None):
 
     return filtered_statistics
 
+
 @memory_statistics.command(name="logs", short_help="Show memory statistics logs with optional filtering")
 @click.argument('starting_time', required=False)
 @click.argument('ending_time', required=False)
 @click.argument('additional_options', required=False, nargs=-1)
 def show_memory_statistics_logs(starting_time, ending_time, select):
     """Show memory statistics logs with optional filtering by time and select."""
-    
+
     # Fetch memory statistics
     memory_statistics = fetch_memory_statistics(starting_time, ending_time, select)
 
@@ -89,6 +96,5 @@ def show_memory_statistics_logs(starting_time, ending_time, select):
     # Display the memory statistics
     headers = ["Time", "Statistic", "Value"]  # Adjust according to the actual fields
     table_data = [[entry.get("time"), entry.get("statistic"), entry.get("value")] for entry in memory_statistics]
-    
-    click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
 
+    click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
