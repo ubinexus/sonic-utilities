@@ -11,38 +11,37 @@ class AbbreviationGroup(click.Group):
         return super().get_command(ctx, cmd_name)
 
 
-
 #
-# 'memory-stats' group ('sudo config memory-stats ...')
+# 'memory-statistics' group ('sudo config memory-statistics ...')
 #
-@click.group(cls=AbbreviationGroup, name="memory-stats")
-def memory_stats():
+@click.group(cls=AbbreviationGroup, name="memory-statistics")
+def memory_statistics():
     """Configure the Memory Statistics feature"""
     pass
 
 
-def check_memory_stats_table_existence(memory_stats_table):
+def check_memory_statistics_table_existence(memory_statistics_table):
     """Checks whether the 'MEMORY_STATISTICS' table is configured in Config DB."""
-    if not memory_stats_table:
+    if not memory_statistics_table:
         click.echo("Unable to retrieve 'MEMORY_STATISTICS' table from Config DB.")
         sys.exit(1)
 
-    if "memory_statistics" not in memory_stats_table:
+    if "memory_statistics" not in memory_statistics_table:
         click.echo("Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.")
         sys.exit(2)
 
 
 #
-# 'enable' command ('sudo config memory-stats enable')
+# 'enable' command ('sudo config memory-statistics enable')
 #
-@memory_stats.command(name="enable", short_help="Enable the Memory Statistics feature")
-def memory_stats_enable():
+@memory_statistics.command(name="enable", short_help="Enable the Memory Statistics feature")
+def memory_statistics_enable():
     """Enable the Memory Statistics feature"""
     db = ConfigDBConnector()
     db.connect()
 
-    memory_stats_table = db.get_table("MEMORY_STATISTICS")
-    check_memory_stats_table_existence(memory_stats_table)
+    memory_statistics_table = db.get_table("MEMORY_STATISTICS")
+    check_memory_statistics_table_existence(memory_statistics_table)
 
     # Set enabled to true and disabled to false
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
@@ -51,16 +50,16 @@ def memory_stats_enable():
 
 
 #
-# 'disable' command ('sudo config memory-stats disable')
+# 'disable' command ('sudo config memory-statistics disable')
 #
-@memory_stats.command(name="disable", short_help="Disable the Memory Statistics feature")
-def memory_stats_disable():
+@memory_statistics.command(name="disable", short_help="Disable the Memory Statistics feature")
+def memory_statistics_disable():
     """Disable the Memory Statistics feature"""
     db = ConfigDBConnector()
     db.connect()
 
-    memory_stats_table = db.get_table("MEMORY_STATISTICS")
-    check_memory_stats_table_existence(memory_stats_table)
+    memory_statistics_table = db.get_table("MEMORY_STATISTICS")
+    check_memory_statistics_table_existence(memory_statistics_table)
 
     # Set enabled to false and disabled to true
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false", "disabled": "true"})
@@ -69,18 +68,17 @@ def memory_stats_disable():
 
 
 #
-# 'retention-period' command ('sudo config memory-stats retention-period ...')
+# 'retention-period' command ('sudo config memory-statistics retention-period ...')
 #
-@memory_stats.command(name="retention-period", short_help="Configure the retention period for Memory Statistics")
+@memory_statistics.command(name="retention-period", short_help="Configure the retention period for Memory Statistics")
 @click.argument('retention_period', metavar='<retention_period>', required=True, type=int)
-def memory_stats_retention_period(retention_period):
+def memory_statistics_retention_period(retention_period):
     """Set the retention period for Memory Statistics"""
     db = ConfigDBConnector()
     db.connect()
 
-
-    memory_stats_table = db.get_table("MEMORY_STATISTICS")
-    check_memory_stats_table_existence(memory_stats_table)
+    memory_statistics_table = db.get_table("MEMORY_STATISTICS")
+    check_memory_statistics_table_existence(memory_statistics_table)
 
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_time": retention_period})
     click.echo(f"Memory Statistics retention period set to {retention_period} days.")
@@ -88,17 +86,17 @@ def memory_stats_retention_period(retention_period):
 
 
 #
-# 'sampling-interval' command ('sudo config memory-stats sampling-interval ...')
+# 'sampling-interval' command ('sudo config memory-statistics sampling-interval ...')
 #
-@memory_stats.command(name="sampling-interval", short_help="Configure the sampling interval for Memory Statistics")
+@memory_statistics.command(name="sampling-interval", short_help="Configure the sampling interval for Memory Statistics")
 @click.argument('sampling_interval', metavar='<sampling_interval>', required=True, type=int)
-def memory_stats_sampling_interval(sampling_interval):
+def memory_statistics_sampling_interval(sampling_interval):
     """Set the sampling interval for Memory Statistics"""
     db = ConfigDBConnector()
     db.connect()
 
-    memory_stats_table = db.get_table("MEMORY_STATISTICS")
-    check_memory_stats_table_existence(memory_stats_table)
+    memory_statistics_table = db.get_table("MEMORY_STATISTICS")
+    check_memory_statistics_table_existence(memory_statistics_table)
 
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
     click.echo(f"Memory Statistics sampling interval set to {sampling_interval} minutes.")
@@ -106,4 +104,5 @@ def memory_stats_sampling_interval(sampling_interval):
 
 
 if __name__ == "__main__":
-    memory_stats()
+    memory_statistics()
+    
