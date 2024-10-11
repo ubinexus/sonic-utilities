@@ -28,22 +28,22 @@ class TestSonicMemoryStatistics(unittest.TestCase):
         """
         # Test for normal case
         mock_run_cmd.return_value = (0, ["1024"], None)
-        memory_stats = sonic_memory_statistics.read_memory_statistics()
-        assert memory_stats == 1024
+        memory_statistics = sonic_memory_statistics.read_memory_statistics()
+        assert memory_statistics == 1024
 
-        logger.info(f"Value of 'memory_stats' is: '{memory_stats}'.")
-        logger.info("Expected value of 'memory_stats' is: '1024'.")
+        logger.info(f"Value of 'memory_statistics' is: '{memory_statistics}'.")
+        logger.info("Expected value of 'memory_statistics' is: '1024'.")
 
         # Test for non-integer return
         mock_run_cmd.return_value = (0, ["NotInteger"], None)
         with self.assertRaises(SystemExit) as sys_exit:
-            memory_stats = sonic_memory_statistics.read_memory_statistics()
+            memory_statistics = sonic_memory_statistics.read_memory_statistics()
         self.assertEqual(sys_exit.exception.code, 1)
 
         # Test for empty return
         mock_run_cmd.return_value = (0, (), None)
         with self.assertRaises(SystemExit) as sys_exit:
-            memory_stats = sonic_memory_statistics.read_memory_statistics()
+            memory_statistics = sonic_memory_statistics.read_memory_statistics()
         self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_memory_statistics.run_command")
