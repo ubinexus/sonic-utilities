@@ -17,7 +17,6 @@ sonic_memory_statistics_path = os.path.join(TESTS_DIR_PATH, "sonic-memory-statis
 sonic_memory_statistics = load_module_from_source("sonic_memory_statistics", sonic_memory_statistics_path)
 
 
-
 class TestSonicMemoryStatistics(unittest.TestCase):
     @classmethod
     def setup_class(cls):
