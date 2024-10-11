@@ -13,7 +13,7 @@ sys.path.append(SCRIPTS_DIR_PATH)
 logger = logging.getLogger(__name__)
 
 # Load `sonic-memory-statistics` module from source
-sonic_memory_statistics_path = os.path.join(TESTS_DIR_PATH, "sonic_memory_statistics")
+sonic_memory_statistics_path = os.path.join(TESTS_DIR_PATH, "sonic_memory_statistics_test")
 sonic_memory_statistics = load_module_from_source("sonic_memory_statistics", sonic_memory_statistics_path)
 
 
