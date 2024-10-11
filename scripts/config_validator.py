@@ -15,12 +15,12 @@ log = logger.Logger(SYSLOG_IDENTIFIER)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c',
-                    dest='config',
-                    metavar='config file',
-                    type = str,
-                    required = True,
-                    help = 'the config file to be validated',
-                    default = None )
+                        dest='config',
+                        metavar='config file',
+                        type=str,
+                        required=True,
+                        help='the config file to be validated',
+                        default=None)
 
     args = parser.parse_args()
     config_file = args.config
