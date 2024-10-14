@@ -48,5 +48,6 @@ class TestMemoryStatisticsShowCommands(unittest.TestCase):
         self.assertIn("Memory Statistics logs", result.output)
         self.assertEqual(result.exit_code, 0)
 
+
 if __name__ == '__main__':
     unittest.main()
