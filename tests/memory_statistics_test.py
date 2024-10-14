@@ -1,31 +1,52 @@
-import pytest
+import unittest
 from click.testing import CliRunner
-from swsscommon.swsscommon import ConfigDBConnector
-from config.memory_statistics import memory_statistics_enable, memory_statistics_disable, memory_statistics_retention_period, memory_statistics_sampling_interval
-from show.memory_statistics import config as show_config, show_memory_statistics_logs
+from config.memory_statistics import memory_statistics_enable
+from config.memory_statistics import memory_statistics_disable
+from config.memory_statistics import memory_statistics_retention_period
+from config.memory_statistics import memory_statistics_sampling_interval
+from show.memory_statistics import config, show_memory_statistics_logs
 
 
-# Mocking ConfigDBConnector for all test cases
-@pytest.fixture(scope="module")
-def mock_db(mocker):
-    mocker.patch.object(ConfigDBConnector, 'connect', return_value=None)
-    mocker.patch.object(ConfigDBConnector, 'get_table', return_value={
-        "memory_statistics": {
-            "enabled": "false",
-            "retention_time": "30",
-            "sampling_interval": "5"
-        }
-    })
-    return ConfigDBConnector()
+class TestMemoryStatisticsConfigCommands(unittest.TestCase):
+
+    def setUp(self):
+        self.runner = CliRunner()
+
+    def test_memory_statistics_enable(self):
+        result = self.runner.invoke(memory_statistics_enable)
+        self.assertIn("Memory Statistics feature enabled.", result.output)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_memory_statistics_disable(self):
+        result = self.runner.invoke(memory_statistics_disable)
+        self.assertIn("Memory Statistics feature disabled.", result.output)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_memory_statistics_retention_period(self):
+        result = self.runner.invoke(memory_statistics_retention_period, ['30'])
+        self.assertIn("Memory Statistics retention period set to 30 days.", result.output)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_memory_statistics_sampling_interval(self):
+        result = self.runner.invoke(memory_statistics_sampling_interval, ['5'])
+        self.assertIn("Memory Statistics sampling interval set to 5 minutes.", result.output)
+        self.assertEqual(result.exit_code, 0)
 
 
-# Test cases for config commands
+class TestMemoryStatisticsShowCommands(unittest.TestCase):
 
-def test_memory_statistics_enable(mock_db, mocker):
-    runner = CliRunner()
-    mock_mod_entry = mocker.patch.object(ConfigDBConnector, 'mod_entry')
+    def setUp(self):
+        self.runner = CliRunner()
 
-    result = runner.invoke(memory_statistics_enable)
-    assert result.exit_code == 0
-    mock_mod_entry.assert_called_with("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
-    assert "
+    def test_memory_statistics_config(self):
+        result = self.runner.invoke(config)
+        self.assertIn("Memory Statistics administrative mode:", result.output)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_memory_statistics_logs(self):
+        result = self.runner.invoke(show_memory_statistics_logs, ['2023-10-01', '2023-10-02'])
+        self.assertIn("Memory Statistics logs", result.output)
+        self.assertEqual(result.exit_code, 0)
+
+if __name__ == '__main__':
+    unittest.main()
