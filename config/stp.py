@@ -123,6 +123,7 @@ parameter_bridge_priority = 4
 
 def get_max_stp_instances():
     return PVST_MAX_INSTANCES
+    #below part is not yet required for new updates
     #state_db = SonicV2Connector(host='127.0.0.1')
     #state_db.connect(state_db.STATE_DB, False)
     #max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
