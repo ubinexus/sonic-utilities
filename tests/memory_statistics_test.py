@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from click.testing import CliRunner
 from config.memory_statistics import memory_statistics_enable
 from config.memory_statistics import memory_statistics_disable
@@ -11,6 +12,17 @@ class TestMemoryStatisticsConfigCommands(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
+        # Mock Config DB connector to simulate the MEMORY_STATISTICS table
+        self.config_db_mock = patch('config.memory_statistics.ConfigDBConnector')
+        self.mock_db = self.config_db_mock.start()
+        # Simulate MEMORY_STATISTICS table presence in Config DB
+        self.mock_db.get_table.return_value = {
+            "MEMORY_STATISTICS": {"status": "enabled", "retention_period": "30", "sampling_interval": "5"}
+        }
+
+    def tearDown(self):
+        # Stop the Config DB mock
+        self.config_db_mock.stop()
 
     def test_memory_statistics_enable(self):
         result = self.runner.invoke(memory_statistics_enable)
@@ -37,6 +49,21 @@ class TestMemoryStatisticsShowCommands(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
+        # Mock Config DB connector to simulate MEMORY_STATISTICS table and logs
+        self.config_db_mock = patch('show.memory_statistics.ConfigDBConnector')
+        self.mock_db = self.config_db_mock.start()
+        # Simulate logs and configuration
+        self.mock_db.get_table.return_value = {
+            "MEMORY_STATISTICS": {"status": "enabled", "retention_period": "30", "sampling_interval": "5"}
+        }
+        self.mock_db.get_log_entries.return_value = [
+            {"date": "2023-10-01", "data": "Sample log entry 1"},
+            {"date": "2023-10-02", "data": "Sample log entry 2"}
+        ]
+
+    def tearDown(self):
+        # Stop the Config DB mock
+        self.config_db_mock.stop()
 
     def test_memory_statistics_config(self):
         result = self.runner.invoke(config)
