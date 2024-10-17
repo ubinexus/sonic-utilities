@@ -1,4 +1,4 @@
-!/usr/sbin/env python
+
 #
 # 'spanning-tree' group ('config spanning-tree ...')
 #
@@ -123,15 +123,15 @@ parameter_bridge_priority = 4
 
 def get_max_stp_instances():
     return PVST_MAX_INSTANCES
-    #below part is not yet required for new updates
-    #state_db = SonicV2Connector(host='127.0.0.1')
-    #state_db.connect(state_db.STATE_DB, False)
-    #max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
-    #if max_inst == "":
+    # below part is not yet required for new updates
+    # state_db = SonicV2Connector(host='127.0.0.1')
+    # state_db.connect(state_db.STATE_DB, False)
+    # max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
+    # if max_inst == "":
     #    return PVST_MAX_INSTANCES
-    #if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
+    # if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
     #    return max_inst
-    #else:
+    # else:
     #    return PVST_MAX_INSTANCES
 
 def update_stp_vlan_parameter(db, param_type, new_value):
@@ -944,5 +944,5 @@ def stp_vlan_interface_cost(_db, vid, interface_name, cost):
 
 
 # Invoke main()
-#if __name__ == '__main__':
+# if __name__ == '__main__':
 #    spanning_tree()
