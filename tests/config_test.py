@@ -18,6 +18,7 @@ import click
 from click.testing import CliRunner
 
 from sonic_py_common import device_info, multi_asic
+from utilities_common import flock
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
 from mock import call, patch, mock_open, MagicMock
@@ -45,6 +46,23 @@ load_minigraph_platform_path = os.path.join(load_minigraph_input_path, "platform
 load_minigraph_platform_false_path = os.path.join(load_minigraph_input_path, "platform_false")
 
 load_minigraph_command_output="""\
+Acquired lock on {0}
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
+Running command: config qos reload --no-dynamic-buffer --no-delay
+Running command: pfcwd start_default
+Restarting SONiC target ...
+Reloading Monit configuration ...
+Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
+Released lock on {0}
+"""
+
+load_minigraph_lock_failure_output = """\
+Failed to acquire lock on {0}
+"""
+
+load_minigraph_command_bypass_lock_output = """\
+Bypass lock on {}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
@@ -55,6 +73,7 @@ Please note setting loaded from minigraph will be lost after system reboot. To p
 """
 
 load_minigraph_platform_plugin_command_output="""\
+Acquired lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: config qos reload --no-dynamic-buffer --no-delay
@@ -63,6 +82,7 @@ Running Platform plugin ............!
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
+Released lock on {0}
 """
 
 load_mgmt_config_command_ipv4_only_output="""\
@@ -137,6 +157,20 @@ Exit: 4. Command: kill 104 failed.
 """
 
 RELOAD_CONFIG_DB_OUTPUT = """\
+Acquired lock on {0}
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+Released lock on {0}
+"""
+
+RELOAD_CONFIG_DB_LOCK_FAILURE_OUTPUT = """\
+Failed to acquire lock on {0}
+"""
+
+RELOAD_CONFIG_DB_BYPASS_LOCK_OUTPUT = """\
+Bypass lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Restarting SONiC target ...
@@ -144,44 +178,55 @@ Reloading Monit configuration ...
 """
 
 RELOAD_YANG_CFG_OUTPUT = """\
+Acquired lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -Y /tmp/config.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Released lock on {0}
 """
 
 RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
+Acquired lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json -n asic0 --write-to-db
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json -n asic1 --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Released lock on {0}
 """
 
 reload_config_with_sys_info_command_output="""\
+Acquired lock on {0}
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
 reload_config_with_disabled_service_output="""\
+Acquired lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Released lock on {0}
 """
 
 reload_config_masic_onefile_output = """\
+Acquired lock on {0}
 Stopping SONiC target ...
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Released lock on {0}
 """
 
 reload_config_masic_onefile_gen_sysinfo_output = """\
+Acquired lock on {0}
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -k Mellanox-SN3800-D112C8 --write-to-db
 Running command: /usr/local/bin/sonic-cfggen -H -k multi_asic -n asic0 --write-to-db
 Running command: /usr/local/bin/sonic-cfggen -H -k multi_asic -n asic1 --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Released lock on {0}
 """
 
 save_config_output = """\
@@ -601,7 +646,8 @@ class TestConfigReload(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')][:2]) == \
+                reload_config_with_sys_info_command_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_config_reload_stdin(self, get_cmd_module, setup_single_broadcom_asic):
         def mock_json_load(f):
@@ -641,7 +687,8 @@ class TestConfigReload(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')][:2]) == \
+                reload_config_with_sys_info_command_output.format(config.SYSTEM_RELOAD_LOCK)
 
     @classmethod
     def teardown_class(cls):
@@ -747,7 +794,8 @@ class TestConfigReloadMasic(object):
             traceback.print_tb(result.exc_info[2])
 
             assert result.exit_code == 0
-            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == reload_config_masic_onefile_output
+            assert "\n".join([li.rstrip() for li in result.output.split('\n')]) == \
+                reload_config_masic_onefile_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_config_reload_onefile_gen_sysinfo_masic(self):
         def read_json_file_side_effect(filename):
@@ -823,7 +871,7 @@ class TestConfigReloadMasic(object):
             assert result.exit_code == 0
             assert "\n".join(
                 [li.rstrip() for li in result.output.split('\n')]
-            ) == reload_config_masic_onefile_gen_sysinfo_output
+            ) == reload_config_masic_onefile_gen_sysinfo_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_config_reload_onefile_bad_format_masic(self):
         def read_json_file_side_effect(filename):
@@ -878,10 +926,57 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
+                (load_minigraph_command_output.format(config.SYSTEM_RELOAD_LOCK))
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 12
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
+                mock.MagicMock(return_value=("dummy_path", None)))
+    def test_load_minigraph_lock_failure(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, _) = get_cmd_module
+
+            fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
+            assert flock.acquire_flock(fd, 0)
+
+            try:
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code != 0
+                assert result.output == \
+                    (load_minigraph_lock_failure_output.format(config.SYSTEM_RELOAD_LOCK))
+                assert mock_run_command.call_count == 0
+            finally:
+                flock.release_flock(fd)
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
+                mock.MagicMock(return_value=("dummy_path", None)))
+    def test_load_minigraph_bypass_lock(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command",
+                        mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, _) = get_cmd_module
+
+            fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
+            assert flock.acquire_flock(fd, 0)
+
+            try:
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y", "-b"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert result.output == \
+                    load_minigraph_command_bypass_lock_output.format(config.SYSTEM_RELOAD_LOCK)
+                assert mock_run_command.call_count == 12
+            finally:
+                flock.release_flock(fd)
 
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=(load_minigraph_platform_path, None)))
     def test_load_minigraph_platform_plugin(self, get_cmd_module, setup_single_broadcom_asic):
@@ -893,7 +988,8 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_platform_plugin_command_output
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
+                (load_minigraph_platform_plugin_command_output.format(config.SYSTEM_RELOAD_LOCK))
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call(['systemctl', 'reset-failed', 'swss'])
             assert mock_run_command.call_count == 12
@@ -1032,7 +1128,6 @@ class TestLoadMinigraph(object):
                 },
                 "TACPLUS": {
                     "global": {
-                        "passkey": ""
                     }
                 }
             }
@@ -1044,7 +1139,7 @@ class TestLoadMinigraph(object):
             runner = CliRunner()
             result = runner.invoke(config.config.commands["load_minigraph"], ["--override_config", "-y"])
             assert result.exit_code != 0
-            assert "Authentication with 'tacacs+' is not allowed when passkey not exits." in result.output
+            assert "Authentication with 'tacacs+' is not allowed when passkey not exists." in result.output
 
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
@@ -1171,7 +1266,59 @@ class TestReloadConfig(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_CONFIG_DB_OUTPUT
+                == RELOAD_CONFIG_DB_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
+
+    def test_reload_config_lock_failure(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ):
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
+            assert flock.acquire_flock(fd, 0)
+
+            try:
+                result = runner.invoke(
+                    config.config.commands["reload"],
+                    [self.dummy_cfg_file, '-y', '-f'])
+
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code != 0
+                assert "\n".join([line.rstrip() for line in result.output.split('\n')]) \
+                    == RELOAD_CONFIG_DB_LOCK_FAILURE_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
+            finally:
+                flock.release_flock(fd)
+
+    def test_reload_config_bypass_lock(self, get_cmd_module, setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ):
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            fd = open(config.SYSTEM_RELOAD_LOCK, 'r')
+            assert flock.acquire_flock(fd, 0)
+
+            try:
+                result = runner.invoke(
+                    config.config.commands["reload"],
+                    [self.dummy_cfg_file, '-y', '-f', '-b'])
+
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert "\n".join([line.rstrip() for line in result.output.split('\n')]) \
+                    == RELOAD_CONFIG_DB_BYPASS_LOCK_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
+            finally:
+                flock.release_flock(fd)
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
         self.add_sysinfo_to_cfg_file()
@@ -1191,7 +1338,8 @@ class TestReloadConfig(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == reload_config_with_disabled_service_output
+            assert "\n".join([line.rstrip() for line in result.output.split('\n')]) == \
+                reload_config_with_disabled_service_output.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
         self.add_sysinfo_to_cfg_file()
@@ -1215,7 +1363,7 @@ class TestReloadConfig(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_MASIC_CONFIG_DB_OUTPUT
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
 
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
@@ -1234,7 +1382,7 @@ class TestReloadConfig(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_YANG_CFG_OUTPUT
+                == RELOAD_YANG_CFG_OUTPUT.format(config.SYSTEM_RELOAD_LOCK)
 
     @classmethod
     def teardown_class(cls):
@@ -3242,13 +3390,207 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                     # Invocation of the command with the CliRunner
                     result = self.runner.invoke(config.config.commands["apply-patch"],
                                                 [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--dry-run",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    @patch('config.main.concurrent.futures.wait', autospec=True)
+    def test_apply_patch_dryrun_parallel_multiasic(self, MockThreadPoolWait):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--dry-run",
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    MockThreadPoolWait.assert_called_once()
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    @patch('config.main.concurrent.futures.wait', autospec=True)
+    def test_apply_patch_check_running_in_parallel_multiasic(self, MockThreadPoolWait):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    MockThreadPoolWait.assert_called_once()
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    @patch('config.main.apply_patch_wrapper')
+    def test_apply_patch_check_apply_call_parallel_multiasic(self, mock_apply_patch):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    self.assertEqual(mock_apply_patch.call_count,
+                                     multi_asic.get_num_asics() + 1,
+                                     "apply_patch_wrapper function should be called number of ASICs plus host times")
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    @patch('config.main.concurrent.futures.wait', autospec=True)
+    def test_apply_patch_check_running_in_not_parallel_multiasic(self, MockThreadPoolWait):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                 "--format", ConfigFormat.SONICYANG.name,
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Assertions to check if ThreadPoolExecutor was used correctly
+                    MockThreadPoolWait.assert_not_called()
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @patch('config.main.validate_patch', mock.Mock(return_value=True))
+    def test_apply_patch_parallel_with_error_multiasic(self):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
                                                 "--format", ConfigFormat.SONICYANG.name,
-                                                "--dry-run",
-                                                "--ignore-non-yang-tables",
-                                                "--ignore-path", "/ANY_TABLE",
-                                                "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                                "--ignore-path", "",
-                                                "--verbose"],
+                                                 "--dry-run",
+                                                 "--parallel",
+                                                 "--ignore-non-yang-tables",
+                                                 "--ignore-path", "/ANY_TABLE",
+                                                 "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                 "--ignore-path", "",
+                                                 "--verbose"],
                                                 catch_exceptions=False)
 
                     print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
@@ -3316,6 +3658,44 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
                 # Invocation of the command with the CliRunner
                 result = self.runner.invoke(config.config.commands["apply-patch"],
                                             [self.patch_file_path],
+                                            catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertNotEqual(result.exit_code, 0, "Command should failed.")
+                self.assertIn("Failed to apply patch", result.output)
+
+                # Verify mocked_open was called as expected
+                mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+    @patch('config.main.subprocess.Popen')
+    @patch('config.main.SonicYangCfgDbGenerator.validate_config_db_json', mock.Mock(return_value=True))
+    def test_apply_patch_parallel_badpath_multiasic(self, mock_subprocess_popen):
+        mock_instance = MagicMock()
+        mock_instance.communicate.return_value = (json.dumps(self.all_config), 0)
+        mock_subprocess_popen.return_value = mock_instance
+
+        bad_patch = copy.deepcopy(self.patch_content)
+        bad_patch.append({
+                "value": {
+                    "policy_desc": "New ACL Table",
+                    "ports": ["Ethernet3", "Ethernet4"],
+                    "stage": "ingress",
+                    "type": "L3"
+                }
+            })
+
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(bad_patch)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.patch_file_path,
+                                            "--parallel"],
                                             catch_exceptions=True)
 
                 print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
