@@ -8077,9 +8077,9 @@ def logrotate(ctx, file):
 def disk_percentage(ctx, disk_percentage):
     """Configuring logrotate disk-precentage"""
     file = ctx.parent.params.get('file')
-    if 0 > disk_percentage > 100:
+    if disk_percentage < 0 or disk_percentage > 100:
         click.echo(f'Disk percentage {disk_percentage} is not in range [0 - 100]')
-        pass
+        sys.exit(1)
 
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -8120,9 +8120,9 @@ def max_number(ctx, max_number):
 def logrotate_size(ctx, size):
     """Configuring logrotate size of file"""
     file = ctx.parent.params.get('file')
-    if 0.001 > size > 3500.0:
+    if size < 0.001 or size > 3500.0:
         click.echo(f'Size {size} is not in range [0.001 - 3500.0]')
-        pass
+        sys.exit(1)
 
     config_db = ConfigDBConnector()
     config_db.connect()
