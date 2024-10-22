@@ -69,9 +69,10 @@ def get_config_db_as_text(scope=None):
     result = subprocess.Popen(cmd, shell=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     text, err = result.communicate()
     return_code = result.returncode
-    if return_code: # non-zero means failure
+    if return_code:
         raise GenericConfigUpdaterError(f"Failed to get running config for namespace: {scope},"
                                         f" Return code: {return_code}, Error: {err}")
+    return text
 
 
 class ConfigWrapper:
