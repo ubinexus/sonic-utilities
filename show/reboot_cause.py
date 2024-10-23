@@ -25,19 +25,20 @@ def read_reboot_cause_file():
 
 
 # Function to fetch reboot cause data from database
-def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
-    prefix = 'REBOOT_CAUSE|'
-    if use_chassis_db:
-        try:
-            rdb = SonicV2Connector(host='redis_chassis.server', port=6380)
-            rdb.connect(rdb.CHASSIS_STATE_DB)
-            table_keys = rdb.keys(rdb.CHASSIS_STATE_DB, prefix+'*')
-        except Exception:
-            return []
+def fetch_data_from_db(module_name, fetch_history=False):
+    if module_name is None:
+        prefix = 'REBOOT_CAUSE|2'
+    elif "DPU" in module_name:
+        prefix = 'REBOOT_CAUSE|' + module_name
     else:
+        prefix = 'REBOOT_CAUSE|'
+
+    try:
         rdb = SonicV2Connector(host='127.0.0.1')
         rdb.connect(rdb.STATE_DB, False)   # Make one attempt only
         table_keys = rdb.keys(rdb.STATE_DB, prefix+'*')
+    except Exception:
+        return []
 
     if table_keys is not None:
         table_keys.sort(reverse=True)
@@ -47,10 +48,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     for tk in table_keys:
         r = []
         append = False
-        if use_chassis_db:
-            entry = rdb.get_all(rdb.CHASSIS_STATE_DB, tk)
-        else:
-            entry = rdb.get_all(rdb.STATE_DB, tk)
+        entry = rdb.get_all(rdb.STATE_DB, tk)
 
         if module_name is not None:
             if 'device' in entry:
@@ -102,21 +100,13 @@ def fetch_reboot_cause_from_db(module_name):
     r.append(reboot_user if reboot_user else "")
     table.append(r)
 
-    table += fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=True)
+    table += fetch_data_from_db(module_name, fetch_history=False)
     return table
 
 
 # Function to fetch reboot cause history data from database
 def fetch_reboot_cause_history_from_db(module_name):
-    if module_name == "all":
-        # Combine data from both Redis containers for "all" modules
-        data_switch = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
-        data_dpu = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
-        return data_switch + data_dpu
-    elif module_name is None or module_name == "SWITCH":
-        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
-    else:
-        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
+    return fetch_data_from_db(module_name, fetch_history=True)
 
 #
 # 'reboot-cause' group ("show reboot-cause")
