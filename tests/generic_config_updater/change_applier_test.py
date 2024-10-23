@@ -200,7 +200,7 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("gu_common.get_config_db_as_json")
+    @patch("generic_config_updater.gu_common.get_config_db_as_json")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
     def test_change_apply(self, mock_set, mock_db, mock_get_config_json):
