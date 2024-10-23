@@ -73,31 +73,6 @@ def debug_print(msg):
     print(msg)
 
 
-# Mimics os.system call for sonic-cfggen -d --print-data > filename
-def subprocess_Popen_cfggen(cmd, *args, **kwargs):
-    global running_config
-
-    # Extract file name from kwargs if 'stdout' is a file object
-    stdout = kwargs.get('stdout')
-    if hasattr(stdout, 'name'):
-        fname = stdout.name
-    else:
-        raise ValueError("stdout is not a file")
-
-    # Write the running configuration to the file specified in stdout
-    with open(fname, "w") as s:
-        json.dump(running_config, s, indent=4)
-    
-    class MockPopen:
-        def __init__(self):
-            self.returncode = 0  # Simulate successful command execution
-
-        def communicate(self):
-            return "", ""  # Simulate empty stdout and stderr
-
-    return MockPopen()
-
-
 # mimics config_db.set_entry
 #
 def set_entry(config_db, tbl, key, data):
@@ -225,14 +200,13 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.change_applier.subprocess.Popen")
+    @patch("gu_common.get_config_db_as_json")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
-    def test_change_apply(self, mock_set, mock_db, mock_subprocess_Popen):
+    def test_change_apply(self, mock_set, mock_db, mock_get_config_json):
         global read_data, running_config, json_changes, json_change_index
         global start_running_config
 
-        mock_subprocess_Popen.side_effect = subprocess_Popen_cfggen
         mock_db.return_value = DB_HANDLE
         mock_set.side_effect = set_entry
 
@@ -240,6 +214,7 @@ class TestChangeApplier(unittest.TestCase):
             read_data = json.load(s)
 
         running_config = copy.deepcopy(read_data["running_data"])
+        mock_get_config_json.return_value = running_config
         json_changes = copy.deepcopy(read_data["json_changes"])
 
         generic_config_updater.change_applier.ChangeApplier.updater_conf = None
