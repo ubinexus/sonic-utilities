@@ -19,15 +19,15 @@ class TestMemoryStatisticsConfigCommands(unittest.TestCase):
         # Ensure a clean state in the MEMORY_STATISTICS table before each test
         self.db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
             "enabled": "false",
-            "retention_time": "30",
-            "sampling_interval": "5"
+            "retention_period": "15",  # Default retention period
+            "sampling_interval": "5"    # Default sampling interval
         })
 
     def tearDown(self):
         # Clean up after each test to avoid side effects
         self.db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
             "enabled": "false",
-            "retention_time": "30",
+            "retention_period": "15",
             "sampling_interval": "5"
         })
 
@@ -42,12 +42,12 @@ class TestMemoryStatisticsConfigCommands(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_memory_statistics_retention_period(self):
-        result = self.runner.invoke(memory_statistics_retention_period, ['30'])
-        self.assertIn("Memory Statistics retention period set to 30 days.", result.output)
+        result = self.runner.invoke(memory_statistics_retention_period, ['15'])  # Test with default
+        self.assertIn("Memory Statistics retention period set to 15 days.", result.output)
         self.assertEqual(result.exit_code, 0)
 
     def test_memory_statistics_sampling_interval(self):
-        result = self.runner.invoke(memory_statistics_sampling_interval, ['5'])
+        result = self.runner.invoke(memory_statistics_sampling_interval, ['5'])  # Test with default
         self.assertIn("Memory Statistics sampling interval set to 5 minutes.", result.output)
         self.assertEqual(result.exit_code, 0)
 
@@ -61,15 +61,15 @@ class TestMemoryStatisticsShowCommands(unittest.TestCase):
         # Ensure a clean state in the MEMORY_STATISTICS table before each test
         self.db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
             "enabled": "true",
-            "retention_time": "30",
-            "sampling_interval": "5"
+            "retention_period": "15",  # Default retention period
+            "sampling_interval": "5"    # Default sampling interval
         })
 
     def tearDown(self):
         # Clean up after each test to avoid side effects
         self.db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
             "enabled": "true",
-            "retention_time": "30",
+            "retention_period": "15",
             "sampling_interval": "5"
         })
 
