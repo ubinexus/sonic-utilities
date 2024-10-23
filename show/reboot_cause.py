@@ -63,7 +63,7 @@ def fetch_data_from_db(module_name, fetch_history=False):
                         append = True
             r.append(entry['device'] if 'device' in entry else "SWITCH")
 
-        name = tk.replace(prefix, "")
+        name = tk.split('|')[-1]
         if "|" in name:
             name = name[:name.rindex('|')] + ''
         r.append(name)
