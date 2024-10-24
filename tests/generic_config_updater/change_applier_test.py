@@ -8,6 +8,7 @@ from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
 import generic_config_updater.services_validator
+import generic_config_updater.gu_common
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_FILE =  os.path.join(SCRIPT_DIR, "files", "change_applier_test.data.json")
@@ -70,6 +71,28 @@ DB_HANDLE = "config_db"
 
 def debug_print(msg):
     print(msg)
+
+# Mimics os.system call for `sonic-cfggen -d --print-data` output
+def subprocess_Popen_cfggen(cmd, *args, **kwargs):
+    global running_config
+
+    stdout = kwargs.get('stdout', None)
+
+    if stdout is None:
+        output = json.dumps(running_config, indent=4)
+    elif isinstance(stdout, int) and stdout == -1:
+        output = json.dumps(running_config, indent=4)
+    else:
+        raise ValueError("stdout must be set to subprocess.PIPE or omitted for capturing output")
+
+    class MockPopen:
+        def __init__(self):
+            self.returncode = 0
+
+        def communicate(self):
+            return output.encode(), "".encode()
+
+    return MockPopen()
 
 
 # mimics config_db.set_entry
@@ -199,13 +222,14 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.change_applier.ChangeApplier._get_running_config")
+    @patch("generic_config_updater.gu_common.subprocess.Popen")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
-    def test_change_apply(self, mock_set, mock_db, mock_get_config_json):
+    def test_change_apply(self, mock_set, mock_db, mock_subprocess_Popen):
         global read_data, running_config, json_changes, json_change_index
         global start_running_config
 
+        mock_subprocess_Popen.side_effect = subprocess_Popen_cfggen
         mock_db.return_value = DB_HANDLE
         mock_set.side_effect = set_entry
 
@@ -213,7 +237,6 @@ class TestChangeApplier(unittest.TestCase):
             read_data = json.load(s)
 
         running_config = copy.deepcopy(read_data["running_data"])
-        mock_get_config_json.return_value = running_config
         json_changes = copy.deepcopy(read_data["json_changes"])
 
         generic_config_updater.change_applier.ChangeApplier.updater_conf = None
