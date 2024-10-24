@@ -36,7 +36,7 @@ os.environ["PATH"] += os.pathsep + scripts_path
 
 # Config Reload input Path
 mock_db_path = os.path.join(test_path, "config_reload_input")
-
+mock_bmp_db_path = os.path.join(test_path, "bmp_input")
 # Load minigraph input Path
 load_minigraph_input_path = os.path.join(test_path, "load_minigraph_input")
 load_minigraph_platform_path = os.path.join(load_minigraph_input_path, "platform")
@@ -729,6 +729,51 @@ class TestReloadConfig(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.remove(cls.dummy_cfg_file)
         print("TEARDOWN")
+
+
+class TestBMPConfig(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        yield
+        print("TEARDOWN")
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
+    @pytest.mark.parametrize("table_name",[
+        "bgp-neighbor-table",
+        "bgp-rib-in-table",
+        "bgp-rib-out-table"
+    ])
+    @pytest.mark.parametrize("enabled", ["true", "false" ])
+    @pytest.mark.parametrize("filename", ["bmp_invalid.json", "bmp.json" ])
+    def test_enable_disable_table(  
+            self,  
+            get_cmd_module,  
+            setup_single_broadcom_asic,  
+            table_name,  
+            enabled,  
+            filename):  
+        (config, show) = get_cmd_module  
+        jsonfile_config = os.path.join(mock_bmp_db_path, filename)  
+        config.DEFAULT_CONFIG_DB_FILE = jsonfile_config  
+        runner = CliRunner()  
+        db = Db()  
+  
+        # Enable table  
+        result = runner.invoke(config.config.commands["bmp"].commands["enable"],  
+                               [table_name], obj=db)  
+        assert result.exit_code == 0  
+  
+        # Disable table  
+        result = runner.invoke(config.config.commands["bmp"].commands["disable"],  
+                               [table_name], obj=db)  
+        assert result.exit_code == 0  
+  
+        # Enable table again  
+        result = runner.invoke(config.config.commands["bmp"].commands["enable"],  
+                               [table_name], obj=db)  
+        assert result.exit_code == 0
 
 
 class TestConfigCbf(object):
