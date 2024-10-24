@@ -8,7 +8,6 @@ from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
 import generic_config_updater.services_validator
-import generic_config_updater.gu_common
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_FILE =  os.path.join(SCRIPT_DIR, "files", "change_applier_test.data.json")
@@ -200,7 +199,7 @@ def vlan_validate(old_cfg, new_cfg, keys):
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.gu_common.get_config_db_as_json")
+    @patch("generic_config_updater.change_applier.ChangeApplier._get_running_config")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
     def test_change_apply(self, mock_set, mock_db, mock_get_config_json):
