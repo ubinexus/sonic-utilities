@@ -191,8 +191,6 @@ def show_dpu_state(module_name):
             continue
         state_info = chassis_state_db.get_all(chassis_state_db.CHASSIS_STATE_DB, dbkey)
         # Determine operational status
-        # dpu_states = [value for key, value in state_info.items() if key.endswith('_state')]
-
         midplanedown = False
         up_cnt = 0
         for key, value in state_info.items():
@@ -211,10 +209,12 @@ def show_dpu_state(module_name):
 
         for dpustates in range(3):
             if dpustates == 0:
-                row = [key_list[1], state_info.get('id', ''), oper_status, "", "", "", ""]
+                row = [key_list[1], oper_status, "", "", "", ""]
             else:
-                row = ["", "", "", "", "", "", ""]
+                row = ["", "", "", "", "", ""]
             for key, value in state_info.items():
+                if key == "id":
+                    continue
                 if dpustates == 0 and 'midplane' in key:
                     populate_row(row, key, value, table)
                 elif dpustates == 1 and 'control' in key:
@@ -222,22 +222,22 @@ def show_dpu_state(module_name):
                 elif dpustates == 2 and 'data' in key:
                     populate_row(row, key, value, table)
 
-    headers = ["Name", "ID", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
+    headers = ["Name", "Oper-Status", "State-Detail", "State-Value", "Time", "Reason"]
     click.echo(tabulate(table, headers=headers))
 
 
 def populate_row(row, key, value, table):
     if key.endswith('_state'):
-        row[3] = key
-        row[4] = value
-        if "up" in row[4]:
-            row[6] = ""
+        row[2] = key
+        row[3] = value
+        if "up" in row[3]:
+            row[5] = ""
         table.append(row)
     elif key.endswith('_time'):
-        row[5] = value
+        row[4] = value
     elif key.endswith('_reason'):
-        if "up" not in row[4]:
-            row[6] = value
+        if "up" not in row[3]:
+            row[5] = value
 
 
 # utility to get options
