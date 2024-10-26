@@ -207,9 +207,9 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("--------------------------------------------------------------------")
     click.echo("STP Bridge Parameters:")
 
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge"    ,"Bridge","Bridge","Bridge","Hold","LastTopology","Topology"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier","MaxAge","Hello" ,"FwdDly","Time","Change"      ,"Change"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex"       ,"sec"   ,"sec"   ,"sec"   ,"sec" ,"sec"         ,"cnt"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge"    , "Bridge", "Bridge", "Bridge", "Hold", "LastTopology", "Topology"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello" , "FwdDly", "Time", "Change"      , "Change"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex"       , "sec"   , "sec"   , "sec"   , "sec" , "sec"         , "cnt"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
                vlan_tb_entry['bridge_id'],
                vlan_tb_entry['max_age'],
@@ -220,9 +220,9 @@ def show_stp_vlan(ctx, vlanid):
                vlan_tb_entry['topology_change_count']))
 
     click.echo("")
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge","RootPath","DesignatedBridge","RootPort","Max","Hel","Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier","Cost"    ,"Identifier"      ,""        ,"Age","lo","Dly"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex"       ,""        ,"hex"             ,""        ,"sec","sec","sec"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge", "RootPath", "DesignatedBridge", "RootPort", "Max", "Hel", "Fwd"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost"    , "Identifier"      , ""        , "Age", "lo", "Dly"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex"       , ""        , "hex"             , ""        , "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
                vlan_tb_entry['root_bridge_id'],
                vlan_tb_entry['root_path_cost'],
@@ -234,8 +234,10 @@ def show_stp_vlan(ctx, vlanid):
 
     click.echo("")
     click.echo("STP Port Parameters:")
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port","Prio","Path","Port","Uplink" ,"State","Designated","Designated","Designated"))
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name","rity","Cost","Fast","Fast"   ,""     ,"Cost"      ,"Root"      ,"Bridge"))
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port", "Prio", "Path", "Port", "Uplink" , "State", "Designated", 
+        "Designated", "Designated"))
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast", "Fast"   , ""     , "Cost"      , 
+        "Root"      , "Bridge"))
 
     if ctx.invoked_subcommand is None:
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
@@ -293,8 +295,8 @@ def show_stp_bpdu_guard(ctx):
         cfg_entry = g_stp_cfg_db.get_entry("STP_PORT", ifname)
         if cfg_entry['bpdu_guard'] == 'true' and cfg_entry['enabled'] == 'true':
             if print_header:
-                click.echo("{:17}{:13}{}".format("PortNum","Shutdown","Port Shut"))
-                click.echo("{:17}{:13}{}".format("","Configured","due to BPDU guard"))
+                click.echo("{:17}{:13}{}".format("PortNum", "Shutdown", "Port Shut"))
+                click.echo("{:17}{:13}{}".format("", "Configured", "due to BPDU guard"))
                 click.echo("-------------------------------------------")
                 print_header=0
 
@@ -326,7 +328,7 @@ def show_stp_root_guard(ctx):
                 global_entry = g_stp_cfg_db.get_entry("STP", "GLOBAL")
                 click.echo("Root guard timeout: {} secs".format(global_entry['rootguard_timeout']))
                 click.echo("")
-                click.echo("{:17}{:7}{}".format("Port","VLAN","Current State"))
+                click.echo("{:17}{:7}{}".format("Port", "VLAN", "Current State"))
                 click.echo("-------------------------------------------")
                 print_header=0
 
@@ -384,7 +386,7 @@ def show_stp_vlan_statistics(ctx, vlanid):
 
     click.echo("VLAN {} - STP instance {}".format(vlanid, stp_inst_entry['stp_instance']))
     click.echo("--------------------------------------------------------------------")
-    click.echo("{:17}{:15}{:15}{:15}{:15}".format("PortNum","BPDU Tx","BPDU Rx","TCN Tx","TCN Rx"))
+    click.echo("{:17}{:15}{:15}{:15}{:15}".format("PortNum", "BPDU Tx", "BPDU Rx", "TCN Tx", "TCN Rx"))
     keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
     if keys:
         for key in keys:
