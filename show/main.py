@@ -1571,22 +1571,6 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
     run_command(cmd, display_cmd=verbose)
 
 
-# 'spanning-tree' subcommand ("show runningconfiguration spanning_tree")
-@runningconfiguration.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def spanning_tree(verbose):
-    """Show spanning_tree running configuration"""
-    config_db = ConfigDBConnector(host="127.0.0.1")
-    config_db.connect()
-
-    stp_list = ["STP", "STP_PORT", "STP_VLAN", "STP_VLAN_PORT"]
-    for key in stp_list:
-        table = config_db.get_table(key)
-        if len(table):
-            print("\"" + key + "\":")
-            cmd = ['sudo', 'sonic-cfggen', '-d' , '--var-json', key]
-            run_command(cmd, display_cmd=verbose)
-
 #
 # 'runningconfiguration' group ("show runningconfiguration")
 #
@@ -1904,6 +1888,22 @@ def syslog(verbose):
 
     click.echo(tabulate(body, header, tablefmt="simple", stralign="left", missingval=""))
 
+
+# 'spanning-tree' subcommand ("show runningconfiguration spanning_tree")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def spanning_tree(verbose):
+    """Show spanning_tree running configuration"""
+    config_db = ConfigDBConnector(host="127.0.0.1")
+    config_db.connect()
+
+    stp_list = ["STP", "STP_PORT", "STP_VLAN", "STP_VLAN_PORT"]
+    for key in stp_list:
+        table = config_db.get_table(key)
+        if len(table):
+            print("\"" + key + "\":")
+            cmd = ['sudo', 'sonic-cfggen', '-d' , '--var-json', key]
+            run_command(cmd, display_cmd=verbose)
 
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")

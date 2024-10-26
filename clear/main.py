@@ -144,6 +144,7 @@ def ipv6():
     """Clear IPv6 information"""
     pass
 
+
 # 'STP'
 #
 cli.add_command(stp.spanning_tree)

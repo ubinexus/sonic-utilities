@@ -79,14 +79,10 @@ def add_vlan(db, vid, multiple):
 
             # Enable STP on VLAN if PVST is enabled globally
             if stp.is_global_stp_enabled(db.cfgdb):
-               stp.vlan_enable_stp(db.cfgdb, vlan)
+                stp.vlan_enable_stp(db.cfgdb, vlan)
 
             # set dhcpv4_relay table
             set_dhcp_relay_table('VLAN', config_db, vlan, {'vlanid': str(vid)})
-            
-            # Enable STP on VLAN if PVST is enabled globally
-            if stp.is_global_stp_enabled(db.cfgdb):
-                stp.vlan_enable_stp(db.cfgdb, vlan)
 
 
 def is_dhcpv6_relay_config_exist(db, vlan_name):

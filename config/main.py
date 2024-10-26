@@ -1434,10 +1434,10 @@ config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
 
-#add stp commands
+# add stp commands
 config.add_command(stp.spanning_tree)
 
-#add mclag commands
+# add mclag commands
 config.add_command(mclag.mclag)
 config.add_command(mclag.mclag_member)
 config.add_command(mclag.mclag_unique_ip)

@@ -92,6 +92,7 @@ def stp_debug_event(disable):
         command = 'sudo stpctl dbg event on'
     clicommon.run_command(command)
 
+
 @spanning_tree.command('vlan')
 @click.argument('vlan_id', metavar='<vlan_id/all>', required=True)
 @click.option('-d', '--disable', is_flag=True)

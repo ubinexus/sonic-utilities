@@ -121,6 +121,7 @@ parameter_hello_time = 2
 parameter_max_age = 3
 parameter_bridge_priority = 4
 
+
 def get_max_stp_instances():
     return PVST_MAX_INSTANCES
     # below part is not yet required for new updates
@@ -133,6 +134,7 @@ def get_max_stp_instances():
     #    return max_inst
     # else:
     #    return PVST_MAX_INSTANCES
+
 
 def update_stp_vlan_parameter(db, param_type, new_value):
     stp_global_entry = db.get_entry('STP', "GLOBAL")
@@ -239,6 +241,7 @@ def is_interface_vlan_member(db, vlan_name, interface_name):
     entry = db.get_entry('VLAN_MEMBER', key)
     if len(entry) == 0:  # if empty
         ctx.fail("{} is not member of {}".format(interface_name, vlan_name))
+
 
 def get_vlan_list_for_interface(db, interface_name):
     vlan_intf_info = db.get_table('VLAN_MEMBER')
@@ -664,7 +667,7 @@ def stp_interface_enable(_db, interface_name):
                'bpdu_guard_do_disable': 'false',
                'portfast': 'false',
                'uplink_fast': 'false'
-        }
+                }
         db.set_entry('STP_PORT', interface_name, fvs)
     else:
         db.mod_entry('STP_PORT', interface_name, {'enabled': 'true'})
@@ -809,7 +812,7 @@ def stp_interface_bpdu_guard_enable(_db, interface_name, shutdown):
         bpdu_guard_do_disable = 'false'
     fvs = {'bpdu_guard': 'true',
            'bpdu_guard_do_disable': bpdu_guard_do_disable
-    }
+            }
     db.mod_entry('STP_PORT', interface_name, fvs)
 
 
