@@ -18,26 +18,30 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 ###############################################################################
 g_stp_vlanid = 0
 
+
 #
 # Utility API's
 #
 def is_stp_docker_running():
     return True
-    #running_docker = subprocess.check_output('docker ps', shell=True)
-    #if running_docker.find('docker-stp') == -1:
+    # running_docker = subprocess.check_output('docker ps', shell=True)
+    # if running_docker.find('docker-stp') == -1:
     #    return False
-    #else:
+    # else:
     #    return True
+
 
 def connect_to_cfg_db():
     config_db = ConfigDBConnector()
     config_db.connect()
     return config_db
 
+
 def connect_to_appl_db():
     appl_db = SonicV2Connector(host="127.0.0.1")
     appl_db.connect(appl_db.APPL_DB)
     return appl_db
+
 
 # Redis DB only supports limiter pattern search wildcards.
 # check https://redis.io/commands/KEYS before using this api
@@ -49,7 +53,8 @@ def stp_get_key_from_pattern(db_connect, db, pattern):
     else:
         return None
 
-#get_all doesnt accept regex patterns, it requires exact key
+
+# get_all doesnt accept regex patterns, it requires exact key
 def stp_get_all_from_pattern(db_connect, db, pattern):
     key = stp_get_key_from_pattern(db_connect, db, pattern)
     if key:
@@ -60,9 +65,7 @@ def stp_get_all_from_pattern(db_connect, db, pattern):
 def stp_is_port_fast_enabled(ifname):
     app_db_entry = stp_get_all_from_pattern(g_stp_appl_db,
             g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
-    if (\
-            not app_db_entry or\
-            not ('port_fast' in app_db_entry) or\
+    if (not app_db_entry or not ('port_fast' in app_db_entry) or \
             app_db_entry['port_fast'] == 'no'):
         return False
     return True
@@ -70,10 +73,7 @@ def stp_is_port_fast_enabled(ifname):
 
 def stp_is_uplink_fast_enabled(ifname):
     entry = g_stp_cfg_db.get_entry("STP_PORT", ifname)
-    if (\
-            entry and \
-            ('uplink_fast' in entry) and \
-            entry['uplink_fast'] == 'true'):
+    if (entry and ('uplink_fast' in entry) and entry['uplink_fast'] == 'true'):
         return True
     return False
 
@@ -118,7 +118,7 @@ def stp_get_entry_from_vlan_tb(db, vlanid):
 
 
 def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
-    entry = stp_get_all_from_pattern(db, db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:{}".format(vlanid,ifname))
+    entry = stp_get_all_from_pattern(db, db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:{}".format(vlanid, ifname))
     if not entry:
         return entry
 
@@ -142,6 +142,7 @@ def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
         entry['desig_bridge'] = 'NA'
 
     return entry
+
 
 #
 # This group houses Spanning_tree commands and subgroups
@@ -207,9 +208,9 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("--------------------------------------------------------------------")
     click.echo("STP Bridge Parameters:")
 
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge"    , "Bridge", "Bridge", "Bridge", "Hold", "LastTopology", "Topology"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello" , "FwdDly", "Time", "Change"      , "Change"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex"       , "sec"   , "sec"   , "sec"   , "sec" , "sec"         , "cnt"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge", "Bridge", "Bridge", "Bridge", "Hold", "LastTopology", "Topology"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello" , "FwdDly", "Time", "Change", "Change"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex", "sec", "sec", "sec", "sec", "sec", "cnt"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
                vlan_tb_entry['bridge_id'],
                vlan_tb_entry['max_age'],
@@ -221,8 +222,8 @@ def show_stp_vlan(ctx, vlanid):
 
     click.echo("")
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge", "RootPath", "DesignatedBridge", "RootPort", "Max", "Hel", "Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost"    , "Identifier"      , ""        , "Age", "lo", "Dly"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex"       , ""        , "hex"             , ""        , "sec", "sec", "sec"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost", "Identifier", "", "Age", "lo", "Dly"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
                vlan_tb_entry['root_bridge_id'],
                vlan_tb_entry['root_path_cost'],
@@ -236,8 +237,7 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("STP Port Parameters:")
     click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port", "Prio", "Path", "Port", "Uplink" , "State", "Designated", 
         "Designated", "Designated"))
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast", "Fast"   , ""     , "Cost"      , 
-        "Root"      , "Bridge"))
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast", "Fast", "", "Cost", "Root", "Bridge"))
 
     if ctx.invoked_subcommand is None:
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
