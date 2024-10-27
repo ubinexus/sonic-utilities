@@ -3,7 +3,7 @@ import sys
 import click
 import subprocess
 from shlex import join
-from . import stp
+
 
 def run_command(command, pager=False):
     command_str = join(command)
