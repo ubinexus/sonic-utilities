@@ -173,7 +173,7 @@ def spanning_tree(ctx):
         if not keys:
             return
 
-        vlan_list=[]
+        vlan_list = []
         for key in keys:
             result = re.search('.STP_VLAN_TABLE:Vlan(.*)', key)
             vlanid = result.group(1)
@@ -192,7 +192,7 @@ def show_stp_vlan(ctx, vlanid):
     global g_stp_vlanid
     g_stp_vlanid = vlanid
 
-    vlan_tb_entry = stp_get_entry_from_vlan_tb(g_stp_appl_db, g_stp_vlanid) 
+    vlan_tb_entry = stp_get_entry_from_vlan_tb(g_stp_appl_db, g_stp_vlanid)
     if not vlan_tb_entry:
         return
 
@@ -207,40 +207,40 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("--------------------------------------------------------------------")
     click.echo("STP Bridge Parameters:")
 
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge", "Bridge", "Bridge", "Bridge", 
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge", "Bridge", "Bridge", "Bridge",
         "Hold", "LastTopology", "Topology"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello", 
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello",
         "FwdDly", "Time", "Change", "Change"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex", "sec", "sec", "sec", "sec", "sec", "cnt"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
-               vlan_tb_entry['bridge_id'], 
-               vlan_tb_entry['max_age'], 
-               vlan_tb_entry['hello_time'], 
-               vlan_tb_entry['forward_delay'], 
-               vlan_tb_entry['hold_time'], 
-               vlan_tb_entry['last_topology_change'], 
+               vlan_tb_entry['bridge_id'],
+               vlan_tb_entry['max_age'],
+               vlan_tb_entry['hello_time'],
+               vlan_tb_entry['forward_delay'],
+               vlan_tb_entry['hold_time'],
+               vlan_tb_entry['last_topology_change'],
                vlan_tb_entry['topology_change_count']))
 
     click.echo("")
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge", "RootPath", "DesignatedBridge", 
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge", "RootPath", "DesignatedBridge",
         "RootPort", "Max", "Hel", "Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost", "Identifier", "", 
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost", "Identifier", "",
         "Age", "lo", "Dly"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
-               vlan_tb_entry['root_bridge_id'], 
-               vlan_tb_entry['root_path_cost'], 
-               vlan_tb_entry['desig_bridge_id'], 
-               vlan_tb_entry['root_port'], 
-               vlan_tb_entry['root_max_age'], 
-               vlan_tb_entry['root_hello_time'], 
+               vlan_tb_entry['root_bridge_id'],
+               vlan_tb_entry['root_path_cost'],
+               vlan_tb_entry['desig_bridge_id'],
+               vlan_tb_entry['root_port'],
+               vlan_tb_entry['root_max_age'],
+               vlan_tb_entry['root_hello_time'],
                vlan_tb_entry['root_forward_delay']))
 
     click.echo("")
     click.echo("STP Port Parameters:")
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port", "Prio", "Path", "Port", 
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port", "Prio", "Path", "Port",
         "Uplink" , "State", "Designated", "Designated", "Designated"))
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast", 
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast",
         "Fast", "", "Cost", "Root", "Bridge"))
 
     if ctx.invoked_subcommand is None:
