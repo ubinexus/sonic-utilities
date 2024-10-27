@@ -203,13 +203,13 @@ class TestStp(object):
         assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].
-            commands["enable"], ["Ethernet4"], obj=db)
+                                commands["enable"], ["Ethernet4"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].
-            commands["portfast"].commands["disable"], ["Ethernet4"], obj=db)
+                                commands["portfast"].commands["disable"], ["Ethernet4"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
@@ -262,12 +262,14 @@ class TestStp(object):
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].commands["root_guard"].commands["disable"], ["Ethernet4"], obj=db)
+        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].
+                                commands["root_guard"].commands["disable"], ["Ethernet4"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].commands["cost"], ["Ethernet4", "0"], obj=db)
+        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].
+                                commands["cost"], ["Ethernet4", "0"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code != 0
@@ -326,7 +328,8 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],["100", "Ethernet4"], obj=db)
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].
+                                commands["add"],["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -379,7 +382,8 @@ class TestStp(object):
         assert result.exit_code != 0
         assert "is not member of" in result.output
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],["100", "Ethernet4"], obj=db)
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].
+                                commands["del"],["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -405,18 +409,19 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],["100", "Ethernet4"], obj=db)
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].
+                                commands["add"],["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["spanning-tree"].commands["vlan"].
-            commands["hello"], ["100", "3"], obj=db)
+                                commands["hello"], ["100", "3"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["spanning-tree"].commands["vlan"].
-            commands["max_age"], ["100", "21"], obj=db)
+                                commands["max_age"], ["100", "21"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
