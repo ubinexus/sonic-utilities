@@ -293,7 +293,7 @@ def show_stp_bpdu_guard(ctx):
         if cfg_entry['bpdu_guard'] == 'true' and cfg_entry['enabled'] == 'true':
             if print_header:
                 click.echo("{:17}{:13}{}".format("PortNum", "Shutdown", "Port Shut"))
-                click.echo("{:17}{:13}{}".format("", "Configured", "due to BPDU guard"))
+                click.echo("{:17}{:13}{}".format(" ", "Configured", "due to BPDU guard"))
                 click.echo("-------------------------------------------")
                 print_header = 0
 
