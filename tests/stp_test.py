@@ -100,8 +100,8 @@ class TestStp(object):
     def test_show_spanning_tree_statistics_vlan(self):
         runner = CliRunner()
         db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"].commands["vlan"], 
-            ["100"], obj=db)
+        result = runner.invoke(
+            show.cli.commands["spanning-tree"].commands["statistics"].commands["vlan"], ["100"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -143,8 +143,8 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-            ["100", "Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -163,8 +163,8 @@ class TestStp(object):
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].commands["enable"], 
-            ["Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet4"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code != 0
@@ -174,8 +174,8 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-            ["100", "Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -184,13 +184,15 @@ class TestStp(object):
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].commands["priority"],
+        result = runner.invoke(
+            config.config.commands["spanning-tree"].commands["interface"].commands["priority"],
             ["Ethernet4", "16"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["interface"].commands["cost"],
+        result = runner.invoke(
+            config.config.commands["spanning-tree"].commands["interface"].commands["cost"],
             ["Ethernet4", "100"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
@@ -348,7 +350,8 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -407,8 +410,8 @@ class TestStp(object):
         assert result.exit_code != 0
         assert "is not member of" in result.output
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"],
-            ["100", "Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -434,8 +437,8 @@ class TestStp(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
-                                ["100", "Ethernet4"], obj=db)
+        result = runner.invoke(
+            config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 0
 
@@ -562,7 +565,7 @@ class TestStp(object):
         assert result.exit_code == 0
 
         result = runner.invoke(
-            config.config.commands["spanning-tree"].commands["vlan"].commands["disable"],["200"], obj=db)
+            config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["200"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code == 0

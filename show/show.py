@@ -245,7 +245,7 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("STP Port Parameters:")
     click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
         "Port", "Prio", "Path", "Port",
-        "Uplink" , "State", "Designated", "Designated", "Designated"))
+        "Uplink", "State", "Designated", "Designated", "Designated"))
     click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
         "Name", "rity", "Cost", "Fast", "Fast", "", "Cost", "Root", "Bridge"))
 
@@ -277,7 +277,7 @@ def show_stp_vlan(ctx, vlanid):
 def show_stp_interface(ctx, ifname):
     """Show spanning_tree vlan interface <vlanid> <ifname> information"""
 
-    vlan_intf_tb_entry  = stp_get_entry_from_vlan_intf_tb(g_stp_appl_db, g_stp_vlanid, ifname)
+    vlan_intf_tb_entry = stp_get_entry_from_vlan_intf_tb(g_stp_appl_db, g_stp_vlanid, ifname)
     if not vlan_intf_tb_entry:
         return
 
@@ -300,7 +300,7 @@ def show_stp_bpdu_guard(ctx):
     """Show spanning_tree bpdu_guard"""
 
     print_header = 1
-    ifname_all  = g_stp_cfg_db.get_keys("STP_PORT")
+    ifname_all = g_stp_cfg_db.get_keys("STP_PORT")
     for ifname in ifname_all:
         cfg_entry = g_stp_cfg_db.get_entry("STP_PORT", ifname)
         if cfg_entry['bpdu_guard'] == 'true' and cfg_entry['enabled'] == 'true':
@@ -308,20 +308,20 @@ def show_stp_bpdu_guard(ctx):
                 click.echo("{:17}{:13}{}".format("PortNum", "Shutdown", "Port Shut"))
                 click.echo("{:17}{:13}{}".format("", "Configured", "due to BPDU guard"))
                 click.echo("-------------------------------------------")
-                print_header=0
+                print_header = 0
 
             if cfg_entry['bpdu_guard_do_disable'] == 'true':
                 disabled = 'No'
                 keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
-                #only 1 key per ifname is expected in BPDU_GUARD_TABLE.
+                # only 1 key per ifname is expected in BPDU_GUARD_TABLE.
                 if keys:
                     appdb_entry = g_stp_appl_db.get_all(g_stp_appl_db.APPL_DB, keys[0])
                     if appdb_entry and 'bpdu_guard_shutdown' in appdb_entry:
                         if appdb_entry['bpdu_guard_shutdown'] == 'yes':
                             disabled = 'Yes'
-                click.echo("{:17}{:13}{}".format(ifname,"Yes",disabled))
+                click.echo("{:17}{:13}{}".format(ifname, "Yes", disabled))
             else:
-                click.echo("{:17}{:13}{}".format(ifname,"No","NA"))
+                click.echo("{:17}{:13}{}".format(ifname, "No", "NA"))
 
 
 @spanning_tree.command('root_guard')
@@ -330,7 +330,7 @@ def show_stp_root_guard(ctx):
     """Show spanning_tree root_guard"""
 
     print_header = 1
-    ifname_all  = g_stp_cfg_db.get_keys("STP_PORT")
+    ifname_all = g_stp_cfg_db.get_keys("STP_PORT")
     for ifname in ifname_all:
         entry = g_stp_cfg_db.get_entry("STP_PORT", ifname)
         if entry['root_guard'] == 'true' and entry['enabled'] == 'true':
@@ -340,7 +340,7 @@ def show_stp_root_guard(ctx):
                 click.echo("")
                 click.echo("{:17}{:7}{}".format("Port", "VLAN", "Current State"))
                 click.echo("-------------------------------------------")
-                print_header=0
+                print_header = 0
 
             state = ''
             vlanid = ''
@@ -356,11 +356,9 @@ def show_stp_root_guard(ctx):
 
                         vlanid = re.search(':Vlan(.*):', key)
                         if vlanid:
-                            click.echo("{:17}{:7}{}".format(ifname,vlanid.group(1),state))
+                            click.echo("{:17}{:7}{}".format(ifname, vlanid.group(1), state))
                         else:
-                            click.echo("{:17}{:7}{}".format(ifname,vlanid,state))
-
-
+                            click.echo("{:17}{:7}{}".format(ifname, vlanid, state))
 
 
 @spanning_tree.group('statistics', cls=clicommon.AliasedGroup, invoke_without_command=True)
@@ -375,7 +373,7 @@ def show_stp_statistics(ctx):
 
         vlan_list = []
         for key in keys:
-            result = re.search('.STP_VLAN_TABLE:Vlan(.*)',key)
+            result = re.search('.STP_VLAN_TABLE:Vlan(.*)', key)
             vlanid = result.group(1)
             vlan_list.append(int(vlanid))
 
@@ -390,7 +388,8 @@ def show_stp_statistics(ctx):
 def show_stp_vlan_statistics(ctx, vlanid):
     """Show spanning_tree statistics vlan"""
 
-    stp_inst_entry = stp_get_all_from_pattern(g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan{}".format(vlanid))
+    stp_inst_entry = stp_get_all_from_pattern(
+        g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan{}".format(vlanid))
     if not stp_inst_entry:
         return
 
@@ -413,4 +412,5 @@ def show_stp_vlan_statistics(ctx, vlanid):
                 if 'tc_received' not in entry:
                     entry['tc_received'] = '-'
 
-                click.echo("{:17}{:15}{:15}{:15}{:15}".format(ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))
+                click.echo("{:17}{:15}{:15}{:15}{:15}".format(
+                    ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))

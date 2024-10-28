@@ -1902,7 +1902,7 @@ def spanning_tree(verbose):
         table = config_db.get_table(key)
         if len(table):
             print("\"" + key + "\":")
-            cmd = ['sudo', 'sonic-cfggen', '-d' , '--var-json', key]
+            cmd = ['sudo', 'sonic-cfggen', '-d', '--var-json', key]
             run_command(cmd, display_cmd=verbose)
 
 #
