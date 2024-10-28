@@ -63,8 +63,8 @@ def stp_get_all_from_pattern(db_connect, db, pattern):
 
 
 def stp_is_port_fast_enabled(ifname):
-    app_db_entry = stp_get_all_from_pattern(g_stp_appl_db,
-            g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
+    app_db_entry = stp_get_all_from_pattern(
+        g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
     if (not app_db_entry or not ('port_fast' in app_db_entry) or app_db_entry['port_fast'] == 'no'):
         return False
     return True
@@ -142,6 +142,7 @@ def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
 
     return entry
 
+
 #
 # This group houses Spanning_tree commands and subgroups
 @click.group(cls=clicommon.AliasedGroup, invoke_without_command=True)
@@ -170,7 +171,7 @@ def spanning_tree(ctx):
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan*")
         if not keys:
             return
-        vlan_list=[]
+        vlan_list = []
         for key in keys:
             result = re.search('.STP_VLAN_TABLE:Vlan(.*)', key)
             vlanid = result.group(1)
