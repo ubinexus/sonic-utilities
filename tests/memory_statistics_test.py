@@ -22,6 +22,10 @@ class TestMemoryStatisticsConfigCommands(unittest.TestCase):
         }
         self.patcher = patch.object(ConfigDBConnector, 'get_entry', self.mock_db.get_entry)
         self.patcher.start()
+        
+        # Mock the get_memory_statistics_table to return a valid table
+        self.mock_db.get_table = MagicMock(return_value={"memory_statistics": {}})
+        patch.object(ConfigDBConnector, 'get_table', self.mock_db.get_table).start()
 
     def tearDown(self):
         self.patcher.stop()
