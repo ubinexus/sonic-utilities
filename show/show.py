@@ -63,8 +63,8 @@ def stp_get_all_from_pattern(db_connect, db, pattern):
 
 
 def stp_is_port_fast_enabled(ifname):
-    app_db_entry = stp_get_all_from_pattern(g_stp_appl_db, 
-        g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
+    app_db_entry = stp_get_all_from_pattern(g_stp_appl_db, g_stp_appl_db.APPL_DB,
+                                            "*STP_PORT_TABLE:{}".format(ifname))
     if (not app_db_entry or not ('port_fast' in app_db_entry) or app_db_entry['port_fast'] == 'no'):
         return False
     return True
@@ -207,10 +207,12 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("--------------------------------------------------------------------")
     click.echo("STP Bridge Parameters:")
 
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Bridge", "Bridge", "Bridge", "Bridge",
-        "Hold", "LastTopology", "Topology"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("Identifier", "MaxAge", "Hello",
-        "FwdDly", "Time", "Change", "Change"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
+                "Bridge", "Bridge", "Bridge", "Bridge",
+                "Hold", "LastTopology", "Topology"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
+                "Identifier", "MaxAge", "Hello",
+                "FwdDly", "Time", "Change", "Change"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex", "sec", "sec", "sec", "sec", "sec", "cnt"))
     click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
                vlan_tb_entry['bridge_id'],
@@ -222,10 +224,12 @@ def show_stp_vlan(ctx, vlanid):
                vlan_tb_entry['topology_change_count']))
 
     click.echo("")
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("RootBridge", "RootPath", "DesignatedBridge",
-        "RootPort", "Max", "Hel", "Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost", "Identifier", "",
-        "Age", "lo", "Dly"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
+                "RootBridge", "RootPath", "DesignatedBridge",
+                "RootPort", "Max", "Hel", "Fwd"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
+                "Identifier", "Cost", "Identifier", "",
+                "Age", "lo", "Dly"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
                vlan_tb_entry['root_bridge_id'],
