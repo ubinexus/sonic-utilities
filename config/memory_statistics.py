@@ -16,10 +16,14 @@ def memory_statistics():
 def check_memory_statistics_table_existence(memory_statistics_table):
     """Checks whether the 'MEMORY_STATISTICS' table is configured in Config DB."""
     if not memory_statistics_table:
-        raise RuntimeError("Unable to retrieve 'MEMORY_STATISTICS' table from Config DB.")
+        click.echo("Unable to retrieve 'MEMORY_STATISTICS' table from Config DB.", err=True)
+        return False
 
     if "memory_statistics" not in memory_statistics_table:
-        raise RuntimeError("Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.")
+        click.echo("Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.", err=True)
+        return False
+
+    return True
 
 
 def get_memory_statistics_table(db):
@@ -34,10 +38,15 @@ def memory_statistics_enable():
     db.connect()
 
     memory_statistics_table = get_memory_statistics_table(db)
-    check_memory_statistics_table_existence(memory_statistics_table)
+    if not check_memory_statistics_table_existence(memory_statistics_table):
+        return  # Exit gracefully on error
 
-    db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
-    click.echo("Memory Statistics feature enabled.")
+    try:
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
+        click.echo("Memory Statistics feature enabled.")
+    except Exception as e:
+        click.echo(f"Error enabling Memory Statistics feature: {str(e)}", err=True)
+
     click.echo("Save SONiC configuration using 'config save' to persist the changes.")
 
 
@@ -48,10 +57,15 @@ def memory_statistics_disable():
     db.connect()
 
     memory_statistics_table = get_memory_statistics_table(db)
-    check_memory_statistics_table_existence(memory_statistics_table)
+    if not check_memory_statistics_table_existence(memory_statistics_table):
+        return  # Exit gracefully on error
 
-    db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false", "disabled": "true"})
-    click.echo("Memory Statistics feature disabled.")
+    try:
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false", "disabled": "true"})
+        click.echo("Memory Statistics feature disabled.")
+    except Exception as e:
+        click.echo(f"Error disabling Memory Statistics feature: {str(e)}", err=True)
+
     click.echo("Save SONiC configuration using 'config save' to persist the changes.")
 
 
@@ -63,10 +77,15 @@ def memory_statistics_retention_period(retention_period):
     db.connect()
 
     memory_statistics_table = get_memory_statistics_table(db)
-    check_memory_statistics_table_existence(memory_statistics_table)
+    if not check_memory_statistics_table_existence(memory_statistics_table):
+        return  # Exit gracefully on error
 
-    db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_time": retention_period})
-    click.echo(f"Memory Statistics retention period set to {retention_period} days.")
+    try:
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_time": retention_period})
+        click.echo(f"Memory Statistics retention period set to {retention_period} days.")
+    except Exception as e:
+        click.echo(f"Error setting retention period: {str(e)}", err=True)
+
     click.echo("Save SONiC configuration using 'config save' to persist the changes.")
 
 
@@ -78,10 +97,15 @@ def memory_statistics_sampling_interval(sampling_interval):
     db.connect()
 
     memory_statistics_table = get_memory_statistics_table(db)
-    check_memory_statistics_table_existence(memory_statistics_table)
+    if not check_memory_statistics_table_existence(memory_statistics_table):
+        return  # Exit gracefully on error
 
-    db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
-    click.echo(f"Memory Statistics sampling interval set to {sampling_interval} minutes.")
+    try:
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
+        click.echo(f"Memory Statistics sampling interval set to {sampling_interval} minutes.")
+    except Exception as e:
+        click.echo(f"Error setting sampling interval: {str(e)}", err=True)
+
     click.echo("Save SONiC configuration using 'config save' to persist the changes.")
 
 
