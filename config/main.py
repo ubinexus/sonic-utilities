@@ -5875,66 +5875,6 @@ def pre_empt(ctx, interface_name, vrrp_id, mode):
 
 
 #
-# 'vrrp' subcommand ('config interface vrrp shutdown ...')
-#
-@vrrp.command("shutdown")
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.pass_context
-def shutdown(ctx, interface_name, vrrp_id):
-    """Config the vrrp instance into administrative shutdown"""
-    config_db = ctx.obj["config_db"]
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    table_name = get_interface_table_name(interface_name)
-    if table_name == "" or table_name == "LOOPBACK_INTERFACE":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
-    if interface_name not in config_db.get_table(table_name):
-        ctx.fail("Router Interface '{}' not found".format(interface_name))
-
-    vrrp_entry = config_db.get_entry("VRRP", (interface_name, str(vrrp_id)))
-    if not vrrp_entry:
-        ctx.fail("vrrp instance {} not found on interface {}".format(vrrp_id, interface_name))
-
-    vrrp_entry['admin_status'] = "down"
-    config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
-
-
-#
-# 'vrrp' subcommand ('config interface vrrp startup ...')
-#
-@vrrp.command("startup")
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.pass_context
-def startup(ctx, interface_name, vrrp_id):
-    """Config the vrrp instance into administrative up"""
-    config_db = ctx.obj["config_db"]
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    table_name = get_interface_table_name(interface_name)
-    if table_name == "" or table_name == "LOOPBACK_INTERFACE":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
-    if interface_name not in config_db.get_table(table_name):
-        ctx.fail("Router Interface '{}' not found".format(interface_name))
-
-    vrrp_entry = config_db.get_entry("VRRP", (interface_name, str(vrrp_id)))
-    if not vrrp_entry:
-        ctx.fail("vrrp instance {} not found on interface {}".format(vrrp_id, interface_name))
-
-    vrrp_entry['admin_status'] = "up"
-    config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
-
-
-#
 # 'vrrp' subcommand ('config interface vrrp version...')
 #
 @vrrp.command("version")
@@ -6154,6 +6094,7 @@ def remove_vrrp_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
     vrrp6_entry['vip'] = address_list
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 def check_vrrp_ip_exist(config_db, ip_addr) -> bool:
     addr_type = ipaddress.ip_interface(ip_addr).version
     vrrp_table = "VRRP" if addr_type == 4 else "VRRP6"
@@ -6360,66 +6301,6 @@ def pre_empt_v6(ctx, interface_name, vrrp_id, mode):
         ctx.fail("Vrrpv6 instance {} not found on interface {}".format(vrrp_id, interface_name))
 
     vrrp6_entry['preempt'] = mode
-    config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
-
-
-#
-# 'vrrp' subcommand ('config interface vrrp shutdown ...')
-#
-@vrrp6.command("shutdown")
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.pass_context
-def shutdown(ctx, interface_name, vrrp_id):
-    """Config the Vrrpv6 instance into administrative shutdown"""
-    config_db = ctx.obj["config_db"]
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    table_name = get_interface_table_name(interface_name)
-    if table_name == "" or table_name == "LOOPBACK_INTERFACE":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
-    if interface_name not in config_db.get_table(table_name):
-        ctx.fail("Router Interface '{}' not found".format(interface_name))
-
-    vrrp6_entry = config_db.get_entry("VRRP6", (interface_name, str(vrrp_id)))
-    if not vrrp6_entry:
-        ctx.fail("Vrrpv6 instance {} not found on interface {}".format(vrrp_id, interface_name))
-
-    vrrp6_entry['admin_status'] = "down"
-    config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
-
-
-#
-# 'vrrp6' subcommand ('config interface vrrp6 startup ...')
-#
-@vrrp6.command("startup")
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.pass_context
-def startup(ctx, interface_name, vrrp_id):
-    """Config the Vrrpv6 instance into administrative up"""
-    config_db = ctx.obj["config_db"]
-
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    table_name = get_interface_table_name(interface_name)
-    if table_name == "" or table_name == "LOOPBACK_INTERFACE":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
-    if interface_name not in config_db.get_table(table_name):
-        ctx.fail("Router Interface '{}' not found".format(interface_name))
-
-    vrrp6_entry = config_db.get_entry("VRRP6", (interface_name, str(vrrp_id)))
-    if not vrrp6_entry:
-        ctx.fail("Vrrpv6 instance {} not found on interface {}".format(vrrp_id, interface_name))
-
-    vrrp6_entry['admin_status'] = "up"
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
 
