@@ -17,10 +17,11 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 #
 ###############################################################################
 g_stp_vlanid = 0
-
 #
 # Utility API's
 #
+
+
 def is_stp_docker_running():
     return True
     # running_docker = subprocess.check_output('docker ps', shell=True)
@@ -29,15 +30,18 @@ def is_stp_docker_running():
     # else:
     #    return True
 
+
 def connect_to_cfg_db():
     config_db = ConfigDBConnector()
     config_db.connect()
     return config_db
 
+
 def connect_to_appl_db():
     appl_db = SonicV2Connector(host="127.0.0.1")
     appl_db.connect(appl_db.APPL_DB)
     return appl_db
+
 
 # Redis DB only supports limiter pattern search wildcards.
 # check https://redis.io/commands/KEYS before using this api
@@ -49,7 +53,8 @@ def stp_get_key_from_pattern(db_connect, db, pattern):
     else:
         return None
 
-#get_all doesnt accept regex patterns, it requires exact key
+
+# get_all doesnt accept regex patterns, it requires exact key
 def stp_get_all_from_pattern(db_connect, db, pattern):
     key = stp_get_key_from_pattern(db_connect, db, pattern)
     if key:
@@ -60,20 +65,14 @@ def stp_get_all_from_pattern(db_connect, db, pattern):
 def stp_is_port_fast_enabled(ifname):
     app_db_entry = stp_get_all_from_pattern(g_stp_appl_db,
             g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
-    if (\
-            not app_db_entry or\
-            not ('port_fast' in app_db_entry) or\
-            app_db_entry['port_fast'] == 'no'):
+    if (not app_db_entry or not ('port_fast' in app_db_entry) or app_db_entry['port_fast'] == 'no'):
         return False
     return True
 
 
 def stp_is_uplink_fast_enabled(ifname):
     entry = g_stp_cfg_db.get_entry("STP_PORT", ifname)
-    if (\
-            entry and \
-            ('uplink_fast' in entry) and \
-            entry['uplink_fast'] == 'true'):
+    if (entry and ('uplink_fast' in entry) and entry['uplink_fast'] == 'true'):
         return True
     return False
 
@@ -118,7 +117,7 @@ def stp_get_entry_from_vlan_tb(db, vlanid):
 
 
 def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
-    entry = stp_get_all_from_pattern(db, db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:{}".format(vlanid,ifname))
+    entry = stp_get_all_from_pattern(db, db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:{}".format(vlanid, ifname))
     if not entry:
         return entry
 
@@ -145,7 +144,6 @@ def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
 
 #
 # This group houses Spanning_tree commands and subgroups
-#
 @click.group(cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def spanning_tree(ctx):
@@ -156,10 +154,10 @@ def spanning_tree(ctx):
     if not is_stp_docker_running():
         ctx.fail("STP docker is not running")
 
-    g_stp_appl_db  = connect_to_appl_db()
-    g_stp_cfg_db   = connect_to_cfg_db()
+    g_stp_appl_db = connect_to_appl_db()
+    g_stp_cfg_db = connect_to_cfg_db()
 
-    global_cfg          = g_stp_cfg_db.get_entry("STP", "GLOBAL")
+    global_cfg = g_stp_cfg_db.get_entry("STP", "GLOBAL")
     if not global_cfg:
         click.echo("Spanning-tree is not configured")
         return
@@ -172,13 +170,11 @@ def spanning_tree(ctx):
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan*")
         if not keys:
             return
-        
         vlan_list=[]
         for key in keys:
-            result = re.search('.STP_VLAN_TABLE:Vlan(.*)',key)
+            result = re.search('.STP_VLAN_TABLE:Vlan(.*)', key)
             vlanid = result.group(1)
             vlan_list.append(int(vlanid))
-        
         vlan_list.sort()
         for vlanid in vlan_list:
             ctx.invoke(show_stp_vlan, vlanid=vlanid)
@@ -192,7 +188,7 @@ def show_stp_vlan(ctx, vlanid):
     global g_stp_vlanid
     g_stp_vlanid = vlanid
 
-    vlan_tb_entry       = stp_get_entry_from_vlan_tb(g_stp_appl_db, g_stp_vlanid)
+    vlan_tb_entry = stp_get_entry_from_vlan_tb(g_stp_appl_db, g_stp_vlanid)
     if not vlan_tb_entry:
         return
 
@@ -241,18 +237,15 @@ def show_stp_vlan(ctx, vlanid):
         "Port", "Prio", "Path", "Port", "Uplink", "State", "Designated", "Designated", "Designated"))
     click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
         "Name", "rity", "Cost", "Fast", "Fast", "", "Cost", "Root", "Bridge"))
- 
     if ctx.invoked_subcommand is None:
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
         if not keys:
             return
-        
         intf_list = []
         for key in keys:
             result = re.search('.STP_VLAN_PORT_TABLE:Vlan{}:(.*)'.format(vlanid), key)
             ifname = result.group(1)
             intf_list.append(ifname)
-        
         eth_list = [ifname[len("Ethernet"):] for ifname in intf_list if ifname.startswith("Ethernet")]
         po_list = [ifname[len("PortChannel"):] for ifname in intf_list if ifname.startswith("PortChannel")]
 
@@ -301,12 +294,12 @@ def show_stp_bpdu_guard(ctx):
                 click.echo("{:17}{:13}{}".format("PortNum", "Shutdown", "Port Shut"))
                 click.echo("{:17}{:13}{}".format("", "Configured", "due to BPDU guard"))
                 click.echo("-------------------------------------------")
-                print_header=0
+                print_header = 0
 
             if cfg_entry['bpdu_guard_do_disable'] == 'true':
                 disabled = 'No'
                 keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_PORT_TABLE:{}".format(ifname))
-                #only 1 key per ifname is expected in BPDU_GUARD_TABLE.
+                # only 1 key per ifname is expected in BPDU_GUARD_TABLE.
                 if keys:
                     appdb_entry = g_stp_appl_db.get_all(g_stp_appl_db.APPL_DB, keys[0])
                     if appdb_entry and 'bpdu_guard_shutdown' in appdb_entry:
@@ -333,7 +326,7 @@ def show_stp_root_guard(ctx):
                 click.echo("")
                 click.echo("{:17}{:7}{}".format("Port", "VLAN", "Current State"))
                 click.echo("-------------------------------------------")
-                print_header=0
+                print_header = 0
 
             state = ''
             vlanid = ''
@@ -366,13 +359,12 @@ def show_stp_statistics(ctx):
 
         vlan_list = []
         for key in keys:
-            result = re.search('.STP_VLAN_TABLE:Vlan(.*)',key)
+            result = re.search('.STP_VLAN_TABLE:Vlan(.*)', key)
             vlanid = result.group(1)
             vlan_list.append(int(vlanid))
-        
         vlan_list.sort()
         for vlanid in vlan_list:
-            ctx.invoke(show_stp_vlan_statistics, vlanid = vlanid)
+            ctx.invoke(show_stp_vlan_statistics, vlanid=vlanid)
 
 
 @show_stp_statistics.command('vlan')
@@ -381,7 +373,8 @@ def show_stp_statistics(ctx):
 def show_stp_vlan_statistics(ctx, vlanid):
     """Show spanning_tree statistics vlan"""
 
-    stp_inst_entry = stp_get_all_from_pattern(g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan{}".format(vlanid))
+    stp_inst_entry = stp_get_all_from_pattern(
+        g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan{}".format(vlanid))
     if not stp_inst_entry:
         return
 
@@ -406,4 +399,3 @@ def show_stp_vlan_statistics(ctx, vlanid):
 
                 click.echo("{:17}{:15}{:15}{:15}{:15}".format(
                     ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))
-
