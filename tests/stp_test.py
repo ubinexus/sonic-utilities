@@ -537,7 +537,6 @@ class TestStp(object):
         assert result.exit_code != 0
         assert "STP bridge priority must be multiple of 4096" in result.output
 
-
     def test_add_vlan_enable_pvst(self):
         runner = CliRunner()
         db = Db()
