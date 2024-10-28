@@ -666,8 +666,7 @@ def stp_interface_enable(_db, interface_name):
                'bpdu_guard': 'false',
                'bpdu_guard_do_disable': 'false',
                'portfast': 'false',
-               'uplink_fast': 'false'
-            }
+               'uplink_fast': 'false'}
         db.set_entry('STP_PORT', interface_name, fvs)
     else:
         db.mod_entry('STP_PORT', interface_name, {'enabled': 'true'})
@@ -811,8 +810,7 @@ def stp_interface_bpdu_guard_enable(_db, interface_name, shutdown):
     else:
         bpdu_guard_do_disable = 'false'
     fvs = {'bpdu_guard': 'true',
-           'bpdu_guard_do_disable': bpdu_guard_do_disable
-        }
+           'bpdu_guard_do_disable': bpdu_guard_do_disable}
     db.mod_entry('STP_PORT', interface_name, fvs)
 
 

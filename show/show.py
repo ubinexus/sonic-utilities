@@ -230,7 +230,8 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
                 "Identifier", "Cost", "Identifier", "",
                 "Age", "lo", "Dly"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
+        "hex", "", "hex", "", "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
                vlan_tb_entry['root_bridge_id'],
                vlan_tb_entry['root_path_cost'],
@@ -242,10 +243,11 @@ def show_stp_vlan(ctx, vlanid):
 
     click.echo("")
     click.echo("STP Port Parameters:")
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Port", "Prio", "Path", "Port",
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
+        "Port", "Prio", "Path", "Port",
         "Uplink" , "State", "Designated", "Designated", "Designated"))
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format("Name", "rity", "Cost", "Fast",
-        "Fast", "", "Cost", "Root", "Bridge"))
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
+        "Name", "rity", "Cost", "Fast", "Fast", "", "Cost", "Root", "Bridge"))
 
     if ctx.invoked_subcommand is None:
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
