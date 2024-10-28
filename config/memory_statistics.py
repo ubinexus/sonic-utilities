@@ -81,7 +81,7 @@ def memory_statistics_retention_period(retention_period):
         return  # Exit gracefully on error
 
     try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_time": retention_period})
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_period": retention_period})
         click.echo(f"Memory Statistics retention period set to {retention_period} days.")
     except Exception as e:
         click.echo(f"Error setting retention period: {str(e)}", err=True)
