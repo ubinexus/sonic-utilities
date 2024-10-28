@@ -5579,7 +5579,7 @@ def ip(ctx):
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.pass_context
 def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
-    """Add IPv4 or IPv6 address to the vrrp instance"""
+    """Add IPv4 address to the vrrp instance"""
     config_db = ctx.obj["config_db"]
 
     if clicommon.get_interface_naming_mode() == "alias":
@@ -5640,7 +5640,7 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
 @click.pass_context
 def remove_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
-    """Remove IPv4 or IPv6 address to the vrrp instance"""
+    """Remove IPv4 address to the vrrp instance"""
     config_db = ctx.obj["config_db"]
 
     if clicommon.get_interface_naming_mode() == "alias":
