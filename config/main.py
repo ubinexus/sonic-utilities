@@ -5808,7 +5808,7 @@ def priority(ctx, interface_name, vrrp_id, priority):
 @vrrp.command("adv_interval")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.argument('interval', metavar='<interval>', required=True, type=click.IntRange(10, 40950), default=1000)
+@click.argument('interval', metavar='<interval>', required=True, type=click.IntRange(1, 255), default=1)
 @click.pass_context
 def adv_interval(ctx, interface_name, vrrp_id, interval):
     """config adv_interval to the vrrp instance"""
