@@ -7,8 +7,8 @@ from config.memory_statistics import (
     memory_statistics_retention_period,
     memory_statistics_sampling_interval
 )
-from show.memory_statistics import config, show_memory_statistics_logs
 from swsscommon.swsscommon import ConfigDBConnector
+
 
 class TestMemoryStatisticsConfigCommands(unittest.TestCase):
 
