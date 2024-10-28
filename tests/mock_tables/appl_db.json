@@ -338,7 +338,7 @@
 		"tc_sent": "15",
 		"tc_received": "5",
 		"root_guard_timer": "0"
-	}
+	},
     "MUX_CABLE_TABLE:Ethernet32": {
         "state": "active"
     },
