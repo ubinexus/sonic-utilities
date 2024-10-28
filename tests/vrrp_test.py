@@ -10,8 +10,8 @@ import utilities_common.bgp_util as bgp_util
 
 class TestConfigVRRP(object):
     _old_run_bgp_command = None
-    @classmethod
 
+    @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         cls._old_run_bgp_command = bgp_util.run_bgp_command
@@ -554,7 +554,7 @@ class TestConfigVRRP(object):
         # config int ip remove Ethernet64 100::1/64
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
-                                   ["Ethernet64", "100::64/64"], obj=obj)
+                                   ["Ethernet64", "100::1/64"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
@@ -563,7 +563,7 @@ class TestConfigVRRP(object):
         # config int ip remove Ethernet63 99::1/64
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
-                                   ["Ethernet63", "99::64/64"], obj=obj)
+                                   ["Ethernet63", "99::1/64"], obj=obj)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
@@ -1165,36 +1165,36 @@ class TestConfigVRRP(object):
 
         # check interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["adv_interval"],
-                               ["Ethernt64", "8", "2000"], obj=obj)
+                               ["Ethernt64", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "'interface_name' is not valid" in result.output
         assert result.exit_code != 0
 
         # check interface is Router interface
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["adv_interval"],
-                               ["Ethernet2", "8", "2000"], obj=obj)
+                               ["Ethernet2", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
 
         # check the vrrp instance is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["adv_interval"],
-                               ["Ethernet64", "9", "2000"], obj=obj)
+                               ["Ethernet64", "9", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "vrrp instance 9 not found on interface Ethernet64" in result.output
         assert result.exit_code != 0
 
-        # config interface vrrp vrrp adv_interval Ethernet64 8 2000
+        # config interface vrrp vrrp adv_interval Ethernet64 8 2
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["adv_interval"],
-                               ["Ethernet64", "8", "2000"], obj=obj)
+                               ["Ethernet64", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('Ethernet64', '8') in db.cfgdb.get_table('VRRP')
         assert db.cfgdb.get_table('VRRP')['Ethernet64', '8']['adv_interval'] == '2000'
 
-        # config interface vrrp vrrp adv_interval Ethernet64 8 5
+        # config interface vrrp vrrp adv_interval Ethernet64 8 500
         result = runner.invoke(config.config.commands["interface"].commands["vrrp"].commands["adv_interval"],
-                               ["Ethernet64", "8", "5"], obj=obj)
+                               ["Ethernet64", "8", "500"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
 
@@ -1236,36 +1236,36 @@ class TestConfigVRRP(object):
 
         # check interface_name is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["adv_interval"],
-                               ["Ethernt64", "8", "2000"], obj=obj)
+                               ["Ethernt64", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "'interface_name' is not valid" in result.output
         assert result.exit_code != 0
 
         # check interface is Router interface
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["adv_interval"],
-                               ["Ethernet2", "8", "2000"], obj=obj)
+                               ["Ethernet2", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "Router Interface 'Ethernet2' not found" in result.output
         assert result.exit_code != 0
 
         # check the vrrp instance is valid
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["adv_interval"],
-                               ["Ethernet64", "9", "2000"], obj=obj)
+                               ["Ethernet64", "9", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert "Vrrpv6 instance 9 not found on interface Ethernet64" in result.output
         assert result.exit_code != 0
 
-        # config interface vrrp6 adv_interval Ethernet64 8 2000
+        # config interface vrrp6 adv_interval Ethernet64 8 2
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["adv_interval"],
-                               ["Ethernet64", "8", "2000"], obj=obj)
+                               ["Ethernet64", "8", "2"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert ('Ethernet64', '8') in db.cfgdb.get_table('VRRP6')
         assert db.cfgdb.get_table('VRRP6')['Ethernet64', '8']['adv_interval'] == '2000'
 
-        # config interface vrrp6 adv_interval Ethernet64 8 5
+        # config interface vrrp6 adv_interval Ethernet64 8 500
         result = runner.invoke(config.config.commands["interface"].commands["vrrp6"].commands["adv_interval"],
-                               ["Ethernet64", "8", "5"], obj=obj)
+                               ["Ethernet64", "8", "500"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
 

@@ -988,6 +988,7 @@ def route_map(route_map_name, verbose):
         cmd[-1] += ' {}'.format(route_map_name)
     run_command(cmd, display_cmd=verbose)
 
+
 #
 # 'vrrp' group ("show vrrp ...")
 #
@@ -1002,7 +1003,8 @@ def vrrp(ctx, verbose):
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp']
     run_command(cmd, display_cmd=verbose)
 
-# 'interface' command  
+
+# 'interface' command
 @vrrp.command('interface')
 @click.pass_context
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -1017,7 +1019,8 @@ def vrrp_interface(ctx, interface_name, vrid, verbose):
         cmd[-1] += ' interface {}'.format(interface_name)
     run_command(cmd, display_cmd=verbose)
 
-# 'vrid' command  
+
+# 'vrid' command
 @vrrp.command('vrid')
 @click.pass_context
 @click.argument('vrid', metavar='<vrid>', required=True)
@@ -1027,6 +1030,7 @@ def vrrp_vrid(ctx, vrid, verbose):
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp {}'.format(vrid)]
     run_command(cmd, display_cmd=verbose)
 
+
 # 'summary' command
 @vrrp.command('summary')
 @click.pass_context
@@ -1035,6 +1039,7 @@ def vrrp_summary(ctx, verbose):
     """show vrrp summary"""
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp summary']
     run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'vrrp6' group ("show vrrp6 ...")
@@ -1050,7 +1055,8 @@ def vrrp6(ctx, verbose):
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6']
     run_command(cmd, display_cmd=verbose)
 
-# 'interface' command  
+
+# 'interface' command
 @vrrp6.command('interface')
 @click.pass_context
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -1065,7 +1071,8 @@ def vrrp6_interface(ctx, interface_name, vrid, verbose):
         cmd[-1] += ' interface {}'.format(interface_name)
     run_command(cmd, display_cmd=verbose)
 
-# 'vrid' command  
+
+# 'vrid' command
 @vrrp6.command('vrid')
 @click.pass_context
 @click.argument('vrid', metavar='<vrid>', required=True)
@@ -1075,6 +1082,7 @@ def vrrp6_vrid(ctx, vrid, verbose):
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6 {}'.format(vrid)]
     run_command(cmd, display_cmd=verbose)
 
+
 # 'summary' command
 @vrrp6.command('summary')
 @click.pass_context
@@ -1083,6 +1091,7 @@ def vrrp6_summary(ctx, verbose):
     """show vrrp6 summary"""
     cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show vrrp6 summary']
     run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'ip' group ("show ip ...")

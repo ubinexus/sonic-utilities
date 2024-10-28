@@ -5528,7 +5528,8 @@ def disable_use_link_local_only(ctx, interface_name):
     interface_dict = db.get_table(interface_type)
     set_ipv6_link_local_only_on_interface(db, interface_dict, interface_type, interface_name, "disable")
 
-def is_vaild_intf_ip_addr(ip_addr) -> bool :
+
+def is_vaild_intf_ip_addr(ip_addr) -> bool:
     """Check whether the ip address is valid"""
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
@@ -5551,6 +5552,7 @@ def is_vaild_intf_ip_addr(ip_addr) -> bool :
 
     return True
 
+
 #
 # 'vrrp' subgroup ('config interface vrrp ...')
 #
@@ -5560,6 +5562,7 @@ def vrrp(ctx):
     """Vrrp configuration"""
     pass
 
+
 #
 # ip subgroup ('config interface vrrp ip ...')
 #
@@ -5568,6 +5571,7 @@ def vrrp(ctx):
 def ip(ctx):
     """vrrp ip configuration """
     pass
+
 
 @ip.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -5604,9 +5608,9 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
         # update vrrp
         if "vip" in vrrp_entry:
             address_list = vrrp_entry.get("vip")
-            #add ip address
+            # add ip address
             if len(address_list) >= 4:
-                ctx.fail("The vrrp instance {} has already configured 4 IPs".format( vrrp_id))
+                ctx.fail("The vrrp instance {} has already configured 4 IPs".format(vrrp_id))
 
     else:
         # create new vrrp
@@ -5619,7 +5623,7 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
             if key[1] == str(vrrp_id):
                 ctx.fail("The vrrp instance {} has already configured!".format(vrrp_id))
             if key[0] == interface_name:
-                intf_cfg +=1
+                intf_cfg += 1
             if intf_cfg >= 16:
                 ctx.fail("{} has already configured 16 vrrp instances!".format(interface_name))
         vrrp_entry["vid"] = vrrp_id
@@ -5628,6 +5632,7 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
     vrrp_entry['vip'] = address_list
 
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
+
 
 @ip.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -5671,6 +5676,7 @@ def remove_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
     vrrp_entry['vip'] = address_list
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
 
+
 #
 # track interface subgroup ('config interface vrrp track_interface ...')
 #
@@ -5680,11 +5686,13 @@ def track_interface(ctx):
     """ vrrp track_interface configuration """
     pass
 
+
 @track_interface.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument("track_interface", metavar="<track_interface>", required=True)
-@click.argument('priority_increment', metavar='<priority_increment>', required=True, type=click.IntRange(10, 50), default=20)
+@click.argument('priority_increment', metavar='<priority_increment>', required=True, type=click.IntRange(10, 50),
+                default=20)
 @click.pass_context
 def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_increment):
     """add track_interface to the vrrp instance"""
@@ -5709,12 +5717,11 @@ def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_
         ctx.fail("'track_interface' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
     if track_interface not in config_db.get_table(table_name_t):
         ctx.fail("Router Interface '{}' not found".format(track_interface))
-    
+
     vrrp_entry = config_db.get_entry("VRRP", (interface_name, str(vrrp_id)))
     if not vrrp_entry:
         ctx.fail("vrrp instance {} not found on interface {}".format(vrrp_id, interface_name))
 
-    #track_intf_key = track_interface + "|weight|" + str(weight)
     track_entry = config_db.get_entry("VRRP_TRACK", (interface_name, str(vrrp_id), track_interface))
     if track_entry:
         track_entry['priority_increment'] = priority_increment
@@ -5735,6 +5742,7 @@ def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_
             ctx.fail("The Vrrpv instance {} has already configured 8 track interfaces".format(vrrp_id))
 
     config_db.set_entry("VRRP_TRACK", (interface_name, str(vrrp_id), track_interface), track_entry)
+
 
 @track_interface.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -5772,6 +5780,7 @@ def remove_track_interface(ctx, interface_name, vrrp_id, track_interface):
         ctx.fail("{} is not configured on the vrrp instance {}!".format(track_interface, vrrp_id))
     config_db.set_entry('VRRP_TRACK', (interface_name, str(vrrp_id), track_interface), None)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp priority ...')
 #
@@ -5801,6 +5810,7 @@ def priority(ctx, interface_name, vrrp_id, priority):
 
     vrrp_entry['priority'] = priority
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
+
 
 #
 # 'vrrp' subcommand ('config interface vrrp adv_interval ...')
@@ -5832,6 +5842,7 @@ def adv_interval(ctx, interface_name, vrrp_id, interval):
     vrrp_entry['adv_interval'] = interval
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp pre_empt ...')
 #
@@ -5862,6 +5873,7 @@ def pre_empt(ctx, interface_name, vrrp_id, mode):
     vrrp_entry['preempt'] = mode
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp shutdown ...')
 #
@@ -5890,6 +5902,7 @@ def shutdown(ctx, interface_name, vrrp_id):
 
     vrrp_entry['admin_status'] = "down"
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
+
 
 #
 # 'vrrp' subcommand ('config interface vrrp startup ...')
@@ -5920,6 +5933,7 @@ def startup(ctx, interface_name, vrrp_id):
     vrrp_entry['admin_status'] = "up"
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp version...')
 #
@@ -5949,6 +5963,7 @@ def version(ctx, interface_name, vrrp_id, version):
 
     vrrp_entry['version'] = version
     config_db.set_entry("VRRP", (interface_name, str(vrrp_id)), vrrp_entry)
+
 
 #
 # 'vrrp' subcommand
@@ -5984,11 +5999,12 @@ def add_vrrp(ctx, interface_name, vrrp_id):
             if key[1] == str(vrrp_id):
                 ctx.fail("The vrrp instance {} has already configured!".format(vrrp_id))
             if key[0] == interface_name:
-                intf_cfg +=1
+                intf_cfg += 1
             if intf_cfg >= 16:
                 ctx.fail("{} has already configured 16 vrrp instances!".format(interface_name))
 
         config_db.set_entry('VRRP', (interface_name, str(vrrp_id)), {"vid": vrrp_id})
+
 
 @vrrp.command("remove")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -6014,6 +6030,7 @@ def remove_vrrp(ctx, interface_name, vrrp_id):
         ctx.fail("{} dose not configured the vrrp instance {}!".format(interface_name, vrrp_id))
     config_db.set_entry('VRRP', (interface_name, str(vrrp_id)), None)
 
+
 #
 # 'vrrp6' subgroup ('config interface vrrp6 ...')
 #
@@ -6023,6 +6040,7 @@ def vrrp6(ctx):
     """Vrrpv6 configuration"""
     pass
 
+
 #
 # ip subgroup ('config interface vrrp6 ipv6 ...')
 #
@@ -6031,6 +6049,7 @@ def vrrp6(ctx):
 def ipv6(ctx):
     """Vrrpv6 ipv6 configuration """
     pass
+
 
 @ipv6.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -6067,7 +6086,7 @@ def add_vrrp6_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
         # update vrrp
         if "vip" in vrrp6_entry:
             address_list = vrrp6_entry.get("vip")
-            #add ip address
+            # add ip address
             if len(address_list) >= 4:
                 ctx.fail("The vrrp instance {} has already configured 4 IPs".format(vrrp_id))
 
@@ -6082,7 +6101,7 @@ def add_vrrp6_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
             if key[1] == str(vrrp_id):
                 ctx.fail("The Vrrpv6 instance {} has already configured!".format(vrrp_id))
             if key[0] == interface_name:
-                intf_cfg +=1
+                intf_cfg += 1
             if intf_cfg >= 16:
                 ctx.fail("{} has already configured 16 Vrrpv6 instances!".format(interface_name))
         vrrp6_entry["vid"] = vrrp_id
@@ -6092,12 +6111,13 @@ def add_vrrp6_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
 
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 @ipv6.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument("ipv6_addr", metavar="<ipv6_addr>", required=True)
 @click.pass_context
-def remove_vrrp_ip(ctx, interface_name, vrrp_id, ipv6_addr):
+def remove_vrrp_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
     """Remove IPv6 address to the Vrrpv6 instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6143,9 +6163,11 @@ def check_vrrp_ip_exist(config_db, ip_addr) -> bool:
         if "vip" not in vrrp_entry:
             continue
         if ip_addr in vrrp_entry["vip"]:
-            click.echo("{} has already configured on the {} vrrp instance {}!".format(ip_addr, vrrp_key[0], vrrp_key[1]))
+            click.echo("{} has already configured on the {} vrrp instance {}!".format(ip_addr, vrrp_key[0],
+                                                                                      vrrp_key[1]))
             return True
     return False
+
 
 #
 # track interface subgroup ('config interface vrrp6 track_interface ...')
@@ -6156,13 +6178,15 @@ def vrrp6_track_interface(ctx):
     """ Vrrpv6 track_interface configuration """
     pass
 
+
 @vrrp6_track_interface.command('add')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument("track_interface", metavar="<track_interface>", required=True)
-@click.argument('priority_increment', metavar='<priority_increment>', required=True, type=click.IntRange(10, 50), default=20)
+@click.argument('priority_increment', metavar='<priority_increment>', required=True, type=click.IntRange(10, 50),
+                default=20)
 @click.pass_context
-def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_increment):
+def add_track_interface_v6(ctx, interface_name, vrrp_id, track_interface, priority_increment):
     """add track_interface to the vrrp instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6190,7 +6214,7 @@ def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_
     if not vrrp_entry:
         ctx.fail("vrrp6 instance {} not found on interface {}".format(vrrp_id, interface_name))
 
-    #track_intf_key = track_interface + "|weight|" + str(weight)
+    # track_intf_key = track_interface + "|weight|" + str(weight)
     vrrp6_track_keys = config_db.get_keys("VRRP6_TRACK")
     if vrrp6_track_keys:
         track_key = (interface_name, str(vrrp_id))
@@ -6201,19 +6225,20 @@ def add_track_interface(ctx, interface_name, vrrp_id, track_interface, priority_
                 count += 1
 
         if count >= 8:
-            ctx.fail("The Vrrpv6 instance {} has already configured 8 track interfaces".format( vrrp_id))
+            ctx.fail("The Vrrpv6 instance {} has already configured 8 track interfaces".format(vrrp_id))
 
-    #create a new entry
+    # create a new entry
     track6_entry = {}
     track6_entry["priority_increment"] = priority_increment
     config_db.set_entry("VRRP6_TRACK", (interface_name, str(vrrp_id), track_interface), track6_entry)
+
 
 @vrrp6_track_interface.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument("track_interface", metavar="<track_interface>", required=True)
 @click.pass_context
-def remove_track_interface(ctx, interface_name, vrrp_id, track_interface):
+def remove_track_interface_v6(ctx, interface_name, vrrp_id, track_interface):
     """Remove track_interface to the vrrp instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6244,6 +6269,7 @@ def remove_track_interface(ctx, interface_name, vrrp_id, track_interface):
         ctx.fail("{} is not configured on the vrrp6 instance {}!".format(track_interface, vrrp_id))
     config_db.set_entry('VRRP6_TRACK', (interface_name, str(vrrp_id), track_interface), None)
 
+
 #
 # 'vrrp6' subcommand ('config interface vrrp6 priority ...')
 #
@@ -6252,7 +6278,7 @@ def remove_track_interface(ctx, interface_name, vrrp_id, track_interface):
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument('priority', metavar='<priority>', required=True, type=click.IntRange(1, 254), default=100)
 @click.pass_context
-def priority(ctx, interface_name, vrrp_id, priority):
+def priority_v6(ctx, interface_name, vrrp_id, priority):
     """config priority to the Vrrpv6 instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6274,15 +6300,16 @@ def priority(ctx, interface_name, vrrp_id, priority):
     vrrp6_entry['priority'] = priority
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp6 adv_interval ...')
 #
 @vrrp6.command("adv_interval")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
-@click.argument('interval', metavar='<interval>', required=True, type=click.IntRange(10, 40950), default=1000)
+@click.argument('interval', metavar='<interval>', required=True, type=click.IntRange(1, 255), default=1000)
 @click.pass_context
-def adv_interval(ctx, interface_name, vrrp_id, interval):
+def adv_interval_v6(ctx, interface_name, vrrp_id, interval):
     """config adv_interval to the Vrrpv6 instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6304,6 +6331,7 @@ def adv_interval(ctx, interface_name, vrrp_id, interval):
     vrrp6_entry['adv_interval'] = interval
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 #
 # 'vrrp' subcommand ('config interface vrrp6 pre_empt ...')
 #
@@ -6312,7 +6340,7 @@ def adv_interval(ctx, interface_name, vrrp_id, interval):
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enabled", "disabled"]))
 @click.pass_context
-def pre_empt(ctx, interface_name, vrrp_id, mode):
+def pre_empt_v6(ctx, interface_name, vrrp_id, mode):
     """Config pre_empt mode to the Vrrpv6 instance"""
     config_db = ctx.obj["config_db"]
 
@@ -6333,6 +6361,7 @@ def pre_empt(ctx, interface_name, vrrp_id, mode):
 
     vrrp6_entry['preempt'] = mode
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
+
 
 #
 # 'vrrp' subcommand ('config interface vrrp shutdown ...')
@@ -6363,6 +6392,7 @@ def shutdown(ctx, interface_name, vrrp_id):
     vrrp6_entry['admin_status'] = "down"
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 #
 # 'vrrp6' subcommand ('config interface vrrp6 startup ...')
 #
@@ -6392,6 +6422,7 @@ def startup(ctx, interface_name, vrrp_id):
     vrrp6_entry['admin_status'] = "up"
     config_db.set_entry("VRRP6", (interface_name, str(vrrp_id)), vrrp6_entry)
 
+
 #
 # 'vrrp6' subcommand
 #
@@ -6399,7 +6430,7 @@ def startup(ctx, interface_name, vrrp_id):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.pass_context
-def add_vrrp(ctx, interface_name, vrrp_id):
+def add_vrrp_v6(ctx, interface_name, vrrp_id):
     """Add Vrrpv6 instance to the interface"""
     config_db = ctx.obj["config_db"]
 
@@ -6426,17 +6457,18 @@ def add_vrrp(ctx, interface_name, vrrp_id):
             if key[1] == str(vrrp_id):
                 ctx.fail("The Vrrpv6 instance {} has already configured!".format(vrrp_id))
             if key[0] == interface_name:
-                intf_cfg +=1
+                intf_cfg += 1
             if intf_cfg >= 16:
                 ctx.fail("{} has already configured 16 Vrrpv6 instances!".format(interface_name))
 
         config_db.set_entry('VRRP6', (interface_name, str(vrrp_id)), {"vid": vrrp_id})
 
+
 @vrrp6.command("remove")
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('vrrp_id', metavar='<vrrp_id>', required=True, type=click.IntRange(1, 255))
 @click.pass_context
-def remove_vrrp(ctx, interface_name, vrrp_id):
+def remove_vrrp_v6(ctx, interface_name, vrrp_id):
     """Remove Vrrpv6 instance to the interface"""
     config_db = ctx.obj["config_db"]
 
@@ -6455,6 +6487,7 @@ def remove_vrrp(ctx, interface_name, vrrp_id):
     if not vrrp6_entry:
         ctx.fail("{} dose not configured the Vrrpv6 instance {}!".format(interface_name, vrrp_id))
     config_db.set_entry('VRRP6', (interface_name, str(vrrp_id)), None)
+
 
 #
 # 'vrf' group ('config vrf ...')
