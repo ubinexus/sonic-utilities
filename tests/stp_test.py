@@ -19,10 +19,11 @@ RootBridge       RootPath  DesignatedBridge  RootPort           Max Hel Fwd
 Identifier       Cost      Identifier                           Age lo  Dly
 hex                        hex                                  sec sec sec
 0064b86a97e24e9c 600       806480a235f281ec  Root               20  2   15
+
 STP Port Parameters:
-Port             Prio Path      Port Uplink  State         Designated    Designated       Designated
-Name             rity Cost      Fast Fast                  Cost          Root             Bridge
-Ethernet4        128  200       N    N       FORWARDING    400           0064b86a97e24e9c 806480a235f281ec
+Port             Prio Path      Port Uplink State         Designated  Designated       Designated
+Name             rity Cost      Fast Fast                 Cost        Root             Bridge
+Ethernet4        128  200       N    N      FORWARDING    400         0064b86a97e24e9c 806480a235f281ec
 """
 
 show_spanning_tree_vlan = """\
