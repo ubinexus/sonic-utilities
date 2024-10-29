@@ -329,8 +329,8 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
             # If port is being made L2 port, enable STP
             if stp.is_global_stp_enabled(db.cfgdb) is True:
                 vlan_list_for_intf = stp.get_vlan_list_for_interface(db.cfgdb, port)
-            if len(vlan_list_for_intf) == 0:
-                stp.interface_enable_stp(db.cfgdb, port)
+                if len(vlan_list_for_intf) == 0:
+                    stp.interface_enable_stp(db.cfgdb, port)
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
@@ -381,8 +381,8 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
                 vlan_interface = str(vlan) + "|" + port
                 db.cfgdb.set_entry('STP_VLAN_PORT', vlan_interface, None)
                 vlan_list_for_intf = stp.get_vlan_list_for_interface(db.cfgdb, port)
-            if len(vlan_list_for_intf) == 0:
-                db.cfgdb.set_entry('STP_PORT', port, None)
+                if len(vlan_list_for_intf) == 0:
+                    db.cfgdb.set_entry('STP_PORT', port, None)
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
