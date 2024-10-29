@@ -52,7 +52,6 @@ VLAN 100 - STP instance 0
 --------------------------------------------------------------------
 PortNum          BPDU Tx        BPDU Rx        TCN Tx         TCN Rx
 Ethernet4        10             15             15             5
-
 """
 
 show_spanning_tree_bpdu_guard = """\
