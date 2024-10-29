@@ -52,19 +52,21 @@ VLAN 100 - STP instance 0
 --------------------------------------------------------------------
 PortNum          BPDU Tx        BPDU Rx        TCN Tx         TCN Rx
 Ethernet4        10             15             15             5
+
 """
 
 show_spanning_tree_bpdu_guard = """\
-PortNum           Shutdown      Port Shut
-                  Configured    due to BPDU guard
+PortNum          Shutdown     Port Shut
+                 Configured   due to BPDU guard
 -------------------------------------------
-Ethernet4         No            NA
+Ethernet4        No           NA
 """
 
 show_spanning_tree_root_guard = """\
 Root guard timeout: 30 secs
+
 Port             VLAN   Current State
---------------------------------------------
+-------------------------------------------
 Ethernet4        100    Consistent state
 """
 

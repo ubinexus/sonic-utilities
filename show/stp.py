@@ -220,8 +220,8 @@ def show_stp_vlan(ctx, vlanid):
 
     click.echo("")
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{}".format(
-        "RootBridge", "RootPath", "DesignatedBridge", "Root", "Max", "Hel", "Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{}".format("Identifier", "Cost", "Identifier", "Port", "Age", "lo", "Dly"))
+        "RootBridge", "RootPath", "DesignatedBridge", "RootPort", "Max", "Hel", "Fwd"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{}".format("Identifier", "Cost", "Identifier", "", "Age", "lo", "Dly"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{}".format("hex", "", "hex", "", "sec", "sec", "sec"))
     click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{}".format(
                vlan_tb_entry['root_bridge_id'],
@@ -381,7 +381,7 @@ def show_stp_vlan_statistics(ctx, vlanid):
 
     click.echo("VLAN {} - STP instance {}".format(vlanid, stp_inst_entry['stp_instance']))
     click.echo("--------------------------------------------------------------------")
-    click.echo("{:17}{:15}{:15}{:15}{:<15}".format("PortNum", "BPDU Tx", "BPDU Rx", "TCN Tx", "TCN Rx"))
+    click.echo("{:17}{:15}{:15}{:15}{}".format("PortNum", "BPDU Tx", "BPDU Rx", "TCN Tx", "TCN Rx"))
     keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
     if keys:
         for key in keys:
@@ -398,5 +398,5 @@ def show_stp_vlan_statistics(ctx, vlanid):
                 if 'tc_received' not in entry:
                     entry['tc_received'] = '-'
 
-                click.echo("{:17}{:15}{:15}{:15}{:<15}".format(
+                click.echo("{:17}{:15}{:15}{:15}{}".format(
                     ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))
