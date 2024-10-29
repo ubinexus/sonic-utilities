@@ -85,7 +85,7 @@ def memory_statistics_retention_period(retention_period):
 
 
 #
-# 'sampling-interval' command ('sudo config memory-statistics sampling-interval ...')
+# 'sampling-interval' command  ('sudo config memory-statistics sampling-interval ...')
 #
 @memory_statistics.command(name="sampling-interval", short_help="Configure the sampling interval for Memory Statistics")
 @click.argument('sampling_interval', metavar='<sampling_interval>', required=True, type=int)
