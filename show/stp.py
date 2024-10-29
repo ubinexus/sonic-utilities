@@ -204,12 +204,12 @@ def show_stp_vlan(ctx, vlanid):
     click.echo("--------------------------------------------------------------------")
     click.echo("STP Bridge Parameters:")
 
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:<8}".format(
         "Bridge", "Bridge", "Bridge", "Bridge", "Hold", "LastTopology", "Topology"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:<8}".format(
         "Identifier", "MaxAge", "Hello", "FwdDly", "Time", "Change", "Change"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format("hex", "sec", "sec", "sec", "sec", "sec", "cnt"))
-    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:8}".format(
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:<8}".format("hex", "sec", "sec", "sec", "sec", "sec", "cnt"))
+    click.echo("{:17}{:7}{:7}{:7}{:6}{:13}{:<8}".format(
                vlan_tb_entry['bridge_id'],
                vlan_tb_entry['max_age'],
                vlan_tb_entry['hello_time'],
@@ -219,11 +219,11 @@ def show_stp_vlan(ctx, vlanid):
                vlan_tb_entry['topology_change_count']))
 
     click.echo("")
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:<4}".format(
         "RootBridge", "RootPath", "DesignatedBridge", "RootPort", "Max", "Hel", "Fwd"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("Identifier", "Cost", "Identifier", "", "Age", "lo", "Dly"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
-    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:4}".format(
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:<4}".format("Identifier", "Cost", "Identifier", "", "Age", "lo", "Dly"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:<4}".format("hex", "", "hex", "", "sec", "sec", "sec"))
+    click.echo("{:17}{:10}{:18}{:19}{:4}{:4}{:<4}".format(
                vlan_tb_entry['root_bridge_id'],
                vlan_tb_entry['root_path_cost'],
                vlan_tb_entry['desig_bridge_id'],
@@ -234,9 +234,9 @@ def show_stp_vlan(ctx, vlanid):
 
     click.echo("")
     click.echo("STP Port Parameters:")
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:<17}".format(
         "Port", "Prio", "Path", "Port", "Uplink", "State", "Designated", "Designated", "Designated"))
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:<17}".format(
         "Name", "rity", "Cost", "Fast", "Fast", "", "Cost", "Root", "Bridge"))
     if ctx.invoked_subcommand is None:
         keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
@@ -268,7 +268,7 @@ def show_stp_interface(ctx, ifname):
     if not vlan_intf_tb_entry:
         return
 
-    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:17}".format(
+    click.echo("{:17}{:5}{:10}{:5}{:7}{:14}{:12}{:17}{:<17}".format(
         ifname,
         vlan_intf_tb_entry['priority'],
         vlan_intf_tb_entry['path_cost'],
@@ -381,7 +381,7 @@ def show_stp_vlan_statistics(ctx, vlanid):
 
     click.echo("VLAN {} - STP instance {}".format(vlanid, stp_inst_entry['stp_instance']))
     click.echo("--------------------------------------------------------------------")
-    click.echo("{:17}{:15}{:15}{:15}{:15}".format("PortNum", "BPDU Tx", "BPDU Rx", "TCN Tx", "TCN Rx"))
+    click.echo("{:17}{:15}{:15}{:15}{:<15}".format("PortNum", "BPDU Tx", "BPDU Rx", "TCN Tx", "TCN Rx"))
     keys = g_stp_appl_db.keys(g_stp_appl_db.APPL_DB, "*STP_VLAN_PORT_TABLE:Vlan{}:*".format(vlanid))
     if keys:
         for key in keys:
@@ -398,5 +398,5 @@ def show_stp_vlan_statistics(ctx, vlanid):
                 if 'tc_received' not in entry:
                     entry['tc_received'] = '-'
 
-                click.echo("{:17}{:15}{:15}{:15}{:15}".format(
+                click.echo("{:17}{:15}{:15}{:15}{:<15}".format(
                     ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))
