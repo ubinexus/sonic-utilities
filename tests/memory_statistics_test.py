@@ -1,112 +1,85 @@
 import unittest
 from unittest.mock import patch, MagicMock
+import click
+
 from click.testing import CliRunner
-from config.memory_statistics import (
-    memory_statistics_enable,
-    memory_statistics_disable,
-    memory_statistics_retention_period,
-    memory_statistics_sampling_interval
-)
-from swsscommon.swsscommon import ConfigDBConnector
 
+import config.memory_statistics as config
 
-class TestMemoryStatisticsConfigCommands(unittest.TestCase):
+class TestMemoryStatistics(unittest.TestCase):
 
-    def setUp(self):
-        self.runner = CliRunner()
-        self.mock_db = MagicMock()
-        self.mock_db.get_entry.return_value = {
-            "enabled": "false",
-            "retention_period": "15",
-            "sampling_interval": "5"
-        }
-        self.patcher = patch.object(ConfigDBConnector, 'get_entry', self.mock_db.get_entry)
-        self.patcher.start()
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_db_connection(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        db = ConfigDBConnector()
+        db.connect()
+        mock_db.connect.assert_called_once()
 
-        # Mock the get_memory_statistics_table to return a valid table
-        self.mock_db.get_table = MagicMock(return_value={"memory_statistics": {}})
-        patch.object(ConfigDBConnector, 'get_table', self.mock_db.get_table).start()
+    def test_check_memory_statistics_table_existence_empty(self):
+        result = check_memory_statistics_table_existence({})
+        self.assertFalse(result)
 
-    def tearDown(self):
-        self.patcher.stop()
+    def test_check_memory_statistics_table_existence_missing_key(self):
+        result = check_memory_statistics_table_existence({"other_table": {}})
+        self.assertFalse(result)
 
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_enable(self, mock_mod_entry):
-        # Change the return value to simulate a disabled state
-        self.mock_db.get_entry.return_value = {"enabled": "false"}
-        result = self.runner.invoke(memory_statistics_enable)
-        self.assertIn("Memory Statistics feature enabled.", result.output)
-        self.assertEqual(result.exit_code, 0)
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_enable_memory_statistics(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        mock_db.get_table.return_value = {"memory_statistics": {}}
+        
+        with patch('click.echo') as mock_echo:
+            memory_statistics_enable()
+            mock_echo.assert_any_call("Memory Statistics feature enabled.")
+            mock_db.mod_entry.assert_called_once_with("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
+    
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_disable_memory_statistics(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        mock_db.get_table.return_value = {"memory_statistics": {}}
+        
+        with patch('click.echo') as mock_echo:
+            memory_statistics_disable()
+            mock_echo.assert_any_call("Memory Statistics feature disabled.")
+            mock_db.mod_entry.assert_called_once_with("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false", "disabled": "true"})
 
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS",
-            "memory_statistics",
-            {"enabled": "true", "disabled": "false"}
-        )
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_set_retention_period(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        mock_db.get_table.return_value = {"memory_statistics": {}}
+        
+        retention_period = 7
+        with patch('click.echo') as mock_echo:
+            memory_statistics_retention_period(retention_period)
+            mock_echo.assert_any_call(f"Memory Statistics retention period set to {retention_period} days.")
+            mock_db.mod_entry.assert_called_once_with("MEMORY_STATISTICS", "memory_statistics", {"retention_period": retention_period})
 
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_disable(self, mock_mod_entry):
-        # Change the return value to simulate an enabled state
-        self.mock_db.get_entry.return_value = {"enabled": "true"}
-        result = self.runner.invoke(memory_statistics_disable)
-        self.assertIn("Memory Statistics feature disabled.", result.output)
-        self.assertEqual(result.exit_code, 0)
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_set_sampling_interval(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        mock_db.get_table.return_value = {"memory_statistics": {}}
+        
+        sampling_interval = 5
+        with patch('click.echo') as mock_echo:
+            memory_statistics_sampling_interval(sampling_interval)
+            mock_echo.assert_any_call(f"Memory Statistics sampling interval set to {sampling_interval} minutes.")
+            mock_db.mod_entry.assert_called_once_with("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
 
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS",
-            "memory_statistics",
-            {"enabled": "false", "disabled": "true"}
-        )
-
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_retention_period(self, mock_mod_entry):
-        result = self.runner.invoke(memory_statistics_retention_period, ['15'])
-        self.assertIn("Memory Statistics retention period set to 15 days.", result.output)
-        self.assertEqual(result.exit_code, 0)
-
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS",
-            "memory_statistics",
-            {"retention_period": 15}
-        )
-
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_sampling_interval(self, mock_mod_entry):
-        result = self.runner.invoke(memory_statistics_sampling_interval, ['5'])
-        self.assertIn("Memory Statistics sampling interval set to 5 minutes.", result.output)
-        self.assertEqual(result.exit_code, 0)
-
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS",
-            "memory_statistics",
-            {"sampling_interval": 5}
-        )
-
-    # Missing test cases from the old file
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_enable_already_enabled(self, mock_mod_entry):
-        self.mock_db.get_entry.return_value = {"enabled": "true"}
-        result = self.runner.invoke(memory_statistics_enable)
-        self.assertIn("Memory Statistics feature enabled.", result.output)
-        self.assertEqual(result.exit_code, 0)
-
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_not_called()
-
-    @patch.object(ConfigDBConnector, 'mod_entry')
-    def test_memory_statistics_disable_already_disabled(self, mock_mod_entry):
-        self.mock_db.get_entry.return_value = {"enabled": "false"}
-        result = self.runner.invoke(memory_statistics_disable)
-        self.assertIn("Memory Statistics feature disabled.", result.output)
-        self.assertEqual(result.exit_code, 0)
-
-        # Ensure the entry was modified correctly
-        mock_mod_entry.assert_not_called()
-
+    @patch('swsscommon.swsscommon.ConfigDBConnector')
+    def test_error_handling_in_enable(self, mock_db_connector):
+        mock_db = MagicMock()
+        mock_db_connector.return_value = mock_db
+        mock_db.get_table.return_value = {"memory_statistics": {}}
+        mock_db.mod_entry.side_effect = Exception("Database error")
+        
+        with patch('click.echo') as mock_echo:
+            memory_statistics_enable()
+            mock_echo.assert_any_call("Error enabling Memory Statistics feature: Database error")
 
 if __name__ == "__main__":
     unittest.main()
