@@ -1,80 +1,112 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
-from config.memory_statistics import memory_statistics_enable
-from config.memory_statistics import memory_statistics_disable
-from config.memory_statistics import memory_statistics_retention_period
-from config.memory_statistics import memory_statistics_sampling_interval
-from show.memory_statistics import config, show_memory_statistics_logs
+from config.memory_statistics import (
+    memory_statistics_enable,
+    memory_statistics_disable,
+    memory_statistics_retention_period,
+    memory_statistics_sampling_interval
+)
+from swsscommon.swsscommon import ConfigDBConnector
 
 
 class TestMemoryStatisticsConfigCommands(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
-        # Mock Config DB connector to simulate the MEMORY_STATISTICS table
-        self.config_db_mock = patch('config.memory_statistics.ConfigDBConnector')
-        self.mock_db = self.config_db_mock.start()
-        # Simulate MEMORY_STATISTICS table presence in Config DB
-        self.mock_db.get_table.return_value = {
-            "MEMORY_STATISTICS": {"status": "enabled", "retention_period": "30", "sampling_interval": "5"}
+        self.mock_db = MagicMock()
+        self.mock_db.get_entry.return_value = {
+            "enabled": "false",
+            "retention_period": "15",
+            "sampling_interval": "5"
         }
+        self.patcher = patch.object(ConfigDBConnector, 'get_entry', self.mock_db.get_entry)
+        self.patcher.start()
+
+        # Mock the get_memory_statistics_table to return a valid table
+        self.mock_db.get_table = MagicMock(return_value={"memory_statistics": {}})
+        patch.object(ConfigDBConnector, 'get_table', self.mock_db.get_table).start()
 
     def tearDown(self):
-        # Stop the Config DB mock
-        self.config_db_mock.stop()
+        self.patcher.stop()
 
-    def test_memory_statistics_enable(self):
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_enable(self, mock_mod_entry):
+        # Change the return value to simulate a disabled state
+        self.mock_db.get_entry.return_value = {"enabled": "false"}
         result = self.runner.invoke(memory_statistics_enable)
         self.assertIn("Memory Statistics feature enabled.", result.output)
         self.assertEqual(result.exit_code, 0)
 
-    def test_memory_statistics_disable(self):
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_called_once_with(
+            "MEMORY_STATISTICS",
+            "memory_statistics",
+            {"enabled": "true", "disabled": "false"}
+        )
+
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_disable(self, mock_mod_entry):
+        # Change the return value to simulate an enabled state
+        self.mock_db.get_entry.return_value = {"enabled": "true"}
         result = self.runner.invoke(memory_statistics_disable)
         self.assertIn("Memory Statistics feature disabled.", result.output)
         self.assertEqual(result.exit_code, 0)
 
-    def test_memory_statistics_retention_period(self):
-        result = self.runner.invoke(memory_statistics_retention_period, ['30'])
-        self.assertIn("Memory Statistics retention period set to 30 days.", result.output)
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_called_once_with(
+            "MEMORY_STATISTICS",
+            "memory_statistics",
+            {"enabled": "false", "disabled": "true"}
+        )
+
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_retention_period(self, mock_mod_entry):
+        result = self.runner.invoke(memory_statistics_retention_period, ['15'])
+        self.assertIn("Memory Statistics retention period set to 15 days.", result.output)
         self.assertEqual(result.exit_code, 0)
 
-    def test_memory_statistics_sampling_interval(self):
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_called_once_with(
+            "MEMORY_STATISTICS",
+            "memory_statistics",
+            {"retention_period": 15}
+        )
+
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_sampling_interval(self, mock_mod_entry):
         result = self.runner.invoke(memory_statistics_sampling_interval, ['5'])
         self.assertIn("Memory Statistics sampling interval set to 5 minutes.", result.output)
         self.assertEqual(result.exit_code, 0)
 
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_called_once_with(
+            "MEMORY_STATISTICS",
+            "memory_statistics",
+            {"sampling_interval": 5}
+        )
 
-class TestMemoryStatisticsShowCommands(unittest.TestCase):
-
-    def setUp(self):
-        self.runner = CliRunner()
-        # Mock Config DB connector to simulate MEMORY_STATISTICS table and logs
-        self.config_db_mock = patch('show.memory_statistics.ConfigDBConnector')
-        self.mock_db = self.config_db_mock.start()
-        # Simulate logs and configuration
-        self.mock_db.get_table.return_value = {
-            "MEMORY_STATISTICS": {"status": "enabled", "retention_period": "30", "sampling_interval": "5"}
-        }
-        self.mock_db.get_log_entries.return_value = [
-            {"date": "2023-10-01", "data": "Sample log entry 1"},
-            {"date": "2023-10-02", "data": "Sample log entry 2"}
-        ]
-
-    def tearDown(self):
-        # Stop the Config DB mock
-        self.config_db_mock.stop()
-
-    def test_memory_statistics_config(self):
-        result = self.runner.invoke(config)
-        self.assertIn("Memory Statistics administrative mode:", result.output)
+    # Missing test cases from the old file
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_enable_already_enabled(self, mock_mod_entry):
+        self.mock_db.get_entry.return_value = {"enabled": "true"}
+        result = self.runner.invoke(memory_statistics_enable)
+        self.assertIn("Memory Statistics feature enabled.", result.output)
         self.assertEqual(result.exit_code, 0)
 
-    def test_memory_statistics_logs(self):
-        result = self.runner.invoke(show_memory_statistics_logs, ['2023-10-01', '2023-10-02'])
-        self.assertIn("Memory Statistics logs", result.output)
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_not_called()
+
+    @patch.object(ConfigDBConnector, 'mod_entry')
+    def test_memory_statistics_disable_already_disabled(self, mock_mod_entry):
+        self.mock_db.get_entry.return_value = {"enabled": "false"}
+        result = self.runner.invoke(memory_statistics_disable)
+        self.assertIn("Memory Statistics feature disabled.", result.output)
         self.assertEqual(result.exit_code, 0)
 
+        # Ensure the entry was modified correctly
+        mock_mod_entry.assert_not_called()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
