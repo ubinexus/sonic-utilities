@@ -17,5 +17,6 @@ def get_chassis_local_interfaces():
                 return lst
     return lst
 
+
 def is_smartswitch():
-        return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
+    return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()

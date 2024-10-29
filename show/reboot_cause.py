@@ -185,6 +185,8 @@ def get_all_dpus():
     # Load platform.json
     platform_info = device_info.get_platform_info()
     platform = platform_info['platform']
+    if platform is None:
+        raise ValueError("Platform does not exist in platform_info")
     platform_file = os.path.join("/usr/share/sonic/device", platform, "platform.json")
     try:
         with open(platform_file, 'r') as platform_json:
