@@ -28,6 +28,7 @@ Ethernet4        128  200       N    N      FORWARDING    400         0064b86a97
 """
 
 show_spanning_tree_vlan = """\
+
 VLAN 100 - STP instance 0
 --------------------------------------------------------------------
 STP Bridge Parameters:
