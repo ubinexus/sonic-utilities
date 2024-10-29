@@ -7,6 +7,7 @@ from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 from sonic_py_common import device_info
 import utilities_common.cli as clicommon
+from utilities_common.chassis import is_smartswitch
 
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
@@ -25,7 +26,7 @@ def read_reboot_cause_file():
 
 
 # Function to fetch reboot cause data from database
-def fetch_data_from_db(module_name, fetch_history=False):
+def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
     if module_name is None:
         prefix = 'REBOOT_CAUSE|2'
     elif "DPU" in module_name:
@@ -34,9 +35,14 @@ def fetch_data_from_db(module_name, fetch_history=False):
         prefix = 'REBOOT_CAUSE|'
 
     try:
-        rdb = SonicV2Connector(host='127.0.0.1')
-        rdb.connect(rdb.STATE_DB, False)   # Make one attempt only
-        table_keys = rdb.keys(rdb.STATE_DB, prefix+'*')
+        if use_chassis_db:
+            rdb = SonicV2Connector(host='redis_chassis.server', port=6380)
+            rdb.connect(rdb.CHASSIS_STATE_DB)
+            table_keys = rdb.keys(rdb.CHASSIS_STATE_DB, prefix+'*')
+        else:
+            rdb = SonicV2Connector(host='127.0.0.1')
+            rdb.connect(rdb.STATE_DB, False)   # Make one attempt only
+            table_keys = rdb.keys(rdb.STATE_DB, prefix+'*')
     except Exception:
         return []
 
@@ -48,7 +54,10 @@ def fetch_data_from_db(module_name, fetch_history=False):
     for tk in table_keys:
         r = []
         append = False
-        entry = rdb.get_all(rdb.STATE_DB, tk)
+        if use_chassis_db:
+            entry = rdb.get_all(rdb.CHASSIS_STATE_DB, tk)
+        else:
+            entry = rdb.get_all(rdb.STATE_DB, tk)
 
         if module_name is not None:
             if 'device' in entry:
@@ -100,13 +109,21 @@ def fetch_reboot_cause_from_db(module_name):
     r.append(reboot_user if reboot_user else "")
     table.append(r)
 
-    table += fetch_data_from_db(module_name, fetch_history=False)
+    table += fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=True)
     return table
 
 
 # Function to fetch reboot cause history data from database
 def fetch_reboot_cause_history_from_db(module_name):
-    return fetch_data_from_db(module_name, fetch_history=True)
+    if module_name == "all":
+        # Combine data from both Redis containers for "all" modules
+        data_switch = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
+        data_dpu = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
+        return data_switch + data_dpu
+    elif module_name is None or module_name == "SWITCH":
+        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
+    else:
+        return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
 
 #
 # 'reboot-cause' group ("show reboot-cause")
@@ -146,14 +163,10 @@ def reboot_cause(ctx):
         click.echo(reboot_cause_str)
 
 
-def is_smartswitch():
-    return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
-
-
 # 'all' command within 'reboot-cause'
 @reboot_cause.command()
 def all():
-    if not is_smartswitch():
+    if not is_smartswitch:
         return
     """Show cause of most recent reboot"""
     reboot_cause_data = fetch_reboot_cause_from_db("all")
@@ -166,7 +179,7 @@ def all():
 def get_all_dpus():
     dpu_list = []
 
-    if not is_smartswitch():
+    if not is_smartswitch:
         return dpu_list
 
     # Load platform.json
@@ -199,14 +212,14 @@ def get_all_dpus():
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
+        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""
-    if not is_smartswitch() and module_name:
+    if not is_smartswitch and module_name:
         return
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if is_smartswitch() and module_name:
+    if is_smartswitch and module_name:
         header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
     else:
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']

@@ -5,6 +5,7 @@ import time
 import re
 import subprocess
 import utilities_common.cli as clicommon
+from utilities_common.chassis import is_smartswitch
 
 TIMEOUT_SECS = 10
 
@@ -27,7 +28,10 @@ def get_config_module_state(db, chassis_module_name):
     config_db = db.cfgdb
     fvs = config_db.get_entry('CHASSIS_MODULE', chassis_module_name)
     if not fvs:
-        return 'up'
+        if is_smartswitch:
+            return 'down'
+        else:
+            return 'up'
     else:
         return fvs['admin_status']
 
@@ -143,7 +147,12 @@ def startup_chassis_module(db, chassis_module_name):
         return
 
     click.echo("Starting up chassis module {}".format(chassis_module_name))
-    config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
+    if is_smartswitch:
+        fvs = {'admin_status': 'up'}
+        config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
+    else:
+        config_db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
+
     if chassis_module_name.startswith("FABRIC-CARD"):
         if not check_config_module_state_with_timeout(ctx, db, chassis_module_name, 'up'):
             fabric_module_set_admin_status(db, chassis_module_name, 'up')

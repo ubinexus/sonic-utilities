@@ -2,6 +2,7 @@ import click
 from natsort import natsorted
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common.chassis import is_smartswitch
 
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
@@ -62,7 +63,10 @@ def status(db, chassis_module_name):
         oper_status = data_dict[CHASSIS_MODULE_INFO_OPERSTATUS_FIELD]
         serial = data_dict[CHASSIS_MODULE_INFO_SERIAL_FIELD]
 
-        admin_status = 'up'
+        if is_smartswitch:
+            admin_status = 'down'
+        else:
+            admin_status = 'up'
         config_data = chassis_cfg_table.get(key_list[1])
         if config_data is not None:
             admin_status = config_data.get(CHASSIS_MODULE_INFO_ADMINSTATUS_FIELD)

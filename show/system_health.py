@@ -8,6 +8,7 @@ import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info
+from utilities_common.chassis import is_smartswitch
 
 DPU_STATE = 'DPU_STATE'
 CHASSIS_SERVER = 'redis_chassis.server'
@@ -170,10 +171,6 @@ def sysready_status_detail():
         click.echo("Exception: {}".format(str(e)))
 
 
-def is_smartswitch():
-    return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
-
-
 def show_dpu_state(module_name):
     chassis_state_db = SonicV2Connector(host=CHASSIS_SERVER, port=CHASSIS_SERVER_PORT)
     chassis_state_db.connect(chassis_state_db.CHASSIS_STATE_DB)
@@ -244,7 +241,7 @@ def populate_row(row, key, value, table):
 def get_all_dpus():
     dpu_list = []
 
-    if not is_smartswitch():
+    if not is_smartswitch:
         return dpu_list
 
     # Load platform.json
@@ -275,10 +272,10 @@ def get_all_dpus():
 @system_health.command()
 @click.argument('module_name',
                 required=True,
-                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
+                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch else None
                 )
 def dpu(module_name):
     """Show system-health dpu information"""
-    if not is_smartswitch():
+    if not is_smartswitch:
         return
     show_dpu_state(module_name)
