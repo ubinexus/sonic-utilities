@@ -7,44 +7,44 @@ from utilities_common.db import Db
 
 show_spanning_tree = """\
 Spanning-tree Mode: PVST
+
 VLAN 100 - STP instance 0
 --------------------------------------------------------------------
 STP Bridge Parameters:
-
 Bridge           Bridge  Bridge  Bridge  Hold    LastTopology    Topology
 Identifier       MaxAge  Hello   FwdDly  Time    Change          Change
 hex              sec     sec     sec     sec     sec             cnt
 8064b86a97e24e9c 20      2       15      1       0               1
 
-RootBridge       RootPath    DesignatedBridge    Root    Max Hel Fwd
-Identifier       Cost        Identifier          Port    Age lo  Dly
-hex                          hex                         sec sec sec
-0064b86a97e24e9c 600         806480a235f281ec    Root    20  2   15
+RootBridge       RootPath    DesignatedBridge    RootPort       Max  Hel  Fwd
+Identifier       Cost        Identifier                        Age  lo   Dly
+hex                          hex                               sec  sec  sec
+0064b86a97e24e9c 600         806480a235f281ec    Root          20   2    15
 
 STP Port Parameters:
-
-Port             Prio    Path    Port    Uplink  State       Designated  Designated          Designated
-Num              rity    Cost    Fast    Fast                Cost        Root                Bridge
-Ethernet4        128     200     N       N       FORWARDING  400         0064b86a97e24e9c    806480a235f281ec
+Port             Prio    Path    Port    Uplink  State       Designated  Designated        Designated
+Name             rity    Cost    Fast    Fast                Cost        Root              Bridge
+Ethernet4        128     200     N       N       FORWARDING  400         0064b86a97e24e9c  806480a235f281ec
 """
 
 show_spanning_tree_vlan = """\
 VLAN 100 - STP instance 0
 --------------------------------------------------------------------
 STP Bridge Parameters:
-Bridge           Bridge Bridge Bridge Hold  LastTopology Topology
-Identifier       MaxAge Hello  FwdDly Time  Change       Change
-hex              sec    sec    sec    sec   sec          cnt
-8064b86a97e24e9c 20     2      15     1     0            1
+Bridge           Bridge  Bridge  Bridge  Hold    LastTopology    Topology
+Identifier       MaxAge  Hello   FwdDly  Time    Change          Change
+hex              sec     sec     sec     sec     sec             cnt
+8064b86a97e24e9c 20      2       15      1       0               1
 
-RootBridge       RootPath  DesignatedBridge  RootPort           Max Hel Fwd
-Identifier       Cost      Identifier                           Age lo  Dly
-hex                        hex                                  sec sec sec
-0064b86a97e24e9c 600       806480a235f281ec  Root               20  2   15
+RootBridge       RootPath    DesignatedBridge    RootPort       Max  Hel  Fwd
+Identifier       Cost        Identifier                        Age  lo   Dly
+hex                          hex                               sec  sec  sec
+0064b86a97e24e9c 600         806480a235f281ec    Root          20   2    15
+
 STP Port Parameters:
-Port             Prio Path      Port Uplink  State         Designated    Designated       Designated
-Name             rity Cost      Fast Fast                  Cost          Root             Bridge
-Ethernet4        128  200       N    N       FORWARDING    400           0064b86a97e24e9c 806480a235f281ec
+Port             Prio    Path    Port    Uplink  State       Designated  Designated        Designated
+Name             rity    Cost    Fast    Fast                Cost        Root              Bridge
+Ethernet4        128     200     N       N       FORWARDING  400         0064b86a97e24e9c  806480a235f281ec
 """
 
 show_spanning_tree_statistics = """\
