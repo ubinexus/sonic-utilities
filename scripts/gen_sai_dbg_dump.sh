@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 . /usr/local/bin/gen_sai_dbg_dump_lib.sh
 
@@ -63,10 +63,9 @@ copy_from_docker() {
 # Description:
 #  This is the main entry point of the script, which handles the generation
 #  and retrieval of the SAI debug dump file. It parses command-line arguments,
-#  ensures necessary directories and the `syncd` container are available, and
-#  triggers the SAI debug dump process through Redis. The script waits for the
-#  dump file to be generated and then copies it from the Docker container to
-#  the specified location on the local system.
+#  ensures necessary directories are available, and triggers the SAI debug dump 
+#  process through Redis. The script waits for the dump file to be generated and 
+#  then copies it from the Docker container to the specified location on the local system.
 #
 # Globals:
 #  None
@@ -112,20 +111,13 @@ main() {
         sudo mkdir -p "$(dirname "$sai_dump_filename")"
     fi
 
-    # Ensure the syncd container is running
-    if [ "$(docker container inspect -f '{{.State.Running}}' syncd)" != "true" ]; then
-        echo "Error: syncd container is not running."
-        exit 1
-    fi
-
     generate_sai_dump "$syncd_sai_dump_filename"
     if [ $? -ne 0 ]; then
         echo "Failed to generate SAI debug dump."
         exit 1
     fi
 
-    # Copy the dump file from the Docker container
-    local 
+    # Copy the dump file from the Docker container     
     if ! copy_from_docker syncd $syncd_sai_dump_filename $sai_dump_filename; then
         echo "Error: Failed to copy the SAI dump file from the container."
         exit 1
@@ -133,7 +125,7 @@ main() {
 
     # Remove the dump file from the Docker container
     docker exec syncd rm -rf $syncd_sai_dump_filename;
-    echo "$sai_dump_filename is ready!!!"
+    echo "file '$sai_dump_filename' is ready!!!"
     exit 0
 }
 

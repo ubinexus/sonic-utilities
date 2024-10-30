@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 ###############################################################################
 # generate_sai_dump
 # Description:
 #  This function triggers the generation of a SAI debug dump file in the 
 #  `syncd` Docker container through Redis and waits for the file to be ready.
+#  it ensures that the `syncd` container is running before initiating the dump.
 #
 # Arguments:
 #  $1 - Filename for the SAI debug dump file.
@@ -14,9 +15,9 @@
 #  1 - On failure
 ###############################################################################
 generate_sai_dump() {
-    local DB=4
-    local KEY="DBG_GEN_DUMP_TABLE|DUMP"
-    local STATUS_KEY="DBG_GEN_DUMP_STATS_TABLE|DUMP"
+    local DB=0
+    local KEY="DBG_GEN_DUMP_TABLE:DUMP"
+    local STATUS_KEY="DBG_GEN_DUMP_STATUS_TABLE:DUMP"
     local FIELD="file"
     local STATUS_FIELD="status"
     local STATUS="1"
@@ -29,6 +30,12 @@ generate_sai_dump() {
     local SYNCD_DUMP_FILE="$1"
     if [ -z "$SYNCD_DUMP_FILE" ]; then
         echo "Error: No filename provided for the SAI debug dump file."
+        return 1
+    fi
+
+    # Ensure the syncd container is running
+    if [[ "$( docker container inspect -f '{{.State.Running}}' syncd )" != "true" ]]; then
+        echo "Error: syncd container is not running."
         return 1
     fi
 
@@ -50,17 +57,30 @@ generate_sai_dump() {
     redis-cli -n $DB DEL $STATUS_KEY > /dev/null 2>&1
 
     # Set the DBG_GEN_DUMP in the Redis DB to trigger the dump generation
-    if ! redis-cli -n $DB HSET $KEY $FIELD $SYNCD_DUMP_FILE > /dev/null 2>&1; then
+    if ! redis-cli SADD "DBG_GEN_DUMP_TABLE_KEY_SET" "DUMP" > /dev/null 2>&1; then
+        echo "Error: Failed to publish message to Redis DBG_GEN_DUMP_TABLE_CHANNEL."
+        return 1
+    fi
+
+    if ! redis-cli -n $DB HSET "_$KEY" $FIELD $SYNCD_DUMP_FILE > /dev/null 2>&1; then
         echo "Error: Failed to set Redis key."
         return 1
     fi
 
-    # Timeout and interval for checking status of file readiness
+    
+    if ! redis-cli PUBLISH "DBG_GEN_DUMP_TABLE_CHANNEL@0" "G" > /dev/null 2>&1; then
+        echo "Error: Failed to publish message to Redis DBG_GEN_DUMP_TABLE_CHANNEL."
+        return 1
+    fi
 
+    # Timeout and interval for checking status of file readiness
     while [ $TIME_PASSED -lt $TIMEOUT_FOR_GEN_DBG_DUMP_FILE_READYNESS ]; do
-        EXISTS=$(redis-cli -n $DB EXISTS "$STATUS_KEY" 2>/dev/null | grep -o '^[0-9]*$')
-        if [ "$EXISTS" -eq 1 ]; then
-            STATUS=$(redis-cli -n $DB HGET "$STATUS_KEY" "$STATUS_FIELD" 2>/dev/null | grep -o '^[0-9]*$')
+        # Get the status field value
+        STATUS=$(redis-cli -n $DB HGET "$STATUS_KEY" "$STATUS_FIELD" 2>/dev/null | grep -o '^[0-9]*$')
+
+        # Check if STATUS is non-empty
+        if [ -n "$STATUS" ]; then
+            # STATUS field exists; you can use it as needed            
             break
         fi
 
@@ -72,7 +92,7 @@ generate_sai_dump() {
     redis-cli -n $DB DEL $KEY > /dev/null 2>&1
     redis-cli -n $DB DEL $STATUS_KEY > /dev/null 2>&1
 
-    if [ "$STATUS" -ne 0 ]; then
+    if [ -n "$STATUS" ] && [ "$STATUS" -ne 0 ]; then
         echo "Error: dump file operation failed, Status $STATUS"
         return 1
     fi
