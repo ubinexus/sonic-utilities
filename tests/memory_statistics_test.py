@@ -21,7 +21,7 @@ def mock_db():
 def test_memory_statistics_enable(mock_db):
     """Test enabling the Memory Statistics feature."""
     mock_db.get_table.return_value = {"memory_statistics": {"enabled": "false"}}
-    
+
     with patch("click.echo") as mock_echo:
         memory_statistics_enable()
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
@@ -33,7 +33,7 @@ def test_memory_statistics_enable(mock_db):
 def test_memory_statistics_disable(mock_db):
     """Test disabling the Memory Statistics feature."""
     mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-    
+
     with patch("click.echo") as mock_echo:
         memory_statistics_disable()
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
@@ -46,7 +46,7 @@ def test_memory_statistics_retention_period(mock_db):
     """Test setting the retention period for Memory Statistics."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
     retention_period_value = 30
-    
+
     with patch("click.echo") as mock_echo:
         memory_statistics_retention_period(retention_period_value)
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
@@ -59,7 +59,7 @@ def test_memory_statistics_sampling_interval(mock_db):
     """Test setting the sampling interval for Memory Statistics."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
     sampling_interval_value = 10
-    
+
     with patch("click.echo") as mock_echo:
         memory_statistics_sampling_interval(sampling_interval_value)
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
@@ -77,6 +77,6 @@ def test_check_memory_statistics_table_existence():
 def test_get_memory_statistics_table(mock_db):
     """Test getting MEMORY_STATISTICS table."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
-    
+
     result = get_memory_statistics_table(mock_db)
     assert result == {"memory_statistics": {}}
