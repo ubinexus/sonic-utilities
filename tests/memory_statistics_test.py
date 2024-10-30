@@ -24,7 +24,7 @@ def test_memory_statistics_enable(mock_db):
         memory_statistics_enable()
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
         mock_db.mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS", "memory_statistics", 
+            "MEMORY_STATISTICS", "memory_statistics",
             {"enabled": "false", "disabled": "true"}
         )
 
@@ -36,7 +36,7 @@ def test_memory_statistics_disable(mock_db):
         memory_statistics_disable()
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
         mock_db.mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS", "memory_statistics", 
+            "MEMORY_STATISTICS", "memory_statistics",
             {"enabled": "false", "disabled": "true"}
         )
 
@@ -49,7 +49,7 @@ def test_memory_statistics_retention_period(mock_db):
         memory_statistics_retention_period(retention_period_value)
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
         mock_db.mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS", "memory_statistics", 
+            "MEMORY_STATISTICS", "memory_statistics",
             {"retention_period": retention_period_value}
         )
 
@@ -62,7 +62,7 @@ def test_memory_statistics_sampling_interval(mock_db):
         memory_statistics_sampling_interval(sampling_interval_value)
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
         mock_db.mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS", "memory_statistics", 
+            "MEMORY_STATISTICS", "memory_statistics",
             {"sampling_interval": sampling_interval_value}
         )
 
