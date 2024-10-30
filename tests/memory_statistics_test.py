@@ -29,7 +29,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_enable()
             mock_echo.assert_called_with("Memory statistics enabled successfully.")
@@ -39,7 +39,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_enable()
             mock_echo.assert_called_with("Memory statistics feature is already enabled.")
@@ -50,7 +50,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_disable()
             mock_echo.assert_called_with("Memory statistics disabled successfully.")
@@ -60,7 +60,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "false"}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_disable()
             mock_echo.assert_called_with("Memory statistics feature is already disabled.")
@@ -71,7 +71,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_retention_period(30)
             mock_echo.assert_called_with("Memory statistics retention period set to 30 minutes.")
@@ -88,7 +88,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(10)
             mock_echo.assert_called_with("Memory statistics sampling interval set to 10 minutes.")
