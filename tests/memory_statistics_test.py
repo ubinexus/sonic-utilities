@@ -13,7 +13,7 @@ from config.memory_statistics import (
 @pytest.fixture
 def mock_db():
     """Fixture for the mock database."""
-    with patch("your_config_file.ConfigDBConnector") as MockConfigDBConnector:
+    with patch("config.memory_statistics.ConfigDBConnector") as MockConfigDBConnector:
         mock_db_instance = MockConfigDBConnector.return_value
         yield mock_db_instance
 
