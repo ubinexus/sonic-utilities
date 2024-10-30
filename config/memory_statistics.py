@@ -1,6 +1,6 @@
 import click
 from swsscommon.swsscommon import ConfigDBConnector
-from utilities_common.cli import AbbreviationGroup, pass_db
+from utilities_common.cli import AbbreviationGroup
 
 class AbbreviationGroup(click.Group):
     def get_command(self, ctx, cmd_name):
