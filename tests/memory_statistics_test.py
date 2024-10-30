@@ -1,13 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from config.memory_statistics import (
+from config_file_name import (  # Replace with the actual name of your config file
     check_memory_statistics_table_existence,
     memory_statistics_enable,
     memory_statistics_disable,
     memory_statistics_retention_period,
     memory_statistics_sampling_interval
 )
-
 
 class TestMemoryStatistics(unittest.TestCase):
 
@@ -30,7 +29,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_enable()
             mock_echo.assert_called_with("Memory statistics enabled successfully.")
@@ -40,7 +39,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_enable()
             mock_echo.assert_called_with("Memory statistics feature is already enabled.")
@@ -51,7 +50,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_disable()
             mock_echo.assert_called_with("Memory statistics disabled successfully.")
@@ -61,7 +60,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {"enabled": "false"}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_disable()
             mock_echo.assert_called_with("Memory statistics feature is already disabled.")
@@ -72,7 +71,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_retention_period(30)
             mock_echo.assert_called_with("Memory statistics retention period set to 30 minutes.")
@@ -89,7 +88,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-
+        
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(10)
             mock_echo.assert_called_with("Memory statistics sampling interval set to 10 minutes.")
@@ -99,7 +98,6 @@ class TestMemoryStatistics(unittest.TestCase):
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(-10)
             mock_echo.assert_called_with("Invalid value for sampling interval. Please provide a positive integer.")
-
 
 if __name__ == "__main__":
     unittest.main()
