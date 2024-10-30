@@ -1,12 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from config_file_name import (  # Replace with the actual name of your config file
+from config.memory_statistics import (  # Replace with the actual name of your config file
     check_memory_statistics_table_existence,
     memory_statistics_enable,
     memory_statistics_disable,
     memory_statistics_retention_period,
     memory_statistics_sampling_interval
 )
+
 
 class TestMemoryStatistics(unittest.TestCase):
 
@@ -98,6 +99,7 @@ class TestMemoryStatistics(unittest.TestCase):
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(-10)
             mock_echo.assert_called_with("Invalid value for sampling interval. Please provide a positive integer.")
+
 
 if __name__ == "__main__":
     unittest.main()
