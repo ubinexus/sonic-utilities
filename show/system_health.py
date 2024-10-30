@@ -241,7 +241,7 @@ def populate_row(row, key, value, table):
 def get_all_dpus():
     dpu_list = []
 
-    if not is_smartswitch:
+    if not is_smartswitch():
         return dpu_list
 
     # Load platform.json
@@ -272,10 +272,10 @@ def get_all_dpus():
 @system_health.command()
 @click.argument('module_name',
                 required=True,
-                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch else None
+                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
                 )
 def dpu(module_name):
     """Show system-health dpu information"""
-    if not is_smartswitch:
+    if not is_smartswitch():
         return
     show_dpu_state(module_name)

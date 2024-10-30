@@ -28,7 +28,7 @@ def get_config_module_state(db, chassis_module_name):
     config_db = db.cfgdb
     fvs = config_db.get_entry('CHASSIS_MODULE', chassis_module_name)
     if not fvs:
-        if is_smartswitch:
+        if is_smartswitch():
             return 'down'
         else:
             return 'up'
@@ -147,7 +147,7 @@ def startup_chassis_module(db, chassis_module_name):
         return
 
     click.echo("Starting up chassis module {}".format(chassis_module_name))
-    if is_smartswitch:
+    if is_smartswitch():
         fvs = {'admin_status': 'up'}
         config_db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
     else:

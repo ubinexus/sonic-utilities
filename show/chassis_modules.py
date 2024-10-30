@@ -63,7 +63,7 @@ def status(db, chassis_module_name):
         oper_status = data_dict[CHASSIS_MODULE_INFO_OPERSTATUS_FIELD]
         serial = data_dict[CHASSIS_MODULE_INFO_SERIAL_FIELD]
 
-        if is_smartswitch:
+        if is_smartswitch():
             admin_status = 'down'
         else:
             admin_status = 'up'

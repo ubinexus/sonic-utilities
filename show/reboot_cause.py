@@ -166,7 +166,7 @@ def reboot_cause(ctx):
 # 'all' command within 'reboot-cause'
 @reboot_cause.command()
 def all():
-    if not is_smartswitch:
+    if not is_smartswitch():
         return
     """Show cause of most recent reboot"""
     reboot_cause_data = fetch_reboot_cause_from_db("all")
@@ -179,7 +179,7 @@ def all():
 def get_all_dpus():
     dpu_list = []
 
-    if not is_smartswitch:
+    if not is_smartswitch():
         return dpu_list
 
     # Load platform.json
@@ -214,14 +214,14 @@ def get_all_dpus():
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch else None
+        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""
-    if not is_smartswitch and module_name:
+    if not is_smartswitch() and module_name:
         return
     reboot_cause_history = fetch_reboot_cause_history_from_db(module_name)
-    if is_smartswitch and module_name:
+    if is_smartswitch() and module_name:
         header = ['Device', 'Name', 'Cause', 'Time', 'User', 'Comment']
     else:
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']
