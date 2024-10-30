@@ -9,12 +9,14 @@ from config.memory_statistics import (
     check_memory_statistics_table_existence,
 )
 
+
 @pytest.fixture
 def mock_db():
     """Fixture for the mock database."""
     with patch("config.memory_statistics.ConfigDBConnector") as MockConfigDBConnector:
         mock_db_instance = MockConfigDBConnector.return_value
         yield mock_db_instance
+
 
 def test_memory_statistics_enable(mock_db):
     """Test enabling the Memory Statistics feature."""
@@ -28,6 +30,7 @@ def test_memory_statistics_enable(mock_db):
             {"enabled": "false", "disabled": "true"}
         )
 
+
 def test_memory_statistics_disable(mock_db):
     """Test disabling the Memory Statistics feature."""
     mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
@@ -39,6 +42,7 @@ def test_memory_statistics_disable(mock_db):
             "MEMORY_STATISTICS", "memory_statistics",
             {"enabled": "false", "disabled": "true"}
         )
+
 
 def test_memory_statistics_retention_period(mock_db):
     """Test setting the retention period for Memory Statistics."""
@@ -53,6 +57,7 @@ def test_memory_statistics_retention_period(mock_db):
             {"retention_period": retention_period_value}
         )
 
+
 def test_memory_statistics_sampling_interval(mock_db):
     """Test setting the sampling interval for Memory Statistics."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
@@ -66,10 +71,12 @@ def test_memory_statistics_sampling_interval(mock_db):
             {"sampling_interval": sampling_interval_value}
         )
 
+
 def test_check_memory_statistics_table_existence():
     """Test existence check for MEMORY_STATISTICS table."""
     assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
     assert check_memory_statistics_table_existence({}) is False
+
 
 def test_get_memory_statistics_table(mock_db):
     """Test getting MEMORY_STATISTICS table."""
