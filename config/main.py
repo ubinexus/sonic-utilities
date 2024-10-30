@@ -5550,6 +5550,11 @@ def is_vaild_intf_ip_addr(ip_addr) -> bool:
         click.echo("IP address {} is multicast".format(str(ip_address)))
         return False
 
+    ip = ip_address.ip
+    if ip.is_loopback:
+        click.echo("IP address {} is loopback address".format(str(ip_address)))
+        return False
+
     return True
 
 
@@ -5610,14 +5615,14 @@ def add_vrrp_ip(ctx, interface_name, vrrp_id, ip_addr):
             address_list = vrrp_entry.get("vip")
             # add ip address
             if len(address_list) >= 4:
-                ctx.fail("The vrrp instance {} has already configured 4 IPs".format(vrrp_id))
+                ctx.fail("The vrrp instance {} has already configured 4 IP addresses".format(vrrp_id))
 
     else:
         # create new vrrp
         vrrp_entry = {}
         vrrp_keys = config_db.get_keys("VRRP")
-        if len(vrrp_keys) >= 128:
-            ctx.fail("Has already configured 128 IPs")
+        if len(vrrp_keys) >= 254:
+            ctx.fail("Has already configured 254 vrrp instances")
         intf_cfg = 0
         for key in vrrp_keys:
             if key[1] == str(vrrp_id):
@@ -5932,8 +5937,8 @@ def add_vrrp(ctx, interface_name, vrrp_id):
         ctx.fail("{} has already configured the vrrp instance {}!".format(interface_name, vrrp_id))
     else:
         vrrp_keys = config_db.get_keys("VRRP")
-        if len(vrrp_keys) >= 128:
-            ctx.fail("Has already configured 128 IPs")
+        if len(vrrp_keys) >= 254:
+            ctx.fail("Has already configured 254 vrrp instances!")
         intf_cfg = 0
         for key in vrrp_keys:
             if key[1] == str(vrrp_id):
@@ -6028,14 +6033,14 @@ def add_vrrp6_ipv6(ctx, interface_name, vrrp_id, ipv6_addr):
             address_list = vrrp6_entry.get("vip")
             # add ip address
             if len(address_list) >= 4:
-                ctx.fail("The vrrp instance {} has already configured 4 IPs".format(vrrp_id))
+                ctx.fail("The vrrp instance {} has already configured 4 IPv6 addresses".format(vrrp_id))
 
     else:
         # create new vrrp
         vrrp6_entry = {}
         vrrp6_keys = config_db.get_keys("VRRP6")
-        if len(vrrp6_keys) >= 128:
-            ctx.fail("Has already configured 128 Vrrpv6 instances.")
+        if len(vrrp6_keys) >= 254:
+            ctx.fail("Has already configured 254 Vrrpv6 instances.")
         intf_cfg = 0
         for key in vrrp6_keys:
             if key[1] == str(vrrp_id):
@@ -6331,8 +6336,8 @@ def add_vrrp_v6(ctx, interface_name, vrrp_id):
         ctx.fail("{} has already configured the Vrrpv6 instance {}!".format(interface_name, vrrp_id))
     else:
         vrrp6_keys = config_db.get_keys("VRRP6")
-        if len(vrrp6_keys) >= 128:
-            ctx.fail("Has already configured 128 IPs")
+        if len(vrrp6_keys) >= 254:
+            ctx.fail("Has already configured 254 Vrrpv6 instances!")
         intf_cfg = 0
         for key in vrrp6_keys:
             if key[1] == str(vrrp_id):
