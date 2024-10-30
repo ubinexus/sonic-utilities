@@ -35,7 +35,7 @@ from sonic_yang_cfg_generator import SonicYangCfgDbGenerator
 from utilities_common import util_base
 from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector, \
-                                is_interface_name_valid, IFACE_NAME_MAX_LEN
+                                isInterfaceNameValid, IFACE_NAME_MAX_LEN
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
@@ -439,7 +439,7 @@ def is_portchannel_name_valid(portchannel_name):
     if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
           int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
         return False
-    if not is_interface_name_valid(portchannel_name):
+    if not isInterfaceNameValid(portchannel_name):
         return False
     return True
 
@@ -6031,7 +6031,7 @@ def add_vrf(ctx, vrf_name):
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
-    if not is_interface_name_valid(vrf_name):
+    if not isInterfaceNameValid(vrf_name):
         ctx.fail("'vrf_name' length should not exceed {} characters".format(IFACE_NAME_MAX_LEN))
     if is_vrf_exists(config_db, vrf_name):
         ctx.fail("VRF {} already exists!".format(vrf_name))
@@ -6051,7 +6051,7 @@ def del_vrf(ctx, vrf_name):
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
-    if not is_interface_name_valid(vrf_name):
+    if not isInterfaceNameValid(vrf_name):
         ctx.fail("'vrf_name' length should not exceed {} characters".format((IFACE_NAME_MAX_LEN)))
     syslog_table = config_db.get_table("SYSLOG_SERVER")
     syslog_vrf_dev = "mgmt" if vrf_name == "management" else vrf_name
@@ -7830,7 +7830,7 @@ def add_subinterface(ctx, subinterface_name, vid):
 
         if interface_alias is None:
             ctx.fail("{} invalid subinterface".format(interface_alias))
-        if not is_interface_name_valid(interface_alias):
+        if not isInterfaceNameValid(interface_alias):
             ctx.fail("Subinterface name length should not exceed {} characters".format(IFACE_NAME_MAX_LEN))
 
         if interface_alias.startswith("Po") is True:
