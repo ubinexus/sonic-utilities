@@ -30,7 +30,7 @@ def test_memory_statistics_enable(mock_db):
         assert mock_echo.call_count == 2  # Check if the echo function was called twice
         mock_db.mod_entry.assert_called_once_with(
             "MEMORY_STATISTICS", "memory_statistics",
-            {"enabled": "false", "disabled": "true"}
+            {"enabled": "true", "disabled": "false"}
         )
 
 
