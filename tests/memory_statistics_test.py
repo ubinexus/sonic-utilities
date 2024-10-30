@@ -89,7 +89,7 @@ class TestMemoryStatistics(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_connector.return_value = mock_db
         mock_db.get_table.return_value = {"memory_statistics": {}}
-        
+
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(10)
             mock_echo.assert_called_with("Memory statistics sampling interval set to 10 minutes.")
@@ -99,6 +99,7 @@ class TestMemoryStatistics(unittest.TestCase):
         with patch('click.echo') as mock_echo:
             memory_statistics_sampling_interval(-10)
             mock_echo.assert_called_with("Invalid value for sampling interval. Please provide a positive integer.")
+
 
 if __name__ == "__main__":
     unittest.main()
