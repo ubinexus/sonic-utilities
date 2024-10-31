@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 from config.memory_statistics import (
     memory_statistics_enable,
@@ -9,6 +9,7 @@ from config.memory_statistics import (
     get_memory_statistics_table,
     check_memory_statistics_table_existence,
 )
+from utilities_common.cli import AbbreviationGroup
 
 
 @pytest.fixture
