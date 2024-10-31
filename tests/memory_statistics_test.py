@@ -106,3 +106,18 @@ def test_abbreviation_group_get_command_existing_command():
 
     # Check that the correct command is returned.
     assert command is None
+
+
+def test_check_memory_statistics_table_existence_missing_key():
+    """Test check_memory_statistics_table_existence when 'memory_statistics' key is missing."""
+    with patch("click.echo") as mock_echo:
+        result = check_memory_statistics_table_existence({"another_key": {}})
+        
+        # Ensure the function returns False when 'memory_statistics' key is missing.
+        assert result is False
+        
+        # Check that the specific error message was outputted.
+        mock_echo.assert_called_once_with(
+            "Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.", err=True
+        )
+
