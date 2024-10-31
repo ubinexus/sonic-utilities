@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
+from utilities_common.cli import AbbreviationGroup
 from config.memory_statistics import (
     memory_statistics_enable,
     memory_statistics_disable,
@@ -9,7 +10,6 @@ from config.memory_statistics import (
     get_memory_statistics_table,
     check_memory_statistics_table_existence,
 )
-from utilities_common.cli import AbbreviationGroup
 
 
 @pytest.fixture
@@ -48,19 +48,6 @@ def test_memory_statistics_disable(mock_db):
             "MEMORY_STATISTICS", "memory_statistics",
             {"enabled": "false", "disabled": "true"}
         )
-
-
-def test_abbreviation_group_get_command():
-    """Test AbbreviationGroup's get_command method to ensure it retrieves a command correctly."""
-    # Create an instance of AbbreviationGroup with a sample command.
-    group = AbbreviationGroup()
-    group.commands = {"sample_command": MagicMock()}  # Mock command
-
-    # Invoke get_command with an existing command name.
-    command = group.get_command(ctx=None, cmd_name="sample_command")
-
-    # Check that the command is correctly returned.
-    assert command is group.commands["sample_command"]
 
 
 def test_memory_statistics_retention_period(mock_db):
@@ -107,3 +94,17 @@ def test_get_memory_statistics_table(mock_db):
 
     result = get_memory_statistics_table(mock_db)
     assert result == {"memory_statistics": {}}
+
+
+def test_abbreviation_group_get_command_existing_command():
+    """Test AbbreviationGroup's get_command method with an existing command."""
+    # Create an instance of AbbreviationGroup with a sample command.
+    group = AbbreviationGroup()
+    mock_command = MagicMock()
+    group.add_command(mock_command, "existing_command")
+
+    # Invoke get_command with the name of the existing command.
+    command = group.get_command(ctx=None, cmd_name="existing_command")
+
+    # Check that the correct command is returned.
+    assert command == mock_command
