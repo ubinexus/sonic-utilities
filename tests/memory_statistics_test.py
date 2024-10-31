@@ -49,6 +49,19 @@ def test_memory_statistics_disable(mock_db):
         )
 
 
+def test_abbreviation_group_get_command():
+    """Test AbbreviationGroup's get_command method to ensure it retrieves a command correctly."""
+    # Create an instance of AbbreviationGroup with a sample command.
+    group = AbbreviationGroup()
+    group.commands = {"sample_command": MagicMock()}  # Mock command
+
+    # Invoke get_command with an existing command name.
+    command = group.get_command(ctx=None, cmd_name="sample_command")
+
+    # Check that the command is correctly returned.
+    assert command is group.commands["sample_command"]
+
+
 def test_memory_statistics_retention_period(mock_db):
     """Test setting the retention period for Memory Statistics."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
