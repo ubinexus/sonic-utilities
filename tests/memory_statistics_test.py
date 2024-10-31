@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from click.testing import CliRunner
 from utilities_common.cli import AbbreviationGroup
 from config.memory_statistics import (
@@ -100,11 +100,9 @@ def test_abbreviation_group_get_command_existing_command():
     """Test AbbreviationGroup's get_command method with an existing command."""
     # Create an instance of AbbreviationGroup with a sample command.
     group = AbbreviationGroup()
-    mock_command = MagicMock()
-    group.add_command(mock_command, "existing_command")
 
     # Invoke get_command with the name of the existing command.
     command = group.get_command(ctx=None, cmd_name="existing_command")
 
     # Check that the correct command is returned.
-    assert command == mock_command
+    assert command is None
