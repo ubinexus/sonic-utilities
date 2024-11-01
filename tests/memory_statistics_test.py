@@ -50,6 +50,22 @@ def test_memory_statistics_disable(mock_db):
         )
 
 
+def test_memory_statistics_disable_exception(mock_db):
+    """Test disabling Memory Statistics feature when an exception occurs."""
+    mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
+    runner = CliRunner()
+
+    # Mock `mod_entry` to raise an exception.
+    mock_db.mod_entry.side_effect = Exception("Simulated database error")
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_disable)
+        assert result.exit_code == 0  # Ensure the command exits without crashing.
+
+        # Check that the error message was outputted.
+        mock_echo.assert_any_call("Error disabling Memory Statistics feature: Simulated database error", err=True)
+
+
 def test_memory_statistics_retention_period(mock_db):
     """Test setting the retention period for Memory Statistics."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
