@@ -2,8 +2,8 @@ import os
 import pytest
 from click.testing import CliRunner
 
-# Import the show module for memory statistics
-import memory_statistics_show
+# Adjust the import to reflect the correct path to the memory_statistics module
+from show.memory_statistics import memory_statistics
 
 # Define expected output for testing
 EXPECTED_CONFIG_OUTPUT = """Memory Statistics administrative mode: Disabled
@@ -22,7 +22,7 @@ def setup_teardown_single_asic():
 class TestShowMemoryStatisticsSingleASIC(object):
     def test_memory_statistics_config(self, setup_teardown_single_asic):
         runner = CliRunner()
-        result = runner.invoke(memory_statistics_show.memory_statistics.commands["config"])
+        result = runner.invoke(memory_statistics.commands["config"])
 
         # Ensure command ran successfully
         assert result.exit_code == 0
@@ -31,7 +31,7 @@ class TestShowMemoryStatisticsSingleASIC(object):
 
     def test_memory_statistics_logs_no_filter(self, setup_teardown_single_asic):
         runner = CliRunner()
-        result = runner.invoke(memory_statistics_show.memory_statistics.commands["logs"])
+        result = runner.invoke(memory_statistics.commands["logs"])
 
         # Ensure command ran successfully
         assert result.exit_code == 0
@@ -41,7 +41,7 @@ class TestShowMemoryStatisticsSingleASIC(object):
 
     def test_memory_statistics_logs_with_filter(self, setup_teardown_single_asic):
         runner = CliRunner()
-        result = runner.invoke(memory_statistics_show.memory_statistics.commands["logs"], ["2024-01-01", "2024-01-31"])
+        result = runner.invoke(memory_statistics.commands["logs"], ["2024-01-01", "2024-01-31"])
 
         # Ensure command ran successfully
         assert result.exit_code == 0
