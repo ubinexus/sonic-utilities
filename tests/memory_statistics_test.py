@@ -115,6 +115,23 @@ def test_memory_statistics_sampling_interval(mock_db):
         )
 
 
+def test_memory_statistics_sampling_interval_exception(mock_db):
+    """Test setting sampling interval for Memory Statistics when an exception occurs."""
+    mock_db.get_table.return_value = {"memory_statistics": {}}
+    runner = CliRunner()
+    sampling_interval_value = 10
+
+    # Mock `mod_entry` to raise an exception.
+    mock_db.mod_entry.side_effect = Exception("Simulated sampling interval error")
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
+        assert result.exit_code == 0  # Ensure the command exits without crashing.
+
+        # Check that the error message was outputted.
+        mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
+
+
 def test_check_memory_statistics_table_existence():
     """Test existence check for MEMORY_STATISTICS table."""
     assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
