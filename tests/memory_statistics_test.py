@@ -188,18 +188,17 @@ def test_memory_statistics_enable_exception(mock_db):
         mock_echo.assert_any_call("Error enabling Memory Statistics feature: Simulated database error", err=True)
 
 
-def test_memory_statistics_sampling_interval_exception(mock_db):
-    """Test setting sampling interval for Memory Statistics when an exception occurs."""
+def test_memory_statistics_sampling_interval_edge_case(mock_db):
+    """Test setting sampling interval with edge case input."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
     runner = CliRunner()
-    sampling_interval_value = 10
 
-    # Mock `mod_entry` to raise an exception.
-    mock_db.mod_entry.side_effect = Exception("Simulated sampling interval error")
+    # Use a non-standard input that might represent an edge case.
+    sampling_interval_value = -1  # Assuming this is an invalid edge value for testing
 
     with patch("click.echo") as mock_echo:
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
-        assert result.exit_code == 0  # Ensure the command exits without crashing.
 
-        # Check that the specific error message was outputted.
-        mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
+        # Confirm that the command gracefully handles invalid input without crashing.
+        assert result.exit_code == 0
+        mock_echo.assert_any_call("Error setting sampling interval: Invalid sampling interval value", err=True)
