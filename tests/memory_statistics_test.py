@@ -120,3 +120,19 @@ def test_check_memory_statistics_table_existence_missing_key():
         mock_echo.assert_called_once_with(
             "Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.", err=True
         )
+
+
+def test_memory_statistics_enable_exception(mock_db):
+    """Test enabling Memory Statistics feature when an exception occurs."""
+    mock_db.get_table.return_value = {"memory_statistics": {"enabled": "false"}}
+    runner = CliRunner()
+
+    # Mock `mod_entry` to raise an exception.
+    mock_db.mod_entry.side_effect = Exception("Simulated database error")
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_enable)
+        assert result.exit_code == 0  # Ensure the command exits without crashing.
+
+        # Check that the error message was outputted.
+        mock_echo.assert_any_call("Error enabling Memory Statistics feature: Simulated database error", err=True)
