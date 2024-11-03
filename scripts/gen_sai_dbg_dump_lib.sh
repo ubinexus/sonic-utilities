@@ -9,6 +9,7 @@
 #
 # Arguments:
 #  $1 - Filename for the SAI debug dump file.
+#  $2 - Optional timeout for file readiness (default: 10 seconds).
 #
 # Returns:
 #  0 - On success
@@ -22,12 +23,12 @@ generate_sai_dump() {
     local STATUS_FIELD="status"
     local STATUS="1"
 
-    local TIMEOUT_FOR_GEN_DBG_DUMP_FILE_READYNESS=10
+    local SYNCD_DUMP_FILE="$1"
+    local TIMEOUT_FOR_GEN_DBG_DUMP_FILE_READYNESS="${2:-10}"
     local INTERVAL=1
     local TIME_PASSED=0
-    local EXISTS
     
-    local SYNCD_DUMP_FILE="$1"
+
     if [ -z "$SYNCD_DUMP_FILE" ]; then
         echo "Error: No filename provided for the SAI debug dump file."
         return 1
@@ -52,7 +53,7 @@ generate_sai_dump() {
         fi
     fi
 
-    # Delete the tables from STATE_DB before triger the dump file
+    # Delete the tables from STATE_DB before triggering the dump file
     redis-cli -n $DB DEL $KEY > /dev/null 2>&1
     redis-cli -n $DB DEL $STATUS_KEY > /dev/null 2>&1
 
@@ -67,7 +68,6 @@ generate_sai_dump() {
         return 1
     fi
 
-    
     if ! redis-cli PUBLISH "DBG_GEN_DUMP_TABLE_CHANNEL@0" "G" > /dev/null 2>&1; then
         echo "Error: Failed to publish message to Redis DBG_GEN_DUMP_TABLE_CHANNEL."
         return 1
@@ -88,7 +88,7 @@ generate_sai_dump() {
         TIME_PASSED=$((TIME_PASSED + INTERVAL))
     done
 
-    # Delete the tables from STATE_DB after triger the dump file
+    # Delete the tables from STATE_DB after triggering the dump file
     redis-cli -n $DB DEL $KEY > /dev/null 2>&1
     redis-cli -n $DB DEL $STATUS_KEY > /dev/null 2>&1
 
