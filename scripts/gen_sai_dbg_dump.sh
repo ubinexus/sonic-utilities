@@ -72,6 +72,7 @@ copy_from_docker() {
 #
 # Arguments:
 #  -f <filename> : Specifies the output filename for the SAI debug dump file.
+#  -t <timeout>  : Optional timeout for file readiness (in seconds).
 #  -h            : Displays usage information.
 #
 # Returns:
@@ -79,11 +80,17 @@ copy_from_docker() {
 #  1 - On failure
 ###############################################################################
 main() {
+    local sai_dump_filename=""
+    local timeout_for_file_readiness=""
+
     # Parse arguments
-    while getopts ":f:h" opt; do
+    while getopts ":f:t:h" opt; do
         case $opt in
             f)
                 sai_dump_filename="$OPTARG"
+                ;;
+            t)
+                timeout_for_file_readiness="$OPTARG"
                 ;;
             h)
                 usage
@@ -111,7 +118,13 @@ main() {
         sudo mkdir -p "$(dirname "$sai_dump_filename")"
     fi
 
-    generate_sai_dump "$syncd_sai_dump_filename"
+    # Call generate_sai_dump with or without the timeout argument
+    if [ -n "$timeout_for_file_readiness" ]; then
+        generate_sai_dump "$syncd_sai_dump_filename" "$timeout_for_file_readiness"
+    else
+        generate_sai_dump "$syncd_sai_dump_filename"
+    fi
+
     if [ $? -ne 0 ]; then
         echo "Failed to generate SAI debug dump."
         exit 1
@@ -124,7 +137,7 @@ main() {
     fi
 
     # Remove the dump file from the Docker container
-    docker exec syncd rm -rf $syncd_sai_dump_filename;
+    docker exec syncd rm -rf $syncd_sai_dump_filename
     echo "file '$sai_dump_filename' is ready!!!"
     exit 0
 }
