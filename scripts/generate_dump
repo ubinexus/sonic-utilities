@@ -1410,9 +1410,7 @@ save_marvellcmd() {
 #  None
 ###############################################################################
 collect_marvell() {
-    trap 'handle_error $? $LINENO' ERR  
-
-    generate_sai_dbg_dump_file "sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+    trap 'handle_error $? $LINENO' ERR    
 
     save_marvellcmd "show version" "CPSS_version"
     save_marvellcmd "debug-mode;xps-api call xpsDataIntegrityDumpSerInfo all" "SER_table"
@@ -2128,6 +2126,8 @@ main() {
     wait
 
     save_saidump_by_route_size
+
+    generate_sai_dbg_dump_file "sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
     if [ "$asic" = "barefoot" ]; then
         collect_barefoot
