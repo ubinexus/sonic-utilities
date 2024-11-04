@@ -2,7 +2,6 @@ import click
 from tabulate import tabulate
 
 import utilities_common.cli as clicommon
-from swsscommon.swsscommon import ConfigDBConnector
 
 
 #

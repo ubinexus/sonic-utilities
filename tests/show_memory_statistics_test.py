@@ -1,5 +1,4 @@
 from click.testing import CliRunner
-from unittest.mock import patch
 
 from show import memory_statistics
 
