@@ -7,9 +7,11 @@ import utilities_common.cli as clicommon
 # 'memory-statistics' group (show memory-statistics ...)
 #
 @click.group(cls=clicommon.AliasedGroup, name="memory-statistics")
+
 def memory_statistics():
     """Show memory statistics configuration and logs"""
     pass
+
 
 def get_memory_statistics_config(field_name, db_connector):
     """Fetches the configuration of memory_statistics from `CONFIG_DB`.
@@ -50,6 +52,7 @@ def config(ctx):
     sampling_interval = get_memory_statistics_config("sampling_interval", db_connector)
     click.echo("Memory Statistics sampling interval (minutes): {}".format(sampling_interval))
 
+
 def fetch_memory_statistics(starting_time=None, ending_time=None, select=None, db_connector=None):
     """Fetch memory statistics from the database.
 
@@ -74,6 +77,7 @@ def fetch_memory_statistics(starting_time=None, ending_time=None, select=None, d
                 filtered_statistics.append(entry)
 
     return filtered_statistics
+
 
 @memory_statistics.command(name="logs", short_help="Show memory statistics logs with optional filtering")
 @click.argument('starting_time', required=False)
