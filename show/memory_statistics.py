@@ -3,11 +3,11 @@ from tabulate import tabulate
 
 import utilities_common.cli as clicommon
 
+
 #
 # 'memory-statistics' group (show memory-statistics ...)
 #
 @click.group(cls=clicommon.AliasedGroup, name="memory-statistics")
-
 def memory_statistics():
     """Show memory statistics configuration and logs"""
     pass
