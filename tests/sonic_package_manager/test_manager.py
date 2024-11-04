@@ -2,7 +2,7 @@
 
 import re
 import unittest
-from unittest.mock import Mock, call, patch, call, mock_open
+from unittest.mock import Mock, call, patch, mock_open
 import pytest
 
 import sonic_package_manager
