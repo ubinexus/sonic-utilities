@@ -1,8 +1,7 @@
-import pytest
 from click.testing import CliRunner
-from unittest.mock import MagicMock
 
 from show.memory_statistics import memory_statistics
+
 
 class MockConfigDBConnector:
     def __init__(self, data):
@@ -10,6 +9,7 @@ class MockConfigDBConnector:
 
     def get_table(self, table_name):
         return self.data.get(table_name, {})
+
 
 def test_show_memory_statistics_logs():
     # Prepare mock data with some example log entries
@@ -34,6 +34,7 @@ def test_show_memory_statistics_logs():
     # Assertions to verify the output matches the mock data
     assert result.exit_code == 0
     assert "Memory Statistics logs" in result.output  # Adjust according to expected output
+
 
 def test_show_memory_statistics_config():
     # Prepare mock data for configuration

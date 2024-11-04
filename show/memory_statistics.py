@@ -2,7 +2,6 @@ import click
 from tabulate import tabulate
 
 import utilities_common.cli as clicommon
-from swsscommon.swsscommon import ConfigDBConnector
 
 #
 # 'memory-statistics' group (show memory-statistics ...)
@@ -31,6 +30,7 @@ def get_memory_statistics_config(field_name, db_connector):
         field_value = memory_statistics_table["memory_statistics"][field_name]
 
     return field_value
+
 
 @memory_statistics.command(name="memory_statistics", short_help="Show the configuration of memory statistics")
 @click.pass_context
@@ -96,3 +96,4 @@ def show_memory_statistics_logs(ctx, starting_time, ending_time, select):
     table_data = [[entry.get("time"), entry.get("statistic"), entry.get("value")] for entry in memory_statistics]
 
     click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
+    
