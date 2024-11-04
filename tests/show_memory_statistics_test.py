@@ -1,7 +1,7 @@
+from swsscommon.swsscommon import ConfigDBConnector
 from click.testing import CliRunner
 from unittest.mock import patch
-from show import memory_statistics
-from swsscommon.swsscommon import ConfigDBConnector
+from show import memory_statistics  # Ensure this is correctly imported
 
 
 class TestMemoryStatisticsConfig:
@@ -18,8 +18,8 @@ class TestMemoryStatisticsConfig:
                  }
              }):
 
-            # Directly invoke the 'config' command under memory_statistics
-            result = runner.invoke(memory_statistics.config)
+            # Attempt to invoke the memory_statistics 'config' command
+            result = runner.invoke(memory_statistics.cli, ['config'])
 
             assert result.exit_code == 0
             assert "Memory Statistics administrative mode: Enabled" in result.output
@@ -35,8 +35,8 @@ class TestMemoryStatisticsLogs:
         with patch.object(ConfigDBConnector, 'connect'), \
              patch.object(ConfigDBConnector, 'get_table', return_value={}):  # Simulating an empty table
 
-            # Invoke the 'logs' command with empty parameters
-            result = runner.invoke(memory_statistics.show_memory_statistics_logs, [])
+            # Attempt to invoke the memory_statistics 'logs' command
+            result = runner.invoke(memory_statistics.cli, ['logs'])
 
             assert result.exit_code == 0
             assert "No memory statistics available for the given parameters." in result.output
