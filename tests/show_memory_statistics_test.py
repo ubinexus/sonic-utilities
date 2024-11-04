@@ -10,11 +10,13 @@ Memory Statistics retention time (days): 15
 Memory Statistics sampling interval (minutes): 5
 """
 
+
 @pytest.fixture()
 def setup_teardown_single_asic():
     os.environ["UTILITIES_UNIT_TESTING"] = "1"
     yield
     os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
 
 class TestShowMemoryStatisticsSingleASIC(object):
     def test_memory_statistics_config(self, setup_teardown_single_asic):
