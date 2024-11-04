@@ -1,10 +1,8 @@
 import os
 import pytest
 from click.testing import CliRunner
-from importlib import reload
-from unittest.mock import patch, MagicMock
-
-from show import memory_statistics  # Assuming the feature file is named memory_statistics_show.py
+from unittest.mock import patch
+from show import memory_statistics
 from swsscommon.swsscommon import ConfigDBConnector
 
 
@@ -18,7 +16,7 @@ def setup_teardown():
 class TestMemoryStatisticsConfig:
     def test_memory_statistics_config(self, setup_teardown):
         runner = CliRunner()
-        
+
         # Mock ConfigDBConnector and its methods
         with patch.object(ConfigDBConnector, 'connect'), \
              patch.object(ConfigDBConnector, 'get_table', return_value={
@@ -28,9 +26,9 @@ class TestMemoryStatisticsConfig:
                      "sampling_interval": "15"
                  }
              }):
-            
-            result = runner.invoke(memory_statistics_show.memory_statistics.commands['memory_statitics'].commands['config'])
-            
+
+            result = runner.invoke(memory_statistics.memory_statistics.commands['memory_statitics'].commands['config'])
+
             assert result.exit_code == 0
             expected_output = (
                 "Memory Statistics administrative mode: Enabled\n"
@@ -43,12 +41,12 @@ class TestMemoryStatisticsConfig:
 class TestMemoryStatisticsLogs:
     def test_memory_statistics_logs_empty(self, setup_teardown):
         runner = CliRunner()
-        
+
         # Mock ConfigDBConnector and its methods
         with patch.object(ConfigDBConnector, 'connect'), \
              patch.object(ConfigDBConnector, 'get_table', return_value={}):
-            
-            result = runner.invoke(memory_statistics_show.memory_statistics.commands['logs'])
-            
+
+            result = runner.invoke(memory_statistics.memory_statistics.commands['logs'])
+
             assert result.exit_code == 0
             assert result.output.strip() == "No memory statistics available for the given parameters."
