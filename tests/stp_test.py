@@ -1,10 +1,11 @@
 import os
+import pytest
 from click.testing import CliRunner
 
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
-import pytest
+
 
 show_spanning_tree = """\
 Spanning-tree Mode: PVST
@@ -158,6 +159,13 @@ class TestStp(object):
         # Print for debugging
         print(result.exit_code)
         print(result.output)
+
+        print("Command Executed:", command)
+        print("Arguments:", args)
+        print("Expected Exit Code:", expected_exit_code)
+        print("Actual Exit Code:", result.exit_code)
+        print("Output:", result.output)
+        print("Error Message (if any):", result.stderr)
 
         # Check the exit code
         assert result.exit_code == expected_exit_code
