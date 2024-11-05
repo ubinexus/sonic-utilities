@@ -307,7 +307,6 @@ class TestStp(object):
         if expected_output:
             assert expected_output in result.output
 
-
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST globally
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
@@ -353,7 +352,6 @@ class TestStp(object):
         if expected_output:
             assert expected_output in result.output
 
-
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Valid cases
         (config.config.commands["spanning-tree"].commands["hello"], ["3"], 0, None),
@@ -363,27 +361,38 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["100"], 0, None),
 
         # Invalid hello timer values
-        (config.config.commands["spanning-tree"].commands["hello"], ["0"], 1, "STP hello timer must be in range 1-10"),
-        (config.config.commands["spanning-tree"].commands["hello"], ["20"], 1, "STP hello timer must be in range 1-10"),
+        (config.config.commands["spanning-tree"].commands["hello"], ["0"], 1, 
+        "STP hello timer must be in range 1-10"),
+        (config.config.commands["spanning-tree"].commands["hello"], ["20"], 1, 
+        "STP hello timer must be in range 1-10"),
 
         # Invalid forward delay values
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["2"], 1, "STP forward delay value must be in range 4-30"),
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["50"], 1, "STP forward delay value must be in range 4-30"),
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["2"], 1, 
+        "STP forward delay value must be in range 4-30"),
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["50"], 1, 
+        "STP forward delay value must be in range 4-30"),
 
         # Invalid max age values
-        (config.config.commands["spanning-tree"].commands["max_age"], ["5"], 1, "STP max age value must be in range 6-40"),
-        (config.config.commands["spanning-tree"].commands["max_age"], ["45"], 1, "STP max age value must be in range 6-40"),
+        (config.config.commands["spanning-tree"].commands["max_age"], ["5"], 1, 
+        "STP max age value must be in range 6-40"),
+        (config.config.commands["spanning-tree"].commands["max_age"], ["45"], 1, 
+        "STP max age value must be in range 6-40"),
 
         # Consistency check for forward delay and max age
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["4"], 1, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["4"], 1, 
+        "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
 
         # Invalid root guard timeout values
-        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["4"], 1, "STP root guard timeout must be in range 5-600"),
-        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["700"], 1, "STP root guard timeout must be in range 5-600"),
+        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["4"], 1, 
+        "STP root guard timeout must be in range 5-600"),
+        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["700"], 1, 
+        "STP root guard timeout must be in range 5-600"),
 
         # Invalid priority values
-        (config.config.commands["spanning-tree"].commands["priority"], ["70000"], 1, "STP bridge priority must be in range 0-61440"),
-        (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1, "STP bridge priority must be multiple of 4096"),
+        (config.config.commands["spanning-tree"].commands["priority"], ["70000"], 1, 
+        "STP bridge priority must be in range 0-61440"),
+        (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1, 
+        "STP bridge priority must be multiple of 4096"),
     ])
     def test_stp_validate_global_timer_and_priority_params(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
@@ -403,7 +412,6 @@ class TestStp(object):
         if expected_output:
             assert expected_output in result.output
 
-    
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
