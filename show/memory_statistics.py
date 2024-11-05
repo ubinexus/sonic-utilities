@@ -90,9 +90,11 @@ def show_memory_statistics_logs(ctx, starting_time, ending_time, additional_opti
 
     # Fetch memory statistics
     memory_statistics = fetch_memory_statistics(
-    starting_time, ending_time, additional_options, db_connector=db_connector
+        starting_time,
+        ending_time,
+        additional_options,
+        db_connector=db_connector
     )
-
     if not memory_statistics:
         click.echo("No memory statistics available for the given parameters.")
         return
@@ -100,8 +102,11 @@ def show_memory_statistics_logs(ctx, starting_time, ending_time, additional_opti
     # Display the memory statistics
     headers = ["Time", "Statistic", "Value"]  # Adjust according to the actual fields
     table_data = [
-    [entry.get("time", "N/A"), entry.get("statistic", "N/A"), entry.get("value", "N/A")]
-    for entry in memory_statistics
+        [
+            entry.get("time", "N/A"),
+            entry.get("statistic", "N/A"),
+            entry.get("value", "N/A"),
+            ]
+            for entry in memory_statistics
     ]
-
     click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
