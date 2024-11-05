@@ -81,13 +81,13 @@ class TestFeaturePatchApplication(unittest.TestCase):
         patch_wrapper = PatchWrapper(config_wrapper)
         return ps.StrictPatchSorter(config_wrapper, patch_wrapper)
 
-    def create_patch_applier(self, config):
+    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
+    def create_patch_applier(self, config, mock_get_config_db_as_json):
         global running_config
         running_config = copy.deepcopy(config)
         config_wrapper = self.config_wrapper
         config_wrapper.get_config_db_as_json = MagicMock(side_effect=get_running_config)
         change_applier = generic_config_updater.change_applier.ChangeApplier()
-        change_applier._get_running_config = MagicMock(side_effect=get_running_config)
         patch_wrapper = PatchWrapper(config_wrapper)
         return gu.PatchApplier(config_wrapper=config_wrapper, patch_wrapper=patch_wrapper, changeapplier=change_applier)
     

@@ -138,7 +138,7 @@ class ChangeApplier:
             str(jsondiff.diff(run_data, upd_data))[0:40]))
 
     def apply(self, change):
-        run_data = self._get_running_config()
+        run_data = get_config_db_as_json(self.scope)
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
@@ -147,7 +147,7 @@ class ChangeApplier:
 
         ret = self._services_validate(run_data, upd_data, upd_keys)
         if not ret:
-            run_data = self._get_running_config()
+            run_data = get_config_db_as_json(self.scope)
             self.remove_backend_tables_from_config(upd_data)
             self.remove_backend_tables_from_config(run_data)
             if upd_data != run_data:
@@ -160,6 +160,3 @@ class ChangeApplier:
     def remove_backend_tables_from_config(self, data):
         for key in self.backend_tables:
             data.pop(key, None)
-
-    def _get_running_config(self):
-        return get_config_db_as_json(self.scope)
