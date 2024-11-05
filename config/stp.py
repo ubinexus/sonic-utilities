@@ -210,10 +210,11 @@ def vlan_enable_stp(db, vlan_name):
            'max_age': get_global_stp_max_age(db),
            'priority': get_global_stp_priority(db)
            }
-    if get_stp_enabled_vlan_count(db) < get_max_stp_instances():
-        db.set_entry('STP_VLAN', vlan_name, fvs)
-    else:
-        logging.warning("Exceeded maximum STP configurable VLAN instances for {}".format(vlan_name))
+    if is_global_stp_enabled(db):
+        if get_stp_enabled_vlan_count(db) < get_max_stp_instances():
+            db.set_entry('STP_VLAN', vlan_name, fvs)
+        else:
+            logging.warning("Exceeded maximum STP configurable VLAN instances for {}".format(vlan_name))
 
 
 def interface_enable_stp(db, interface_name):
@@ -224,7 +225,8 @@ def interface_enable_stp(db, interface_name):
            'portfast': 'false',
            'uplink_fast': 'false'
            }
-    db.set_entry('STP_PORT', interface_name, fvs)
+    if is_global_stp_enabled(db):
+        db.set_entry('STP_PORT', interface_name, fvs)
 
 
 def is_vlan_configured_interface(db, interface_name):

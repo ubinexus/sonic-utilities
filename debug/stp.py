@@ -56,40 +56,21 @@ def stp_debug_reset():
 @click.argument('mode', metavar='{rx|tx}', required=False)
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_bpdu(mode, disable):
-    if disable:
-        if mode == 'rx':
-            command = 'sudo stpctl dbg bpdu rx-off'
-        elif mode == 'tx':
-            command = 'sudo stpctl dbg bpdu tx-off'
-        else:
-            command = 'sudo stpctl dbg bpdu off'
-    else:
-        if mode == 'rx':
-            command = 'sudo stpctl dbg bpdu rx-on'
-        elif mode == 'tx':
-            command = 'sudo stpctl dbg bpdu tx-on'
-        else:
-            command = 'sudo stpctl dbg bpdu on'
+    sudo stpctl dbg bpdu {'rx-' if mode == 'rx' else 'tx-' if mode == 'tx' else ''}{'off' if disable else 'on'}"
     clicommon.run_command(command)
 
 
 @spanning_tree.command('verbose')
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_verbose(disable):
-    if disable:
-        command = 'sudo stpctl dbg verbose off'
-    else:
-        command = 'sudo stpctl dbg verbose on'
+    sudo stpctl dbg verbose {}'.format("off" if disable else "on")
     clicommon.run_command(command)
 
 
 @spanning_tree.command('event')
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_event(disable):
-    if disable:
-        command = 'sudo stpctl dbg event off'
-    else:
-        command = 'sudo stpctl dbg event on'
+    sudo stpctl dbg event {}'.format("off" if disable else "on")
     clicommon.run_command(command)
 
 
@@ -97,10 +78,7 @@ def stp_debug_event(disable):
 @click.argument('vlan_id', metavar='<vlan_id/all>', required=True)
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_vlan(vlan_id, disable):
-    if disable:
-        command = 'sudo stpctl dbg vlan ' + vlan_id + ' off'
-    else:
-        command = 'sudo stpctl dbg vlan ' + vlan_id + ' on'
+    sudo stpctl dbg vlan {vlan_id} {"off" if disable else "on"}
     clicommon.run_command(command)
 
 
@@ -108,8 +86,5 @@ def stp_debug_vlan(vlan_id, disable):
 @click.argument('interface_name', metavar='<interface_name/all>', required=True)
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_intf(interface_name, disable):
-    if disable:
-        command = 'sudo stpctl dbg port ' + interface_name + ' off'
-    else:
-        command = 'sudo stpctl dbg port ' + interface_name + ' on'
+    sudo stpctl dbg port {interface_name} {"off" if disable else "on"}
     clicommon.run_command(command)
