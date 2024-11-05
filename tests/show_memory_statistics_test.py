@@ -1,6 +1,6 @@
-import pytest
+# import pytest
 from click.testing import CliRunner
-from unittest.mock import MagicMock
+# from unittest.mock import MagicMock
 
 from show.memory_statistics import memory_statistics
 
