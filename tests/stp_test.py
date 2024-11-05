@@ -136,14 +136,14 @@ class TestStp(object):
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
-        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        ("config.config.commands["spanning-tree"].commands["disable"]", ["pvst"], 0, None),
         # Enable PVST
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
+        ("config.config.commands["spanning-tree"].commands["enable"]", ["pvst"], 0, None),
         # Add VLAN and member
-        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
+        ("config.config.commands["vlan"].commands["add"]", ["100"], 0, None),
+        ("config.config.commands["vlan"].commands["member"].commands["add"]", ["100", "Ethernet4"], 0, None),
         # Attempt to enable PVST when it is already enabled
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 1, "PVST is already configured")
+        ("config.config.commands["spanning-tree"].commands["enable"], ["pvst"]", 1, "PVST is already configured")
     ])
     def test_disable_enable_global_pvst(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
@@ -156,7 +156,7 @@ class TestStp(object):
         print(result.exit_code)
         print(result.output)
 
-        print("Command Executed:", str(command))
+        print("Command Executed:", command)
         print("Arguments:", args)
         print("Expected Exit Code:", expected_exit_code)
         print("Actual Exit Code:", result.exit_code)
@@ -227,7 +227,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet120"],
             1, "is a portchannel member port"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet20"],
-            1, "has no VLAN configured"),
+            1, "has no VLAN configured")
     ])
     def test_stp_validate_interface_params(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
@@ -248,26 +248,26 @@ class TestStp(object):
 
     
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
-    (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
-    (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-    (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
-    (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
-        ["100", "Ethernet4", "100"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-        ["100", "Ethernet4", "32"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
-        ["100", "Ethernet4", "0"], 1, "STP interface path cost must be in range 1-200000000"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
-        ["100", "Ethernet4", "2000000000"], 1, "STP interface path cost must be in range 1-200000000"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-        ["100", "Ethernet4", "1000"], 1, "STP per vlan port priority must be in range 0-240"),
-    (config.config.commands["vlan"].commands["add"], ["101"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-        ["101", "Ethernet4", "16"], 1, "is not member of"),
-    (config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], 0, None),
-    (config.config.commands["vlan"].commands["del"], ["100"], 1, None),
-])
+        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
+        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
+        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
+            ["100", "Ethernet4", "100"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
+            ["100", "Ethernet4", "32"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
+            ["100", "Ethernet4", "0"], 1, "STP interface path cost must be in range 1-200000000"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
+            ["100", "Ethernet4", "2000000000"], 1, "STP interface path cost must be in range 1-200000000"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
+            ["100", "Ethernet4", "1000"], 1, "STP per vlan port priority must be in range 0-240"),
+        (config.config.commands["vlan"].commands["add"], ["101"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
+            ["101", "Ethernet4", "16"], 1, "is not member of"),
+        (config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], 0, None),
+        (config.config.commands["vlan"].commands["del"], ["100"], 1, None)
+    ])
     def test_stp_validate_vlan_interface_params(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
         db = Db()
@@ -288,37 +288,36 @@ class TestStp(object):
        
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
-    (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
-    (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
-    (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-    (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "3"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "21"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "16"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "4096"], 0, None),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "0"],
-        1, "STP hello timer must be in range 1-10"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "20"],
-        1, "STP hello timer must be in range 1-10"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "2"],
-        1, "STP forward delay value must be in range 4-30"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "42"],
-        1, "STP forward delay value must be in range 4-30"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "4"],
-        1, "STP max age value must be in range 6-40"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "45"],
-        1, "STP max age value must be in range 6-40"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "4"],
-        1, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "70000"],
-        1, "STP bridge priority must be in range 0-61440"),
-    (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
-        1, "STP bridge priority must be multiple of 4096"),
-])
+        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
+        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
+        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "3"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "21"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "16"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "4096"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "0"],
+            1, "STP hello timer must be in range 1-10"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "20"],
+            1, "STP hello timer must be in range 1-10"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "2"],
+            1, "STP forward delay value must be in range 4-30"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "42"],
+            1, "STP forward delay value must be in range 4-30"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "4"],
+            1, "STP max age value must be in range 6-40"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "45"],
+            1, "STP max age value must be in range 6-40"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "4"],
+            1, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "70000"],
+            1, "STP bridge priority must be in range 0-61440"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
+            1, "STP bridge priority must be multiple of 4096")
+    ])
     def test_stp_validate_vlan_timer_and_priority_params(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
         db = Db()
-        
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
