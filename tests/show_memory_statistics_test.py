@@ -1,7 +1,8 @@
+import pytest
 from click.testing import CliRunner
+from unittest.mock import MagicMock
 
 from show.memory_statistics import memory_statistics
-
 
 class MockConfigDBConnector:
     def __init__(self, data):
@@ -9,7 +10,6 @@ class MockConfigDBConnector:
 
     def get_table(self, table_name):
         return self.data.get(table_name, {})
-
 
 def test_show_memory_statistics_logs():
     # Prepare mock data with some example log entries
@@ -27,14 +27,14 @@ def test_show_memory_statistics_logs():
 
     # Use CliRunner to invoke the CLI command with the mock database
     runner = CliRunner()
-    result = runner.invoke(memory_statistics.show_memory_statistics_logs,
-                           ["--starting_time", "2024-11-04 09:00:00", "--ending_time", "2024-11-04 11:00:00"],
+    result = runner.invoke(memory_statistics, ["logs", "2024-11-04 09:00:00", "2024-11-04 11:00:00"],
                            obj={"db_connector": mock_db})
 
     # Assertions to verify the output matches the mock data
     assert result.exit_code == 0
-    assert "Memory Statistics logs" in result.output  # Adjust according to expected output
-
+    assert "2024-11-04 10:00:00" in result.output
+    assert "Usage" in result.output
+    assert "512 MB" in result.output
 
 def test_show_memory_statistics_config():
     # Prepare mock data for configuration
@@ -53,7 +53,7 @@ def test_show_memory_statistics_config():
 
     # Use CliRunner to invoke the CLI command with the mock database
     runner = CliRunner()
-    result = runner.invoke(memory_statistics.config, obj={"db_connector": mock_db})
+    result = runner.invoke(memory_statistics, ["memory_statistics"], obj={"db_connector": mock_db})
 
     # Assertions to verify the output matches the mock data
     assert result.exit_code == 0
