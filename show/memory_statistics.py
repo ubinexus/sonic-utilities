@@ -106,7 +106,6 @@ def show_memory_statistics_logs(ctx, starting_time, ending_time, additional_opti
             entry.get("time", "N/A"),
             entry.get("statistic", "N/A"),
             entry.get("value", "N/A"),
-            ]
-            for entry in memory_statistics
+            ] for entry in memory_statistics
     ]
     click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
