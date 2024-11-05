@@ -32,6 +32,11 @@ def test_show_memory_statistics_logs():
     result = runner.invoke(memory_statistics, ["logs", "2024-11-04 09:00:00", "2024-11-04 11:00:00"],
                            obj={"db_connector": mock_db})
 
+    # Print result output and exception details for debugging
+    if result.exit_code != 0:
+        print("Command failed with output:", result.output)
+        print("Exception:", result.exception)
+
     # Assertions to verify the output matches the mock data
     assert result.exit_code == 0
     assert "2024-11-04 10:00:00" in result.output

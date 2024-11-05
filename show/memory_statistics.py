@@ -53,13 +53,13 @@ def config(ctx):
     click.echo("Memory Statistics sampling interval (minutes): {}".format(sampling_interval))
 
 
-def fetch_memory_statistics(starting_time=None, ending_time=None, select=None, db_connector=None):
+def fetch_memory_statistics(starting_time=None, ending_time=None, additional_options=None, db_connector=None):
     """Fetch memory statistics from the database.
 
     Args:
         starting_time: The starting time for filtering the statistics.
         ending_time: The ending time for filtering the statistics.
-        select: Any additional options for filtering or formatting.
+        additional_options: Any additional options for filtering or formatting.
         db_connector: The database connector.
 
     Returns:
@@ -71,9 +71,9 @@ def fetch_memory_statistics(starting_time=None, ending_time=None, select=None, d
     # Ensure you access the right table structure
     if "memory_statistics" in memory_statistics_table:
         for key, entry in memory_statistics_table["memory_statistics"].items():
-            # Add filtering logic here based on starting_time, ending_time, and select
-            if (not starting_time or entry.get("time") >= starting_time) and \
-               (not ending_time or entry.get("time") <= ending_time):
+            # Add filtering logic here based on starting_time, ending_time, and additional options
+            if (not starting_time or entry.get("time", "") >= starting_time) and \
+               (not ending_time or entry.get("time", "") <= ending_time):
                 filtered_statistics.append(entry)
 
     return filtered_statistics
@@ -84,12 +84,12 @@ def fetch_memory_statistics(starting_time=None, ending_time=None, select=None, d
 @click.argument('ending_time', required=False)
 @click.argument('additional_options', required=False, nargs=-1)
 @click.pass_context
-def show_memory_statistics_logs(ctx, starting_time, ending_time, select):
-    """Show memory statistics logs with optional filtering by time and select."""
+def show_memory_statistics_logs(ctx, starting_time, ending_time, additional_options):
+    """Show memory statistics logs with optional filtering by time and additional options."""
     db_connector = ctx.obj['db_connector']  # Get the database connector from the context
 
     # Fetch memory statistics
-    memory_statistics = fetch_memory_statistics(starting_time, ending_time, select, db_connector=db_connector)
+    memory_statistics = fetch_memory_statistics(starting_time, ending_time, additional_options, db_connector=db_connector)
 
     if not memory_statistics:
         click.echo("No memory statistics available for the given parameters.")
@@ -97,6 +97,6 @@ def show_memory_statistics_logs(ctx, starting_time, ending_time, select):
 
     # Display the memory statistics
     headers = ["Time", "Statistic", "Value"]  # Adjust according to the actual fields
-    table_data = [[entry.get("time"), entry.get("statistic"), entry.get("value")] for entry in memory_statistics]
+    table_data = [[entry.get("time", "N/A"), entry.get("statistic", "N/A"), entry.get("value", "N/A")] for entry in memory_statistics]
 
     click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
