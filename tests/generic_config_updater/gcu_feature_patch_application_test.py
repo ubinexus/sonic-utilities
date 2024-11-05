@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock
 from mock import patch
 
 import generic_config_updater.change_applier
+import generic_config_updater.gu_common
 import generic_config_updater.patch_sorter as ps
 import generic_config_updater.generic_updater as gu
 from .gutest_helpers import Files
@@ -81,7 +82,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         patch_wrapper = PatchWrapper(config_wrapper)
         return ps.StrictPatchSorter(config_wrapper, patch_wrapper)
 
-    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
+    @patch('generic_config_updater.gu_common.get_config_db_as_json', side_effect=get_running_config)
     def create_patch_applier(self, config, mock_get_config_db_as_json):
         global running_config
         running_config = copy.deepcopy(config)
