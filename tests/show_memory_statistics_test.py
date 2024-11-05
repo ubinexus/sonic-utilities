@@ -4,12 +4,14 @@ from click.testing import CliRunner
 
 from show.memory_statistics import memory_statistics
 
+
 class MockConfigDBConnector:
     def __init__(self, data):
         self.data = data
 
     def get_table(self, table_name):
         return self.data.get(table_name, {})
+
 
 def test_show_memory_statistics_logs():
     # Prepare mock data with some example log entries
@@ -35,6 +37,7 @@ def test_show_memory_statistics_logs():
     assert "2024-11-04 10:00:00" in result.output
     assert "Usage" in result.output
     assert "512 MB" in result.output
+
 
 def test_show_memory_statistics_config():
     # Prepare mock data for configuration
