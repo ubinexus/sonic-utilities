@@ -134,11 +134,17 @@ class TestStp(object):
         assert result.exit_code == 0
         assert result.output == show_spanning_tree_root_guard
 
+    def disable_pvst_command():
+        return config.config.commands["spanning-tree"].commands["disable"]
+
+    def enable_pvst_command():
+        return config.config.commands["spanning-tree"].commands["enable"]
+
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
-        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        (disable_pvst_command, ["pvst"], 0, None),
         # Enable PVST
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
+        (enable_pvst_command, ["pvst"], 0, None),
         # Add VLAN and member
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
@@ -169,20 +175,12 @@ class TestStp(object):
         if expected_output:
             assert expected_output in result.output
 
-    def disable_pvst_command():
-        return config.config.commands["spanning-tree"].commands["disable"]
-
-    def enable_pvst_command():
-        return config.config.commands["spanning-tree"].commands["interface"].commands["enable"]
-
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable pvst
-        # (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
-        (disable_pvst_command, ["pvst"], 0, None),
-        (enable_pvst_command, ["pvst"], 0, None),
+        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         # Attempt enabling STP interface without global STP enabled
-        # (config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
-        #   ["Ethernet4"], 1, "Global STP is not enabled"),
+        config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
+           ["Ethernet4"], 1, "Global STP is not enabled"),
         # Add VLAN and member
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
@@ -240,9 +238,9 @@ class TestStp(object):
     def test_stp_validate_interface_params(self, command, args, expected_exit_code, expected_output):
         runner = CliRunner()
         db = Db()
-        config_command = command 
+        
         # Execute the command
-        result = runner.invoke(config_command, args, obj=db)
+        result = runner.invoke(command, args, obj=db)
 
         # Print for debugging
         print(result.exit_code)
@@ -255,7 +253,6 @@ class TestStp(object):
         if expected_output:
             assert expected_output in result.output
 
-    
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
@@ -295,7 +292,6 @@ class TestStp(object):
         if expected_output is not None:
             assert expected_output in result.output
        
-
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),

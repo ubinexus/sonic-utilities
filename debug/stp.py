@@ -56,7 +56,8 @@ def stp_debug_reset():
 @click.argument('mode', metavar='{rx|tx}', required=False)
 @click.option('-d', '--disable', is_flag=True)
 def stp_debug_bpdu(mode, disable):
-    command = 'sudo stpctl dbg bpdu {}{}'.format('rx-' if mode == 'rx' else 'tx-' if mode == 'tx' else '', 'off' if disable else 'on')
+    command = 'sudo stpctl dbg bpdu {}{}'.format('rx-' if mode == 'rx' else 'tx-' if mode == 'tx' else '',
+        'off' if disable else 'on')
     clicommon.run_command(command)
 
 
