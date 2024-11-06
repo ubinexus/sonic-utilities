@@ -56,6 +56,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
                 self.run_single_success_case_applier(data[test_case_name])
 
     @patch("generic_config_updater.field_operation_validators.rdma_config_update_validator", mock.Mock(return_value=True))
+    @patch('generic_config_updater.gu_common.get_config_db_as_json', side_effect=get_running_config)
     def test_feature_patch_application_failure(self):
         # Fromat of the JSON file containing the test-cases:
         #
@@ -82,8 +83,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
         patch_wrapper = PatchWrapper(config_wrapper)
         return ps.StrictPatchSorter(config_wrapper, patch_wrapper)
 
-    @patch('generic_config_updater.gu_common.get_config_db_as_json', side_effect=get_running_config)
-    def create_patch_applier(self, config, mock_get_config_db_as_json):
+    def create_patch_applier(self, config):
         global running_config
         running_config = copy.deepcopy(config)
         config_wrapper = self.config_wrapper
