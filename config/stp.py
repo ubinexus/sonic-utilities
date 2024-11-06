@@ -69,10 +69,10 @@ def is_valid_max_age(ctx, max_age):
 
 
 def is_valid_bridge_priority(ctx, priority):
-    if priority not in range(STP_MIN_BRIDGE_PRIORITY, STP_MAX_BRIDGE_PRIORITY + 1):
-        ctx.fail("STP bridge priority must be in range 0-61440")
     if priority % 4096 != 0:
         ctx.fail("STP bridge priority must be multiple of 4096")
+    if priority not in range(STP_MIN_BRIDGE_PRIORITY, STP_MAX_BRIDGE_PRIORITY + 1):
+        ctx.fail("STP bridge priority must be in range 0-61440")
 
 
 def validate_params(forward_delay, max_age, hello_time):
@@ -88,11 +88,11 @@ def is_valid_stp_vlan_parameters(ctx, db, vlan_name, param_type, new_value):
     cfg_vlan_max_age = stp_vlan_entry.get("max_age")
     cfg_vlan_hello_time = stp_vlan_entry.get("hello_time")
     ret_val = False
-    if param_type == parameter_forward_delay:
+    if param_type == "forward_delay":
         ret_val = validate_params(new_value, cfg_vlan_max_age, cfg_vlan_hello_time)
-    elif param_type == parameter_max_age:
+    elif param_type == "max_age":
         ret_val = validate_params(cfg_vlan_forward_delay, new_value, cfg_vlan_hello_time)
-    elif param_type == parameter_hello_time:
+    elif param_type == "hello_time":
         ret_val = validate_params(cfg_vlan_forward_delay, cfg_vlan_max_age, new_value)
 
     if ret_val is not True:
@@ -105,69 +105,37 @@ def is_valid_stp_global_parameters(ctx, db, param_type, new_value):
     cfg_max_age = stp_global_entry.get("max_age")
     cfg_hello_time = stp_global_entry.get("hello_time")
     ret_val = False
-    if param_type == parameter_forward_delay:
+    if param_type == "forward_delay":
         ret_val = validate_params(new_value, cfg_max_age, cfg_hello_time)
-    elif param_type == parameter_max_age:
+    elif param_type == "max_age":
         ret_val = validate_params(cfg_forward_delay, new_value, cfg_hello_time)
-    elif param_type == parameter_hello_time:
+    elif param_type == "hello_time":
         ret_val = validate_params(cfg_forward_delay, cfg_max_age, new_value)
 
     if ret_val is not True:
         ctx.fail("2*(forward_delay-1) >= max_age >= 2*(hello_time +1 ) not met")
 
 
-parameter_forward_delay = 1
-parameter_hello_time = 2
-parameter_max_age = 3
-parameter_bridge_priority = 4
-
-
 def get_max_stp_instances():
     return PVST_MAX_INSTANCES
-    # below part is not yet required for new updates
-    # state_db = SonicV2Connector(host='127.0.0.1')
-    # state_db.connect(state_db.STATE_DB, False)
-    # max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
-    # if max_inst == "":
-    #    return PVST_MAX_INSTANCES
-    # if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
-    #    return max_inst
-    # else:
-    #    return PVST_MAX_INSTANCES
 
 
 def update_stp_vlan_parameter(db, param_type, new_value):
     stp_global_entry = db.get_entry('STP', "GLOBAL")
 
-    if param_type == parameter_forward_delay:
-        current_global_value = stp_global_entry.get("forward_delay")
-    elif param_type == parameter_hello_time:
-        current_global_value = stp_global_entry.get("hello_time")
-    elif param_type == parameter_max_age:
-        current_global_value = stp_global_entry.get("max_age")
-    elif param_type == parameter_bridge_priority:
-        current_global_value = stp_global_entry.get("priority")
+    allowed_params = {"priority", "max_age", "hello_time", "forward_delay"}
+    if param_type not in allowed_params:
+        ctx.fail("Invalid parameter")
+
+    current_global_value = stp_global_entry.get("forward_delay") 
 
     vlan_dict = db.get_table('STP_VLAN')
     for vlan in vlan_dict.keys():
         vlan_entry = db.get_entry('STP_VLAN', vlan)
-        if param_type == parameter_forward_delay:
-            current_vlan_value = vlan_entry.get("forward_delay")
-            if current_global_value == current_vlan_value:
-                db.mod_entry('STP_VLAN', vlan, {'forward_delay': new_value})
-        elif param_type == parameter_hello_time:
-            current_vlan_value = vlan_entry.get("hello_time")
-            if current_global_value == current_vlan_value:
-                db.mod_entry('STP_VLAN', vlan, {'hello_time': new_value})
-        elif param_type == parameter_max_age:
-            current_vlan_value = vlan_entry.get("max_age")
-            if current_global_value == current_vlan_value:
-                db.mod_entry('STP_VLAN', vlan, {'max_age': new_value})
-        elif param_type == parameter_bridge_priority:
-            current_vlan_value = vlan_entry.get("priority")
-            if current_global_value == current_vlan_value:
-                db.mod_entry('STP_VLAN', vlan, {'priority': new_value})
-
+        current_vlan_value = vlan_entry.get(param_type)
+        if current_global_value == current_vlan_value:
+            db.mod_entry('STP_VLAN', vlan, {param_type: new_value})
+        
 
 def check_if_vlan_exist_in_db(db, ctx, vid):
     vlan_name = 'Vlan{}'.format(vid)
@@ -281,14 +249,8 @@ def get_intf_list_from_stp_vlan_intf_table(db, vlan_name):
             intf_list.append(line[1])
     return intf_list
 
-
-def is_portchannel_member_port(db, interface_name):
-    pc_member_port_list = get_pc_member_port_list(db)
-    if interface_name in pc_member_port_list:
-        return True
-    else:
-        return False
-
+def is_portchannel_member_port(db, interface_name): 
+    return interface_name in get_pc_member_port_list(db)
 
 def enable_stp_for_interfaces(db):
     fvs = {'enabled': 'true',
@@ -428,8 +390,8 @@ def stp_global_forward_delay(_db, forward_delay):
     db = _db.cfgdb
     check_if_global_stp_enabled(db, ctx)
     is_valid_forward_delay(ctx, forward_delay)
-    is_valid_stp_global_parameters(ctx, db, parameter_forward_delay, forward_delay)
-    update_stp_vlan_parameter(db, parameter_forward_delay, forward_delay)
+    is_valid_stp_global_parameters(ctx, db, "forward_delay", forward_delay)
+    update_stp_vlan_parameter(db, "forward_delay", forward_delay)
     db.mod_entry('STP', "GLOBAL", {'forward_delay': forward_delay})
 
 
@@ -443,8 +405,8 @@ def stp_global_hello_interval(_db, hello_interval):
     db = _db.cfgdb
     check_if_global_stp_enabled(db, ctx)
     is_valid_hello_interval(ctx, hello_interval)
-    is_valid_stp_global_parameters(ctx, db, parameter_hello_time, hello_interval)
-    update_stp_vlan_parameter(db, parameter_hello_time, hello_interval)
+    is_valid_stp_global_parameters(ctx, db, "hello_time", hello_interval)
+    update_stp_vlan_parameter(db, "hello_time", hello_interval)
     db.mod_entry('STP', "GLOBAL", {'hello_time': hello_interval})
 
 
@@ -458,8 +420,8 @@ def stp_global_max_age(_db, max_age):
     db = _db.cfgdb
     check_if_global_stp_enabled(db, ctx)
     is_valid_max_age(ctx, max_age)
-    is_valid_stp_global_parameters(ctx, db, parameter_max_age, max_age)
-    update_stp_vlan_parameter(db, parameter_max_age, max_age)
+    is_valid_stp_global_parameters(ctx, db, "max_age", max_age)
+    update_stp_vlan_parameter(db, "max_age", max_age)
     db.mod_entry('STP', "GLOBAL", {'max_age': max_age})
 
 
@@ -473,7 +435,7 @@ def stp_global_priority(_db, priority):
     db = _db.cfgdb
     check_if_global_stp_enabled(db, ctx)
     is_valid_bridge_priority(ctx, priority)
-    update_stp_vlan_parameter(db, parameter_bridge_priority, priority)
+    update_stp_vlan_parameter(db, "priority", priority)
     db.mod_entry('STP', "GLOBAL", {'priority': priority})
 
 
@@ -560,7 +522,7 @@ def stp_vlan_forward_delay(_db, vid, forward_delay):
     vlan_name = 'Vlan{}'.format(vid)
     check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_forward_delay(ctx, forward_delay)
-    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_forward_delay, forward_delay)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, "forward_delay", forward_delay)
     db.mod_entry('STP_VLAN', vlan_name, {'forward_delay': forward_delay})
 
 
@@ -576,7 +538,7 @@ def stp_vlan_hello_interval(_db, vid, hello_interval):
     vlan_name = 'Vlan{}'.format(vid)
     check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_hello_interval(ctx, hello_interval)
-    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_hello_time, hello_interval)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, "hello_time", hello_interval)
     db.mod_entry('STP_VLAN', vlan_name, {'hello_time': hello_interval})
 
 
@@ -592,7 +554,7 @@ def stp_vlan_max_age(_db, vid, max_age):
     vlan_name = 'Vlan{}'.format(vid)
     check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_max_age(ctx, max_age)
-    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_max_age, max_age)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, "max_age", max_age)
     db.mod_entry('STP_VLAN', vlan_name, {'max_age': max_age})
 
 

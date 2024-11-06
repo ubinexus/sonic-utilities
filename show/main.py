@@ -1894,16 +1894,10 @@ def syslog(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def spanning_tree(verbose):
     """Show spanning_tree running configuration"""
-    config_db = ConfigDBConnector(host="127.0.0.1")
-    config_db.connect()
-
     stp_list = ["STP", "STP_PORT", "STP_VLAN", "STP_VLAN_PORT"]
     for key in stp_list:
-        table = config_db.get_table(key)
-        if len(table):
-            print("\"" + key + "\":")
-            cmd = ['sudo', 'sonic-cfggen', '-d', '--var-json', key]
-            run_command(cmd, display_cmd=verbose)
+        cmd = ['sudo', 'sonic-cfggen', '-d', '--var-json', key]
+        run_command(cmd, display_cmd=verbose)
 
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")

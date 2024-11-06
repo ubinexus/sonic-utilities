@@ -102,24 +102,30 @@ def delete_db_entry(entry_name, db_connector, db_name):
 
 
 def enable_stp_on_port(db, port):
-    if stp.is_global_stp_enabled(db) is True:
-        vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
-        if len(vlan_list_for_intf) == 0:
-            stp.interface_enable_stp(db, port)
+    if stp.is_global_stp_enabled(db) is False:
+        return False
+    vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
+    if len(vlan_list_for_intf) != 0:
+        return False
+    stp.interface_enable_stp(db, port)
 
 
 def disable_stp_on_vlan_port(db, vlan, port):
-    if stp.is_global_stp_enabled(db) is True:
-        vlan_interface = str(vlan) + "|" + port
-        db.set_entry('STP_VLAN_PORT', vlan_interface, None)
-        vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
-        if len(vlan_list_for_intf) == 0:
-            db.set_entry('STP_PORT', port, None)
+    if stp.is_global_stp_enabled(db) is False:
+        return False
+    vlan_interface = str(vlan) + "|" + port
+    db.set_entry('STP_VLAN_PORT', vlan_interface, None)
+    vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
+    if len(vlan_list_for_intf) != 0:
+        return False
+    db.set_entry('STP_PORT', port, None)
 
 
 def disable_stp_on_vlan(db, vlan_interface):
     db.cfgdb.set_entry('STP_VLAN', vlan_interface, None)
     stp_intf_list = stp.get_intf_list_from_stp_vlan_intf_table(db, vlan_interface)
+    if len(stp_intf_list) == 0:
+        return False
     for intf_name in stp_intf_list:
         key = vlan_interface + "|" + intf_name
         db.cfgdb.set_entry('STP_VLAN_PORT', key, None)

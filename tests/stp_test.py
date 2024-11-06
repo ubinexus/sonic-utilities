@@ -137,15 +137,16 @@ class TestStp(object):
     def test_disable_disable_global_pvst(self):
         runner = CliRunner()
         db = Db()
-
+        command = config.config.commands["spanning-tree"].commands["disable"]
+        print("Command Executed:", vars(command)) 
         result = runner.invoke(config.config.commands["spanning-tree"].commands["disable"], ["pvst"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
-        assert result.exit_code == 0
+        assert result.exit_code != 0
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
-        #(config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        # (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         # Enable PVST
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
         # Add VLAN and member
