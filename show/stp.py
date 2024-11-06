@@ -1,6 +1,6 @@
 import re
 import click
-#import subprocess
+# import subprocess
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 

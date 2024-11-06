@@ -144,6 +144,16 @@ class TestStp(object):
         print("result code {}".format(result.output))
         assert result.exit_code != 0
 
+    # Fixture for initializing the CliRunner
+    @pytest.fixture
+    def runner():
+        return CliRunner()
+
+    # Fixture for initializing the Db
+    @pytest.fixture
+    def db():
+        return Db()
+    
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
@@ -155,10 +165,7 @@ class TestStp(object):
         # Attempt to enable PVST when it is already enabled
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 1, "PVST is already configured")
     ])
-    def test_disable_enable_global_pvst(self, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
-
+    def test_disable_enable_global_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
