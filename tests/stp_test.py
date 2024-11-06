@@ -139,7 +139,7 @@ class TestStp(object):
         db = Db()
         command = config.config.commands["spanning-tree"].commands["disable"]
         print("Command Executed:", vars(command))
-        result = runner.invoke(config.config.commands["spanning-tree"].commands["disable"], ["pvst"], obj=db)
+        result = runner.invoke(command, ["pvst"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))
         assert result.exit_code != 0

@@ -1,6 +1,6 @@
 import re
 import click
-import subprocess
+#import subprocess
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
@@ -21,6 +21,7 @@ g_stp_vlanid = 0
 #
 # Utility API's
 #
+
 
 def is_stp_docker_running():
     return True
