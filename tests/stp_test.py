@@ -138,7 +138,7 @@ class TestStp(object):
         runner = CliRunner()
         db = Db()
         command = config.config.commands["spanning-tree"].commands["disable"]
-        print("Command Executed:", vars(command)) 
+        print("Command Executed:", vars(command))
         result = runner.invoke(config.config.commands["spanning-tree"].commands["disable"], ["pvst"], obj=db)
         print("exit code {}".format(result.exit_code))
         print("result code {}".format(result.output))

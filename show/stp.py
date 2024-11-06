@@ -1,5 +1,6 @@
 import re
 import click
+import subprocess
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
@@ -21,14 +22,13 @@ g_stp_vlanid = 0
 # Utility API's
 #
 
-
 def is_stp_docker_running():
     running_docker = subprocess.check_output('docker ps', shell=True)
     if running_docker.find("docker-stp".encode()) == -1:
         return False
     else:
         return True
-    
+
 
 def connect_to_cfg_db():
     config_db = ConfigDBConnector()
