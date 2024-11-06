@@ -401,6 +401,8 @@ def stp_disable(_db, mode):
     db.delete_table('STP_VLAN')
     db.delete_table('STP_PORT')
     db.delete_table('STP_VLAN_PORT')
+    if get_global_stp_mode(db) == "pvst":
+        ctx.fail("Error PVST disable failed")
 
 
 # cmd: STP global root guard timeout

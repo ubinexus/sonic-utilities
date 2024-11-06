@@ -283,7 +283,7 @@ class TestStp(object):
         # If an expected output is defined, check that as well
         if expected_output is not None:
             assert expected_output in result.output
-       
+
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
