@@ -146,7 +146,7 @@ class TestStp(object):
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
-        # (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
+        (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         # Enable PVST
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
         # Add VLAN and member
