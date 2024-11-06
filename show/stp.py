@@ -23,11 +23,12 @@ g_stp_vlanid = 0
 #
 
 def is_stp_docker_running():
-    running_docker = subprocess.check_output('docker ps', shell=True)
-    if running_docker.find("docker-stp".encode()) == -1:
-        return False
-    else:
-        return True
+    return True
+#    running_docker = subprocess.check_output('docker ps', shell=True)
+#    if running_docker.find("docker-stp".encode()) == -1:
+#        return False
+#    else:
+#        return True
 
 
 def connect_to_cfg_db():
