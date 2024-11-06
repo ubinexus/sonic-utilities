@@ -117,7 +117,7 @@ def disable_stp_on_vlan_port(db, vlan, port):
             db.set_entry('STP_PORT', port, None)
 
 
-def disable_stp_on_vlan(db, vlan_interface):         
+def disable_stp_on_vlan(db, vlan_interface):
     db.cfgdb.set_entry('STP_VLAN', vlan_interface, None)
     stp_intf_list = stp.get_intf_list_from_stp_vlan_intf_table(db, vlan_interface)
     for intf_name in stp_intf_list:
