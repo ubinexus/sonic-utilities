@@ -134,7 +134,7 @@ class TestStp(object):
         assert result.exit_code == 0
         assert result.output == show_spanning_tree_root_guard
 
-     def test_disable_disable_global_pvst(self):
+    def test_disable_disable_global_pvst(self):
         runner = CliRunner()
         db = Db()
 
