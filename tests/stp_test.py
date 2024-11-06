@@ -179,7 +179,7 @@ class TestStp(object):
         # Disable pvst
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         # Attempt enabling STP interface without global STP enabled
-        config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
+        (config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
            ["Ethernet4"], 1, "Global STP is not enabled"),
         # Add VLAN and member
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
