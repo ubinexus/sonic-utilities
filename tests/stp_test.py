@@ -153,7 +153,7 @@ class TestStp(object):
     @pytest.fixture
     def db():
         return Db()
-    
+
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
@@ -246,9 +246,9 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet20"],
             1, "has no VLAN configured")
     ])
-    def test_stp_validate_interface_params(self, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
+    def test_stp_validate_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
+        # runner = CliRunner()
+        # db = Db()
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -284,9 +284,9 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], 0, None),
         (config.config.commands["vlan"].commands["del"], ["100"], 1, None)
     ])
-    def test_stp_validate_vlan_interface_params(self, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
+    def test_stp_validate_vlan_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
+        # runner = CliRunner()
+        # db = Db()
 
         # Execute the command
         result = runner.invoke(command, args, obj=db)
@@ -329,9 +329,9 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
             1, "STP bridge priority must be multiple of 4096")
     ])
-    def test_stp_validate_vlan_timer_and_priority_params(self, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
+    def test_stp_validate_vlan_timer_and_priority_params(self, runner, db, command, args, expected_exit_code, expected_output):
+        # runner = CliRunner()
+        # db = Db()
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -366,9 +366,9 @@ class TestStp(object):
         # Disable STP on non-existing VLAN 101
         (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["101"], 1, "doesn't exist"),
     ])
-    def test_add_vlan_enable_pvst(SONIC_ENV_TEMPLATE_FILE, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
+    def test_add_vlan_enable_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
+        # runner = CliRunner()
+        # db = Db()
 
         # Execute the command
         result = runner.invoke(command, args, obj=db)
@@ -420,9 +420,9 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1,
             "STP bridge priority must be multiple of 4096"),
     ])
-    def test_stp_validate_global_timer_and_priority_params(self, command, args, expected_exit_code, expected_output):
-        runner = CliRunner()
-        db = Db()
+    def test_stp_validate_global_timer_and_priority_params(self, runner, db, command, args, expected_exit_code, expected_output):
+        # runner = CliRunner()
+        # db = Db()
 
         # Execute the command
         result = runner.invoke(command, args, obj=db)
