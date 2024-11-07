@@ -91,9 +91,9 @@ class TestFeaturePatchApplication(unittest.TestCase):
         patch_wrapper = PatchWrapper(config_wrapper)
         return gu.PatchApplier(config_wrapper=config_wrapper, patch_wrapper=patch_wrapper, changeapplier=change_applier)
     
+    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
-    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
     def run_single_success_case_applier(self, data, mock_set, mock_db, mock_get_config_db_as_json):
         current_config = data["current_config"]
         expected_config = data["expected_config"]
