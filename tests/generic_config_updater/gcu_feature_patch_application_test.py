@@ -56,7 +56,6 @@ class TestFeaturePatchApplication(unittest.TestCase):
                 self.run_single_success_case_applier(data[test_case_name])
 
     @patch("generic_config_updater.field_operation_validators.rdma_config_update_validator", mock.Mock(return_value=True))
-    @patch('generic_config_updater.gu_common.get_config_db_as_json', side_effect=get_running_config)
     def test_feature_patch_application_failure(self):
         # Fromat of the JSON file containing the test-cases:
         #
@@ -94,7 +93,8 @@ class TestFeaturePatchApplication(unittest.TestCase):
     
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
-    def run_single_success_case_applier(self, data, mock_set, mock_db):
+    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
+    def run_single_success_case_applier(self, data, mock_set, mock_db, mock_get_config_db_as_json):
         current_config = data["current_config"]
         expected_config = data["expected_config"]
         patch = jsonpatch.JsonPatch(data["patch"])
@@ -122,7 +122,8 @@ class TestFeaturePatchApplication(unittest.TestCase):
         self.assertEqual(simulated_config, expected_config)
     
     @patch("generic_config_updater.change_applier.get_config_db")
-    def run_single_failure_case_applier(self, data, mock_db):
+    @patch('generic_config_updater.change_applier.get_config_db_as_json', side_effect=get_running_config)
+    def run_single_failure_case_applier(self, data, mock_db, mock_get_config_db_as_json):
         current_config = data["current_config"]
         patch = jsonpatch.JsonPatch(data["patch"])
         expected_error_substrings = data["expected_error_substrings"]
