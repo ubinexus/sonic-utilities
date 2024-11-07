@@ -13,7 +13,8 @@ from .gutest_helpers import Files
 from generic_config_updater.gu_common import ConfigWrapper, PatchWrapper
 
 running_config = {}
-    
+
+
 def set_entry(config_db, tbl, key, data):
     global running_config
     if data != None:
@@ -27,8 +28,10 @@ def set_entry(config_db, tbl, key, data):
         if not running_config[tbl]:
             running_config.pop(tbl)
 
+
 def get_running_config(scope="localhost"):
     return running_config
+
 
 class TestFeaturePatchApplication(unittest.TestCase):
     def setUp(self):
