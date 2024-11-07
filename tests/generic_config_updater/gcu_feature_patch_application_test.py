@@ -27,7 +27,7 @@ def set_entry(config_db, tbl, key, data):
         if not running_config[tbl]:
             running_config.pop(tbl)
 
-def get_running_config():
+def get_running_config(scope="localhost"):
     return running_config
 
 class TestFeaturePatchApplication(unittest.TestCase):
