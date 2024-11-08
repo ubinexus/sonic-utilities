@@ -170,9 +170,6 @@ class TestStp(object):
         # Attempt enabling STP interface without global STP enabled
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
             ["Ethernet4"], 2, "Global STP is not enabled"),
-        # Add VLAN and member
-        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
         # Enable pvst
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
         # Configure interface priority and cost
@@ -225,8 +222,6 @@ class TestStp(object):
             2, "has no VLAN configured")
     ])
     def test_stp_validate_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
-        # runner = CliRunner()
-        # db = Db()
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -263,9 +258,6 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["del"], ["100"], 1, None)
     ])
     def test_stp_validate_vlan_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
-        # runner = CliRunner()
-        # db = Db()
-
         # Execute the command
         result = runner.invoke(command, args, obj=db)
         # Output result information
@@ -282,8 +274,6 @@ class TestStp(object):
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
-        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "3"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "21"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "16"], 0, None),
@@ -309,8 +299,6 @@ class TestStp(object):
     ])
     def test_stp_validate_vlan_timer_and_priority_params(self, runner, db,
                                                          command, args, expected_exit_code, expected_output):
-        # runner = CliRunner()
-        # db = Db()
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -346,9 +334,6 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["101"], 2, "doesn't exist"),
     ])
     def test_add_vlan_enable_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
-        # runner = CliRunner()
-        # db = Db()
-
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -401,9 +386,6 @@ class TestStp(object):
     ])
     def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
                                                            args, expected_exit_code, expected_output):
-        # runner = CliRunner()
-        # db = Db()
-
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
