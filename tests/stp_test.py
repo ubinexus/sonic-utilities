@@ -141,7 +141,7 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
         # Attempt to enable PVST when it is already enabled
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 1, "PVST is already configured")
+        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 2, "PVST is already configured")
     ])
     def test_disable_enable_global_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
@@ -169,7 +169,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         # Attempt enabling STP interface without global STP enabled
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"],
-            ["Ethernet4"], 1, "Global STP is not enabled"),
+            ["Ethernet4"], 2, "Global STP is not enabled"),
         # Add VLAN and member
         (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
@@ -209,20 +209,20 @@ class TestStp(object):
             ["Ethernet4"], 0, None),
         # Invalid cost and priority values
         (config.config.commands["spanning-tree"].commands["interface"].commands["cost"], ["Ethernet4", "0"],
-            1, "STP interface path cost must be in range 1-200000000"),
+            2, "STP interface path cost must be in range 1-200000000"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["cost"], ["Ethernet4", "2000000000"],
-            1, "STP interface path cost must be in range 1-200000000"),
+            2, "STP interface path cost must be in range 1-200000000"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["priority"], ["Ethernet4", "1000"],
-            1, "STP interface priority must be in range 0-240"),
+            2, "STP interface priority must be in range 0-240"),
         # Attempt to enable STP on interface with various conflicts
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet4"],
-            1, "STP is already enabled for"),
+            2, "STP is already enabled for"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet0"],
-            1, "has ip address"),
+            2, "has ip address"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet120"],
-            1, "is a portchannel member port"),
+            2, "is a portchannel member port"),
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet20"],
-            1, "has no VLAN configured")
+            2, "has no VLAN configured")
     ])
     def test_stp_validate_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
@@ -251,14 +251,14 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
             ["100", "Ethernet4", "32"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
-            ["100", "Ethernet4", "0"], 1, "STP interface path cost must be in range 1-200000000"),
+            ["100", "Ethernet4", "0"], 2, "STP interface path cost must be in range 1-200000000"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
-            ["100", "Ethernet4", "2000000000"], 1, "STP interface path cost must be in range 1-200000000"),
+            ["100", "Ethernet4", "2000000000"], 2, "STP interface path cost must be in range 1-200000000"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-            ["100", "Ethernet4", "1000"], 1, "STP per vlan port priority must be in range 0-240"),
+            ["100", "Ethernet4", "1000"], 2, "STP per vlan port priority must be in range 0-240"),
         (config.config.commands["vlan"].commands["add"], ["101"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-            ["101", "Ethernet4", "16"], 1, "is not member of"),
+            ["101", "Ethernet4", "16"], 2, "is not member of"),
         (config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], 0, None),
         (config.config.commands["vlan"].commands["del"], ["100"], 1, None)
     ])
@@ -289,23 +289,23 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "16"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "4096"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "0"],
-            1, "STP hello timer must be in range 1-10"),
+            2, "STP hello timer must be in range 1-10"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["100", "20"],
-            1, "STP hello timer must be in range 1-10"),
+            2, "STP hello timer must be in range 1-10"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "2"],
-            1, "STP forward delay value must be in range 4-30"),
+            2, "STP forward delay value must be in range 4-30"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "42"],
-            1, "STP forward delay value must be in range 4-30"),
+            2, "STP forward delay value must be in range 4-30"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "4"],
-            1, "STP max age value must be in range 6-40"),
+            2, "STP max age value must be in range 6-40"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["100", "45"],
-            1, "STP max age value must be in range 6-40"),
+            2, "STP max age value must be in range 6-40"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "4"],
-            1, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
+            2, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "70000"],
-            1, "STP bridge priority must be in range 0-61440"),
+            2, "STP bridge priority must be in range 0-61440"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
-            1, "STP bridge priority must be multiple of 4096")
+            2, "STP bridge priority must be multiple of 4096")
     ])
     def test_stp_validate_vlan_timer_and_priority_params(self, runner, db,
                                                          command, args, expected_exit_code, expected_output):
@@ -341,9 +341,9 @@ class TestStp(object):
         # Attempt to delete VLAN 200 while STP is enabled
         (config.config.commands["vlan"].commands["del"], ["200"], 1, None),
         # Enable STP on non-existing VLAN 101
-        (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["101"], 1, "doesn't exist"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["101"], 2, "doesn't exist"),
         # Disable STP on non-existing VLAN 101
-        (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["101"], 1, "doesn't exist"),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["101"], 2, "doesn't exist"),
     ])
     def test_add_vlan_enable_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
@@ -371,32 +371,32 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["priority"], ["8192"], 0, None),
         (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["100"], 0, None),
         # Invalid hello timer values
-        (config.config.commands["spanning-tree"].commands["hello"], ["0"], 1,
+        (config.config.commands["spanning-tree"].commands["hello"], ["0"], 2,
             "STP hello timer must be in range 1-10"),
-        (config.config.commands["spanning-tree"].commands["hello"], ["20"], 1,
+        (config.config.commands["spanning-tree"].commands["hello"], ["20"], 2,
             "STP hello timer must be in range 1-10"),
         # Invalid forward delay values
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["2"], 1,
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["2"], 2,
             "STP forward delay value must be in range 4-30"),
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["50"], 1,
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["50"], 2,
             "STP forward delay value must be in range 4-30"),
         # Invalid max age values
-        (config.config.commands["spanning-tree"].commands["max_age"], ["5"], 1,
+        (config.config.commands["spanning-tree"].commands["max_age"], ["5"], 2,
             "STP max age value must be in range 6-40"),
-        (config.config.commands["spanning-tree"].commands["max_age"], ["45"], 1,
+        (config.config.commands["spanning-tree"].commands["max_age"], ["45"], 2,
             "STP max age value must be in range 6-40"),
         # Consistency check for forward delay and max age
-        (config.config.commands["spanning-tree"].commands["forward_delay"], ["4"], 1,
+        (config.config.commands["spanning-tree"].commands["forward_delay"], ["4"], 2,
             "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
         # Invalid root guard timeout values
-        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["4"], 1,
+        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["4"], 2,
             "STP root guard timeout must be in range 5-600"),
-        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["700"], 1,
+        (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["700"], 2,
             "STP root guard timeout must be in range 5-600"),
         # Invalid priority values
-        (config.config.commands["spanning-tree"].commands["priority"], ["70000"], 1,
+        (config.config.commands["spanning-tree"].commands["priority"], ["70000"], 2,
             "STP bridge priority must be in range 0-61440"),
-        (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1,
+        (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 2,
             "STP bridge priority must be multiple of 4096"),
     ])
     def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
