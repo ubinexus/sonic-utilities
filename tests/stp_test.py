@@ -290,7 +290,7 @@ class TestStp(object):
             2, "STP max age value must be in range 6-40"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["forward_delay"], ["100", "4"],
             2, "2*(forward_delay-1) >= max_age >= 2*(hello_time +1 )"),
-        (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "70000"],
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "65536"],
             2, "STP bridge priority must be in range 0-61440"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
             2, "STP bridge priority must be multiple of 4096")
@@ -377,7 +377,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["root_guard_timeout"], ["700"], 2,
             "STP root guard timeout must be in range 5-600"),
         # Invalid priority values
-        (config.config.commands["spanning-tree"].commands["priority"], ["70000"], 2,
+        (config.config.commands["spanning-tree"].commands["priority"], ["65536"], 2,
             "STP bridge priority must be in range 0-61440"),
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 2,
             "STP bridge priority must be multiple of 4096"),
