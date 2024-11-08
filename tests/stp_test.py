@@ -79,72 +79,7 @@ class TestStp(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
-    def test_show_spanning_tree(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree
-
-    def test_show_spanning_tree_vlan(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_vlan
-
-    def test_show_spanning_tree_statistics(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_statistics
-
-    def test_show_spanning_tree_statistics_vlan(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(
-            show.cli.commands["spanning-tree"].commands["statistics"].commands["vlan"], ["100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_statistics
-
-    def test_show_spanning_tree_bpdu_guard(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["bpdu_guard"], [], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_bpdu_guard
-
-    def test_show_spanning_tree_root_guard(self):
-        runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["root_guard"], [], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_root_guard
-
-    def test_disable_disable_global_pvst(self):
-        runner = CliRunner()
-        db = Db()
-        command = config.config.commands["spanning-tree"].commands["disable"]
-        print("Command Executed:", vars(command))
-        result = runner.invoke(command, ["pvst"], obj=db)
-        print("exit code {}".format(result.exit_code))
-        print("result code {}".format(result.output))
-        assert result.exit_code != 0
-
-    # Fixture for initializing the CliRunner
+     # Fixture for initializing the CliRunner
     @pytest.fixture
     def runner():
         return CliRunner()
@@ -153,6 +88,57 @@ class TestStp(object):
     @pytest.fixture
     def db():
         return Db()
+
+    def test_show_spanning_tree(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree
+
+    def test_show_spanning_tree_vlan(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["100"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree_vlan
+
+    def test_show_spanning_tree_statistics(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree_statistics
+
+    def test_show_spanning_tree_statistics_vlan(self, runner, db):
+        result = runner.invoke(
+            show.cli.commands["spanning-tree"].commands["statistics"].commands["vlan"], ["100"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree_statistics
+
+    def test_show_spanning_tree_bpdu_guard(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"].commands["bpdu_guard"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree_bpdu_guard
+
+    def test_show_spanning_tree_root_guard(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"].commands["root_guard"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_spanning_tree_root_guard
+
+    def test_disable_disable_global_pvst(self, runner, db):
+        command = config.config.commands["spanning-tree"].commands["disable"]
+        print("Command Executed:", vars(command))
+        result = runner.invoke(command, ["pvst"], obj=db)
+        print("exit code {}".format(result.exit_code))
+        print("result code {}".format(result.output))
+        assert result.exit_code != 0
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
@@ -165,7 +151,7 @@ class TestStp(object):
         # Attempt to enable PVST when it is already enabled
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 1, "PVST is already configured")
     ])
-    def test_disable_enable_global_pvst(runner, db, command, args, expected_exit_code, expected_output):
+    def test_disable_enable_global_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
         result = runner.invoke(command, args, obj=db)
 
@@ -246,7 +232,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["interface"].commands["enable"], ["Ethernet20"],
             1, "has no VLAN configured")
     ])
-    def test_stp_validate_interface_params(runner, db, command, args, expected_exit_code, expected_output):
+    def test_stp_validate_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
         # Execute the command
@@ -284,7 +270,7 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["member"].commands["del"], ["100", "Ethernet4"], 0, None),
         (config.config.commands["vlan"].commands["del"], ["100"], 1, None)
     ])
-    def test_stp_validate_vlan_interface_params(runner, db, command, args, expected_exit_code, expected_output):
+    def test_stp_validate_vlan_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
 
