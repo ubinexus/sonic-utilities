@@ -79,7 +79,7 @@ class TestStp(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
-     # Fixture for initializing the CliRunner
+    # Fixture for initializing the CliRunner
     @pytest.fixture
     def runner():
         return CliRunner()
@@ -315,8 +315,8 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
             1, "STP bridge priority must be multiple of 4096")
     ])
-    def test_stp_validate_vlan_timer_and_priority_params(
-    runner, db, command, args, expected_exit_code, expected_output):
+    def test_stp_validate_vlan_timer_and_priority_params(runner, db,
+                                                        command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
         # Execute the command
@@ -407,8 +407,8 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1,
             "STP bridge priority must be multiple of 4096"),
     ])
-    def test_stp_validate_global_timer_and_priority_params(
-    runner, db, command, args, expected_exit_code, expected_output):
+    def test_stp_validate_global_timer_and_priority_params(runner, db, command,
+                                                            args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
 
