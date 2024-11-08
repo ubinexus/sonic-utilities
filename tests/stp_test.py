@@ -238,8 +238,6 @@ class TestStp(object):
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
-        (config.config.commands["vlan"].commands["add"], ["100"], 0, None),
-        (config.config.commands["vlan"].commands["member"].commands["add"], ["100", "Ethernet4"], 0, None),
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["cost"],
             ["100", "Ethernet4", "100"], 0, None),
