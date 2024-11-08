@@ -80,12 +80,12 @@ class TestStp(object):
         print("SETUP")
 
     # Fixture for initializing the CliRunner
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def runner(self):
         return CliRunner()
 
     # Fixture for initializing the Db
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def db(self):
         return Db()
 
@@ -131,14 +131,6 @@ class TestStp(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_spanning_tree_root_guard
-
-    def test_disable_disable_global_pvst(self, runner, db):
-        command = config.config.commands["spanning-tree"].commands["disable"]
-        print("Command Executed:", vars(command))
-        result = runner.invoke(command, ["pvst"], obj=db)
-        print("exit code {}".format(result.exit_code))
-        print("result code {}".format(result.output))
-        assert result.exit_code != 0
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
@@ -316,7 +308,7 @@ class TestStp(object):
             1, "STP bridge priority must be multiple of 4096")
     ])
     def test_stp_validate_vlan_timer_and_priority_params(self, runner, db,
-                                                        command, args, expected_exit_code, expected_output):
+                                                         command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
         # Execute the command
@@ -408,7 +400,7 @@ class TestStp(object):
             "STP bridge priority must be multiple of 4096"),
     ])
     def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
-                                                            args, expected_exit_code, expected_output):
+                                                           args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
 
