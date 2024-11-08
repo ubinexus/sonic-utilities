@@ -81,12 +81,12 @@ class TestStp(object):
 
     # Fixture for initializing the CliRunner
     @pytest.fixture
-    def runner():
+    def runner(self):
         return CliRunner()
 
     # Fixture for initializing the Db
     @pytest.fixture
-    def db():
+    def db(self):
         return Db()
 
     def test_show_spanning_tree(self, runner, db):
@@ -315,7 +315,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["100", "8000"],
             1, "STP bridge priority must be multiple of 4096")
     ])
-    def test_stp_validate_vlan_timer_and_priority_params(runner, db,
+    def test_stp_validate_vlan_timer_and_priority_params(self, runner, db,
                                                         command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
@@ -353,7 +353,7 @@ class TestStp(object):
         # Disable STP on non-existing VLAN 101
         (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["101"], 1, "doesn't exist"),
     ])
-    def test_add_vlan_enable_pvst(runner, db, command, args, expected_exit_code, expected_output):
+    def test_add_vlan_enable_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
 
@@ -407,7 +407,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 1,
             "STP bridge priority must be multiple of 4096"),
     ])
-    def test_stp_validate_global_timer_and_priority_params(runner, db, command,
+    def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
                                                             args, expected_exit_code, expected_output):
         # runner = CliRunner()
         # db = Db()
