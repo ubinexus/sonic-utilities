@@ -393,7 +393,7 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
                 ctx.fail("{} is not a member of {}".format(port, vlan))
 
             # If port is being made non-L2 port, disable STP
-            disable_stp_on_vlan_port(db, vlan, port)
+            disable_stp_on_vlan_port(db.cfgdb, vlan, port)
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
