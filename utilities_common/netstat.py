@@ -118,16 +118,6 @@ def format_fec_ber(rate):
         return "{:.2e}".format(float(rate))
 
 
-def format_fec_ber(rate):
-    """
-    Show the ber rate.
-    """
-    if rate == STATUS_NA:
-        return STATUS_NA
-    else:
-        return "{:.2e}".format(float(rate))
-
-
 def format_util(brate, port_rate):
     """
         Calculate the util.
