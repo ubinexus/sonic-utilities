@@ -272,7 +272,7 @@ class TestStp(object):
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
-         # Add VLAN and member
+        # Add VLAN and member
         (config.config.commands["vlan"].commands["add"], ["500"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["hello"], ["500", "3"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["max_age"], ["500", "21"], 0, None),
@@ -384,6 +384,8 @@ class TestStp(object):
             "STP bridge priority must be in range 0-61440"),
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 2,
             "STP bridge priority must be multiple of 4096"),
+        (config.config.commands["vlan"].commands["member"].commands["del"], ["500", "Ethernet4"], 0, None),
+        (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
     ])
     def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
                                                            args, expected_exit_code, expected_output):
