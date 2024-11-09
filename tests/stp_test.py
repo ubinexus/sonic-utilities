@@ -407,3 +407,4 @@ class TestStp(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
+        dbconnector.dedicated_dbs.clear()
