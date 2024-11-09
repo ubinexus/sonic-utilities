@@ -322,13 +322,13 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["member"].commands["add"], ["500", "Ethernet4"], 0, None),
         # Enable PVST globally
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
-        # Add VLAN 500
-        (config.config.commands["vlan"].commands["add"], ["500"], 0, None),
+        # Add VLAN 600
+        (config.config.commands["vlan"].commands["add"], ["600"], 0, None),
         # Disable and then enable spanning-tree on VLAN 500
-        (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["500"], 0, None),
-        (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["500"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["600"], 0, None),
+        (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["600"], 0, None),
         # Attempt to delete VLAN 500 while STP is enabled
-        (config.config.commands["vlan"].commands["del"], ["500"], 1, None),
+        (config.config.commands["vlan"].commands["del"], ["600"], 1, None),
         # Enable STP on non-existing VLAN 101
         (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["101"], 2, "doesn't exist"),
         # Disable STP on non-existing VLAN 101
