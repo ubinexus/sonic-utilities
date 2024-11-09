@@ -252,6 +252,7 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["add"], ["101"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
             ["101", "Ethernet4", "16"], 2, "is not member of"),
+        (config.config.commands["vlan"].commands["del"], ["101"], 1, None)
         (config.config.commands["vlan"].commands["member"].commands["del"], ["500", "Ethernet4"], 0, None),
         (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
     ])
