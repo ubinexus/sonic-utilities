@@ -200,7 +200,7 @@ class Portstat(object):
             port_alias = key.split("|")[-1]
             cnstat_dict[port_alias] = NStats._make([rx_ok, rx_err, rx_drop, rx_ovr, tx_ok, tx_err, tx_drop, tx_ovr] +
                                                    [STATUS_NA] * (len(NStats._fields) - 8))._asdict()
-            ratestat_dict[port_alias] = RateStats._make([rx_bps, rx_pps, rx_util, tx_bps,\
+            ratestat_dict[port_alias] = RateStats._make([rx_bps, rx_pps, rx_util, tx_bps,
                                                         tx_pps, tx_util, fec_pre_ber, fec_post_ber])
         self.cnstat_dict.update(cnstat_dict)
         self.ratestat_dict.update(ratestat_dict)

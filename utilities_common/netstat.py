@@ -107,6 +107,7 @@ def format_prate(rate):
     else:
         return "{:.2f}".format(float(rate))+'/s'
 
+
 def format_fec_ber(rate):
     """
     Show the ber rate.
