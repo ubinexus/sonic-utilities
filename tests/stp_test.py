@@ -81,12 +81,12 @@ class TestStp(object):
         print("SETUP")
 
     # Fixture for initializing the CliRunner
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="module")
     def runner(self):
         return CliRunner()
 
     # Fixture for initializing the Db
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="module")
     def db(self):
         return Db()
 
@@ -250,9 +250,10 @@ class TestStp(object):
             ["500", "Ethernet4", "2000000000"], 2, "STP interface path cost must be in range 1-200000000"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
             ["500", "Ethernet4", "1000"], 2, "STP per vlan port priority must be in range 0-240"),
-        (config.config.commands["vlan"].commands["add"], ["101"], 0, None),
+        (config.config.commands["vlan"].commands["add"], ["99"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
-            ["101", "Ethernet4", "16"], 2, "is not member of"),
+            ["99", "Ethernet4", "16"], 2, "is not member of"),
+        (config.config.commands["vlan"].commands["del"], ["99"], 1, None),
         (config.config.commands["vlan"].commands["member"].commands["del"], ["500", "Ethernet4"], 0, None),
         (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
     ])
@@ -325,10 +326,10 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 0, None),
         # Add VLAN 600
         (config.config.commands["vlan"].commands["add"], ["600"], 0, None),
-        # Disable and then enable spanning-tree on VLAN 500
+        # Disable and then enable spanning-tree on VLAN 600
         (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["600"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["600"], 0, None),
-        # Attempt to delete VLAN 500 while STP is enabled
+        # Attempt to delete VLAN 600 while STP is enabled
         (config.config.commands["vlan"].commands["del"], ["600"], 1, None),
         # Enable STP on non-existing VLAN 1010
         (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["1010"], 2, "doesn't exist"),
@@ -408,4 +409,5 @@ class TestStp(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
+        dbconnector.load_namespace_config()
         dbconnector.dedicated_dbs.clear()
