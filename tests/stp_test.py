@@ -73,7 +73,7 @@ Port             VLAN   Current State
 Ethernet4        500    Consistent state
 """
 
-'''
+
 class TestStp(object):
     @classmethod
     def setup_class(cls):
@@ -132,7 +132,7 @@ class TestStp(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_spanning_tree_root_guard
-    
+ 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
@@ -142,7 +142,8 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["add"], ["500"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["500", "Ethernet4"], 0, None),
         # Attempt to enable PVST when it is already enabled
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 2, "PVST is already configured")
+        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 2, "PVST is already configured"),
+        (config.config.commands["vlan"].commands["add"], ["100"], 0, None)
     ])
     def test_disable_enable_global_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
@@ -406,4 +407,3 @@ class TestStp(object):
         print("TEARDOWN")
         dbconnector.load_namespace_config()
         dbconnector.dedicated_dbs.clear()
-'''
