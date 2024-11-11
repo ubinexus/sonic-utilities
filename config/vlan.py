@@ -102,29 +102,27 @@ def delete_db_entry(entry_name, db_connector, db_name):
 
 
 def enable_stp_on_port(db, port):
-    if stp.is_global_stp_enabled(db) is False:
-        return True
-    vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
-    if len(vlan_list_for_intf) == 0:
-        stp.interface_enable_stp(db, port)
+    if stp.is_global_stp_enabled(db) is True:
+        vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
+        if len(vlan_list_for_intf) == 0:
+            stp.interface_enable_stp(db, port)
 
 
 def disable_stp_on_vlan_port(db, vlan, port):
-    if stp.is_global_stp_enabled(db) is False:
-        return True
-    vlan_interface = str(vlan) + "|" + port
-    db.set_entry('STP_VLAN_PORT', vlan_interface, None)
-    vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
-    if len(vlan_list_for_intf) == 0:
-        db.set_entry('STP_PORT', port, None)
+    if stp.is_global_stp_enabled(db) is True:
+        vlan_interface = str(vlan) + "|" + port
+        db.set_entry('STP_VLAN_PORT', vlan_interface, None)
+        vlan_list_for_intf = stp.get_vlan_list_for_interface(db, port)
+        if len(vlan_list_for_intf) == 0:
+            db.set_entry('STP_PORT', port, None)
 
 
 def disable_stp_on_vlan(db, vlan_interface):
-    db.cfgdb.set_entry('STP_VLAN', vlan_interface, None)
+    db.set_entry('STP_VLAN', vlan_interface, None)
     stp_intf_list = stp.get_intf_list_from_stp_vlan_intf_table(db, vlan_interface)
     for intf_name in stp_intf_list:
         key = vlan_interface + "|" + intf_name
-        db.cfgdb.set_entry('STP_VLAN_PORT', key, None)
+        db.set_entry('STP_VLAN_PORT', key, None)
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True)
@@ -183,7 +181,8 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
             for vxmap_key, vxmap_data in vxlan_table.items():
                 if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
                     ctx.fail("vlan: {} can not be removed. "
-                            "First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)))
+                            "First remove vxlan mapping '{}' assigned to 
+VLAN".format(vid, '|'.join(vxmap_key)))
 
             # set dhcpv4_relay table
             set_dhcp_relay_table('VLAN', config_db, vlan, None)
