@@ -8077,8 +8077,8 @@ def logrotate(ctx, file):
 def disk_percentage(ctx, disk_percentage):
     """Configuring logrotate disk-precentage"""
     file = ctx.parent.params.get('file')
-    if disk_percentage < 0 or disk_percentage > 100:
-        click.echo(f'Disk percentage {disk_percentage} is not in range [0 - 100]')
+    if disk_percentage <= 0 or disk_percentage > 100:
+        click.echo(f'Disk percentage {disk_percentage} is not in range (0 - 100]')
         sys.exit(1)
 
     config_db = ConfigDBConnector()
