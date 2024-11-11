@@ -6,7 +6,7 @@ from jsonpatch import JsonPatchConflict
 from time import sleep
 from .utils import log
 from .validated_config_db_connector import ValidatedConfigDBConnector
-# from . import stp
+from . import stp
 
 ADHOC_VALIDATION = True
 DHCP_RELAY_TABLE = "DHCP_RELAY"
