@@ -406,4 +406,3 @@ class TestStp(object):
         print("TEARDOWN")
         dbconnector.load_namespace_config()
         dbconnector.dedicated_dbs.clear()
-    
