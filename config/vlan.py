@@ -6,7 +6,7 @@ from jsonpatch import JsonPatchConflict
 from time import sleep
 from .utils import log
 from .validated_config_db_connector import ValidatedConfigDBConnector
-from . import stp
+# from . import stp
 
 ADHOC_VALIDATION = True
 DHCP_RELAY_TABLE = "DHCP_RELAY"
@@ -199,7 +199,7 @@ def del_vlan(db, vid, multiple, no_restart_dhcp_relay):
             delete_db_entry("DHCP_COUNTER_TABLE|{}".format(vlan), db.db, db.db.STATE_DB)
 
             # Delete STP_VLAN & STP_VLAN_PORT entries when VLAN is deleted.
-            disable_stp_on_vlan(db.cfgdb, 'Vlan{}'.format(vid))
+            # disable_stp_on_vlan(db.cfgdb, 'Vlan{}'.format(vid))
 
     vlans = db.cfgdb.get_keys('VLAN')
     if not vlans:
@@ -346,7 +346,7 @@ def add_vlan_member(db, vid, port, untagged, multiple, except_flag):
                 pass
 
             # If port is being made L2 port, enable STP
-            enable_stp_on_port(db.cfgdb, port)
+            # enable_stp_on_port(db.cfgdb, port)
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged"})
@@ -393,7 +393,7 @@ def del_vlan_member(db, vid, port, multiple, except_flag):
                 ctx.fail("{} is not a member of {}".format(port, vlan))
 
             # If port is being made non-L2 port, disable STP
-            disable_stp_on_vlan_port(db.cfgdb, vlan, port)
+            # disable_stp_on_vlan_port(db.cfgdb, vlan, port)
 
             try:
                 config_db.set_entry('VLAN_MEMBER', (vlan, port), None)
