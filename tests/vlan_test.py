@@ -845,22 +845,22 @@ class TestVlan(object):
                 print(result.output)
                 assert result.exit_code == 0
 
-            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
-            delete_db_entry.assert_has_calls([
-                mock.call("DHCPv6_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCPv6_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCPv6_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCPv6_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCPv6_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCP_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCP_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCP_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCP_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
-                mock.call("DHCP_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB)
-            ], any_order=True)
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        delete_db_entry.assert_has_calls([
+            mock.call("DHCPv6_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCPv6_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCPv6_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCPv6_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCPv6_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCP_COUNTER_TABLE|Vlan1000", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCP_COUNTER_TABLE|Ethernet4", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCP_COUNTER_TABLE|Ethernet8", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCP_COUNTER_TABLE|Ethernet12", mock.ANY, db.db.STATE_DB),
+            mock.call("DHCP_COUNTER_TABLE|Ethernet16", mock.ANY, db.db.STATE_DB)
+        ], any_order=True)
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)

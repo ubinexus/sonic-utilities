@@ -398,7 +398,7 @@ class TestStp(object):
 
         # Check the output if an expected output is defined
         if expected_output:
-            assert expected_output in result.output  
+            assert expected_output in result.output
 
     @classmethod
     def teardown_class(cls):
@@ -406,3 +406,4 @@ class TestStp(object):
         print("TEARDOWN")
         dbconnector.load_namespace_config()
         dbconnector.dedicated_dbs.clear()
+    
