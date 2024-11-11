@@ -2617,6 +2617,26 @@ def ssh(db):
 
 
 #
+# 'banner' command group ("show banner ...")
+#
+@cli.group('banner', invoke_without_command=True)
+@clicommon.pass_db
+def banner(db):
+    """Show banner messages"""
+
+    banner_table = db.cfgdb.get_entry('BANNER_MESSAGE', 'global')
+
+    hdrs = ['state', 'login', 'motd', 'logout']
+    data = []
+
+    for key in hdrs:
+        data.append(banner_table.get(key, '').replace('\\n', '\n'))
+
+    messages = [data]
+    click.echo(tabulate(messages, headers=hdrs, tablefmt='simple', missingval=''))
+
+
+#
 # 'logrorare' command group ("show logrotate ...")
 #
 @cli.group('logrotate', invoke_without_command=True)
