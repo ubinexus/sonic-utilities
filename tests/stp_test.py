@@ -1,11 +1,11 @@
 import os
 import pytest
-# from click.testing import CliRunner
+from click.testing import CliRunner
 
-# import config.main as config
-# import show.main as show
-# from utilities_common.db import Db
-# from .mock_tables import dbconnector
+import config.main as config
+import show.main as show
+from utilities_common.db import Db
+from .mock_tables import dbconnector
 
 
 show_spanning_tree = """\
