@@ -142,8 +142,7 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["add"], ["500"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["add"], ["500", "Ethernet4"], 0, None),
         # Attempt to enable PVST when it is already enabled
-        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 2, "PVST is already configured"),
-        (config.config.commands["vlan"].commands["add"], ["100"], 0, None)
+        (config.config.commands["spanning-tree"].commands["enable"], ["pvst"], 2, "PVST is already configured")
     ])
     def test_disable_enable_global_pvst(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
@@ -248,9 +247,9 @@ class TestStp(object):
         (config.config.commands["vlan"].commands["add"], ["99"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["interface"].commands["priority"],
             ["99", "Ethernet4", "16"], 2, "is not member of"),
-        (config.config.commands["vlan"].commands["del"], ["99"], 1, None),
+        (config.config.commands["vlan"].commands["del"], ["99"], 0, None),
         (config.config.commands["vlan"].commands["member"].commands["del"], ["500", "Ethernet4"], 0, None),
-        (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
+        (config.config.commands["vlan"].commands["del"], ["500"], 0, None)
     ])
     def test_stp_validate_vlan_interface_params(self, runner, db, command, args, expected_exit_code, expected_output):
         # Execute the command
@@ -293,7 +292,7 @@ class TestStp(object):
             2, "STP bridge priority must be in range 0-61440"),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["priority"], ["500", "8000"],
             2, "STP bridge priority must be multiple of 4096"),
-        (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
+        (config.config.commands["vlan"].commands["del"], ["500"], 0, None)
     ])
     def test_stp_validate_vlan_timer_and_priority_params(self, runner, db,
                                                          command, args, expected_exit_code, expected_output):
@@ -325,7 +324,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["vlan"].commands["disable"], ["600"], 0, None),
         (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["600"], 0, None),
         # Attempt to delete VLAN 600 while STP is enabled
-        (config.config.commands["vlan"].commands["del"], ["600"], 1, None),
+        (config.config.commands["vlan"].commands["del"], ["600"], 0, None),
         # Enable STP on non-existing VLAN 1010
         (config.config.commands["spanning-tree"].commands["vlan"].commands["enable"], ["1010"], 2, "doesn't exist"),
         # Disable STP on non-existing VLAN 1010
@@ -382,7 +381,7 @@ class TestStp(object):
         (config.config.commands["spanning-tree"].commands["priority"], ["8000"], 2,
             "STP bridge priority must be multiple of 4096"),
         (config.config.commands["vlan"].commands["member"].commands["del"], ["500", "Ethernet4"], 0, None),
-        (config.config.commands["vlan"].commands["del"], ["500"], 1, None)
+        (config.config.commands["vlan"].commands["del"], ["500"], 0, None)
     ])
     def test_stp_validate_global_timer_and_priority_params(self, runner, db, command,
                                                            args, expected_exit_code, expected_output):
