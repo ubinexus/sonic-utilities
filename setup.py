@@ -190,7 +190,6 @@ setup(
         'scripts/check_db_integrity.py',
         'scripts/sysreadyshow',
         'scripts/gen_sai_dbg_dump.sh',
-        'scripts/gen_sai_dbg_dump_lib.sh',
     ],
     entry_points={
         'console_scripts': [

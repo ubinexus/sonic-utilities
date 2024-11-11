@@ -1153,7 +1153,7 @@ generate_sai_dbg_dump_file() {
     fi    
 
     # Generate the SAI dump file using the refactored function
-    source /usr/local/bin/gen_sai_dbg_dump_lib.sh
+    source /usr/local/bin/gen_sai_dbg_dump.sh
     if ! generate_sai_dump "$syncd_sai_dump_filename"; then
         echo "Error: Failed to generate SAI debug dump."
         return 1
@@ -2156,7 +2156,6 @@ main() {
     if [ "$asic" = "marvell" ]; then
         collect_marvell
     fi
-
 
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
