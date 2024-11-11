@@ -305,7 +305,7 @@
         "type": "dynamic",
         "vni": "200"
     },
-    "_STP_VLAN_TABLE:Vlan100": {
+    "_STP_VLAN_TABLE:Vlan500": {
  		"bridge_id": "8064b86a97e24e9c",
  		"max_age": "20",
  		"hello_time": "2",
@@ -322,7 +322,7 @@
 		"topology_change_count": "1",
 		"last_topology_change": "0"
 	},
-	"_STP_VLAN_PORT_TABLE:Vlan100:Ethernet4": {
+	"_STP_VLAN_PORT_TABLE:Vlan500:Ethernet4": {
  		"port_num": "4",
 		"priority": "128",
  		"path_cost": "200",

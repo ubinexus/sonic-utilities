@@ -132,7 +132,7 @@ class TestStp(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_spanning_tree_root_guard
- 
+
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
         (config.config.commands["spanning-tree"].commands["disable"], ["pvst"], 0, None),
@@ -398,9 +398,8 @@ class TestStp(object):
 
         # Check the output if an expected output is defined
         if expected_output:
-            assert expected_output in result.output
-    
-    
+            assert expected_output in result.output  
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
