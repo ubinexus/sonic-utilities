@@ -50,7 +50,8 @@ def test_memory_statistics_retention_period(mock_db):
     with patch("click.echo") as mock_echo:
         result = runner.invoke(memory_statistics_retention_period, [str(retention_period_value)])
         assert result.exit_code == 0
-        assert mock_echo.call_count == 2
+        assert mock_echo.call_count == 1  # Updated to expect only one echo call
+        mock_echo.assert_any_call(f"Retention period set to {retention_period_value} successfully.")
         mock_db.mod_entry.assert_called_once_with(
             "MEMORY_STATISTICS", "memory_statistics",
             {"retention_period": retention_period_value}
@@ -81,7 +82,8 @@ def test_memory_statistics_sampling_interval(mock_db):
     with patch("click.echo") as mock_echo:
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
         assert result.exit_code == 0
-        assert mock_echo.call_count == 2
+        assert mock_echo.call_count == 1  # Updated to expect only one echo call
+        mock_echo.assert_any_call(f"Sampling interval set to {sampling_interval_value} successfully.")
         mock_db.mod_entry.assert_called_once_with(
             "MEMORY_STATISTICS", "memory_statistics",
             {"sampling_interval": sampling_interval_value}

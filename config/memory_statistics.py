@@ -1,72 +1,53 @@
 import click
-from swsssdk import ConfigDBConnector
-
+from sonic_py_common import ConfigDBConnector
 
 def update_memory_statistics_status(status, db):
-    """Helper function to update the status of the Memory Statistics feature."""
-    try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
-            "enabled": status
-        })
-        click.echo(f"Memory Statistics feature {'enabled' if status == 'true' else 'disabled'} successfully.")
-    except Exception as e:
-        click.echo(f"Error {'enabling' if status == 'true' else 'disabling'} Memory Statistics feature: {e}", err=True)
-
+    """Updates the status of the memory statistics feature in the config DB."""
+    db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": status})
+    click.echo(f"Memory statistics feature {'enabled' if status == 'true' else 'disabled'} successfully.")
 
 @click.command()
 def memory_statistics_enable():
-    """Enable the Memory Statistics feature."""
+    """Enable memory statistics."""
     db = ConfigDBConnector()
     db.connect()
     update_memory_statistics_status("true", db)
 
-
 @click.command()
 def memory_statistics_disable():
-    """Disable the Memory Statistics feature."""
+    """Disable memory statistics."""
     db = ConfigDBConnector()
     db.connect()
     update_memory_statistics_status("false", db)
 
-
 @click.command()
 @click.argument("retention_period", type=int)
 def memory_statistics_retention_period(retention_period):
-    """Set the retention period for Memory Statistics."""
+    """Set retention period for memory statistics."""
     db = ConfigDBConnector()
     db.connect()
     try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
-            "retention_period": retention_period
-        })
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_period": retention_period})
         click.echo(f"Retention period set to {retention_period} successfully.")
     except Exception as e:
         click.echo(f"Error setting retention period: {e}", err=True)
 
-
 @click.command()
 @click.argument("sampling_interval", type=int)
 def memory_statistics_sampling_interval(sampling_interval):
-    """Set the sampling interval for Memory Statistics."""
+    """Set sampling interval for memory statistics."""
     db = ConfigDBConnector()
     db.connect()
     try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {
-            "sampling_interval": sampling_interval
-        })
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
         click.echo(f"Sampling interval set to {sampling_interval} successfully.")
     except Exception as e:
         click.echo(f"Error setting sampling interval: {e}", err=True)
 
+def get_memory_statistics_table(db):
+    """Retrieve MEMORY_STATISTICS table from config DB."""
+    return db.get_table("MEMORY_STATISTICS")
 
 def check_memory_statistics_table_existence(table):
-    """Check if the MEMORY_STATISTICS table exists and contains memory_statistics key."""
-    if "memory_statistics" in table:
-        return True
-    click.echo("Unable to retrieve key 'memory_statistics' from MEMORY_STATISTICS table.", err=True)
-    return False
-
-
-def get_memory_statistics_table(db):
-    """Retrieve the MEMORY_STATISTICS table from ConfigDB."""
-    return db.get_table("MEMORY_STATISTICS")
+    """Check if MEMORY_STATISTICS table exists in the given table."""
+    return "memory_statistics" in table
