@@ -48,6 +48,7 @@ def get_memory_statistics_table(db):
     """Retrieve MEMORY_STATISTICS table from config DB."""
     return db.get_table("MEMORY_STATISTICS")
 
+
 def check_memory_statistics_table_existence(table):
     """Check if MEMORY_STATISTICS table exists in the given table."""
     return "memory_statistics" in table
