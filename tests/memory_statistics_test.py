@@ -1,4 +1,3 @@
-# test_memory_statistics.py
 import pytest
 from unittest.mock import patch
 from click.testing import CliRunner
