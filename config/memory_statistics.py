@@ -1,5 +1,4 @@
 import click
-from utilities_common.cli import AbbreviationGroup
 from swsssdk import ConfigDBConnector
 
 
