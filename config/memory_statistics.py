@@ -43,7 +43,7 @@ def memory_statistics_enable():
         return  # Exit gracefully on error
 
     try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true", "disabled": "false"})
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "true"})
         click.echo("Memory Statistics feature enabled.")
     except Exception as e:
         click.echo(f"Error enabling Memory Statistics feature: {str(e)}", err=True)
@@ -62,7 +62,7 @@ def memory_statistics_disable():
         return  # Exit gracefully on error
 
     try:
-        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false", "disabled": "true"})
+        db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": "false"})
         click.echo("Memory Statistics feature disabled.")
     except Exception as e:
         click.echo(f"Error disabling Memory Statistics feature: {str(e)}", err=True)
