@@ -126,6 +126,7 @@ def test_check_memory_statistics_table_existence():
     assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
     assert check_memory_statistics_table_existence({}) is False
 
+
 def test_get_memory_statistics_table(mock_db):
     """Test getting MEMORY_STATISTICS table."""
     mock_db.get_table.return_value = {"memory_statistics": {}}
