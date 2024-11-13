@@ -96,24 +96,24 @@ class TestStp(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_OUTPUT.strip())
+        assert (re.sub(r'\s+', ' ', result.output.strip())) == (re.sub(
+                r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_OUTPUT.strip()))
 
     def test_show_spanning_tree_vlan(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["500"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.strip())
+        assert re.sub(r'\s+', ' ', result.output.strip()) == re.sub(
+                      r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.strip())
 
     def test_show_spanning_tree_statistics(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT.strip())
+        assert re.sub(r'\s+', ' ', result.output.strip()) == re.sub(
+                      r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT.strip())
 
     def test_show_spanning_tree_statistics_vlan(self, runner, db):
         result = runner.invoke(
@@ -121,24 +121,24 @@ class TestStp(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT.strip())
+        assert re.sub(r'\s+', ' ', result.output.strip()) == re.sub(
+                      r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT.strip())
 
     def test_show_spanning_tree_bpdu_guard(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["bpdu_guard"], [], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_BPDU_GUARD_OUTPUT.strip())
+        assert re.sub(r'\s+', ' ', result.output.strip()) == re.sub(
+                      r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_BPDU_GUARD_OUTPUT.strip())
 
     def test_show_spanning_tree_root_guard(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["root_guard"], [], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert re.sub(r'\s+', ' ', result.output.strip()) == 
-                      re.sub(r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_ROOT_GUARD_OUTPUT.strip())
+        assert re.sub(r'\s+', ' ', result.output.strip()) == re.sub(
+                      r'\s+', ' ', EXPECTED_SHOW_SPANNING_TREE_ROOT_GUARD_OUTPUT.strip())
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
