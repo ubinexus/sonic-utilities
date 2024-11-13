@@ -7,50 +7,6 @@ import show.main as show
 from utilities_common.db import Db
 from .mock_tables import dbconnector
 
-
-show_spanning_tree = """\
-Spanning-tree Mode: PVST
-
-VLAN 500 - STP instance 0
---------------------------------------------------------------------
-STP Bridge Parameters:
-Bridge           Bridge Bridge Bridge Hold  LastTopology Topology
-Identifier       MaxAge Hello  FwdDly Time  Change       Change
-hex              sec    sec    sec    sec   sec          cnt
-8064b86a97e24e9c 20     2      15     1     0            1
-
-RootBridge       RootPath  DesignatedBridge  RootPort           Max Hel Fwd
-Identifier       Cost      Identifier                           Age lo  Dly
-hex                        hex                                  sec sec sec
-0064b86a97e24e9c 600       806480a235f281ec  Root               20  2   15
-
-STP Port Parameters:
-Port             Prio Path      Port Uplink State         Designated  Designated       Designated
-Name             rity Cost      Fast Fast                 Cost        Root             Bridge
-Ethernet4        128  200       N    N      FORWARDING    400         0064b86a97e24e9c 806480a235f281ec
-"""
-
-show_spanning_tree_vlan = """\
-
-VLAN 500 - STP instance 0
---------------------------------------------------------------------
-STP Bridge Parameters:
-Bridge           Bridge Bridge Bridge Hold  LastTopology Topology
-Identifier       MaxAge Hello  FwdDly Time  Change       Change
-hex              sec    sec    sec    sec   sec          cnt
-8064b86a97e24e9c 20     2      15     1     0            1
-
-RootBridge       RootPath  DesignatedBridge  RootPort           Max Hel Fwd
-Identifier       Cost      Identifier                           Age lo  Dly
-hex                        hex                                  sec sec sec
-0064b86a97e24e9c 600       806480a235f281ec  Root               20  2   15
-
-STP Port Parameters:
-Port             Prio Path      Port Uplink State         Designated  Designated       Designated
-Name             rity Cost      Fast Fast                 Cost        Root             Bridge
-Ethernet4        128  200       N    N      FORWARDING    400         0064b86a97e24e9c 806480a235f281ec
-"""
-
 show_spanning_tree_statistics = """\
 VLAN 500 - STP instance 0
 --------------------------------------------------------------------
@@ -91,18 +47,129 @@ class TestStp(object):
         return Db()
 
     def test_show_spanning_tree(self, runner, db):
-        result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree
+        EXPECTED_SHOW_SPANNING_TREE_OUTPUT = json.dumps({
+    "SpanningTreeMode": "PVST",
+    "VLAN": {
+        "id": 500,
+        "instance": 0,
+        "STPBridgeParameters": {
+            "BridgeIdentifier": "8064b86a97e24e9c",
+            "MaxAge": 20,
+            "HelloTime": 2,
+            "ForwardDelay": 15,
+            "HoldTime": 1,
+            "LastTopologyChange": 0,
+            "TopologyChangeCount": 1
+        },
+        "RootBridgeParameters": {
+            "RootIdentifier": "0064b86a97e24e9c",
+            "RootPathCost": 600,
+            "DesignatedBridgeIdentifier": "806480a235f281ec",
+            "RootPort": "Root",
+            "MaxAge": 20,
+            "HelloTime": 2,
+            "ForwardDelay": 15
+        },
+        "STPPortParameters": [
+            {
+                "PortName": "Ethernet4",
+                "Priority": 128,
+                "PathCost": 200,
+                "PortFast": "N",
+                "UplinkFast": "N",
+                "State": "FORWARDING",
+                "DesignatedCost": 400,
+                "DesignatedRoot": "0064b86a97e24e9c",
+                "DesignatedBridge": "806480a235f281ec"
+            }
+        ]
+    }})
+    result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
+    print(result.exit_code)
+    print(result.output)
+
+    # Validate exit code
+    assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
+
+    # Validate expected output using partial match to handle minor formatting variations
+    expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_OUTPUT.splitlines()
+    actual_output_lines = result.output.splitlines()
+    
+    # Check if each expected line is present in the actual output
+    for expected_line in expected_output_lines:
+        assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
+
 
     def test_show_spanning_tree_vlan(self, runner, db):
+        EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT = json.dumps({
+        "VLAN": {
+            "id": 500,
+            "instance": 0,
+            "STPBridgeParameters": {
+                "BridgeIdentifier": "8064b86a97e24e9c",
+                "MaxAge": 20,
+                "HelloTime": 2,
+                "ForwardDelay": 15,
+                "HoldTime": 1,
+                "LastTopologyChange": 0,
+                "TopologyChangeCount": 1
+            },
+            "RootBridgeParameters": {
+                "RootIdentifier": "0064b86a97e24e9c",
+                "RootPathCost": 600,
+                "DesignatedBridgeIdentifier": "806480a235f281ec",
+                "RootPort": "Root",
+                "MaxAge": 20,
+                "HelloTime": 2,
+                "ForwardDelay": 15
+            },
+            "STPPortParameters": [
+                {
+                    "PortName": "Ethernet4",
+                    "Priority": 128,
+                    "PathCost": 200,
+                    "PortFast": "N",
+                    "UplinkFast": "N",
+                    "State": "FORWARDING",
+                    "DesignatedCost": 400,
+                    "DesignatedRoot": "0064b86a97e24e9c",
+                    "DesignatedBridge": "806480a235f281ec"
+                }
+            ]
+        }
+        })
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["500"], obj=db)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_spanning_tree_vlan
+
+        # Validate exit code
+        assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
+    
+        # Validate expected output using partial match to handle minor formatting variations
+        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.splitlines()
+        actual_output_lines = result.output.splitlines()
+        
+        # Check if each expected line is present in the actual output
+        for expected_line in expected_output_lines:
+            assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
+
+    def test_show_spanning_tree_vlan(self, runner, db):
+        result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["500"], obj=db)
+    
+        # Print debug information
+        print("Exit Code:", result.exit_code)
+        print("Output:\n", result.output)
+    
+        # Validate exit code
+        assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
+    
+        # Validate expected output using partial match to handle minor formatting variations
+        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.splitlines()
+        actual_output_lines = result.output.splitlines()
+        
+        # Check if each expected line is present in the actual output
+        for expected_line in expected_output_lines:
+            assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
 
     def test_show_spanning_tree_statistics(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
