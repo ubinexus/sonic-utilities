@@ -8,28 +8,19 @@ import show.main as show
 from utilities_common.db import Db
 from .mock_tables import dbconnector
 
-show_spanning_tree_statistics = """\
-VLAN 500 - STP instance 0
---------------------------------------------------------------------
-PortNum          BPDU Tx        BPDU Rx        TCN Tx         TCN Rx
-Ethernet4        10             15             15             5
-"""
-
-show_spanning_tree_bpdu_guard = """\
-PortNum          Shutdown     Port Shut
-                 Configured   due to BPDU guard
--------------------------------------------
-Ethernet4        No           NA
-"""
-
-show_spanning_tree_root_guard = """\
-Root guard timeout: 30 secs
-
-Port             VLAN   Current State
--------------------------------------------
-Ethernet4        500    Consistent state
-"""
-
+EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT = {
+    "VLAN": 500,
+    "STP_instance": 0,
+    "Statistics": [
+        {
+            "PortNum": "Ethernet4",
+            "BPDU_Tx": 10,
+            "BPDU_Rx": 15,
+            "TCN_Tx": 15,
+            "TCN_Rx": 5
+        }
+    ]
+}
 
 class TestStp(object):
     @classmethod
@@ -93,9 +84,10 @@ class TestStp(object):
         # Validate exit code
         assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
 
-        # Validate expected output using partial match to handle minor formatting variations
-        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_OUTPUT.splitlines()
-        actual_output_lines = result.output.splitlines()
+        expected_output_lines = json.loads(EXPECTED_SHOW_SPANNING_TREE_OUTPUT)
+        actual_output_lines = json.loads(result.output)
+        print(expected_output_lines)
+        print(actual_output_lines)
 
         # Check if each expected line is present in the actual output
         for expected_line in expected_output_lines:
@@ -145,43 +137,89 @@ class TestStp(object):
 
         # Validate exit code
         assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
-    
-        # Validate expected output using partial match to handle minor formatting variations
-        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.splitlines()
-        actual_output_lines = result.output.splitlines()
+
+        expected_output_lines = json.loads(EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT)
+        actual_output_lines = json.loads(result.output)
+        print(expected_output_lines)
+        print(actual_output_lines)
 
         # Check if each expected line is present in the actual output
         for expected_line in expected_output_lines:
             assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
-   
+
     def test_show_spanning_tree_statistics(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
+        
+        # Print debugging info
         print(result.exit_code)
         print(result.output)
+        
+        # Convert result to JSON
+        output_json = json.loads(result.output)
+        
         assert result.exit_code == 0
-        assert result.output == show_spanning_tree_statistics
+        assert output_json == EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT
 
     def test_show_spanning_tree_statistics_vlan(self, runner, db):
         result = runner.invoke(
             show.cli.commands["spanning-tree"].commands["statistics"].commands["vlan"], ["500"], obj=db)
+
+        # Print debugging info
         print(result.exit_code)
         print(result.output)
+        
+        # Convert result to JSON
+        expected_output_lines = json.loads(EXPECTED_SHOW_SPANNING_TREE_STATISTICS_OUTPUT)
+        actual_output_lines = json.loads(result.output)
+        
         assert result.exit_code == 0
-        assert result.output == show_spanning_tree_statistics
+        assert expected_output_lines == actual_output_lines
 
     def test_show_spanning_tree_bpdu_guard(self, runner, db):
+        EXPECTED_SHOW_SPANNING_TREE_BPDU_GUARD_OUTPUT = json.dumps({
+            "BPDU_Guard": [
+                {
+                    "PortNum": "Ethernet4",
+                    "ShutdownConfigured": "No",
+                    "PortShutDueToBPDUGuard": "NA"
+                }
+            ]
+        })
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["bpdu_guard"], [], obj=db)
+        # Print debugging info
         print(result.exit_code)
         print(result.output)
+        
+        # Convert result to JSON
+        expected_output_lines = json.loads(EXPECTED_SHOW_SPANNING_TREE_BPDU_GUARD_OUTPUT)
+        actual_output_lines = json.loads(result.output)
+        
         assert result.exit_code == 0
-        assert result.output == show_spanning_tree_bpdu_guard
+        assert expected_output_lines == actual_output_lines
 
     def test_show_spanning_tree_root_guard(self, runner, db):
+        EXPECTED_SHOW_SPANNING_TREE_ROOT_GUARD_OUTPUT = json.dumps({
+            "RootGuard": {
+                "Timeout": "30 secs",
+                "Ports": [
+                {
+                    "Port": "Ethernet4",
+                    "VLAN": 500,
+                     "CurrentState": "Consistent state"
+                }]
+            }
+        })
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["root_guard"], [], obj=db)
+        # Print debugging info
         print(result.exit_code)
         print(result.output)
+        
+        # Convert result to JSON
+        expected_output_lines = json.loads(EXPECTED_SHOW_SPANNING_TREE_ROOT_GUARD_OUTPUT)
+        actual_output_lines = json.loads(result.output)
+        
         assert result.exit_code == 0
-        assert result.output == show_spanning_tree_root_guard
+        assert expected_output_lines == actual_output_lines
 
     @pytest.mark.parametrize("command, args, expected_exit_code, expected_output", [
         # Disable PVST
