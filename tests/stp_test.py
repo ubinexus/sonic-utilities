@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 from click.testing import CliRunner
 
@@ -48,95 +49,95 @@ class TestStp(object):
 
     def test_show_spanning_tree(self, runner, db):
         EXPECTED_SHOW_SPANNING_TREE_OUTPUT = json.dumps({
-    "SpanningTreeMode": "PVST",
-    "VLAN": {
-        "id": 500,
-        "instance": 0,
-        "STPBridgeParameters": {
-            "BridgeIdentifier": "8064b86a97e24e9c",
-            "MaxAge": 20,
-            "HelloTime": 2,
-            "ForwardDelay": 15,
-            "HoldTime": 1,
-            "LastTopologyChange": 0,
-            "TopologyChangeCount": 1
-        },
-        "RootBridgeParameters": {
-            "RootIdentifier": "0064b86a97e24e9c",
-            "RootPathCost": 600,
-            "DesignatedBridgeIdentifier": "806480a235f281ec",
-            "RootPort": "Root",
-            "MaxAge": 20,
-            "HelloTime": 2,
-            "ForwardDelay": 15
-        },
-        "STPPortParameters": [
-            {
-                "PortName": "Ethernet4",
-                "Priority": 128,
-                "PathCost": 200,
-                "PortFast": "N",
-                "UplinkFast": "N",
-                "State": "FORWARDING",
-                "DesignatedCost": 400,
-                "DesignatedRoot": "0064b86a97e24e9c",
-                "DesignatedBridge": "806480a235f281ec"
+            "SpanningTreeMode": "PVST",
+            "VLAN": {
+                "id": 500,
+                "instance": 0,
+                "STPBridgeParameters": {
+                    "BridgeIdentifier": "8064b86a97e24e9c",
+                    "MaxAge": 20,
+                    "HelloTime": 2,
+                    "ForwardDelay": 15,
+                    "HoldTime": 1,
+                    "LastTopologyChange": 0,
+                    "TopologyChangeCount": 1
+                },
+                "RootBridgeParameters": {
+                    "RootIdentifier": "0064b86a97e24e9c",
+                    "RootPathCost": 600,
+                    "DesignatedBridgeIdentifier": "806480a235f281ec",
+                    "RootPort": "Root",
+                    "MaxAge": 20,
+                    "HelloTime": 2,
+                    "ForwardDelay": 15
+                },
+                "STPPortParameters": [
+                    {
+                        "PortName": "Ethernet4",
+                        "Priority": 128,
+                        "PathCost": 200,
+                        "PortFast": "N",
+                        "UplinkFast": "N",
+                        "State": "FORWARDING",
+                        "DesignatedCost": 400,
+                        "DesignatedRoot": "0064b86a97e24e9c",
+                        "DesignatedBridge": "806480a235f281ec"
+                    }
+                ]
             }
-        ]
-    }})
-    result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
-    print(result.exit_code)
-    print(result.output)
+        })
+        result = runner.invoke(show.cli.commands["spanning-tree"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
 
-    # Validate exit code
-    assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
+        # Validate exit code
+        assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
 
-    # Validate expected output using partial match to handle minor formatting variations
-    expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_OUTPUT.splitlines()
-    actual_output_lines = result.output.splitlines()
-    
-    # Check if each expected line is present in the actual output
-    for expected_line in expected_output_lines:
-        assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
+        # Validate expected output using partial match to handle minor formatting variations
+        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_OUTPUT.splitlines()
+        actual_output_lines = result.output.splitlines()
 
+        # Check if each expected line is present in the actual output
+        for expected_line in expected_output_lines:
+            assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
 
     def test_show_spanning_tree_vlan(self, runner, db):
         EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT = json.dumps({
-        "VLAN": {
-            "id": 500,
-            "instance": 0,
-            "STPBridgeParameters": {
-                "BridgeIdentifier": "8064b86a97e24e9c",
-                "MaxAge": 20,
-                "HelloTime": 2,
-                "ForwardDelay": 15,
-                "HoldTime": 1,
-                "LastTopologyChange": 0,
-                "TopologyChangeCount": 1
-            },
-            "RootBridgeParameters": {
-                "RootIdentifier": "0064b86a97e24e9c",
-                "RootPathCost": 600,
-                "DesignatedBridgeIdentifier": "806480a235f281ec",
-                "RootPort": "Root",
-                "MaxAge": 20,
-                "HelloTime": 2,
-                "ForwardDelay": 15
-            },
-            "STPPortParameters": [
-                {
-                    "PortName": "Ethernet4",
-                    "Priority": 128,
-                    "PathCost": 200,
-                    "PortFast": "N",
-                    "UplinkFast": "N",
-                    "State": "FORWARDING",
-                    "DesignatedCost": 400,
-                    "DesignatedRoot": "0064b86a97e24e9c",
-                    "DesignatedBridge": "806480a235f281ec"
-                }
-            ]
-        }
+            "VLAN": {
+                "id": 500,
+                "instance": 0,
+                "STPBridgeParameters": {
+                    "BridgeIdentifier": "8064b86a97e24e9c",
+                    "MaxAge": 20,
+                    "HelloTime": 2,
+                    "ForwardDelay": 15,
+                    "HoldTime": 1,
+                    "LastTopologyChange": 0,
+                    "TopologyChangeCount": 1
+                },
+                "RootBridgeParameters": {
+                    "RootIdentifier": "0064b86a97e24e9c",
+                    "RootPathCost": 600,
+                    "DesignatedBridgeIdentifier": "806480a235f281ec",
+                    "RootPort": "Root",
+                    "MaxAge": 20,
+                    "HelloTime": 2,
+                    "ForwardDelay": 15
+                },
+                "STPPortParameters": [
+                    {
+                        "PortName": "Ethernet4",
+                        "Priority": 128,
+                        "PathCost": 200,
+                        "PortFast": "N",
+                        "UplinkFast": "N",
+                        "State": "FORWARDING",
+                        "DesignatedCost": 400,
+                        "DesignatedRoot": "0064b86a97e24e9c",
+                        "DesignatedBridge": "806480a235f281ec"
+                    }
+                ]
+            }
         })
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["500"], obj=db)
         print(result.exit_code)
@@ -148,29 +149,11 @@ class TestStp(object):
         # Validate expected output using partial match to handle minor formatting variations
         expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.splitlines()
         actual_output_lines = result.output.splitlines()
-        
+
         # Check if each expected line is present in the actual output
         for expected_line in expected_output_lines:
             assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
-
-    def test_show_spanning_tree_vlan(self, runner, db):
-        result = runner.invoke(show.cli.commands["spanning-tree"].commands["vlan"], ["500"], obj=db)
-    
-        # Print debug information
-        print("Exit Code:", result.exit_code)
-        print("Output:\n", result.output)
-    
-        # Validate exit code
-        assert result.exit_code == 0, "Expected exit code 0 but got {}".format(result.exit_code)
-    
-        # Validate expected output using partial match to handle minor formatting variations
-        expected_output_lines = EXPECTED_SHOW_SPANNING_TREE_VLAN_OUTPUT.splitlines()
-        actual_output_lines = result.output.splitlines()
-        
-        # Check if each expected line is present in the actual output
-        for expected_line in expected_output_lines:
-            assert expected_line in actual_output_lines, f"Expected line '{expected_line}' not found in output"
-
+   
     def test_show_spanning_tree_statistics(self, runner, db):
         result = runner.invoke(show.cli.commands["spanning-tree"].commands["statistics"], [], obj=db)
         print(result.exit_code)
