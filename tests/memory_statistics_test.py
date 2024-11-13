@@ -10,6 +10,7 @@ from config.memory_statistics import (
     check_memory_statistics_table_existence,
 )
 
+
 @pytest.fixture
 def mock_db():
     """Fixture for the mock database."""

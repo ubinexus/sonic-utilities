@@ -2,7 +2,6 @@ import click
 from swsscommon.swsscommon import ConfigDBConnector
 
 
-
 def update_memory_statistics_status(status, db):
     """Updates the status of the memory statistics feature in the config DB."""
     db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": status})
