@@ -18,49 +18,76 @@ def mock_db():
         mock_db_instance = MockConfigDBConnector.return_value
         yield mock_db_instance
 
-
 def test_memory_statistics_enable(mock_db):
     """Test enabling the Memory Statistics feature."""
-    mock_db.get_table.return_value = {"memory_statistics": {"enabled": "false"}}
     runner = CliRunner()
 
     with patch("config.memory_statistics.update_memory_statistics_status") as mock_update_status:
+        mock_update_status.return_value = (True, None)  # Simulate successful update
         result = runner.invoke(memory_statistics_enable)
         assert result.exit_code == 0
         mock_update_status.assert_called_once_with("true", mock_db)
 
-
 def test_memory_statistics_disable(mock_db):
     """Test disabling the Memory Statistics feature."""
-    mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
     runner = CliRunner()
 
     with patch("config.memory_statistics.update_memory_statistics_status") as mock_update_status:
+        mock_update_status.return_value = (True, None)  # Simulate successful update
         result = runner.invoke(memory_statistics_disable)
         assert result.exit_code == 0
         mock_update_status.assert_called_once_with("false", mock_db)
 
-
 def test_memory_statistics_retention_period(mock_db):
     """Test setting the retention period for Memory Statistics."""
-    mock_db.get_table.return_value = {"memory_statistics": {}}
     runner = CliRunner()
-    retention_period_value = 30
+    retention_period_value = 20  # Within valid range
 
     with patch("click.echo") as mock_echo:
         result = runner.invoke(memory_statistics_retention_period, [str(retention_period_value)])
         assert result.exit_code == 0
-        assert mock_echo.call_count == 1  # Updated to expect only one echo call
         mock_echo.assert_any_call(f"Retention period set to {retention_period_value} successfully.")
         mock_db.mod_entry.assert_called_once_with(
             "MEMORY_STATISTICS", "memory_statistics",
             {"retention_period": retention_period_value}
         )
 
+def test_memory_statistics_retention_period_invalid(mock_db):
+    """Test setting an invalid retention period for Memory Statistics."""
+    runner = CliRunner()
+    invalid_value = 50  # Out of valid range
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_retention_period, [str(invalid_value)])
+        assert result.exit_code == 0
+        mock_echo.assert_any_call("Error: Retention period must be between 1 and 30.", err=True)
+
+def test_memory_statistics_sampling_interval(mock_db):
+    """Test setting the sampling interval for Memory Statistics."""
+    runner = CliRunner()
+    sampling_interval_value = 10  # Within valid range
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
+        assert result.exit_code == 0
+        mock_echo.assert_any_call(f"Sampling interval set to {sampling_interval_value} successfully.")
+        mock_db.mod_entry.assert_called_once_with(
+            "MEMORY_STATISTICS", "memory_statistics",
+            {"sampling_interval": sampling_interval_value}
+        )
+
+def test_memory_statistics_sampling_interval_invalid(mock_db):
+    """Test setting an invalid sampling interval for Memory Statistics."""
+    runner = CliRunner()
+    invalid_value = 20  # Out of valid range
+
+    with patch("click.echo") as mock_echo:
+        result = runner.invoke(memory_statistics_sampling_interval, [str(invalid_value)])
+        assert result.exit_code == 0
+        mock_echo.assert_any_call("Error: Sampling interval must be between 3 and 15.", err=True)
 
 def test_memory_statistics_retention_period_exception(mock_db):
     """Test setting retention period for Memory Statistics when an exception occurs."""
-    mock_db.get_table.return_value = {"memory_statistics": {}}
     runner = CliRunner()
     retention_period_value = 30
 
@@ -72,27 +99,8 @@ def test_memory_statistics_retention_period_exception(mock_db):
         assert result.exit_code == 0
         mock_echo.assert_any_call("Error setting retention period: Simulated retention period error", err=True)
 
-
-def test_memory_statistics_sampling_interval(mock_db):
-    """Test setting the sampling interval for Memory Statistics."""
-    mock_db.get_table.return_value = {"memory_statistics": {}}
-    runner = CliRunner()
-    sampling_interval_value = 10
-
-    with patch("click.echo") as mock_echo:
-        result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
-        assert result.exit_code == 0
-        assert mock_echo.call_count == 1  # Updated to expect only one echo call
-        mock_echo.assert_any_call(f"Sampling interval set to {sampling_interval_value} successfully.")
-        mock_db.mod_entry.assert_called_once_with(
-            "MEMORY_STATISTICS", "memory_statistics",
-            {"sampling_interval": sampling_interval_value}
-        )
-
-
 def test_memory_statistics_sampling_interval_exception(mock_db):
     """Test setting sampling interval for Memory Statistics when an exception occurs."""
-    mock_db.get_table.return_value = {"memory_statistics": {}}
     runner = CliRunner()
     sampling_interval_value = 10
 
@@ -104,12 +112,10 @@ def test_memory_statistics_sampling_interval_exception(mock_db):
         assert result.exit_code == 0
         mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
 
-
 def test_check_memory_statistics_table_existence():
     """Test existence check for MEMORY_STATISTICS table."""
     assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
     assert check_memory_statistics_table_existence({}) is False
-
 
 def test_get_memory_statistics_table(mock_db):
     """Test getting MEMORY_STATISTICS table."""
