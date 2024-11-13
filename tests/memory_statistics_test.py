@@ -52,6 +52,7 @@ def test_memory_statistics_retention_period(mock_db):
             {"retention_period": retention_period_value}
         )
 
+
 def test_memory_statistics_retention_period_invalid(mock_db):
     """Test setting an invalid retention period for Memory Statistics."""
     runner = CliRunner()
@@ -76,6 +77,7 @@ def test_memory_statistics_sampling_interval(mock_db):
             {"sampling_interval": sampling_interval_value}
         )
 
+
 def test_memory_statistics_sampling_interval_invalid(mock_db):
     """Test setting an invalid sampling interval for Memory Statistics."""
     runner = CliRunner()
@@ -85,6 +87,7 @@ def test_memory_statistics_sampling_interval_invalid(mock_db):
         result = runner.invoke(memory_statistics_sampling_interval, [str(invalid_value)])
         assert result.exit_code == 0
         mock_echo.assert_any_call("Error: Sampling interval must be between 3 and 15.", err=True)
+
 
 def test_memory_statistics_retention_period_exception(mock_db):
     """Test setting retention period for Memory Statistics when an exception occurs."""

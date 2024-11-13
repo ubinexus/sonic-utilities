@@ -42,7 +42,7 @@ def memory_statistics_retention_period(retention_period):
     if not (1 <= retention_period <= 30):
         click.echo("Error: Retention period must be between 1 and 30.", err=True)
         return False, "Invalid retention period value"
-    
+
     db = ConfigDBConnector()
     db.connect()
     try:
@@ -60,7 +60,7 @@ def memory_statistics_sampling_interval(sampling_interval):
     if not (3 <= sampling_interval <= 15):
         click.echo("Error: Sampling interval must be between 3 and 15.", err=True)
         return False, "Invalid sampling interval value"
-    
+
     db = ConfigDBConnector()
     db.connect()
     try:
