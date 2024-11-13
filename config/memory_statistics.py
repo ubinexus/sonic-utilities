@@ -1,5 +1,6 @@
 import click
-from sonic_py_common import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
+
 
 
 def update_memory_statistics_status(status, db):
