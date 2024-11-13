@@ -5,6 +5,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 DEFAULT_SAMPLING_INTERVAL = 5
 DEFAULT_RETENTION_PERIOD = 15
 
+
 def update_memory_statistics_status(status, db):
     """Updates the status of the memory statistics feature in the config DB."""
     try:
