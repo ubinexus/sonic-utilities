@@ -87,7 +87,11 @@ def test_memory_statistics_sampling_interval(mock_db):
             "MEMORY_STATISTICS", "memory_statistics",
             {"sampling_interval": sampling_interval_value}
         )
-        mock_syslog.assert_any_call(syslog.LOG_INFO, f"Sampling interval set to {sampling_interval_value} successfully.")
+        mock_syslog.assert_any_call(
+            syslog.LOG_INFO,
+            f"Sampling interval set to {sampling_interval_value} successfully."
+        )
+
 
 
 def test_memory_statistics_sampling_interval_invalid(mock_db):

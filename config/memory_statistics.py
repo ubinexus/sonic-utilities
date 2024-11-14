@@ -12,7 +12,11 @@ def update_memory_statistics_status(status, db):
     try:
         db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"enabled": status})
         click.echo(f"Memory statistics feature {'enabled' if status == 'true' else 'disabled'} successfully.")
-        syslog.syslog(syslog.LOG_INFO, f"Memory statistics feature {'enabled' if status == 'true' else 'disabled'} successfully.")
+        syslog.syslog(
+            syslog.LOG_INFO,
+            f"Memory statistics feature {'enabled' if status == 'true' else 'disabled'} successfully."
+        )
+
         return True, None  # Success: return True and no error
     except Exception as e:
         return False, f"Error updating memory statistics status: {e}"  # Failure: return False and the error message
@@ -52,7 +56,7 @@ def memory_statistics_disable():
 @click.argument("retention_period", type=int, required=False, default=DEFAULT_RETENTION_PERIOD)
 def memory_statistics_retention_period(retention_period):
     """Set the retention period for Memory Statistics.
-    
+
     The retention period specifies how long memory statistics should be retained.
     Valid values are between 1 and 30 days.
     Default value is 15 days if not provided.
@@ -77,7 +81,7 @@ def memory_statistics_retention_period(retention_period):
 @click.argument("sampling_interval", type=int, required=False, default=DEFAULT_SAMPLING_INTERVAL)
 def memory_statistics_sampling_interval(sampling_interval):
     """Set sampling interval for Memory Statistics.
-    
+
     The sampling interval specifies how often memory statistics should be sampled.
     Valid values are between 3 and 15 seconds.
     Default value is 5 seconds if not provided.
