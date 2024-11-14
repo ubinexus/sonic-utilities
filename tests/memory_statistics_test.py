@@ -98,7 +98,7 @@ def test_memory_statistics_retention_period_exception(mock_db):
     runner = CliRunner()
     retention_period_value = 30
 
-    # Mock `mod_entry` to raise an exception.
+    # Mock `mod_entry` to raise an exception
     mock_db.mod_entry.side_effect = Exception("Simulated retention period error")
 
     with patch("click.echo") as mock_echo:
