@@ -6,6 +6,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 DEFAULT_SAMPLING_INTERVAL = 5
 DEFAULT_RETENTION_PERIOD = 15
 
+
 def log_to_syslog(message, level=syslog.LOG_INFO):
     """Log a message to syslog."""
     syslog.openlog("memory_statistics", syslog.LOG_PID | syslog.LOG_CONS, syslog.LOG_USER)
