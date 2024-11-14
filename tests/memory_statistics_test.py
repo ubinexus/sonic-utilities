@@ -138,7 +138,6 @@ def test_memory_statistics_sampling_interval_exception(mock_db):
         )
 
 
-
 def test_check_memory_statistics_table_existence():
     """Test existence check for MEMORY_STATISTICS table."""
     assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
