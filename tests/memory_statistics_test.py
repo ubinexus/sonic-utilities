@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch
 from click.testing import CliRunner
-import syslog 
+import syslog
 from config.memory_statistics import (
     memory_statistics_enable,
     memory_statistics_disable,
