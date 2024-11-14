@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 from click.testing import CliRunner
+import syslog 
 from config.memory_statistics import (
     memory_statistics_enable,
     memory_statistics_disable,
@@ -128,7 +129,9 @@ def test_memory_statistics_sampling_interval_exception(mock_db):
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
         assert result.exit_code == 0
         mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
-        mock_syslog.assert_any_call("Error setting sampling interval: Simulated sampling interval error", syslog.LOG_ERR)
+        mock_syslog.assert_any_call(
+            "Error setting sampling interval: Simulated sampling interval error", syslog.LOG_ERR
+        )
 
 
 def test_check_memory_statistics_table_existence():
