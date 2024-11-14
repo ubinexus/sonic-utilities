@@ -112,7 +112,7 @@ def test_memory_statistics_sampling_interval_exception(mock_db):
     runner = CliRunner()
     sampling_interval_value = 10
 
-    # Mock `mod_entry` to raise an exception.
+    # Mock `mod_entry` to raise an exception
     mock_db.mod_entry.side_effect = Exception("Simulated sampling interval error")
 
     with patch("click.echo") as mock_echo:

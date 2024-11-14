@@ -42,16 +42,15 @@ def memory_statistics_retention_period(retention_period):
     """Set retention period for memory statistics."""
     if not (1 <= retention_period <= 30):
         click.echo("Error: Retention period must be between 1 and 30.", err=True)
-        return False, "Invalid retention period value"
+        return
 
     db = ConfigDBConnector()
     db.connect()
     try:
         db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_period": retention_period})
         click.echo(f"Retention period set to {retention_period} successfully.")
-        return True, None  # Success: return True and no error
     except Exception as e:
-        return False, f"Error setting retention period: {e}"  # Failure: return False and the error message
+        click.echo(f"Error setting retention period: {e}", err=True)
 
 
 @click.command()
@@ -60,16 +59,15 @@ def memory_statistics_sampling_interval(sampling_interval):
     """Set sampling interval for memory statistics."""
     if not (3 <= sampling_interval <= 15):
         click.echo("Error: Sampling interval must be between 3 and 15.", err=True)
-        return False, "Invalid sampling interval value"
+        return
 
     db = ConfigDBConnector()
     db.connect()
     try:
         db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
         click.echo(f"Sampling interval set to {sampling_interval} successfully.")
-        return True, None  # Success: return True and no error
     except Exception as e:
-        return False, f"Error setting sampling interval: {e}"  # Failure: return False and the error message
+        click.echo(f"Error setting sampling interval: {e}", err=True)
 
 
 def get_memory_statistics_table(db):
