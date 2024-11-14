@@ -93,7 +93,6 @@ def test_memory_statistics_sampling_interval(mock_db):
         )
 
 
-
 def test_memory_statistics_sampling_interval_invalid(mock_db):
     """Test setting an invalid sampling interval for Memory Statistics."""
     runner = CliRunner()
@@ -133,7 +132,11 @@ def test_memory_statistics_sampling_interval_exception(mock_db):
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
         assert result.exit_code == 0
         mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
-        mock_syslog.assert_any_call(syslog.LOG_ERR, "Error setting sampling interval: Simulated sampling interval error")
+        mock_syslog.assert_any_call(
+            syslog.LOG_ERR,
+            "Error setting sampling interval: Simulated sampling interval error"
+        )
+
 
 
 def test_check_memory_statistics_table_existence():
