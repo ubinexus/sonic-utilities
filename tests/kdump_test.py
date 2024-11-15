@@ -148,9 +148,9 @@ class TestKdump:
         assert kdump_table["config"]["ssh_string"] == ssh_string
 
         def test_config_kdump_add_ssh_path(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
+            (config, show) = get_cmd_module
+            db = Db()
+            runner = CliRunner()
 
         ssh_path_valid = "/root/.ssh/id_rsa"
         ssh_path_invalid_relative = "root/.ssh/id_rsa"
