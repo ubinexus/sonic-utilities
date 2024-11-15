@@ -147,22 +147,22 @@ class TestKdump:
         kdump_table = db.cfgdb.get_table("KDUMP")
         assert kdump_table["config"]["ssh_string"] == ssh_string
 
-    def test_config_kdump_add_ssh_path(self, get_cmd_module):
+        def test_config_kdump_add_ssh_path(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
-        # Test case where KDUMP table does not exist
-        ssh_path = "/root/.ssh/id_rsa"
-        db.cfgdb.delete_table("KDUMP")
+        ssh_path_valid = "/root/.ssh/id_rsa"
+        ssh_path_invalid_relative = "root/.ssh/id_rsa"
+        ssh_path_invalid_nonexistent = "/invalid/path/to/key"
 
+        # Test case where KDUMP table does not exist
+        db.cfgdb.delete_table("KDUMP")
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path],
+            [ssh_path_valid],
             obj=db
         )
-
-        # Assert that the command fails when the table is missing
         assert result.exit_code == 1
         assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
 
@@ -170,29 +170,44 @@ class TestKdump:
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path],
+            [ssh_path_valid],
             obj=db
         )
-
-        # Assert that the command fails because the remote feature is disabled
         assert result.exit_code == 0
         assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
 
-        # Test case where remote feature is enabled
+        # Test case for invalid SSH path (relative path)
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path],
+            [ssh_path_invalid_relative],
             obj=db
         )
-
-        # Assert that the command executes successfully
         assert result.exit_code == 0
-        assert f"SSH path added to KDUMP configuration: {ssh_path}" in result.output
+        assert "Error: Invalid path. SSH path must be an absolute path." in result.output
 
-        # Retrieve the updated table to ensure the SSH path was added
+        # Test case for invalid SSH path (non-existent path)
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+            [ssh_path_invalid_nonexistent],
+            obj=db
+        )
+        assert result.exit_code == 0
+        assert f"Error: Invalid path. The path '{ssh_path_invalid_nonexistent}' does not exist." in result.output
+
+        # Test case for valid SSH path
+        result = runner.invoke(
+            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+            [ssh_path_valid],
+            obj=db
+        )
+        assert result.exit_code == 0
+        assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
+
+        # Verify that the SSH path is updated in the KDUMP table
         kdump_table = db.cfgdb.get_table("KDUMP")
-        assert kdump_table["config"]["ssh_path"] == ssh_path
+        assert kdump_table["config"]["ssh_path"] == ssh_path_valid
+
 
     def test_config_kdump_remove_ssh_string(self, get_cmd_module):
         (config, show) = get_cmd_module
