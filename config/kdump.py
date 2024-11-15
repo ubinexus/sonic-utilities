@@ -1,6 +1,8 @@
 import sys
 import click
+import os
 from utilities_common.cli import AbbreviationGroup, pass_db
+from ipaddress import ip_address, AddressValueError
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -137,12 +139,42 @@ def add():
 def add_ssh_key(db, ssh_string):
     """Add an SSH string to KDUMP configuration"""
 
+    def is_valid_ssh_key(ssh_string):
+        """Validate the SSH key format"""
+        # Check if it contains username and hostname/IP (format: username@host)
+        if "@" not in ssh_string:
+            return "Invalid format. SSH key must be in 'username@host' format."
+        
+        username, host = ssh_string.split("@", 1)
+
+        # Validate username
+        if not username or not username.isalnum():
+            return "Invalid username. Ensure it contains only alphanumeric characters."
+
+        # Validate host (IP or hostname)
+        try:
+            # Check if it's a valid IP address
+            ip_address(host)
+        except AddressValueError:
+            # If not an IP, validate hostname
+            hostname_regex = r'^[a-zA-Z0-9.-]+$'
+            if not re.match(hostname_regex, host) or host.startswith('-') or host.endswith('-'):
+                return "Invalid host. Must be a valid IP or hostname."
+
+        return None  # Validation successful
+
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
     current_status = kdump_table["config"].get("remote", "false").lower()
 
     if current_status == 'false':
         click.echo("Remote feature is not enabled. Please enable the remote feature first.")
+        return
+
+    # Validate SSH key
+    validation_error = is_valid_ssh_key(ssh_string)
+    if validation_error:
+        click.echo(f"Error: {validation_error}")
         return
 
     # Add or update the 'ssh_key' entry in the KDUMP table
@@ -150,11 +182,24 @@ def add_ssh_key(db, ssh_string):
     click.echo(f"SSH string added to KDUMP configuration: {ssh_string}")
 
 
+
 @add.command(name="ssh_path", help="Add an SSH path to the KDUMP configuration")
-@click.argument('ssh_path', metavar='<ssh_key>', required=True)
+@click.argument('ssh_path', metavar='<ssh_path>', required=True)
 @pass_db
 def add_ssh_path(db, ssh_path):
     """Add an SSH path to KDUMP configuration"""
+
+    def is_valid_ssh_path(ssh_path):
+        """Validate the SSH path"""
+        # Check if the path is absolute
+        if not os.path.isabs(ssh_path):
+            return "Invalid path. SSH path must be an absolute path."
+
+        # (Optional) Check if the path exists on the system
+        if not os.path.exists(ssh_path):
+            return f"Invalid path. The path '{ssh_path}' does not exist."
+
+        return None  # Validation successful
 
     kdump_table = db.cfgdb.get_table("KDUMP")
     check_kdump_table_existence(kdump_table)
@@ -163,9 +208,16 @@ def add_ssh_path(db, ssh_path):
         click.echo("Remote feature is not enabled. Please enable the remote feature first.")
         return
 
-    # Add or update the 'ssh_key' entry in the KDUMP table
+    # Validate SSH path
+    validation_error = is_valid_ssh_path(ssh_path)
+    if validation_error:
+        click.echo(f"Error: {validation_error}")
+        return
+
+    # Add or update the 'ssh_path' entry in the KDUMP table
     db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": ssh_path})
     click.echo(f"SSH path added to KDUMP configuration: {ssh_path}")
+
 
 
 @kdump.group(name="remove", help="remove configuration items to KDUMP")

@@ -91,7 +91,7 @@ def config():
         ssh_prv_key = get_kdump_config("ssh_path")
         click.echo("Kdump private key path: {}".format(ssh_prv_key))
 
-    if get_kdump_config("remote") == "false":
+    else:
         click.echo("Kdump ssh connection string and ssh_path not found")
 
 
