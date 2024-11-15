@@ -137,6 +137,19 @@ def build_json(port, cnstat, voq=False):
         out.update(ports_stats(k))
     return out
 
+
+def run_queuestat(save_fresh_stats, port_to_show_stats, json_opt, non_zero, ns, db, voq):
+    queuestat = Queuestat(ns, db, voq)
+    if save_fresh_stats:
+        queuestat.save_fresh_stats()
+        return
+
+    if port_to_show_stats != None:
+        queuestat.get_print_port_stat(port_to_show_stats, json_opt, non_zero)
+    else:
+        queuestat.get_print_all_stat(json_opt, non_zero)
+
+
 class QueuestatWrapper(object):
     """A wrapper to execute queuestat cmd over the correct namespaces"""
     def __init__(self, namespace, voq):
@@ -149,16 +162,8 @@ class QueuestatWrapper(object):
 
     @multi_asic_util.run_on_multi_asic
     def run(self, save_fresh_stats, port_to_show_stats, json_opt, non_zero):
-        queuestat = Queuestat(self.multi_asic.current_namespace, self.db, self.voq)
-        if save_fresh_stats:
-            queuestat.save_fresh_stats()
-            return
-
-        if port_to_show_stats != None:
-            queuestat.get_print_port_stat(port_to_show_stats, json_opt, non_zero)
-        else:
-            queuestat.get_print_all_stat(json_opt, non_zero)
-
+        run_queuestat(save_fresh_stats, port_to_show_stats, json_opt, non_zero, \
+                      self.multi_asic.current_namespace, self.db, self.voq)
 
 class Queuestat(object):
     def __init__(self, namespace, db, voq=False):
@@ -166,6 +171,9 @@ class Queuestat(object):
         self.voq = voq
         self.voq_stats = {}
         self.namespace = namespace
+        if namespace is None:
+            self.db = SonicV2Connector(use_unix_socket_path=False)
+            self.db.connect(self.db.COUNTERS_DB)
         self.namespace_str = f" for {namespace}" if namespace else ''
 
         def get_queue_port(table_id):
@@ -354,7 +362,8 @@ class Queuestat(object):
         else:
             hdr = voq_header if self.voq else header
             if table:
-                print(f"For namespace {self.namespace}:")
+                if not device_info.is_supervisor():
+                    print(f"For namespace {self.namespace}:")
                 print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
                 print()
 
@@ -538,8 +547,11 @@ def main(port, clear, delete, json_opt, voq, non_zero, namespace):
     if delete_stats:
         cache.remove()
 
-    queuestat_wrapper = QueuestatWrapper(namespace, voq)
-    queuestat_wrapper.run(save_fresh_stats, port_to_show_stats, json_opt, non_zero)
+    if device_info.is_supervisor() and namespace is None:
+        run_queuestat(save_fresh_stats, port_to_show_stats, json_opt, non_zero, namespace, None, voq)
+    else:
+        queuestat_wrapper = QueuestatWrapper(namespace, voq)
+        queuestat_wrapper.run(save_fresh_stats, port_to_show_stats, json_opt, non_zero)
 
     sys.exit(0)
 
