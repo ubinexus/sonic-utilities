@@ -304,17 +304,23 @@ function check_mirror_session_acls()
     ACL_ND="missing"
     start_time=${SECONDS}
     elapsed_time=$((${SECONDS} - ${start_time}))
+    retry_count=0
     while [[ ${elapsed_time} -lt 10 ]]; do
 	CHECK_ACL_ENTRIES=0
+        retry_count=$((retry_count + 1))
         ACL_OUTPUT=$(sonic-db-cli ASIC_DB KEYS "*" | grep SAI_OBJECT_TYPE_ACL_ENTRY) || CHECK_ACL_ENTRIES=$?
 	if [[ ${CHECK_ACL_ENTRIES} -ne 0 ]]; then
-	    error "Failed to retrieve SAI_OBJECT_TYPE_ACL_ENTRY from redis"
-	    exit ${EXIT_NO_MIRROR_SESSION_ACLS}
+	    debug "Failed to retrieve SAI_OBJECT_TYPE_ACL_ENTRY from redis, retrying... (Attempt: ${retry_count})"
+	    sleep 0.1
+	    elapsed_time=$((${SECONDS} - ${start_time}))
+	    continue
 	fi
 	ACL_ENTRIES=( ${ACL_OUTPUT} )
 	if [[ ${#ACL_ENTRIES[@]} -eq 0 ]]; then
-	    error "NO SAI_OBJECT_TYPE_ACL_ENTRY objects found"
-	    exit ${EXIT_NO_MIRROR_SESSION_ACLS}
+	    debug "NO SAI_OBJECT_TYPE_ACL_ENTRY objects found, retrying... (Attempt: ${retry_count})"
+	    sleep 0.1
+	    elapsed_time=$((${SECONDS} - ${start_time}))
+	    continue
 	fi
         for ACL_ENTRY in ${ACL_ENTRIES[@]}; do
             ACL_PRIORITY=$(sonic-db-cli ASIC_DB HGET ${ACL_ENTRY} SAI_ACL_ENTRY_ATTR_PRIORITY)
@@ -332,7 +338,7 @@ function check_mirror_session_acls()
         elapsed_time=$((${SECONDS} - ${start_time}))
     done
     if [[ "${ACL_ARP}" != "found" || "${ACL_ND}" != "found" ]]; then
-        debug "Failed to program mirror session ACLs on ASIC. ACLs: ARP=${ACL_ARP} ND=${ACL_ND}"
+        error "Failed to program mirror session ACLs on ASIC. ACLs: ARP=${ACL_ARP} ND=${ACL_ND}"
         exit ${EXIT_NO_MIRROR_SESSION_ACLS}
     fi
     debug "Mirror session ACLs (arp, nd) programmed to ASIC successfully"
@@ -374,27 +380,42 @@ function setup_reboot_variables()
 {
     # Kernel and initrd image
     HWSKU=$(show platform summary --json | python -c 'import sys, json; print(json.load(sys.stdin)["hwsku"])')
+    CURR_SONIC_IMAGE=$(sonic-installer list | grep "Current: " | cut -d ' ' -f 2)
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
+    if [ "$NEXT_SONIC_IMAGE" = "$CURR_SONIC_IMAGE" ]; then
+        if [[ -f ${DEVPATH}/${PLATFORM}/installer.conf ]]; then
+            . ${DEVPATH}/${PLATFORM}/installer.conf
+        fi
+    else
+        tmp_dir=`mktemp -d`
+        mount -o ro $IMAGE_PATH/fs.squashfs $tmp_dir
+        if [[ -f $tmp_dir/${DEVPATH}/${PLATFORM}/installer.conf ]]; then
+            . $tmp_dir/${DEVPATH}/${PLATFORM}/installer.conf
+        fi
+        umount $tmp_dir
+        rm -rf $tmp_dir
+    fi
+
     if grep -q aboot_platform= /host/machine.conf; then
         if is_secureboot; then
             KERNEL_IMAGE=""
             BOOT_OPTIONS="SONIC_BOOT_TYPE=${BOOT_TYPE_ARG} secure_boot_enable=1"
         else
             KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-            BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') ${KEXEC_LOAD_EXTRA_CMDLINE_LINUX} SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
         fi
         INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
     elif grep -q onie_platform= /host/machine.conf; then
         if [ -r /host/grub/grub.cfg ]; then
             KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
             KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-            BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') ${KEXEC_LOAD_EXTRA_CMDLINE_LINUX} SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
             INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
         # Handle architectures supporting Device Tree
         elif [ -f /sys/firmware/devicetree/base/chosen/bootargs ]; then
             KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-            BOOT_OPTIONS="$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$//') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            BOOT_OPTIONS="$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$//') ${KEXEC_LOAD_EXTRA_CMDLINE_LINUX} SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
             INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
             # If initrd is a U-Boot uImage, remove the uImage header
@@ -415,6 +436,12 @@ function setup_reboot_variables()
         local sonic_dev=$(blkid -L SONiC-OS)
         local fstype=$(blkid -o value -s TYPE ${sonic_dev})
         BOOT_OPTIONS="${BOOT_OPTIONS} ssd-upgrader-part=${sonic_dev},${fstype}"
+    fi
+
+    if [[ "$sonic_asic_type" == "mellanox" ]]; then
+        # Set governor to performance to speed up boot process.
+        # The governor is reset back to kernel default in warmboot-finalizer script.
+        BOOT_OPTIONS="${BOOT_OPTIONS} cpufreq.default_governor=performance"
     fi
 }
 
@@ -673,7 +700,7 @@ if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
 else
     # check if secure boot is enable in UEFI
     CHECK_SECURE_UPGRADE_ENABLED=0
-    SECURE_UPGRADE_ENABLED=$(bootctl status 2>/dev/null | grep -c "Secure Boot: enabled") || CHECK_SECURE_UPGRADE_ENABLED=$?
+    SECURE_UPGRADE_ENABLED=$(mokutil --sb-state 2>/dev/null | grep -c "enabled") || CHECK_SECURE_UPGRADE_ENABLED=$?
     if [[ CHECK_SECURE_UPGRADE_ENABLED -ne 0 ]]; then
         debug "Loading kernel without secure boot"
         load_kernel
