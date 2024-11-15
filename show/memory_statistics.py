@@ -194,6 +194,7 @@ def clean_and_print(data):
     else:
         print("Error: Invalid data format.")
 
+
 def send_data(command, data, quiet=False):
     """Sends a command and data to the memory statistics service.
     Connects to the UNIX socket, sends the JSON-encoded command and data,
