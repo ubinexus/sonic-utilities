@@ -7,9 +7,9 @@ from click_default_group import DefaultGroup
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
 
-class Dict2Obj(object):
+
+class Dict2Obj:
     """Converts dictionaries or lists into objects with attribute-style access.
-    
     Recursively transforms dictionaries and lists to allow accessing nested
     structures as attributes. Supports nested dictionaries and lists of dictionaries.
     """
@@ -26,16 +26,22 @@ class Dict2Obj(object):
         if isinstance(d, dict):
             for key, value in d.items():
                 if isinstance(value, (list, tuple)):
-                    setattr(self, key, [Dict2Obj(x) if isinstance(x, dict) else x for x in value])
+                    setattr(
+                        self,
+                        key,
+                        [Dict2Obj(x) if isinstance(x, dict) else x for x in value],
+                    )
                 else:
-                    setattr(self, key, Dict2Obj(value) if isinstance(value, dict) else value)
+                    setattr(
+                        self, key, Dict2Obj(value) if isinstance(value, dict) else value
+                    )
         elif isinstance(d, list):
             self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
 
     def to_dict(self):
         """Converts the object back to a dictionary format."""
         result = {}
-        if hasattr(self, 'items'):
+        if hasattr(self, "items"):
             return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
 
         for key in self.__dict__:
@@ -52,32 +58,38 @@ class Dict2Obj(object):
         """Provides a string representation of the object for debugging."""
         return f"<{self.__class__.__name__} {self.to_dict()}>"
 
+
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
 
-@click.group(cls=DefaultGroup, default='show', default_if_no_args=True)
+
+@click.group(cls=DefaultGroup, default="show", default_if_no_args=True)
 @click.pass_context
 def cli(ctx):
     """Main entry point for the SONiC CLI.
-    
+
     Parameters:
-        ctx (click.Context): The Click context that holds configuration data and other CLI-related information.
+        ctx (click.Context): The Click context that holds configuration data
+        and other CLI-related information.
     """
     ctx.ensure_object(dict)
 
     if clicommon:
         try:
-            ctx.obj['db_connector'] = clicommon.get_db_connector()
-        except AttributeError as e:
-            error_msg = "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
+            ctx.obj["db_connector"] = clicommon.get_db_connector()
+        except AttributeError:
+            error_msg = (
+                "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
+            )
             click.echo(error_msg, err=True)
             syslog.syslog(syslog.LOG_ERR, error_msg)
             sys.exit(1)
     else:
-        ctx.obj['db_connector'] = None
+        ctx.obj["db_connector"] = None
+
 
 def validate_command(command, valid_commands):
     """Validates the user's command input against a list of valid commands.
-    
+
     Parameters:
         command (str): The command entered by the user.
         valid_commands (list): List of valid command strings.
@@ -95,29 +107,32 @@ def validate_command(command, valid_commands):
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise click.UsageError(error_msg)
 
+
 # ------------------- Integration of show memory-stats Command -------------------
+
 
 @cli.group()
 @click.pass_context
 def show(ctx):
     """Displays various information about the system using the 'show' subcommand.
-    
+
     Parameters:
         ctx (click.Context): The Click context that holds configuration data and other CLI-related information.
     """
     pass
 
-@show.command(name='memory-stats')
-@click.argument('from_keyword', required=False)
-@click.argument('from_time', required=False)
-@click.argument('to_keyword', required=False)
-@click.argument('to_time', required=False)
-@click.argument('select_keyword', required=False)
-@click.argument('select_metric', required=False)
+
+@show.command(name="memory-stats")
+@click.argument("from_keyword", required=False)
+@click.argument("from_time", required=False)
+@click.argument("to_keyword", required=False)
+@click.argument("to_time", required=False)
+@click.argument("select_keyword", required=False)
+@click.argument("select_metric", required=False)
 @click.pass_context
 def memory_stats(ctx, from_keyword, from_time, to_keyword, to_time, select_keyword, select_metric):
     """Displays memory statistics.
-    
+
     Fetches and shows memory statistics based on the provided time range and metric.
     If no time range or metric is specified, defaults are used.
 
@@ -130,30 +145,25 @@ def memory_stats(ctx, from_keyword, from_time, to_keyword, to_time, select_keywo
         select_keyword (str): Expected keyword 'select' to indicate a specific metric.
         select_metric (str): The specific metric to retrieve data for.
     """
-    request_data = {
-        "type": "system",
-        "metric_name": None,
-        "from": None,
-        "to": None
-    }
+    request_data = {"type": "system", "metric_name": None, "from": None, "to": None}
 
     if from_keyword:
-        if from_keyword != 'from':
+        if from_keyword != "from":
             raise click.UsageError("Expected 'from' keyword as the first argument.")
-        if to_keyword and to_keyword != 'to':
+        if to_keyword and to_keyword != "to":
             raise click.UsageError("Expected 'to' keyword before the end time.")
-        if select_keyword and select_keyword != 'select':
+        if select_keyword and select_keyword != "select":
             raise click.UsageError("Expected 'select' keyword before the metric name.")
-        
+
         request_data["from"] = from_time.strip("'\"")
         if to_time:
             request_data["to"] = to_time.strip("'\"")
         if select_metric:
             request_data["metric_name"] = select_metric.strip("'\"")
-    
+
     try:
         response = send_data("memory_statistics_command_request_handler", request_data)
-        
+
         if isinstance(response, Dict2Obj):
             clean_and_print(response.to_dict())
         else:
@@ -161,14 +171,15 @@ def memory_stats(ctx, from_keyword, from_time, to_keyword, to_time, select_keywo
             syslog.syslog(syslog.LOG_ERR, error_msg)
             print(error_msg)
 
-    except Exception as e:
-        error_msg = f"Error: {str(e)}"
+    except Exception as exc:
+        error_msg = f"Error: {str(exc)}"
         syslog.syslog(syslog.LOG_ERR, error_msg)
         print(error_msg)
 
+
 def clean_and_print(data):
     """Formats and prints memory statistics in a user-friendly format.
-    
+
     If the data is received in a valid format, it extracts the relevant memory
     statistics and prints them. Otherwise, it prints an error message.
 
@@ -176,7 +187,6 @@ def clean_and_print(data):
         data (dict): Dictionary containing the memory statistics to display.
     """
     if isinstance(data, dict):
-        status = data.get("status", True)
         memory_stats = data.get("data", "")
 
         cleaned_output = memory_stats.replace("\n", "\n").strip()
@@ -186,7 +196,6 @@ def clean_and_print(data):
 
 def send_data(command, data, quiet=False):
     """Sends a command and data to the memory statistics service.
-    
     Connects to the UNIX socket, sends the JSON-encoded command and data,
     and returns the response. If the service is unavailable, it handles the error.
 
@@ -209,7 +218,6 @@ def send_data(command, data, quiet=False):
         error_msg = "Could not connect to the server. Please check if the memory stats service is running."
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise click.Abort(error_msg) from msg
-    
     response = {}
     try:
         request = {"command": command, "data": data}
@@ -221,7 +229,6 @@ def send_data(command, data, quiet=False):
             raise click.Abort("No response from the server. Please check the service and try again.")
 
         jdata = json.loads(res)
-        
         if isinstance(jdata, dict):
             response = Dict2Obj(jdata)
         else:
@@ -242,7 +249,9 @@ def send_data(command, data, quiet=False):
     sock.close()
     return response
 
+
 # ------------------- Integration of show memory-statistics config -------------------
+
 
 @show.group(name="memory-statistics")
 @click.pass_context
@@ -250,13 +259,12 @@ def memory_statistics(ctx):
     """Displays memory statistics configuration information."""
     pass
 
+
 def get_memory_statistics_config(field_name, db_connector):
     """Fetches memory statistics configuration field value.
-    
     Parameters:
         field_name (str): Name of the configuration field to retrieve.
         db_connector: Database connector to fetch data from.
-        
     Returns:
         str: Value of the field or "Unknown" if not found.
     """
@@ -272,6 +280,20 @@ def get_memory_statistics_config(field_name, db_connector):
 
     return field_value
 
+
+def format_field_value(field_name, value):
+    """Formats field values for consistent output.
+    Parameters:
+        field_name (str): The field name.
+        value (str): The field value to format.
+    Returns:
+        str: Human-readable formatted field value.
+    """
+    if field_name == "enabled":
+        return "True" if value.lower() == "true" else "False"
+    return value if value != "Unknown" else "Not configured"
+
+
 @memory_statistics.command(name="config", short_help="Show the configuration of memory statistics")
 @click.pass_context
 def config(ctx):
@@ -284,25 +306,34 @@ def config(ctx):
         sys.exit(1)
 
     try:
-        admin_enabled = get_memory_statistics_config("enabled", db_connector)
+        enabled = get_memory_statistics_config("enabled", db_connector)
         retention_time = get_memory_statistics_config("retention_period", db_connector)
         sampling_interval = get_memory_statistics_config("sampling_interval", db_connector)
-        
-        admin_mode = f"Enabled ({admin_enabled.lower()})" if admin_enabled.lower() in ["true", "false"] else "Enabled (unknown)"
-        click.echo(f"Memory Statistics administrative mode: {admin_mode}")
-        click.echo(f"Memory Statistics retention time (days): {retention_time}")
-        click.echo(f"Memory Statistics sampling interval (minutes): {sampling_interval}")
+
+        enabled_display = format_field_value("enabled", enabled)
+        retention_display = format_field_value("retention_period", retention_time)
+        sampling_display = format_field_value("sampling_interval", sampling_interval)
+
+        click.echo(f"{'Configuration Field':<30}{'Value'}")
+        click.echo("-" * 50)
+        click.echo(f"{'Enabled':<30}{enabled_display}")
+        click.echo(f"{'Retention Time (days)':<30}{retention_display}")
+        click.echo(f"{'Sampling Interval (minutes)':<30}{sampling_display}")
+
     except Exception as e:
         error_msg = f"Error retrieving configuration: {str(e)}"
         click.echo(error_msg, err=True)
         syslog.syslog(syslog.LOG_ERR, error_msg)
         sys.exit(1)
 
+
 # --------------------------------------------------------------------------------
+
 
 def main():
     """Entry point for the CLI application."""
     cli()
+
 
 if __name__ == '__main__':
     valid_commands = ['show', 'memory-stats', 'memory-statistics']
