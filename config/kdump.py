@@ -3,6 +3,7 @@ import click
 import os
 from utilities_common.cli import AbbreviationGroup, pass_db
 from ipaddress import ip_address, AddressValueError
+import re
 #
 # 'kdump' group ('sudo config kdump ...')
 #
@@ -144,7 +145,7 @@ def add_ssh_key(db, ssh_string):
         # Check if it contains username and hostname/IP (format: username@host)
         if "@" not in ssh_string:
             return "Invalid format. SSH key must be in 'username@host' format."
-        
+
         username, host = ssh_string.split("@", 1)
 
         # Validate username
@@ -182,7 +183,6 @@ def add_ssh_key(db, ssh_string):
     click.echo(f"SSH string added to KDUMP configuration: {ssh_string}")
 
 
-
 @add.command(name="ssh_path", help="Add an SSH path to the KDUMP configuration")
 @click.argument('ssh_path', metavar='<ssh_path>', required=True)
 @pass_db
@@ -217,7 +217,6 @@ def add_ssh_path(db, ssh_path):
     # Add or update the 'ssh_path' entry in the KDUMP table
     db.cfgdb.mod_entry("KDUMP", "config", {"ssh_path": ssh_path})
     click.echo(f"SSH path added to KDUMP configuration: {ssh_path}")
-
 
 
 @kdump.group(name="remove", help="remove configuration items to KDUMP")

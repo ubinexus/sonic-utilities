@@ -159,7 +159,7 @@ class TestKdump:
 
         assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
         # Verify that the SSH path is updated in the KDUMP table
-        kdump_table = db.cfgdb.get_table("KDUMP")is:pr is:open 
+        kdump_table = db.cfgdb.get_table("KDUMP") 
         assert kdump_table["config"]["ssh_path"] == ssh_path_valid
 
 
