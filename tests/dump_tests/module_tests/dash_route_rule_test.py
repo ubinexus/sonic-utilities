@@ -6,7 +6,6 @@ try:
     from dump.plugins.dash_route_rule import Dash_Route_Rule
 except ModuleNotFoundError:
     pytest.skip("Skipping Dash tests since it is not supported in this Platform", allow_module_level=True)
-from dump.plugins.executor import Executor
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
@@ -31,7 +30,6 @@ def match_engine():
     os.environ["VERBOSE"] = "1"
 
     # Monkey Patch the SonicV2Connector Object
-    from ...mock_tables import dbconnector
     db = SonicV2Connector()
     from ...dump_tests import mock_redis
     redis_obj = mock_redis.RedisMock()

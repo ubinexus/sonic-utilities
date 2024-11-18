@@ -30,7 +30,6 @@ def match_engine():
     os.environ["VERBOSE"] = "1"
 
     # Monkey Patch the SonicV2Connector Object
-    from ...mock_tables import dbconnector
     db = SonicV2Connector()
     from ...dump_tests import mock_redis
     redis_obj = mock_redis.RedisMock()

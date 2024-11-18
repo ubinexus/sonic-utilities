@@ -9,7 +9,6 @@ except ModuleNotFoundError:
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
-import redis
 
 # Location for dedicated db's used for UT
 module_tests_path = os.path.dirname(__file__)
@@ -31,7 +30,6 @@ def match_engine():
     os.environ["VERBOSE"] = "1"
 
     # Monkey Patch the SonicV2Connector Object
-    from ...mock_tables import dbconnector
     db = SonicV2Connector()
     from ...dump_tests import mock_redis
     redis_obj = mock_redis.RedisMock()
