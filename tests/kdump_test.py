@@ -152,73 +152,81 @@ class TestKdump:
         assert result.exit_code == 0
         assert "Error: Invalid format. SSH key must be in 'username@host' format." in result.output
 
-    def test_config_kdump_add_ssh_path(self, get_cmd_module):
+    def test_config_kdump_add_ssh_path(get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
 
-        assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
-        # Verify that the SSH path is updated in the KDUMP table
-        kdump_table = db.cfgdb.get_table("KDUMP") 
-        assert kdump_table["config"]["ssh_path"] == ssh_path_valid
+        # Create a temporary directory to simulate a real valid absolute path
+        with tempfile.TemporaryDirectory() as real_path:
+            invalid_relative_path = "relative/path"
+            non_existent_absolute_path = "/non/existent/absolute/path"
 
+            # Test case: KDUMP table does not exist
+            db.cfgdb.delete_table("KDUMP")
+            result = runner.invoke(
+                config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+                [real_path],
+                obj=db
+            )
 
-        ssh_path_valid = "/root/.ssh/id_rsa"
-        ssh_path_invalid_relative = "root/.ssh/id_rsa"
-        ssh_path_invalid_nonexistent = "/invalid/path/to/key"
+            # Assert failure when KDUMP table is missing
+            assert result.exit_code == 1
+            assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
 
-        # Test case where KDUMP table does not exist
-        db.cfgdb.delete_table("KDUMP")
-        result = runner.invoke(
-            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path_valid],
-            obj=db
-        )
-        assert result.exit_code == 1
-        assert "Unable to retrieveget_cmd_module 'KDUMP' table from Config DB." in result.output
+            # Create the KDUMP table for further testing
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
 
-        # Test case when remoteis:pr is:open  feature is not enabled
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
-        result = runner.invoke(
-            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path_valid],
-            obj=db
-        )
-        assert result.exit_code == 0
-        assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
+            # Test case: remote feature is not enabled
+            result = runner.invoke(
+                config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+                [real_path],
+                obj=db
+            )
 
-        # Test case for invalid SSH path (relative path)
-        db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
-        result = runner.invoke(
-            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path_invalid_relative],
-            obj=db
-        )
-        assert result.exit_code == 0
-        assert "Error: Invalid path. SSH path must be an absolute path." in result.output
+            # Assert failure due to remote feature being disabled
+            assert result.exit_code == 0
+            assert "Remote feature is not enabled. Please enable the remote feature first." in result.output
 
-        # Test case for invalid SSH path (non-existent path)
-        result = runner.invoke(
-            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path_invalid_nonexistent],
-            obj=db
-        )
-        assert result.exit_code == 0
-        assert f"Error: Invalid path. The path '{ssh_path_invalid_nonexistent}' does not exist." in result.output
+            # Enable the remote feature
+            db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
 
-        # Test case for valid SSH path
-        result = runner.invoke(
-            config.config.commands["kdump"].commands["add"].commands["ssh_path"],
-            [ssh_path_valid],
-            obj=db
-        )
-        assert result.exit_code == 0
-        assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
+            # Test case: invalid relative path
+            result = runner.invoke(
+                config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+                [invalid_relative_path],
+                obj=db
+            )
 
-        # Verify that the SSH path is updated in the KDUMP table
-        kdump_table = db.cfgdb.get_table("KDUMP")
-        assert kdump_table["config"]["ssh_path"] == ssh_path_valid
+            # Assert failure due to invalid relative path
+            assert result.exit_code == 0
+            assert "Invalid path. SSH path must be an absolute path." in result.output
 
+            # Test case: non-existent absolute path
+            result = runner.invoke(
+                config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+                [non_existent_absolute_path],
+                obj=db
+            )
+
+            # Assert failure due to non-existent path
+            assert result.exit_code == 0
+            assert f"Invalid path. The path '{non_existent_absolute_path}' does not exist." in result.output
+
+            # Test case: valid real absolute path
+            result = runner.invoke(
+                config.config.commands["kdump"].commands["add"].commands["ssh_path"],
+                [real_path],
+                obj=db
+            )
+
+            # Assert success
+            assert result.exit_code == 0
+            assert f"SSH path added to KDUMP configuration: {real_path}" in result.output
+
+            # Verify the SSH path is stored in the KDUMP table
+            kdump_table = db.cfgdb.get_table("KDUMP")
+            assert kdump_table["config"]["ssh_path"] == real_path
 
     def test_config_kdump_remove_ssh_string(self, get_cmd_module):
         (config, show) = get_cmd_module
