@@ -13,8 +13,13 @@ def get_route_rule_pattern(cidr_src_ip, eni_oid, vni, prio):
     network = ipaddress.IPv4Network(cidr_src_ip)
     ip_address = str(network.network_address)
     mask = str(network.netmask)
-    return f"*\"eni_id\":\"oid:{eni_oid}\",\"priority\":\"{prio}\",\"sip\":\"{ip_address}\",\
-            \"sip_mask\":\"{mask}\",*\"vni\":\"{vni}\"*"
+    ret_string = (
+        f"*\"eni_id\":\"oid:{eni_oid}\","
+        f"\"priority\":\"{prio}\","
+        f"\"sip\":\"{ip_address}\","
+        f"\"sip_mask\":\"{mask}\","
+        f"*\"vni\":\"{vni}\"*")
+    return ret_string
 
 
 class Dash_Route_Rule(Executor):
