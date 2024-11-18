@@ -84,6 +84,7 @@ stages:
         sudo dpkg -i libyang_1.0.73_amd64.deb
         sudo dpkg -i libyang-cpp_1.0.73_amd64.deb
         sudo dpkg -i python3-yang_1.0.73_amd64.deb
+        sudo dpkg -i libprotobuf*.deb
       workingDirectory: $(Pipeline.Workspace)/target/debs/bullseye/
       displayName: 'Install Debian dependencies'
 
