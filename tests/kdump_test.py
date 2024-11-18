@@ -101,7 +101,7 @@ class TestKdump:
         assert result.exit_code == 0
         assert db.cfgdb.get_table("KDUMP")["config"]["remote"] == "false"
 
-    def test_config_kdump_add_ssh_string(self, get_cmd_module):
+    def test_config_kdump_add_ssh_string(self, get_cmd_module, monkeypatch):
         (config, show) = get_cmd_module
         db = Db()
         runner = CliRunner()
@@ -136,7 +136,7 @@ class TestKdump:
             if not kdump_table:
                 raise Exception("Unable to retrieve 'KDUMP' table from Config DB.")
         monkeypatch.setattr('config.kdump.check_kdump_table_existence', mock_check_kdump_table_existence)
-        
+
         valid_ssh_string = "user@hostname"
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_string"],
