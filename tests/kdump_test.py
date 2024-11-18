@@ -133,8 +133,8 @@ class TestKdump:
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "true"})
 
         def mock_check_kdump_table_existence(kdump_table):
-        if not kdump_table:
-            raise Exception("Unable to retrieve 'KDUMP' table from Config DB.")
+            if not kdump_table:
+                raise Exception("Unable to retrieve 'KDUMP' table from Config DB.")
         monkeypatch.setattr('config.kdump.check_kdump_table_existence', mock_check_kdump_table_existence)
         
         valid_ssh_string = "user@hostname"
