@@ -196,6 +196,7 @@ class RedisSource(SourceAdapter):
     def hgetall(self, db, key):
         return self.conn.get_all(db, key)
 
+
 class RedisPySource(SourceAdapter):
     """ Concrete Adaptor Class for connecting to APPL_DB using Redis library"""
 

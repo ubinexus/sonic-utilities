@@ -49,7 +49,10 @@ class Dash_Route_Rule(Executor):
         return self.ret_temp
 
     def init_dash_route_table_appl_info(self, dash_route_rule_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_ROUTE_RULE_TABLE", key_pattern=dash_route_rule_table_name, return_fields=["priority"], ns=self.ns, pb=RouteRule())
+        req = MatchRequest(db="APPL_DB",
+                           table="DASH_ROUTE_RULE_TABLE",
+                           key_pattern=dash_route_rule_table_name,
+                           return_fields=["priority"], ns=self.ns, pb=RouteRule())
         ret = self.match_engine.fetch(req)
         if not ret["error"] and len(ret["keys"]) != 0:
             split_key = ret["keys"][0].split(":")
