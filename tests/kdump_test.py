@@ -152,7 +152,6 @@ class TestKdump:
         assert result.exit_code == 0
         assert "Error: Invalid format. SSH key must be in 'username@host' format." in result.output
 
-
     def test_config_kdump_add_ssh_path(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -161,10 +160,9 @@ class TestKdump:
         db = Db()
         runner = CliRunner()
 
-…        assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
-
+        assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
         # Verify that the SSH path is updated in the KDUMP table
-        kdump_table = db.cfgdb.get_table("KDUMP")
+        kdump_table = db.cfgdb.get_table("KDUMP")is:pr is:open 
         assert kdump_table["config"]["ssh_path"] == ssh_path_valid
 
 
@@ -182,7 +180,7 @@ class TestKdump:
         assert result.exit_code == 1
         assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
 
-        # Test case when remote feature is not enabled
+        # Test case when remoteis:pr is:open  feature is not enabled
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_path"],
