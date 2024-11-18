@@ -1,4 +1,3 @@
-import mock
 import json
 import fnmatch
 import base64

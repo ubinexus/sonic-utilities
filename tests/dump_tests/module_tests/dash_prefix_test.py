@@ -1,4 +1,3 @@
-import json
 import os
 import pytest
 from deepdiff import DeepDiff
@@ -10,7 +9,6 @@ try:
 except ModuleNotFoundError:
     pytest.skip("Skipping Dash tests since it is not supported in this Platform", allow_module_level=True)
 from utilities_common.constants import DEFAULT_NAMESPACE
-import redis
 
 # Location for dedicated db's used for UT
 module_tests_path = os.path.dirname(__file__)

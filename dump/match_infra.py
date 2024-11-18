@@ -208,7 +208,8 @@ class RedisPySource(SourceAdapter):
         try:
             from dump.dash_util import get_decoded_value
         except ModuleNotFoundError as e:
-            verbose_print("RedisPySource: decoded value cannot be obtained since dash related library import issues\n" + str(e))
+            verbose_print("RedisPySource: decoded value cannot be obtained \
+                          since dash related library import issues\n" + str(e))
             return
         return get_decoded_value(pb_obj, key_val)
 
@@ -228,16 +229,16 @@ class RedisPySource(SourceAdapter):
         return [key1.decode() for key1 in bin_keys]
 
     def get(self, db, key):
-        key_val  = self.conn.hgetall(key)
+        key_val = self.conn.hgetall(key)
         return self.get_decoded_value(self.pb_obj, key_val)
 
     def hget(self, db, key, field):
-        key_val  = self.conn.hgetall(key)
-        decoded_dict= self.get_decoded_value(self.pb_obj, key_val)
+        key_val = self.conn.hgetall(key)
+        decoded_dict = self.get_decoded_value(self.pb_obj, key_val)
         return decoded_dict.get(field)
 
     def hgetall(self, db, key):
-        key_val  = self.conn.hgetall(key)
+        key_val = self.conn.hgetall(key)
         return self.get_decoded_value(self.pb_obj, key_val)
 
 class JsonSource(SourceAdapter):
@@ -298,18 +299,19 @@ class ConnectionPool:
     def initialize_redis_conn(self, ns):
         """Return redis connection for APPL_DB,
         as APPL_DB is the only one which stores data in protobuf
-        format which is not obtained fully by the SonicV2Connector 
+        format which is not obtained fully by the SonicV2Connector
         get_all API
         """
         # The get_all function for a SonicV2Connector does not support binary data due to which we
         # have to use the redis Library. Relevant Issue: https://github.com/sonic-net/sonic-swss-common/issues/886
-        return redis.Redis(unix_socket_path=SonicDBConfig.getDbSock("APPL_DB", ns), db=SonicDBConfig.getDbId("APPL_DB", ns)) 
+        return redis.Redis(unix_socket_path=SonicDBConfig.getDbSock("APPL_DB", ns),
+                           db=SonicDBConfig.getDbId("APPL_DB", ns))
 
     def get(self, db_name, ns, update=False):
         """ Returns a SonicV2Connector Object and caches it for further requests """
         if ns not in self.cache:
             self.cache[ns] = {}
-        if CONN  not in self.cache[ns]:
+        if CONN not in self.cache[ns]:
             self.cache[ns][CONN] = self.initialize_connector(ns)
         if CONN_TO not in self.cache[ns]:
             self.cache[ns][CONN_TO] = set()
@@ -332,7 +334,7 @@ class ConnectionPool:
         elif namespace in self.cache:
             del self.cache[namespace]
 
-    def fill(self, ns, conn, connected_to, dash_object = False):
+    def fill(self, ns, conn, connected_to, dash_object=False):
         """ Update internal cache """
         if ns not in self.cache:
             self.cache[ns] = {}
@@ -365,7 +367,7 @@ class MatchEngine:
     def get_json_source_adapter(self):
         return JsonSource()
 
-    def get_redis_py_adapter(self,pb_obj):
+    def get_redis_py_adapter(self, pb_obj):
         return RedisPySource(self.conn_pool, pb_obj)
 
     def __get_source_adapter(self, req):

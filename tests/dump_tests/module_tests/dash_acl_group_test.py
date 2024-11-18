@@ -1,4 +1,3 @@
-import json
 import os
 import pytest
 from deepdiff import DeepDiff
@@ -10,7 +9,6 @@ except ModuleNotFoundError:
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
-import redis
 
 # Location for dedicated db's used for UT
 module_tests_path = os.path.dirname(__file__)

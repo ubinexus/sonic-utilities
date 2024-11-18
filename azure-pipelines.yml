@@ -121,7 +121,7 @@ stages:
     - script: |
         set -xe
         sudo apt-get update
-        sudo dpkg -i libdashapi_*.deb
+        sudo dpkg -i $(find ./download -name *.deb)
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libdashapi libraries'
 

@@ -3,7 +3,6 @@ from dump.match_infra import MatchRequest
 from swsscommon.swsscommon import SonicDBConfig
 from dash_api.acl_out_pb2 import AclOut
 from .executor import Executor
-from dump.match_infra import CONN
 
 
 APPL_DB_SEPARATOR = SonicDBConfig.getSeparator("APPL_DB")

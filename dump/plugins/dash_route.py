@@ -61,7 +61,9 @@ class Dash_Route(Executor):
         if not eni_oid:
             self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY")
             return
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY", key_pattern=get_route_pattern(self.dest, eni_oid),
+        req = MatchRequest(db="ASIC_DB",
+                           table="ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY",
+                           key_pattern=get_route_pattern(self.dest, eni_oid),
                            ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])

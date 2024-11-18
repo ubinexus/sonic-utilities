@@ -39,6 +39,7 @@ def get_decoded_value(pb, pb_data):
     json_string = find_known_types_sec(pb, json_string)
     return json_string
 
+
 decode_types = [IpAddress, Guid, IpPrefix]
 decode_types = [cls.__module__ + '.' + cls.__name__ for cls in decode_types]
 decode_fn = {'IpAddress': format_ip_address_dict,

@@ -3,7 +3,6 @@ from dump.match_infra import MatchRequest
 from swsscommon.swsscommon import SonicDBConfig
 from dash_api.acl_group_pb2 import AclGroup
 from .executor import Executor
-from dump.match_infra import CONN
 
 
 APPL_DB_SEPARATOR = SonicDBConfig.getSeparator("APPL_DB")
@@ -33,7 +32,8 @@ class Dash_Acl_Group(Executor):
         return self.ret_temp
 
     def init_dash_acl_group_table_appl_info(self, dash_acl_group_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_ACL_GROUP_TABLE", key_pattern=dash_acl_group_table_name, ns=self.ns)
+        req = MatchRequest(db="APPL_DB", table="DASH_ACL_GROUP_TABLE",
+                           key_pattern=dash_acl_group_table_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 

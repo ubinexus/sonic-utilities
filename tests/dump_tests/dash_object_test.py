@@ -1,5 +1,4 @@
 import os
-import sys
 import pytest
 from dump.match_infra import MatchEngine, MatchRequest, ConnectionPool, CONN
 try:
@@ -70,7 +69,10 @@ class TestMatchEngineDash:
         assert "DASH_ACL_OUT_TABLE:ENI0:1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_acl_out", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"ENI0:1":
                     {
                         "APPL_DB":
@@ -92,7 +94,10 @@ class TestMatchEngineDash:
         assert "DASH_ACL_IN_TABLE:F4939FEFC47E:1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_acl_in", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"F4939FEFC47E:1":
                     {
                         "APPL_DB":
@@ -114,7 +119,10 @@ class TestMatchEngineDash:
         assert "DASH_ACL_GROUP_TABLE:group1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_acl_group", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"group1":
                     {
                         "APPL_DB":
@@ -138,7 +146,10 @@ class TestMatchEngineDash:
         assert "DASH_ACL_RULE_TABLE:group1:rule1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_acl_rule", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"group1:rule1":
                     {
                         "APPL_DB":
@@ -172,7 +183,10 @@ class TestMatchEngineDash:
         assert "DASH_APPLIANCE_TABLE:123" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_appliance", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"123":
                     {
                         "APPL_DB":
@@ -203,8 +217,10 @@ class TestMatchEngineDash:
         assert "DASH_ENI_TABLE:F4939FEFC47E" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_eni", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
-        print(result)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"eni0":
                     {
                         "APPL_DB":
@@ -269,7 +285,10 @@ class TestMatchEngineDash:
         assert "DASH_QOS_TABLE:qos100" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_qos", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"qos100":
                     {
                         "APPL_DB":
@@ -297,7 +316,10 @@ class TestMatchEngineDash:
         assert "DASH_ROUTE_TABLE:F4939FEFC47E:20.2.2.0/24" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_route", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"eni0:12.1.1.0/24":
                     {
                         "APPL_DB":
@@ -349,7 +371,10 @@ class TestMatchEngineDash:
         assert "DASH_VNET_MAPPING_TABLE:Vnet1:12.1.1.1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_vnet_mapping", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"Vnet1:12.1.1.1":
                     {
                         "APPL_DB":
@@ -376,7 +401,10 @@ class TestMatchEngineDash:
         assert "DASH_PREFIX_TAG_TABLE:AclTagScale1798" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_prefix_tag", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"AclTagScale1798":
                     {
                         "APPL_DB":
@@ -403,7 +431,10 @@ class TestMatchEngineDash:
         assert "DASH_VNET_TABLE:Vnet1" in ret['keys']
         runner = CliRunner()
         result = runner.invoke(dump.state, ["dash_vnet", "all"], obj=match_engine)
-        assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
+        assert result.exit_code == 0,(
+            "exit code: {}, Exception: {}, Traceback: {}".format
+            (result.exit_code, result.exception, result.exc_info)
+            )
         expected = {"Vnet1":
                     {
                         "APPL_DB":

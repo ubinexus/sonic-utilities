@@ -13,7 +13,8 @@ def get_route_rule_pattern(cidr_src_ip, eni_oid, vni, prio):
     network = ipaddress.IPv4Network(cidr_src_ip)
     ip_address = str(network.network_address)
     mask = str(network.netmask)
-    return f"*\"eni_id\":\"oid:{eni_oid}\",\"priority\":\"{prio}\",\"sip\":\"{ip_address}\",\"sip_mask\":\"{mask}\",*\"vni\":\"{vni}\"*"
+    return f"*\"eni_id\":\"oid:{eni_oid}\",\"priority\":\"{prio}\",\"sip\":\"{ip_address}\",\
+            \"sip_mask\":\"{mask}\",*\"vni\":\"{vni}\"*"
 
 
 class Dash_Route_Rule(Executor):
@@ -71,7 +72,12 @@ class Dash_Route_Rule(Executor):
         if not eni_oid:
             self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_INBOUND_ROUTING_ENTRY")
             return
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_INBOUND_ROUTING_ENTRY", key_pattern=get_route_rule_pattern(self.src_ip, eni_oid, self.vni, self.priority),
+        req = MatchRequest(db="ASIC_DB",
+                           table="ASIC_STATE:SAI_OBJECT_TYPE_INBOUND_ROUTING_ENTRY",
+                           key_pattern=get_route_rule_pattern(self.src_ip,
+                                                              eni_oid,
+                                                              self.vni,
+                                                              self.priority),
                            ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])

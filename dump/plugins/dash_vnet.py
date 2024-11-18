@@ -35,7 +35,10 @@ class Dash_Vnet(Executor):
         return self.ret_temp
 
     def init_dash_vnet_table_appl_info(self, dash_vnet_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern=dash_vnet_table_name, return_fields=["vni"], ns=self.ns, pb=Vnet())
+        req = MatchRequest(db="APPL_DB",
+                           table="DASH_VNET_TABLE",
+                           key_pattern=dash_vnet_table_name,
+                           return_fields=["vni"], ns=self.ns, pb=Vnet())
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         if not ret["error"] and len(ret["keys"]) != 0:
@@ -44,7 +47,10 @@ class Dash_Vnet(Executor):
     def init_dash_vnet_table_asic_info(self):
         if not self.vni:
             return
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET", key_pattern="*", field="SAI_VNET_ATTR_VNI", value=str(self.vni), ns=self.ns)
+        req = MatchRequest(db="ASIC_DB",
+                           table="ASIC_STATE:SAI_OBJECT_TYPE_VNET",
+                           key_pattern="*", field="SAI_VNET_ATTR_VNI",
+                           value=str(self.vni), ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 

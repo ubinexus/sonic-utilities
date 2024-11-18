@@ -1,4 +1,3 @@
-import json
 import os
 import pytest
 from deepdiff import DeepDiff
@@ -11,7 +10,6 @@ from dump.plugins.executor import Executor
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
-import mock
 
 # Location for dedicated db's used for UT
 module_tests_path = os.path.dirname(__file__)
@@ -71,7 +69,10 @@ class TestDashRouteRuleModule:
         print(returned)
         expect = create_template_dict(dbs=["APPL_DB", "ASIC_DB"])
         expect["APPL_DB"]["keys"].append("DASH_ROUTE_RULE_TABLE:F4939FEFC47E:2000:10.0.2.0/24")
-        expect["ASIC_DB"]["keys"].append("ASIC_STATE:SAI_OBJECT_TYPE_INBOUND_ROUTING_ENTRY:{\"eni_id\":\"oid:0x73000000000023\",\"priority\":\"1\",\"sip\":\"10.0.2.0\",\"sip_mask\":\"255.255.255.0\",\"switch_id\":\"oid:0x21000000000000\",\"vni\":\"2000\"}")
+        expect["ASIC_DB"]["keys"].append("ASIC_STATE:SAI_OBJECT_TYPE_INBOUND_ROUTING_ENTRY:"
+                                         "{\"eni_id\":\"oid:0x73000000000023\",\"priority\":"
+                                         "\"1\",\"sip\":\"10.0.2.0\",\"sip_mask\":\"255.255.255.0\""
+                                         ",\"switch_id\":\"oid:0x21000000000000\",\"vni\":\"2000\"}")
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
 

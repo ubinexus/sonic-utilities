@@ -11,7 +11,7 @@ pkg_dir = os.path.dirname(__file__)
 for (module_loader, name, ispkg) in pkgutil.iter_modules([pkg_dir]):
     try:
         importlib.import_module('.' + name, __package__)
-    except ImportError as e:
+    except ImportError:
         pass
 
 # Classes inheriting Executor

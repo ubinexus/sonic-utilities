@@ -38,7 +38,10 @@ class Dash_Eni(Executor):
         return self.ret_temp
 
     def init_dash_eni_table_appl_info(self, dash_eni_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_ENI_TABLE", key_pattern=dash_eni_table_name, return_fields=["vnet", "underlay_ip"], ns=self.ns, pb=Eni())
+        req = MatchRequest(db="APPL_DB", table="DASH_ENI_TABLE",
+                           key_pattern=dash_eni_table_name,
+                           return_fields=["vnet", "underlay_ip"],
+                           ns=self.ns, pb=Eni())
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         if (len(ret['keys'])):
@@ -49,18 +52,26 @@ class Dash_Eni(Executor):
         if not self.vnet:
             return
         self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_ENI")
-        req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE", key_pattern=self.vnet, return_fields=["vni"], ns=self.ns, pb=Vnet())
+        req = MatchRequest(db="APPL_DB", table="DASH_VNET_TABLE",
+                           key_pattern=self.vnet, return_fields=["vni"],
+                           ns=self.ns, pb=Vnet())
         ret = self.match_engine.fetch(req)
         if not (len(ret['keys'])):
             return
         vni = ret['return_values'][ret['keys'][0]]['vni']
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET", key_pattern="*", field="SAI_VNET_ATTR_VNI", value=str(vni), ns=self.ns)
+        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VNET",
+                           key_pattern="*", field="SAI_VNET_ATTR_VNI",
+                           value=str(vni), ns=self.ns)
         ret = self.match_engine.fetch(req)
         if not (len(ret['keys'])):
             return
         oid = ret['keys'][0]
         oid_key = "oid" + oid.split("oid")[-1]
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE", key_pattern="SAI_OBJECT_TYPE_ENI:*", field="SAI_ENI_ATTR_VNET_ID", return_fields=["SAI_ENI_ATTR_VM_UNDERLAY_DIP"], value=str(oid_key), ns=self.ns)
+        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE",
+                           key_pattern="SAI_OBJECT_TYPE_ENI:*",
+                           field="SAI_ENI_ATTR_VNET_ID",
+                           return_fields=["SAI_ENI_ATTR_VM_UNDERLAY_DIP"],
+                           value=str(oid_key), ns=self.ns)
         ret = self.match_engine.fetch(req)
         filtered_keys = []
         eni_key = None

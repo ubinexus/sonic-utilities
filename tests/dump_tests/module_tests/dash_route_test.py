@@ -1,4 +1,3 @@
-import json
 import os
 import pytest
 from deepdiff import DeepDiff
@@ -10,10 +9,6 @@ except ModuleNotFoundError:
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.constants import DEFAULT_NAMESPACE
-import redis
-import sys
-if sys.version_info.major == 3:
-    from unittest.mock import MagicMock, patch
 
 
 # Location for dedicated db's used for UT
@@ -85,7 +80,9 @@ class TestDashRouteModule:
         returned = m_dash_route.execute(params)
         expect = create_template_dict(dbs=["APPL_DB", "ASIC_DB"])
         expect["APPL_DB"]["keys"].append("DASH_ROUTE_TABLE:F4939FEFC47E:20.2.2.0/24")
-        expect["ASIC_DB"]["keys"].append("ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY:{\"destination\":\"20.2.2.0/24\",\"eni_id\":\"oid:0x73000000000023\",\"switch_id\":\"oid:0x21000000000000\"}")
+        expect["ASIC_DB"]["keys"].append("ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY"
+                                         ":{\"destination\":\"20.2.2.0/24\",\"eni_id\":\"oid:"
+                                         "0x73000000000023\",\"switch_id\":\"oid:0x21000000000000\"}")
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
 

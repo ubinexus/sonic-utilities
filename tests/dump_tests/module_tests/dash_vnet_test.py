@@ -1,4 +1,3 @@
-import json
 import os
 import pytest
 from deepdiff import DeepDiff

@@ -31,7 +31,10 @@ class Dash_Vnet_mapping(Executor):
         return self.ret_temp
 
     def init_dash_vnet_mapping_table_appl_info(self, dash_vnet_mapping_table_name):
-        req = MatchRequest(db="APPL_DB", table="DASH_VNET_MAPPING_TABLE", key_pattern=dash_vnet_mapping_table_name, ns=self.ns)
+        req = MatchRequest(db="APPL_DB",
+                           table="DASH_VNET_MAPPING_TABLE",
+                           key_pattern=dash_vnet_mapping_table_name,
+                           ns=self.ns)
         ret = self.match_engine.fetch(req)
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
