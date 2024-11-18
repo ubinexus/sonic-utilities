@@ -137,7 +137,7 @@ class TestKdump:
                 raise Exception("Unable to retrieve 'KDUMP' table from Config DB.")
         monkeypatch.setattr('config.kdump.check_kdump_table_existence', mock_check_kdump_table_existence)
 
-        valid_ssh_string = "user@hostname"
+        valid_ssh_string = "user@192.168.10.10"
         result = runner.invoke(
             config.config.commands["kdump"].commands["add"].commands["ssh_string"],
             [valid_ssh_string],
