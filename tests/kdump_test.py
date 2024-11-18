@@ -155,9 +155,6 @@ class TestKdump:
     def test_config_kdump_add_ssh_path(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
-        runner = CliRunner()def test_config_kdump_add_ssh_path(self, get_cmd_module):
-        (config, show) = get_cmd_module
-        db = Db()
         runner = CliRunner()
 
         assert f"SSH path added to KDUMP configuration: {ssh_path_valid}" in result.output
@@ -178,7 +175,7 @@ class TestKdump:
             obj=db
         )
         assert result.exit_code == 1
-        assert "Unable to retrieve 'KDUMP' table from Config DB." in result.output
+        assert "Unable to retrieveget_cmd_module 'KDUMP' table from Config DB." in result.output
 
         # Test case when remoteis:pr is:open  feature is not enabled
         db.cfgdb.mod_entry("KDUMP", "config", {"remote": "false"})
