@@ -351,8 +351,11 @@ class TestMatchEngineDash:
                         "ASIC_DB":
                             {"keys":
                                 [
-                                    {"ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY:{\"destination\":\"20.2.2.0/24\",\"eni_id\":\"oid:0x73000000000023\",\"switch_id\":\"oid:0x21000000000000\"}": {
-                                     "SAI_OUTBOUND_ROUTING_ENTRY_ATTR_ACTION": "SAI_OUTBOUND_ROUTING_ENTRY_ACTION_ROUTE_VNET",
+                                    {"ASIC_STATE:SAI_OBJECT_TYPE_OUTBOUND_ROUTING_ENTRY:"
+                                     "{\"destination\":\"20.2.2.0/24\",\"eni_id\":\"oid:0x73000000000023\","
+                                     "\"switch_id\":\"oid:0x21000000000000\"}": {
+                                     "SAI_OUTBOUND_ROUTING_ENTRY_ATTR_ACTION":
+                                         "SAI_OUTBOUND_ROUTING_ENTRY_ACTION_ROUTE_VNET",
                                      "SAI_OUTBOUND_ROUTING_ENTRY_ATTR_DST_VNET_ID": "oid:0x7a000000000022"
                                      }}
                                 ],
