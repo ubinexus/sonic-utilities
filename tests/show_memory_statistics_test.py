@@ -5,6 +5,8 @@ import click
 import syslog
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
+import pytest
+from click.testing import CliRunner
 
 
 class Dict2Obj:
@@ -231,15 +233,21 @@ def format_field_value(field_name, value):
     return value if value != "Unknown" else "Not configured"
 
 
-def main():
-    cli()
+# Test Cases
+
+@pytest.fixture
+def runner():
+    """Fixture to set up the Click test runner."""
+    return CliRunner()
 
 
-if __name__ == '__main__':
-    valid_commands = ['show', 'memory-stats', 'memory-statistics']
-    user_input = sys.argv[1:]
-    if user_input:
-        command = user_input[0]
-        if command not in valid_commands:
-            validate_command(command, valid_commands)
-    cli()
+def test_memory_stats_valid(runner):
+    """Test valid memory-stats command."""
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select', "'used_memory'"])
+    assert result.exit_code == 0
+    assert "Memory Statistics:" in result.output
+
+
+def test_memory_stats_invalid_from_keyword(runner):
+    """Test memory-stats command with invalid 'from' keyword."""
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from_invalid', "'2023-11-01'"])
