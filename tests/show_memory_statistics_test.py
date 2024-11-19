@@ -243,7 +243,18 @@ def runner():
 
 def test_memory_stats_valid(runner):
     """Test valid memory-stats command."""
-    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select', "'used_memory'"])
+    result = runner.invoke(
+        cli,
+        ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select', "'used_memory'"]
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            'show', 'memory-stats', 'from', "'2023-11-01'",
+            'to', "'2023-11-02'", 'select', "'used_memory'"
+            ]
+    )
     assert result.exit_code == 0
     assert "Memory Statistics:" in result.output
 
