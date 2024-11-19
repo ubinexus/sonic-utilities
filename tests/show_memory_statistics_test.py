@@ -262,3 +262,46 @@ def test_memory_stats_valid(runner):
 def test_memory_stats_invalid_from_keyword(runner):
     """Test memory-stats command with invalid 'from' keyword."""
     result = runner.invoke(cli, ['show', 'memory-stats', 'from_invalid', "'2023-11-01'"])
+    assert result.exit_code != 0
+    assert "Expected 'from' keyword as the first argument." in result.output
+
+
+def test_memory_stats_invalid_to_keyword(runner):
+    """Test memory-stats command with invalid 'to' keyword."""
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to_invalid', "'2023-11-02'"])
+    assert result.exit_code != 0
+    assert "Expected 'to' keyword before the end time." in result.output
+
+
+def test_memory_stats_invalid_select_keyword(runner):
+    """Test memory-stats command with invalid 'select' keyword."""
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select_invalid', "'used_memory'"])
+    assert result.exit_code != 0
+    assert "Expected 'select' keyword before the metric name." in result.output
+
+
+def test_memory_statistics_config(runner, mocker):
+    """Test memory-statistics config display command."""
+    mock_connector = mocker.Mock()
+    mock_connector.get_table.return_value = {
+        "memory_statistics": {
+            "enabled": "true",
+            "retention_period": "30",
+            "sampling_interval": "10"
+        }
+    }
+    mocker.patch('clicommon.get_db_connector', return_value=mock_connector)
+    result = runner.invoke(cli, ['show', 'memory-statistics', 'config'])
+    assert result.exit_code == 0
+    assert "Enabled" in result.output
+    assert "Retention Time (days)" in result.output
+    assert "Sampling Interval (minutes)" in result.output
+
+
+def test_memory_statistics_config_missing_db(runner, mocker):
+    """Test memory-statistics config display with missing database connector."""
+    mocker.patch('clicommon.get_db_connector', return_value=None)
+    result = runner.invoke(cli, ['show', 'memory-statistics', 'config'])
+    assert result.exit_code != 0
+    assert "Error: Database connector is not initialized." in result.output
+
