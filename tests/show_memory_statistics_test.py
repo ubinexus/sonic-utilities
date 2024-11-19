@@ -1,9 +1,6 @@
 import sys
-import socket
-import json
 import click
 import syslog
-from difflib import get_close_matches
 import utilities_common.cli as clicommon
 import pytest
 from click.testing import CliRunner
