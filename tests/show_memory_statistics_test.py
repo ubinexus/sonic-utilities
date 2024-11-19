@@ -310,4 +310,3 @@ def test_memory_statistics_config_missing_db(runner, mocker):
     result = runner.invoke(cli, ['show', 'memory-statistics', 'config'])
     assert result.exit_code != 0
     assert "Error: Database connector is not initialized." in result.output
-
