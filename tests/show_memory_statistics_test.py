@@ -7,6 +7,7 @@ from difflib import get_close_matches
 import utilities_common.cli as clicommon
 import pytest
 from click.testing import CliRunner
+from unittest import mock
 
 
 class Dict2Obj:
@@ -49,6 +50,7 @@ syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
 @click.pass_context
 def cli(ctx):
     """Main entry point for the SONiC CLI."""
+    print("CLI initialized!")  # Debugging line
     ctx.ensure_object(dict)
     if clicommon:
         try:
@@ -243,20 +245,23 @@ def runner():
 
 def test_memory_stats_valid(runner):
     """Test valid memory-stats command."""
-    result = runner.invoke(cli, ['show', 'memory-stats'])
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select', "'used_memory'"])
+    print(result.output)  # Debugging line to print output
     assert result.exit_code == 0
     assert "Memory Statistics" in result.output
 
 
-def test_memory_stats_invalid(runner):
-    """Test invalid memory-stats command."""
-    result = runner.invoke(cli, ['show', 'memory-stats', 'invalid_command'])
+def test_memory_stats_invalid_from_keyword(runner):
+    """Test memory-stats command with invalid 'from' keyword."""
+    result = runner.invoke(cli, ['show', 'memory-stats', 'from_invalid', "'2023-11-01'"])
+    print(result.output)  # Debugging line to print output
     assert result.exit_code != 0
-    assert "Error" in result.output
+    assert "UsageError" in result.output
 
 
 def test_memory_statistics_config(runner):
     """Test the memory-statistics config command."""
     result = runner.invoke(cli, ['show', 'memory-statistics', 'config'])
+    print(result.output)  # Debugging line to print output
     assert result.exit_code == 0
     assert "Enabled" in result.output
