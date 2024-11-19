@@ -7,7 +7,6 @@ from difflib import get_close_matches
 import utilities_common.cli as clicommon
 import pytest
 from click.testing import CliRunner
-from unittest.mock import Mock, patch
 
 
 class Dict2Obj:
