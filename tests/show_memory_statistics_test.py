@@ -7,7 +7,6 @@ from difflib import get_close_matches
 import utilities_common.cli as clicommon
 import pytest
 from click.testing import CliRunner
-from unittest import mock
 
 
 class Dict2Obj:
@@ -245,7 +244,13 @@ def runner():
 
 def test_memory_stats_valid(runner):
     """Test valid memory-stats command."""
-    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select', "'used_memory'"])
+    result = runner.invoke(
+        cli,
+        [
+            'show', 'memory-stats', 'from', "'2023-11-01'", 
+            'to', "'2023-11-02'", 'select', "'used_memory'"
+            ]
+    )
     print(result.output)  # Debugging line to print output
     assert result.exit_code == 0
     assert "Memory Statistics" in result.output
