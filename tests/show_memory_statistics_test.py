@@ -275,7 +275,13 @@ def test_memory_stats_invalid_to_keyword(runner):
 
 def test_memory_stats_invalid_select_keyword(runner):
     """Test memory-stats command with invalid 'select' keyword."""
-    result = runner.invoke(cli, ['show', 'memory-stats', 'from', "'2023-11-01'", 'to', "'2023-11-02'", 'select_invalid', "'used_memory'"])
+    result = runner.invoke(
+        cli,
+        [
+            'show', 'memory-stats', 'from', "'2023-11-01'",
+            'to', "'2023-11-02'", 'select_invalid', "'used_memory'"
+            ]
+    )
     assert result.exit_code != 0
     assert "Expected 'select' keyword before the metric name." in result.output
 
