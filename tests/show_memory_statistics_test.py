@@ -247,7 +247,7 @@ def test_memory_stats_valid(runner):
     result = runner.invoke(
         cli,
         [
-            'show', 'memory-stats', 'from', "'2023-11-01'", 
+            'show', 'memory-stats', 'from', "'2023-11-01'",
             'to', "'2023-11-02'", 'select', "'used_memory'"
             ]
     )
