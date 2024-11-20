@@ -98,7 +98,7 @@ Name                 Cause        Time                          User    Comment
 
             # Mock platform info to simulate a valid platform returned from get_platform_info
             mock_platform_info = {'platform': 'mock_platform'}
-            with mock.patch("show.reboot_cause.device_info.get_platform_info", return_value=mock_platform_info):
+            with mock.patch("sonic_py_common.device_info.get_platform_info", return_value=mock_platform_info):
 
                 # Mock open to simulate reading a platform.json file
                 mock_platform_data = '{"DPUS": {"dpu0": {}, "dpu1": {}}}'
