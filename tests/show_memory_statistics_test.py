@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from click.testing import CliRunner
 import json
 from show.memory_statistics import cli, Dict2Obj, send_data
@@ -27,11 +27,11 @@ def test_memory_stats_no_arguments(runner, mock_socket):
     with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data, \
          patch("utilities_common.cli.get_db_connector", return_value=Mock()):  # Mocking get_db_connector
         result = runner.invoke(cli, ["show", "memory-stats"])
-        
+
         # Debugging outputs
         print(f"Exit code: {result.exit_code}")
         print(f"Output: {result.output}")
-        
+
         # Assertions
         assert result.exit_code == 0, f"Expected exit code 0 but got {result.exit_code}"
         assert "Memory Statistics" in result.output
