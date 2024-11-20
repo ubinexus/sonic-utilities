@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from click.testing import CliRunner
 import json
 from show.memory_statistics import cli, Dict2Obj, send_data
