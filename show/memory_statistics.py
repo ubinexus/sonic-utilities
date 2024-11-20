@@ -5,7 +5,6 @@ import click
 import syslog
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
-from click.testing import CliRunner
 from your_module import Dict2Obj, send_data, get_memory_statistics_config, format_field_value
 
 

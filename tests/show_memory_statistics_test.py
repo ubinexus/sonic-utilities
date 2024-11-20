@@ -1,7 +1,7 @@
 import pytest
 from click.testing import CliRunner
 from unittest.mock import MagicMock
-from your_module import cli, Dict2Obj, send_data
+from your_module import cli
 
 
 @pytest.fixture
