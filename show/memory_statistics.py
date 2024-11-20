@@ -5,39 +5,8 @@ import click
 import syslog
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
-
-
-class Dict2Obj:
-    """Converts dictionaries or lists into objects with attribute-style access."""
-
-    def __init__(self, d):
-        if isinstance(d, dict):
-            for key, value in d.items():
-                if isinstance(value, (list, tuple)):
-                    setattr(self, key, [Dict2Obj(x) if isinstance(x, dict) else x for x in value])
-                else:
-                    setattr(self, key, Dict2Obj(value) if isinstance(value, dict) else value)
-        elif isinstance(d, list):
-            self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
-        else:
-            raise ValueError("Input should be a dictionary or a list")
-
-    def to_dict(self):
-        if hasattr(self, "items"):
-            return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
-
-        result = {}
-        for key, value in self.__dict__.items():
-            if isinstance(value, Dict2Obj):
-                result[key] = value.to_dict()
-            elif isinstance(value, list):
-                result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
-            else:
-                result[key] = value
-        return result
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self.to_dict()}>"
+from click.testing import CliRunner
+from your_module import Dict2Obj, send_data, get_memory_statistics_config, format_field_value
 
 
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
