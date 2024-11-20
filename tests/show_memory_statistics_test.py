@@ -10,7 +10,7 @@ def test_memory_stats_valid_arguments():
 
     # Mock send_data to return a successful response
     mock_response = Dict2Obj({'data': 'memory stats data'})
-    with patch('your_module.send_data', return_value=mock_response):
+    with patch('show.memory_statistics.send_data', return_value=mock_response):
         result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
     assert result.exit_code == 0
@@ -53,7 +53,7 @@ def test_memory_stats_success():
 
     # Mock a valid response
     mock_response = Dict2Obj({'data': 'Memory statistics data'})
-    with patch('your_module.send_data', return_value=mock_response):
+    with patch('show.memory_statistics.send_data', return_value=mock_response):
         result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
     assert result.exit_code == 0
@@ -65,7 +65,7 @@ def test_memory_stats_invalid_response():
     runner = CliRunner()
 
     # Mock an invalid response
-    with patch('your_module.send_data', return_value=None):
+    with patch('show.memory_statistics.send_data', return_value=None):
         result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
     assert result.exit_code != 0
@@ -77,7 +77,7 @@ def test_memory_stats_socket_error():
     runner = CliRunner()
 
     # Simulate a socket error in send_data
-    with patch('your_module.send_data', side_effect=socket.error("Connection error")):
+    with patch('show.memory_statistics.send_data', side_effect=socket.error("Connection error")):
         result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
     assert result.exit_code != 0
@@ -88,7 +88,7 @@ def test_memory_stats_socket_error():
 def test_memory_statistics_config_missing_db_connector():
     runner = CliRunner()
 
-    with patch('your_module.get_memory_statistics_config', side_effect=AttributeError):
+    with patch('show.memory_statistics.get_memory_statistics_config', side_effect=AttributeError):
         result = runner.invoke(config)
 
     assert result.exit_code != 0
@@ -108,7 +108,7 @@ def test_memory_statistics_config_valid():
             'sampling_interval': '10'
         }
     }
-    with patch('your_module.clicommon.get_db_connector', return_value=mock_db_connector):
+    with patch('show.memory_statistics.clicommon.get_db_connector', return_value=mock_db_connector):
         result = runner.invoke(config)
 
     assert result.exit_code == 0
@@ -124,7 +124,7 @@ def test_memory_statistics_config_missing_fields():
     # Mock a database with missing fields
     mock_db_connector = MagicMock()
     mock_db_connector.get_table.return_value = {'memory_statistics': {}}
-    with patch('your_module.clicommon.get_db_connector', return_value=mock_db_connector):
+    with patch('show.memory_statistics.clicommon.get_db_connector', return_value=mock_db_connector):
         result = runner.invoke(config)
 
     assert result.exit_code == 0
@@ -145,7 +145,7 @@ def test_clean_and_print():
 def test_send_data_valid():
     mock_response = {'status': True, 'data': 'Some data'}
 
-    with patch('your_module.send_data', return_value=mock_response):
+    with patch('show.memory_statistics.send_data', return_value=mock_response):
         response = send_data('command', {'data': 'value'})
 
     assert response['status'] is True
@@ -154,7 +154,7 @@ def test_send_data_valid():
 
 # Test send_data function with exception handling
 def test_send_data_exception():
-    with patch('your_module.send_data', side_effect=Exception("Test exception")):
+    with patch('show.memory_statistics.send_data', side_effect=Exception("Test exception")):
         result = send_data('command', {'data': 'value'})
 
     assert result is None  # As the exception is caught and handled
