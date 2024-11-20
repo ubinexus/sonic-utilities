@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from click.testing import CliRunner
-from show import cli
+from show.memory_statistics import cli
 
 
 class TestShowCLI(unittest.TestCase):
