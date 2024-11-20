@@ -1,195 +1,160 @@
-import sys
 import socket
-import json
-import click
-import syslog
-import utilities_common.cli as clicommon
-from difflib import get_close_matches
+from unittest.mock import patch, MagicMock
+from click.testing import CliRunner
+from show.memory_statistics import memory_stats, config, Dict2Obj, send_data
 
 
-# Define Dict2Obj class
-class Dict2Obj:
-    """Converts dictionaries or lists into objects with attribute-style access."""
+# Test CLI command memory-stats with valid inputs
+def test_memory_stats_valid_arguments():
+    runner = CliRunner()
 
-    def __init__(self, d):
-        if isinstance(d, dict):
-            for key, value in d.items():
-                if isinstance(value, (list, tuple)):
-                    setattr(self, key, [Dict2Obj(x) if isinstance(x, dict) else x for x in value])
-                else:
-                    setattr(self, key, Dict2Obj(value) if isinstance(value, dict) else value)
-        elif isinstance(d, list):
-            self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
-        else:
-            raise ValueError("Input should be a dictionary or a list")
+    # Mock send_data to return a successful response
+    mock_response = Dict2Obj({'data': 'memory stats data'})
+    with patch('your_module.send_data', return_value=mock_response):
+        result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
-    def to_dict(self):
-        if hasattr(self, "items"):
-            return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
-
-        result = {}
-        for key, value in self.__dict__.items():
-            if isinstance(value, Dict2Obj):
-                result[key] = value.to_dict()
-            elif isinstance(value, list):
-                result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
-            else:
-                result[key] = value
-        return result
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self.to_dict()}>"
+    assert result.exit_code == 0
+    assert 'Memory Statistics' in result.output
 
 
-# Open syslog for logging
-syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
+# Test CLI command memory-stats with missing 'from' keyword
+def test_memory_stats_missing_from_keyword():
+    runner = CliRunner()
+
+    result = runner.invoke(memory_stats, ['2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
+
+    assert result.exit_code != 0
+    assert "Expected 'from' keyword as the first argument." in result.output
 
 
-@click.group()
-@click.pass_context
-def cli(ctx):
-    """Main entry point for the SONiC CLI."""
-    ctx.ensure_object(dict)
-    if clicommon:
-        try:
-            ctx.obj["db_connector"] = clicommon.get_db_connector()
-        except AttributeError:
-            error_msg = "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
-            click.echo(error_msg, err=True)
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            sys.exit(1)
-    else:
-        ctx.obj["db_connector"] = None
+# Test CLI command memory-stats with incorrect 'to' keyword
+def test_memory_stats_incorrect_to_keyword():
+    runner = CliRunner()
+
+    result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to_keyword', '2024-01-02', 'select', 'metric'])
+
+    assert result.exit_code != 0
+    assert "Expected 'to' keyword before the end time." in result.output
 
 
-def validate_command(command, valid_commands):
-    match = get_close_matches(command, valid_commands, n=1, cutoff=0.6)
-    if match:
-        error_msg = f"Error: No such command '{command}'. Did you mean '{match[0]}'?"
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
-    else:
-        error_msg = f"Error: No such command '{command}'."
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
+# Test CLI command memory-stats with missing 'select' keyword
+def test_memory_stats_missing_select_keyword():
+    runner = CliRunner()
+
+    result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'metric'])
+
+    assert result.exit_code != 0
+    assert "Expected 'select' keyword before the metric name." in result.output
 
 
-@cli.group()
-@click.pass_context
-def show(ctx):
-    """Displays various information about the system."""
-    pass
+# Test CLI command memory-stats with a valid response from send_data
+def test_memory_stats_success():
+    runner = CliRunner()
+
+    # Mock a valid response
+    mock_response = Dict2Obj({'data': 'Memory statistics data'})
+    with patch('your_module.send_data', return_value=mock_response):
+        result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
+
+    assert result.exit_code == 0
+    assert 'Memory Statistics' in result.output
 
 
-@show.command(name="memory-stats")
-@click.argument("from_keyword", required=False)
-@click.argument("from_time", required=False)
-@click.argument("to_keyword", required=False)
-@click.argument("to_time", required=False)
-@click.argument("select_keyword", required=False)
-@click.argument("select_metric", required=False)
-@click.pass_context
-def memory_stats(ctx, from_keyword, from_time, to_keyword, to_time, select_keyword, select_metric):
-    """Displays memory statistics."""
-    request_data = {"type": "system", "metric_name": None, "from": None, "to": None}
+# Test CLI command memory-stats with an invalid response from send_data
+def test_memory_stats_invalid_response():
+    runner = CliRunner()
 
-    if from_keyword:
-        if from_keyword != "from":
-            raise click.UsageError("Expected 'from' keyword as the first argument.")
-        if to_keyword and to_keyword != "to":
-            raise click.UsageError("Expected 'to' keyword before the end time.")
-        if select_keyword and select_keyword != "select":
-            raise click.UsageError("Expected 'select' keyword before the metric name.")
+    # Mock an invalid response
+    with patch('your_module.send_data', return_value=None):
+        result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
 
-        request_data["from"] = from_time.strip("'\"")
-        if to_time:
-            request_data["to"] = to_time.strip("'\"")
-        if select_metric:
-            request_data["metric_name"] = select_metric.strip("'\"")
-
-    try:
-        response = send_data("memory_statistics_command_request_handler", request_data)
-
-        if isinstance(response, Dict2Obj):
-            clean_and_print(response.to_dict())
-        else:
-            error_msg = f"Error: Expected Dict2Obj, but got {type(response)}"
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            print(error_msg)
-
-    except Exception as exc:
-        error_msg = f"Error: {str(exc)}"
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        print(error_msg)
+    assert result.exit_code != 0
+    assert "Error: Expected Dict2Obj, but got <class 'NoneType'>" in result.output
 
 
-@show.group(name="memory-statistics")
-@click.pass_context
-def memory_statistics(ctx):
-    """Displays memory statistics configuration information."""
-    pass
+# Test CLI command memory-stats with socket error
+def test_memory_stats_socket_error():
+    runner = CliRunner()
+
+    # Simulate a socket error in send_data
+    with patch('your_module.send_data', side_effect=socket.error("Connection error")):
+        result = runner.invoke(memory_stats, ['from', '2024-01-01', 'to', '2024-01-02', 'select', 'metric'])
+
+    assert result.exit_code != 0
+    assert "Error: Connection error" in result.output
 
 
-@memory_statistics.command(name="config", short_help="Show the configuration of memory statistics")
-@click.pass_context
-def config(ctx):
-    """Displays the configuration settings for memory statistics."""
-    db_connector = ctx.obj.get('db_connector')
-    if not db_connector:
-        error_msg = "Error: Database connector is not initialized."
-        click.echo(error_msg, err=True)
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        sys.exit(1)
+# Test configuration retrieval with missing database connector
+def test_memory_statistics_config_missing_db_connector():
+    runner = CliRunner()
 
-    try:
-        enabled = get_memory_statistics_config("enabled", db_connector)
-        retention_time = get_memory_statistics_config("retention_period", db_connector)
-        sampling_interval = get_memory_statistics_config("sampling_interval", db_connector)
+    with patch('your_module.get_memory_statistics_config', side_effect=AttributeError):
+        result = runner.invoke(config)
 
-        enabled_display = format_field_value("enabled", enabled)
-        retention_display = format_field_value("retention_period", retention_time)
-        sampling_display = format_field_value("sampling_interval", sampling_interval)
-
-        click.echo(f"{'Configuration Field':<30}{'Value'}")
-        click.echo("-" * 50)
-        click.echo(f"{'Enabled':<30}{enabled_display}")
-        click.echo(f"{'Retention Time (days)':<30}{retention_display}")
-        click.echo(f"{'Sampling Interval (minutes)':<30}{sampling_display}")
-
-    except Exception as e:
-        error_msg = f"Error retrieving configuration: {str(e)}"
-        click.echo(error_msg, err=True)
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        sys.exit(1)
+    assert result.exit_code != 0
+    assert "Error: Database connector is not initialized." in result.output
 
 
-def clean_and_print(data):
-    if isinstance(data, dict):
-        memory_stats = data.get("data", "")
-        cleaned_output = memory_stats.replace("\n", "\n").strip()
-        print(f"Memory Statistics:\n{cleaned_output}")
-    else:
-        print("Error: Invalid data format.")
+# Test configuration retrieval with valid data
+def test_memory_statistics_config_valid():
+    runner = CliRunner()
+
+    # Mock the database connector and configuration values
+    mock_db_connector = MagicMock()
+    mock_db_connector.get_table.return_value = {
+        'memory_statistics': {
+            'enabled': 'true',
+            'retention_period': '30',
+            'sampling_interval': '10'
+        }
+    }
+    with patch('your_module.clicommon.get_db_connector', return_value=mock_db_connector):
+        result = runner.invoke(config)
+
+    assert result.exit_code == 0
+    assert "Enabled" in result.output
+    assert "Retention Time (days)" in result.output
+    assert "Sampling Interval (minutes)" in result.output
 
 
-def send_data(command, data, quiet=False):
-    SERVER_ADDRESS = '/var/run/sonic.sock'
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(SERVER_ADDRESS)
-        sock.sendall(json.dumps(data).encode("utf-8"))
-        response = sock.recv(4096)
-        return json.loads(response.decode("utf-8"))
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        sock.close()
+# Test configuration retrieval with missing configuration fields
+def test_memory_statistics_config_missing_fields():
+    runner = CliRunner()
+
+    # Mock a database with missing fields
+    mock_db_connector = MagicMock()
+    mock_db_connector.get_table.return_value = {'memory_statistics': {}}
+    with patch('your_module.clicommon.get_db_connector', return_value=mock_db_connector):
+        result = runner.invoke(config)
+
+    assert result.exit_code == 0
+    assert "Not configured" in result.output
 
 
-def get_memory_statistics_config(field_name, db_connector):
-    table = db_connector.get_table("memory_statistics")
-    return table.get(field_name)
+# Test memory statistics clean_and_print function
+def test_clean_and_print():
+    # Test with valid data
+    data = {"data": "some memory stats"}
+    obj = Dict2Obj(data)
+    with patch('builtins.print') as mock_print:
+        obj.clean_and_print(obj.to_dict())
+        mock_print.assert_called_with("Memory Statistics:\nsome memory stats")
 
 
-def format_field_value(field, value):
-    return value if value else "N/A"
+# Test send_data function with valid response
+def test_send_data_valid():
+    mock_response = {'status': True, 'data': 'Some data'}
+
+    with patch('your_module.send_data', return_value=mock_response):
+        response = send_data('command', {'data': 'value'})
+
+    assert response['status'] is True
+    assert response['data'] == 'Some data'
+
+
+# Test send_data function with exception handling
+def test_send_data_exception():
+    with patch('your_module.send_data', side_effect=Exception("Test exception")):
+        result = send_data('command', {'data': 'value'})
+
+    assert result is None  # As the exception is caught and handled
