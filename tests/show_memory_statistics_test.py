@@ -26,7 +26,7 @@ def test_memory_stats_no_arguments(runner, mock_socket):
 
     with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data:
         result = runner.invoke(cli, ["show", "memory-stats"])
-        
+
         # Print statements to help with debugging
         print(f"Exit code: {result.exit_code}")
         print(f"Output: {result.output}")
