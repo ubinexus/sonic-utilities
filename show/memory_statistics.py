@@ -4,9 +4,6 @@ import json
 import click
 import syslog
 import utilities_common.cli as clicommon
-import pytest
-from click.testing import CliRunner
-from your_module import Dict2Obj  # Make sure Dict2Obj is imported correctly
 
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
 
