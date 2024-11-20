@@ -5,7 +5,6 @@ import sys
 import click
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
-from sonic_py_common import device_info
 import utilities_common.cli as clicommon
 from utilities_common.chassis import is_smartswitch, get_all_options
 
