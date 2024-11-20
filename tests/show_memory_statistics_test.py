@@ -2,12 +2,15 @@ import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 import json
+import click
 from show.memory_statistics import cli, Dict2Obj, send_data, clean_and_print
+
 
 @pytest.fixture
 def runner():
     """Fixture for CLI Runner."""
     return CliRunner()
+
 
 @pytest.fixture
 def mock_socket():
