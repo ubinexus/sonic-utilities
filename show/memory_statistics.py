@@ -5,8 +5,6 @@ import click
 import syslog
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
-import pytest
-from click.testing import CliRunner
 from your_module import cli, Dict2Obj
 
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
@@ -26,6 +24,7 @@ def cli(ctx):
             sys.exit(1)
     else:
         ctx.obj["db_connector"] = None
+
 
 def send_data(command, data, quiet=False):
     """Function to send data to the server."""
