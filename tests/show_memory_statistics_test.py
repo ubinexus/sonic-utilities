@@ -24,20 +24,22 @@ def test_memory_stats_no_arguments(runner, mock_socket):
     mock_response = {"status": True, "data": "Sample memory stats data"}
     mock_socket.recv.return_value = json.dumps(mock_response).encode("utf-8")
 
-    with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data:
+    with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data, \
+         patch("utilities_common.cli.get_db_connector", return_value=Mock()):  # Mocking get_db_connector
         result = runner.invoke(cli, ["show", "memory-stats"])
-
-        # Print statements to help with debugging
+        
+        # Debugging outputs
         print(f"Exit code: {result.exit_code}")
         print(f"Output: {result.output}")
-
-        # Existing assertions
+        
+        # Assertions
         assert result.exit_code == 0, f"Expected exit code 0 but got {result.exit_code}"
         assert "Memory Statistics" in result.output
         assert "Sample memory stats data" in result.output
-        mock_send_data.assert_called_once_with("memory_statistics_command_request_handler", {
-            "type": "system", "metric_name": None, "from": None, "to": None
-        })
+        mock_send_data.assert_called_once_with(
+            "memory_statistics_command_request_handler",
+            {"type": "system", "metric_name": None, "from": None, "to": None},
+        )
 
 
 def test_send_data_success(mock_socket):
