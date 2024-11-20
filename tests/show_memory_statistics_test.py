@@ -21,14 +21,18 @@ def mock_socket():
 
 def test_memory_stats_no_arguments(runner, mock_socket):
     """Test 'show memory-stats' with no arguments."""
+    # Mock response data
     mock_response = {"status": True, "data": "Sample memory stats data"}
     mock_socket.recv.return_value = json.dumps(mock_response).encode("utf-8")
 
+    # Patch the necessary methods and functions
     with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data, \
          patch("utilities_common.cli.get_db_connector", return_value=Mock()):  # Mocking get_db_connector
+
+        # Invoke the CLI command
         result = runner.invoke(cli, ["show", "memory-stats"])
 
-        # Debugging outputs
+        # Debugging outputs for troubleshooting
         print(f"Exit code: {result.exit_code}")
         print(f"Output: {result.output}")
 
