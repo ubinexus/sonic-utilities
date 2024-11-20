@@ -94,7 +94,7 @@ Name                 Cause        Time                          User    Comment
     # Test 'get_all_options' function
     def test_get_all_options(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.reboot_cause.device_info.is_smartswitch", return_value=True):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
             # Mock platform info to simulate a valid platform returned from get_platform_info
             mock_platform_info = {'platform': 'mock_platform'}
@@ -115,7 +115,7 @@ Name                 Cause        Time                          User    Comment
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.reboot_cause.is_smartswitch", return_value=True):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
             with mock.patch("show.reboot_cause.fetch_data_from_db",
                             return_value={
                                 "comment": "",
@@ -138,7 +138,7 @@ Name                 Cause        Time                          User    Comment
     # Test 'show reboot-cause all on smartswitch'
     def test_reboot_cause_all_non_smartswitch(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.reboot_cause.is_smartswitch", return_value=False):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=False):
             with mock.patch("show.reboot_cause.fetch_data_from_db",
                             return_value={
                                 "comment": "",

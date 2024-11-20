@@ -413,7 +413,7 @@ swss            OK                OK                  -              -
     # Test 'get_all_dpu_options' function
     def test_get_all_dpu_options(self):
         # Mock is_smartswitch to return True
-        with mock.patch("show.system_health.device_info.is_smartswitch", return_value=True):
+        with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
 
             # Mock platform info to simulate a valid platform returned from get_platform_info
             mock_platform_info = {'platform': 'mock_platform'}
