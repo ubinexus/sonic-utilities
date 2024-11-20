@@ -6,6 +6,7 @@ import syslog
 import utilities_common.cli as clicommon
 from difflib import get_close_matches
 
+
 # Define Dict2Obj class
 class Dict2Obj:
     """Converts dictionaries or lists into objects with attribute-style access."""
