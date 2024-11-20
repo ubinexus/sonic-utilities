@@ -5121,47 +5121,33 @@ This command is to display the link-training status of the selected interfaces. 
     Ethernet8      trained          on      up       up
   ```
 
-**show interfaces mac-statistics**
+**show interfaces errors**
 
 The show interface mac-stats command provides detailed statistics and error counters for MAC-level operations on an interface. It displays the status of various operational parameters, error counts, and timestamps for when these errors occurred.
 
 - Usage:
   ```
-  show interfaces mac_statistics [<interface_name>]
+  show interfaces errors [<interface_name>]
   ```
 
 - Example:
-  ```
-  admin@sonic:~$ show interfaces mac_statistics Ethernet4
-  Field                             Value
-  --------------------------------  -------------------
-  oper_error_status                 5442
-  mac_local_fault_count             2
-  mac_local_fault_time              2024-11-02 04:00:05
-  fec_sync_loss_count               2
-  fec_sync_loss_time                2024-11-02 04:00:05
-  fec_alignment_loss_count          2
-  fec_alignment_loss_time           2024-11-02 04:00:05
-  high_ser_error_count              2
-  high_ser_error_time               2024-11-02 04:00:05
-  high ber_error_count              2
-  high ber_error_time               2024-11-02 04:00:05
-  data_unit_crc_error_count         2
-  data_unit_crc_error_time          2024-11-02 04:00:05
-  data_unit_misalignment_error_count 2
-  data_unit_misalignment_error_time 2024-11-02 04:00:05
-  signal_local_error_count          2
-  signal_local_error_time           2024-11-02 04:00:05
-  mac_remote_fault_count            2
-  mac_remote_fault_time             2024-11-02 04:00:50
-  crc_rate_count                    2
-  crc_rate_time                     2024-11-02 04:00:50
-  data_unit_size_count              2
-  data_unit_size_time               2024-11-02 04:00:50
-  code_group_error_count            2
-  code_group_error_time             2024-11-02 04:00:50
-  no_rx_reachability_count          2
-  no_rx_reachability_time           2024-11-02 04:00:50
+  admin@sonic:~$ show interfaces errors Ethernet4
+  Port Errors                        Count           Last timestamp(UTC)
+  ---------------------------------- -----           -------------------
+  oper_error_status                  5442            2024-11-02 04:00:05
+  mac_local_fault_count              2               2024-11-02 04:00:05
+  fec_sync_loss_count                2               2024-11-02 04:00:05
+  fec_alignment_loss_count           2               2024-11-02 04:00:05
+  high_ser_error_count               2               2024-11-02 04:00:05
+  high ber_error_count               2               2024-11-02 04:00:05
+  data_unit_crc_error_count          2               2024-11-02 04:00:05
+  data_unit_misalignment_error_count 2               2024-11-02 04:00:05
+  signal_local_error_count           2               2024-11-02 04:00:05
+  mac_remote_fault_count             2               2024-11-02 04:00:50
+  crc_rate_count                     2               2024-11-02 04:00:50
+  data_unit_size_count               2               2024-11-02 04:00:50
+  code_group_error_count             0               Never
+  no_rx_reachability_count           0               Never
   ```
 
 
