@@ -22,7 +22,8 @@ def get_chassis_local_interfaces():
 def is_smartswitch():
     return hasattr(device_info, 'is_smartswitch') and device_info.is_smartswitch()
 
-# utility to get dpu module name list 
+
+# utility to get dpu module name list
 def get_all_dpus():
     dpu_list = []
 
@@ -50,7 +51,8 @@ def get_all_dpus():
 
     return dpu_list
 
-# utility to get dpu module name list and all 
+
+# utility to get dpu module name list and all
 def get_all_dpu_options():
     dpu_list = get_all_dpus()
 
@@ -59,7 +61,8 @@ def get_all_dpu_options():
 
     return dpu_list
 
-# utility to get dpu module name list and "all, SWITCH" 
+
+# utility to get dpu module name list and "all, SWITCH"
 def get_all_options():
     dpu_list = get_all_dpus()
 
