@@ -40,8 +40,10 @@ class Dict2Obj:
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.to_dict()}>"
 
+
 # Open syslog for logging
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
+
 
 @click.group()
 @click.pass_context
