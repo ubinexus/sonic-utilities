@@ -5131,6 +5131,7 @@ The show interface mac-stats command provides detailed statistics and error coun
   ```
 
 - Example:
+  ```
   admin@sonic:~$ show interfaces errors Ethernet4
   Port Errors                        Count           Last timestamp(UTC)
   ---------------------------------- -----           -------------------
