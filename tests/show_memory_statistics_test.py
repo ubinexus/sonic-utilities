@@ -26,7 +26,13 @@ def test_memory_stats_no_arguments(runner, mock_socket):
 
     with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data:
         result = runner.invoke(cli, ["show", "memory-stats"])
-        assert result.exit_code == 0
+        
+        # Print statements to help with debugging
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+
+        # Existing assertions
+        assert result.exit_code == 0, f"Expected exit code 0 but got {result.exit_code}"
         assert "Memory Statistics" in result.output
         assert "Sample memory stats data" in result.output
         mock_send_data.assert_called_once_with("memory_statistics_command_request_handler", {
