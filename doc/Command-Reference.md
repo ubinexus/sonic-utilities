@@ -5123,7 +5123,7 @@ This command is to display the link-training status of the selected interfaces. 
 
 **show interfaces errors**
 
-The show interface mac-stats command provides detailed statistics and error counters for MAC-level operations on an interface. It displays the status of various operational parameters, error counts, and timestamps for when these errors occurred.
+The show interface errors command provides detailed statistics and error counters for MAC-level operations on an interface. It displays the status of various operational parameters, error counts, and timestamps for when these errors occurred.
 
 - Usage:
   ```
