@@ -3,6 +3,7 @@ from unittest.mock import patch, Mock
 from click.testing import CliRunner
 import json
 from show.memory_statistics import cli, Dict2Obj, send_data
+import json
 
 
 @pytest.fixture
@@ -27,7 +28,10 @@ def test_memory_stats_no_arguments(runner, mock_socket):
 
     # Patch the necessary methods and functions
     with patch("show.memory_statistics.send_data", return_value=Dict2Obj(mock_response)) as mock_send_data, \
-         patch("utilities_common.cli.get_db_connector", return_value=Mock()):  # Mocking get_db_connector
+         patch("utilities_common.cli", create=True) as mock_cli:  # Mock the entire cli module if needed
+
+        # Mock `get_db_connector` only if it's accessed in the CLI execution
+        mock_cli.get_db_connector = Mock(return_value=Mock())
 
         # Invoke the CLI command
         result = runner.invoke(cli, ["show", "memory-stats"])
