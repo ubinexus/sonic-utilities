@@ -5,11 +5,11 @@ import click
 import syslog
 from difflib import get_close_matches
 import utilities_common.cli as clicommon
-from your_module import Dict2Obj, send_data, get_memory_statistics_config, format_field_value
-
+import pytest
+from click.testing import CliRunner
+from your_module import cli, Dict2Obj
 
 syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
-
 
 @click.group()
 @click.pass_context
@@ -27,20 +27,81 @@ def cli(ctx):
     else:
         ctx.obj["db_connector"] = None
 
-
-def validate_command(command, valid_commands):
-    match = get_close_matches(command, valid_commands, n=1, cutoff=0.6)
-    if match:
-        error_msg = f"Error: No such command '{command}'. Did you mean '{match[0]}'?"
+def send_data(command, data, quiet=False):
+    """Function to send data to the server."""
+    SERVER_ADDRESS = '/var/run/dbus/memstats.socket'
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(SERVER_ADDRESS)
+    except socket.error as msg:
+        error_msg = "Could not connect to the server. Please check if the memory stats service is running."
         syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
+        raise click.Abort(error_msg) from msg
+    response = {}
+    try:
+        request = {"command": command, "data": data}
+        sock.sendall(json.dumps(request).encode('utf-8'))
+        res = sock.recv(40240).decode('utf-8')
+
+        if res == '':
+            sock.close()
+            raise click.Abort("No response from the server. Please check the service and try again.")
+
+        jdata = json.loads(res)
+        if isinstance(jdata, dict):
+            response = Dict2Obj(jdata)
+        else:
+            raise Exception("Unexpected response format from server")
+
+        if not getattr(response, 'status', True):
+            sock.close()
+            raise click.Abort(getattr(response, 'msg', 'An error occurred'))
+
+    except Exception as e:
+        if quiet:
+            sock.close()
+            raise click.Abort(str(e))
+        click.echo("Error: {}".format(str(e)))
+        sock.close()
+        sys.exit(1)
+
+    sock.close()
+    return response
+
+
+def get_memory_statistics_config(field_name, db_connector):
+    """Fetch memory statistics configuration from the database."""
+    field_value = "Unknown"
+    if not db_connector:
+        return field_value
+
+    memory_statistics_table = db_connector.get_table("MEMORY_STATISTICS")
+    if (memory_statistics_table and
+            "memory_statistics" in memory_statistics_table and
+            field_name in memory_statistics_table["memory_statistics"]):
+        field_value = memory_statistics_table["memory_statistics"][field_name]
+
+    return field_value
+
+
+def format_field_value(field_name, value):
+    """Format field values for display."""
+    if field_name == "enabled":
+        return "True" if value.lower() == "true" else "False"
+    return value if value != "Unknown" else "Not configured"
+
+
+def clean_and_print(data):
+    """Clean and print memory statistics data."""
+    if isinstance(data, dict):
+        memory_stats = data.get("data", "")
+        cleaned_output = memory_stats.replace("\n", "\n").strip()
+        print(f"Memory Statistics:\n{cleaned_output}")
     else:
-        error_msg = f"Error: No such command '{command}'."
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
+        print("Error: Invalid data format.")
 
 
-@cli.group()
+@click.group()
 @click.pass_context
 def show(ctx):
     """Displays various information about the system."""
@@ -127,73 +188,3 @@ def config(ctx):
         click.echo(error_msg, err=True)
         syslog.syslog(syslog.LOG_ERR, error_msg)
         sys.exit(1)
-
-
-def clean_and_print(data):
-    if isinstance(data, dict):
-        memory_stats = data.get("data", "")
-        cleaned_output = memory_stats.replace("\n", "\n").strip()
-        print(f"Memory Statistics:\n{cleaned_output}")
-    else:
-        print("Error: Invalid data format.")
-
-
-def send_data(command, data, quiet=False):
-    SERVER_ADDRESS = '/var/run/dbus/memstats.socket'
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        sock.connect(SERVER_ADDRESS)
-    except socket.error as msg:
-        error_msg = "Could not connect to the server. Please check if the memory stats service is running."
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.Abort(error_msg) from msg
-    response = {}
-    try:
-        request = {"command": command, "data": data}
-        sock.sendall(json.dumps(request).encode('utf-8'))
-        res = sock.recv(40240).decode('utf-8')
-
-        if res == '':
-            sock.close()
-            raise click.Abort("No response from the server. Please check the service and try again.")
-
-        jdata = json.loads(res)
-        if isinstance(jdata, dict):
-            response = Dict2Obj(jdata)
-        else:
-            raise Exception("Unexpected response format from server")
-
-        if not getattr(response, 'status', True):
-            sock.close()
-            raise click.Abort(getattr(response, 'msg', 'An error occurred'))
-
-    except Exception as e:
-        if quiet:
-            sock.close()
-            raise click.Abort(str(e))
-        click.echo("Error: {}".format(str(e)))
-        sock.close()
-        sys.exit(1)
-
-    sock.close()
-    return response
-
-
-def get_memory_statistics_config(field_name, db_connector):
-    field_value = "Unknown"
-    if not db_connector:
-        return field_value
-
-    memory_statistics_table = db_connector.get_table("MEMORY_STATISTICS")
-    if (memory_statistics_table and
-            "memory_statistics" in memory_statistics_table and
-            field_name in memory_statistics_table["memory_statistics"]):
-        field_value = memory_statistics_table["memory_statistics"][field_name]
-
-    return field_value
-
-
-def format_field_value(field_name, value):
-    if field_name == "enabled":
-        return "True" if value.lower() == "true" else "False"
-    return value if value != "Unknown" else "Not configured"
