@@ -7,7 +7,7 @@ from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 from sonic_py_common import device_info
 import utilities_common.cli as clicommon
-from utilities_common.chassis import is_smartswitch
+from utilities_common.chassis import is_smartswitch, get_all_options
 
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
@@ -175,46 +175,12 @@ def all():
         click.echo(tabulate(reboot_cause_data, header, numalign="left"))
 
 
-# utility to get options
-def get_all_dpus():
-    dpu_list = []
-
-    if not is_smartswitch():
-        return dpu_list
-
-    # Load platform.json
-    platform_info = device_info.get_platform_info()
-    platform = platform_info['platform']
-    if platform is None:
-        raise ValueError("Platform does not exist in platform_info")
-    platform_file = os.path.join("/usr/share/sonic/device", platform, "platform.json")
-    try:
-        with open(platform_file, 'r') as platform_json:
-            config_data = json.load(platform_json)
-
-            # Extract DPUs dictionary
-            dpus = config_data.get("DPUS", {})
-
-            # Convert DPU names to uppercase and append to the list
-            dpu_list = [dpu.upper() for dpu in dpus.keys()]
-
-    except FileNotFoundError:
-        print("Error: platform.json not found")
-    except json.JSONDecodeError:
-        print("Error: Failed to parse platform.json")
-
-    # Add 'all' and 'SWITCH' to the list
-    dpu_list += ['all', 'SWITCH']
-
-    return dpu_list
-
-
 # 'history' command within 'reboot-cause'
 @reboot_cause.command()
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
+        type=click.Choice(get_all_options(), case_sensitive=False) if is_smartswitch() else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""

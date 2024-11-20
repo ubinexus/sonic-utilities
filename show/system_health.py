@@ -1,14 +1,12 @@
 import os
 import sys
-import json
 
 import click
 from tabulate import tabulate
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
-from sonic_py_common import device_info
-from utilities_common.chassis import is_smartswitch
+from utilities_common.chassis import is_smartswitch, get_all_dpu_options
 
 DPU_STATE = 'DPU_STATE'
 CHASSIS_SERVER = 'redis_chassis.server'
@@ -237,42 +235,10 @@ def populate_row(row, key, value, table):
             row[5] = value
 
 
-# utility to get options
-def get_all_dpus():
-    dpu_list = []
-
-    if not is_smartswitch():
-        return dpu_list
-
-    # Load platform.json
-    platform_info = device_info.get_platform_info()
-    platform = platform_info['platform']
-    platform_file = os.path.join("/usr/share/sonic/device", platform, "platform.json")
-    try:
-        with open(platform_file, 'r') as platform_json:
-            config_data = json.load(platform_json)
-
-            # Extract DPUs dictionary
-            dpus = config_data.get("DPUS", {})
-
-            # Convert DPU names to uppercase and append to the list
-            dpu_list = [dpu.upper() for dpu in dpus.keys()]
-
-    except FileNotFoundError:
-        print("Error: platform.json not found")
-    except json.JSONDecodeError:
-        print("Error: Failed to parse platform.json")
-
-    # Add 'all' and 'SWITCH' to the list
-    dpu_list += ['all', 'SWITCH']
-
-    return dpu_list
-
-
 @system_health.command()
 @click.argument('module_name',
                 required=True,
-                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else None
+                type=click.Choice(get_all_dpu_options(), case_sensitive=False) if is_smartswitch() else None
                 )
 def dpu(module_name):
     """Show system-health dpu information"""

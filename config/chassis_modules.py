@@ -5,7 +5,7 @@ import time
 import re
 import subprocess
 import utilities_common.cli as clicommon
-from utilities_common.chassis import is_smartswitch
+from utilities_common.chassis import is_smartswitch, get_all_dpus
 
 TIMEOUT_SECS = 10
 
@@ -106,7 +106,11 @@ def fabric_module_set_admin_status(db, chassis_module_name, state):
 #
 @modules.command('shutdown')
 @clicommon.pass_db
-@click.argument('chassis_module_name', metavar='<module_name>', required=True)
+@click.argument('chassis_module_name',
+                metavar='<module_name>',
+                required=True,
+                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else str
+                )
 def shutdown_chassis_module(db, chassis_module_name):
     """Chassis-module shutdown of module"""
     config_db = db.cfgdb
@@ -135,7 +139,11 @@ def shutdown_chassis_module(db, chassis_module_name):
 #
 @modules.command('startup')
 @clicommon.pass_db
-@click.argument('chassis_module_name', metavar='<module_name>', required=True)
+@click.argument('chassis_module_name',
+                metavar='<module_name>',
+                required=True,
+                type=click.Choice(get_all_dpus(), case_sensitive=False) if is_smartswitch() else str
+                )
 def startup_chassis_module(db, chassis_module_name):
     """Chassis-module startup of module"""
     config_db = db.cfgdb

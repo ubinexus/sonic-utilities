@@ -91,8 +91,8 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
         print(result.output)
 
-    # Test 'get_all_dpus' function
-    def test_get_all_dpus(self):
+    # Test 'get_all_options' function
+    def test_get_all_options(self):
         # Mock is_smartswitch to return True
         with mock.patch("show.reboot_cause.device_info.is_smartswitch", return_value=True):
 
@@ -107,9 +107,9 @@ Name                 Cause        Time                          User    Comment
                     # Mock json.load to return parsed JSON content from the mocked file
                     with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
 
-                        # Import the actual get_all_dpus function and invoke it
-                        from show.reboot_cause import get_all_dpus
-                        dpu_list = get_all_dpus()
+                        # Import the actual get_all_options function and invoke it
+                        from show.reboot_cause import get_all_options
+                        dpu_list = get_all_options()
                         print(dpu_list)
 
     # Test 'show reboot-cause all on smartswitch'

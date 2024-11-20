@@ -410,8 +410,8 @@ swss            OK                OK                  -              -
                 assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
                 assert "DPU0" not in result.output, f"Output contained DPU0: {result.output}"
 
-    # Test 'get_all_dpus' function
-    def test_get_all_dpus(self):
+    # Test 'get_all_dpu_options' function
+    def test_get_all_dpu_options(self):
         # Mock is_smartswitch to return True
         with mock.patch("show.system_health.device_info.is_smartswitch", return_value=True):
 
@@ -426,9 +426,9 @@ swss            OK                OK                  -              -
                     # Mock json.load to return parsed JSON content from the mocked file
                     with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
 
-                        # Import the actual get_all_dpus function and invoke it
-                        from show.system_health import get_all_dpus
-                        dpu_list = get_all_dpus()
+                        # Import the actual get_all_dpu_options function and invoke it
+                        from show.system_health import get_all_dpu_options
+                        dpu_list = get_all_dpu_options()
                         print(dpu_list)
 
     @classmethod
