@@ -30,7 +30,10 @@ def test_send_data_success(mock_socket):
 
 def test_cli_db_connector_attribute_error(runner):
     """Test cli group when clicommon.get_db_connector raises AttributeError."""
-    with patch("utilities_common.cli.get_db_connector", side_effect=AttributeError):
+    # Mock the clicommon module and dynamically add get_db_connector
+    with patch("utilities_common.cli", autospec=True) as mock_clicommon:
+        mock_clicommon.get_db_connector.side_effect = AttributeError
+
         with patch("syslog.syslog") as mock_syslog:
             result = runner.invoke(cli)
             assert "Error: 'utilities_common.cli' does not have 'get_db_connector' function." in result.output
