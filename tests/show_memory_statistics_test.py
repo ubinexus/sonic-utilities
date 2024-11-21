@@ -1,4 +1,5 @@
-import pytest, syslog
+import pytest
+import syslog
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 from show.memory_statistics import send_data, cli
