@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from click.testing import CliRunner
-from show.memory_statistics import cli, Dict2Obj, send_data
+from show.memory_statistics import send_data
 import json
 
 
