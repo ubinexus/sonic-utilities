@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 from show.memory_statistics import send_data, cli
 import json
@@ -30,16 +30,18 @@ def test_send_data_success(mock_socket):
 
 def test_cli_db_connector_attribute_error(runner):
     """Test cli group when clicommon.get_db_connector raises AttributeError."""
-    # Mock the `get_db_connector` function to raise AttributeError
-    with patch("utilities_common.cli.get_db_connector", side_effect=AttributeError), \
+    # Mock the entire `utilities_common.cli` module dynamically
+    mock_clicommon = MagicMock()
+    del mock_clicommon.get_db_connector  # Ensure get_db_connector doesn't exist
+
+    with patch.dict("sys.modules", {"utilities_common.cli": mock_clicommon}), \
          patch("syslog.syslog") as mock_syslog:
 
-        # Invoke the CLI
+        # Run the CLI
         result = runner.invoke(cli)
 
-        # Verify the output and behavior
-        assert "Error: 'utilities_common.cli' does not have 'get_db_connector' function." in result.output
-        mock_syslog.assert_called_with(
-            3, "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
-        )
+        # Validate outputs
+        expected_error_msg = "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
+        assert expected_error_msg in result.output
+        mock_syslog.assert_called_once_with(syslog.LOG_ERR, expected_error_msg)
         assert result.exit_code == 1
