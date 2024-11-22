@@ -12,6 +12,7 @@ MAX_SAMPLING_INTERVAL = 60
 # Create a mock_db for testing purposes (remove this when deploying to production)
 mock_db = MagicMock()
 
+
 # Function to set retention period
 @memory_statistics.command(name="retention-period", short_help="Configure the retention period for Memory Statistics")
 @click.argument('retention_period', metavar='<retention_period>', required=True, type=int)
