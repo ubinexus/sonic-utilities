@@ -60,8 +60,13 @@ def memory_statistics_disable():
 def memory_statistics_retention_period(retention_period):
     """Set the retention period for Memory Statistics."""
     if not (MIN_RETENTION_PERIOD <= retention_period <= MAX_RETENTION_PERIOD):
-        click.echo(f"Error: Retention period must be between {MIN_RETENTION_PERIOD} and {MAX_RETENTION_PERIOD}.", err=True)
-        syslog.syslog(syslog.LOG_ERR, f"Error: Retention period must be between {MIN_RETENTION_PERIOD} and {MAX_RETENTION_PERIOD}.")
+        syslog.syslog(
+            syslog.LOG_ERR,
+            f"Error: Retention period must be between "
+            f"{MIN_RETENTION_PERIOD} and "
+            f"{MAX_RETENTION_PERIOD}."
+        )
+
         return
 
     db = ConfigDBConnector()
