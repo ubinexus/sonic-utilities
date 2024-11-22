@@ -1,8 +1,7 @@
 import pytest
-import syslog
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from click.testing import CliRunner
-from show.memory_statistics import send_data, cli
+from show.memory_statistics import send_data
 import json
 
 
@@ -27,4 +26,3 @@ def test_send_data_success(mock_socket):
 
     response = send_data("test_command", {"key": "value"})
     assert response.to_dict() == mock_response
-
