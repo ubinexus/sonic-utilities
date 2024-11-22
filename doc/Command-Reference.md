@@ -5121,9 +5121,9 @@ This command is to display the link-training status of the selected interfaces. 
     Ethernet8      trained          on      up       up
   ```
 
-**show interfaces history**
+**show interfaces flap**
 
-The show interfaces history command provides detailed insights into interface events, including the timestamp of the last link down event and the total flap count (number of times the link has gone up and down). This helps in diagnosing stability and connectivity issues.
+The show interfaces flap command provides detailed insights into interface events, including the timestamp of the last link down event and the total flap count (number of times the link has gone up and down). This helps in diagnosing stability and connectivity issues.
 
 - Usage:
   ```
@@ -5132,7 +5132,7 @@ The show interfaces history command provides detailed insights into interface ev
 
 - Example:
   ```
-  admin@sonic:~$ show interfaces errors Ethernet4
+  admin@sonic:~$ show interfaces flap Ethernet4
   Interface       Last Link Down          Flap Count  
   ---------       -------------------     ----------  
   Ethernet0       2024-11-21 14:32:12     5  
