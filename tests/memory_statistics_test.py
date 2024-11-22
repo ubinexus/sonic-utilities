@@ -32,11 +32,15 @@ def test_memory_statistics_retention_period_invalid(mock_db):
     """Test setting an invalid retention period for Memory Statistics."""
     runner = CliRunner()
     invalid_value = 50  # Out of valid range
-    
+
     with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog:
         result = runner.invoke(memory_statistics_retention_period, [str(invalid_value)])
         assert result.exit_code == 0
-        mock_echo.assert_any_call(f"Error: Retention period must be between {MIN_RETENTION_PERIOD} and {MAX_RETENTION_PERIOD}.", err=True)
+        mock_echo.assert_any_call(
+            f"Error: Retention period must be between {MIN_RETENTION_PERIOD} "
+            f"and {MAX_RETENTION_PERIOD}.", err=True
+        )
+
         mock_syslog.assert_any_call(
             syslog.LOG_ERR,
             f"Error: Retention period must be between {MIN_RETENTION_PERIOD} and "
@@ -49,7 +53,7 @@ def test_memory_statistics_sampling_interval(mock_db):
     """Test setting the sampling interval for Memory Statistics."""
     runner = CliRunner()
     sampling_interval_value = 10  # Within valid range
-    
+
     with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog:
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
         assert result.exit_code == 0
@@ -58,8 +62,13 @@ def test_memory_statistics_sampling_interval(mock_db):
             "MEMORY_STATISTICS", "memory_statistics",
             {"sampling_interval": sampling_interval_value}
         )
-        mock_syslog.assert_any_call(syslog.LOG_INFO, f"Sampling interval set to {sampling_interval_value} successfully.")
+        mock_syslog.assert_any_call(
+            syslog.LOG_INFO,
+            f"Sampling interval set to {sampling_interval_value} successfully."
+        )
+
         assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
+
 
 # Test for checking the memory statistics table existence
 def test_check_memory_statistics_table_existence(mock_db):
