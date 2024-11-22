@@ -1,223 +1,30 @@
-import sys
-import socket
-import json
 import click
-import syslog
+from tabulate import tabulate
+
 import utilities_common.cli as clicommon
-from difflib import get_close_matches
 
 
-# Define Dict2Obj class
-class Dict2Obj:
-    """Converts dictionaries or lists into objects with attribute-style access."""
-
-    def __init__(self, d):
-        if isinstance(d, dict):
-            for key, value in d.items():
-                if isinstance(value, (list, tuple)):
-                    setattr(self, key, [Dict2Obj(x) if isinstance(x, dict) else x for x in value])
-                else:
-                    setattr(self, key, Dict2Obj(value) if isinstance(value, dict) else value)
-        elif isinstance(d, list):
-            self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
-        else:
-            raise ValueError("Input should be a dictionary or a list")
-
-    def to_dict(self):
-        if hasattr(self, "items"):
-            return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
-
-        result = {}
-        for key, value in self.__dict__.items():
-            if isinstance(value, Dict2Obj):
-                result[key] = value.to_dict()
-            elif isinstance(value, list):
-                result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
-            else:
-                result[key] = value
-        return result
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self.to_dict()}>"
-
-
-# Open syslog for logging
-syslog.openlog(ident="memory_statistics_cli", logoption=syslog.LOG_PID)
-
-
-@click.group()
-@click.pass_context
-def cli(ctx):
-    """Main entry point for the SONiC CLI."""
-    ctx.ensure_object(dict)
-    if clicommon:
-        try:
-            ctx.obj["db_connector"] = clicommon.get_db_connector()
-        except AttributeError:
-            error_msg = "Error: 'utilities_common.cli' does not have 'get_db_connector' function."
-            click.echo(error_msg, err=True)
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            sys.exit(1)
-    else:
-        ctx.obj["db_connector"] = None
-
-
-def validate_command(command, valid_commands):
-    match = get_close_matches(command, valid_commands, n=1, cutoff=0.6)
-    if match:
-        error_msg = f"Error: No such command '{command}'. Did you mean '{match[0]}'?"
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
-    else:
-        error_msg = f"Error: No such command '{command}'."
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.UsageError(error_msg)
-
-
-@cli.group()
-@click.pass_context
-def show(ctx):
-    """Displays various information about the system."""
+#
+# 'memory-statistics' group (show memory-statistics ...)
+#
+@click.group(cls=clicommon.AliasedGroup, name="memory-statistics")
+def memory_statistics():
+    """Show memory statistics configuration and logs"""
     pass
-
-
-@show.command(name="memory-stats")
-@click.argument("from_keyword", required=False)
-@click.argument("from_time", required=False)
-@click.argument("to_keyword", required=False)
-@click.argument("to_time", required=False)
-@click.argument("select_keyword", required=False)
-@click.argument("select_metric", required=False)
-@click.pass_context
-def memory_stats(ctx, from_keyword, from_time, to_keyword, to_time, select_keyword, select_metric):
-    """Displays memory statistics."""
-    request_data = {"type": "system", "metric_name": None, "from": None, "to": None}
-
-    if from_keyword:
-        if from_keyword != "from":
-            raise click.UsageError("Expected 'from' keyword as the first argument.")
-        if to_keyword and to_keyword != "to":
-            raise click.UsageError("Expected 'to' keyword before the end time.")
-        if select_keyword and select_keyword != "select":
-            raise click.UsageError("Expected 'select' keyword before the metric name.")
-
-        request_data["from"] = from_time.strip("'\"")
-        if to_time:
-            request_data["to"] = to_time.strip("'\"")
-        if select_metric:
-            request_data["metric_name"] = select_metric.strip("'\"")
-
-    try:
-        response = send_data("memory_statistics_command_request_handler", request_data)
-
-        if isinstance(response, Dict2Obj):
-            clean_and_print(response.to_dict())
-        else:
-            error_msg = f"Error: Expected Dict2Obj, but got {type(response)}"
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            print(error_msg)
-
-    except Exception as exc:
-        error_msg = f"Error: {str(exc)}"
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        print(error_msg)
-
-
-@show.group(name="memory-statistics")
-@click.pass_context
-def memory_statistics(ctx):
-    """Displays memory statistics configuration information."""
-    pass
-
-
-@memory_statistics.command(name="config", short_help="Show the configuration of memory statistics")
-@click.pass_context
-def config(ctx):
-    """Displays the configuration settings for memory statistics."""
-    db_connector = ctx.obj.get('db_connector')
-    if not db_connector:
-        error_msg = "Error: Database connector is not initialized."
-        click.echo(error_msg, err=True)
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        sys.exit(1)
-
-    try:
-        enabled = get_memory_statistics_config("enabled", db_connector)
-        retention_time = get_memory_statistics_config("retention_period", db_connector)
-        sampling_interval = get_memory_statistics_config("sampling_interval", db_connector)
-
-        enabled_display = format_field_value("enabled", enabled)
-        retention_display = format_field_value("retention_period", retention_time)
-        sampling_display = format_field_value("sampling_interval", sampling_interval)
-
-        click.echo(f"{'Configuration Field':<30}{'Value'}")
-        click.echo("-" * 50)
-        click.echo(f"{'Enabled':<30}{enabled_display}")
-        click.echo(f"{'Retention Time (days)':<30}{retention_display}")
-        click.echo(f"{'Sampling Interval (minutes)':<30}{sampling_display}")
-
-    except Exception as e:
-        error_msg = f"Error retrieving configuration: {str(e)}"
-        click.echo(error_msg, err=True)
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        sys.exit(1)
-
-
-def clean_and_print(data):
-    if isinstance(data, dict):
-        memory_stats = data.get("data", "")
-        cleaned_output = memory_stats.replace("\n", "\n").strip()
-        print(f"Memory Statistics:\n{cleaned_output}")
-    else:
-        print("Error: Invalid data format.")
-
-
-def send_data(command, data, quiet=False):
-    SERVER_ADDRESS = '/var/run/dbus/memstats.socket'
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        sock.connect(SERVER_ADDRESS)
-    except socket.error as msg:
-        error_msg = "Could not connect to the server. Please check if the memory stats service is running."
-        syslog.syslog(syslog.LOG_ERR, error_msg)
-        raise click.Abort(error_msg) from msg
-    response = {}
-    try:
-        request = {"command": command, "data": data}
-        sock.sendall(json.dumps(request).encode('utf-8'))
-        res = sock.recv(40240).decode('utf-8')
-
-        if res == '':
-            sock.close()
-            raise click.Abort("No response from the server. Please check the service and try again.")
-
-        jdata = json.loads(res)
-        if isinstance(jdata, dict):
-            response = Dict2Obj(jdata)
-        else:
-            raise Exception("Unexpected response format from server")
-
-        if not getattr(response, 'status', True):
-            sock.close()
-            raise click.Abort(getattr(response, 'msg', 'An error occurred'))
-
-    except Exception as e:
-        if quiet:
-            sock.close()
-            raise click.Abort(str(e))
-        click.echo("Error: {}".format(str(e)))
-        sock.close()
-        sys.exit(1)
-
-    sock.close()
-    return response
 
 
 def get_memory_statistics_config(field_name, db_connector):
-    field_value = "Unknown"
-    if not db_connector:
-        return field_value
+    """Fetches the configuration of memory_statistics from `CONFIG_DB`.
 
+    Args:
+      field_name: A string containing the field name in the sub-table of 'memory_statistics'.
+      db_connector: The database connector.
+
+    Returns:
+      field_value: If field name was found, then returns the corresponding value.
+                   Otherwise, returns "Unknown".
+    """
+    field_value = "Unknown"
     memory_statistics_table = db_connector.get_table("MEMORY_STATISTICS")
     if (memory_statistics_table and
             "memory_statistics" in memory_statistics_table and
@@ -227,7 +34,78 @@ def get_memory_statistics_config(field_name, db_connector):
     return field_value
 
 
-def format_field_value(field_name, value):
-    if field_name == "enabled":
-        return "True" if value.lower() == "true" else "False"
-    return value if value != "Unknown" else "Not configured"
+@memory_statistics.command(name="memory_statistics", short_help="Show the configuration of memory statistics")
+@click.pass_context
+def config(ctx):
+    """Show the configuration of memory statistics."""
+    db_connector = ctx.obj['db_connector']  # Get the database connector from the context
+    admin_mode = "Disabled"
+    admin_enabled = get_memory_statistics_config("enabled", db_connector)
+    if admin_enabled == "true":
+        admin_mode = "Enabled"
+
+    click.echo("Memory Statistics administrative mode: {}".format(admin_mode))
+
+    retention_time = get_memory_statistics_config("retention_period", db_connector)
+    click.echo("Memory Statistics retention time (days): {}".format(retention_time))
+
+    sampling_interval = get_memory_statistics_config("sampling_interval", db_connector)
+    click.echo("Memory Statistics sampling interval (minutes): {}".format(sampling_interval))
+
+
+def fetch_memory_statistics(starting_time=None, ending_time=None, additional_options=None, db_connector=None):
+    """Fetch memory statistics from the database.
+
+    Args:
+        starting_time: The starting time for filtering the statistics.
+        ending_time: The ending time for filtering the statistics.
+        additional_options: Any additional options for filtering or formatting.
+        db_connector: The database connector.
+
+    Returns:
+        A list of memory statistics entries.
+    """
+    memory_statistics_table = db_connector.get_table("MEMORY_STATISTICS")
+    filtered_statistics = []
+
+    # Ensure you access the right table structure
+    if "memory_statistics" in memory_statistics_table:
+        for key, entry in memory_statistics_table["memory_statistics"].items():
+            # Add filtering logic here based on starting_time, ending_time, and additional options
+            if (not starting_time or entry.get("time", "") >= starting_time) and \
+               (not ending_time or entry.get("time", "") <= ending_time):
+                filtered_statistics.append(entry)
+
+    return filtered_statistics
+
+
+@memory_statistics.command(name="logs", short_help="Show memory statistics logs with optional filtering")
+@click.argument('starting_time', required=False)
+@click.argument('ending_time', required=False)
+@click.argument('additional_options', required=False, nargs=-1)
+@click.pass_context
+def show_memory_statistics_logs(ctx, starting_time, ending_time, additional_options):
+    """Show memory statistics logs with optional filtering by time and additional options."""
+    db_connector = ctx.obj['db_connector']  # Get the database connector from the context
+
+    # Fetch memory statistics
+    memory_statistics = fetch_memory_statistics(
+        starting_time,
+        ending_time,
+        additional_options,
+        db_connector=db_connector
+    )
+    if not memory_statistics:
+        click.echo("No memory statistics available for the given parameters.")
+        return
+
+    # Display the memory statistics
+    headers = ["Time", "Statistic", "Value"]  # Adjust according to the actual fields
+    table_data = [
+        [
+            entry.get("time", "N/A"),
+            entry.get("statistic", "N/A"),
+            entry.get("value", "N/A"),
+            ] for entry in memory_statistics
+    ]
+    click.echo(tabulate(table_data, headers=headers, tablefmt="grid"))
