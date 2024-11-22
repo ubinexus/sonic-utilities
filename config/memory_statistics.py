@@ -11,6 +11,7 @@ MIN_RETENTION_PERIOD = 1
 MAX_RETENTION_PERIOD = 30
 MEMORY_STATISTICS_TABLE = "MEMORY_STATISTICS"
 
+
 def update_memory_statistics_status(status, db):
     """Updates the status of the memory statistics feature in the config DB."""
     try:
@@ -86,8 +87,19 @@ def memory_statistics_retention_period(retention_period):
 def memory_statistics_sampling_interval(sampling_interval):
     """Set the sampling interval for Memory Statistics."""
     if not (MIN_SAMPLING_INTERVAL <= sampling_interval <= MAX_SAMPLING_INTERVAL):
-        click.echo(f"Error: Sampling interval must be between {MIN_SAMPLING_INTERVAL} and {MAX_SAMPLING_INTERVAL}.", err=True)
-        syslog.syslog(syslog.LOG_ERR, f"Error: Sampling interval must be between {MIN_SAMPLING_INTERVAL} and {MAX_SAMPLING_INTERVAL}.")
+        click.echo(
+            f"Error: Sampling interval must be between "
+            f"{MIN_SAMPLING_INTERVAL} and {MAX_SAMPLING_INTERVAL}.",
+            err=True
+        )
+
+        syslog.syslog(
+            syslog.LOG_ERR,
+            f"Error: Sampling interval must be between "
+            f"{MIN_SAMPLING_INTERVAL} and "
+            f"{MAX_SAMPLING_INTERVAL}."
+        )
+
         return
 
     db = ConfigDBConnector()
