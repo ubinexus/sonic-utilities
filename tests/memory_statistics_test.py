@@ -7,7 +7,6 @@ from config.memory_statistics import (
     memory_statistics_disable,
     memory_statistics_retention_period,
     memory_statistics_sampling_interval,
-    get_memory_statistics_table,
     check_memory_statistics_table_existence,
 )
 
