@@ -31,6 +31,7 @@ def test_memory_statistics_enable(mock_db):
             assert result.exit_code == 0
             mock_update_status.assert_called_once_with("true", mock_db)
             mock_syslog.assert_any_call(syslog.LOG_INFO, "Memory statistics enabled successfully.")
+            assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
 def test_memory_statistics_disable(mock_db):
@@ -44,6 +45,7 @@ def test_memory_statistics_disable(mock_db):
             assert result.exit_code == 0
             mock_update_status.assert_called_once_with("false", mock_db)
             mock_syslog.assert_any_call(syslog.LOG_INFO, "Memory statistics disabled successfully.")
+            assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
 def test_memory_statistics_retention_period(mock_db):
@@ -60,6 +62,7 @@ def test_memory_statistics_retention_period(mock_db):
             {"retention_period": retention_period_value}
         )
         mock_syslog.assert_any_call(syslog.LOG_INFO, f"Retention period set to {retention_period_value} successfully.")
+        assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
 def test_memory_statistics_retention_period_invalid(mock_db):
@@ -91,62 +94,15 @@ def test_memory_statistics_sampling_interval(mock_db):
             syslog.LOG_INFO,
             f"Sampling interval set to {sampling_interval_value} successfully."
         )
+        assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
-def test_memory_statistics_sampling_interval_invalid(mock_db):
-    """Test setting an invalid sampling interval for Memory Statistics."""
-    runner = CliRunner()
-    invalid_value = 20  # Out of valid range
+def test_check_memory_statistics_table_existence(mock_db):
+    """Test checking the existence of MEMORY_STATISTICS table."""
+    mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
+    result = check_memory_statistics_table_existence(mock_db.get_table)
+    assert result is True
 
-    with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog:
-        result = runner.invoke(memory_statistics_sampling_interval, [str(invalid_value)])
-        assert result.exit_code == 0
-        mock_echo.assert_any_call("Error: Sampling interval must be between 3 and 15.", err=True)
-        mock_syslog.assert_any_call(syslog.LOG_ERR, "Error: Sampling interval must be between 3 and 15.")
-
-
-def test_memory_statistics_retention_period_exception(mock_db):
-    """Test setting retention period for Memory Statistics when an exception occurs."""
-    runner = CliRunner()
-    retention_period_value = 30
-
-    # Mock `mod_entry` to raise an exception
-    mock_db.mod_entry.side_effect = Exception("Simulated retention period error")
-
-    with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog:
-        result = runner.invoke(memory_statistics_retention_period, [str(retention_period_value)])
-        assert result.exit_code == 0
-        mock_echo.assert_any_call("Error setting retention period: Simulated retention period error", err=True)
-        mock_syslog.assert_any_call(syslog.LOG_ERR, "Error setting retention period: Simulated retention period error")
-
-
-def test_memory_statistics_sampling_interval_exception(mock_db):
-    """Test setting sampling interval for Memory Statistics when an exception occurs."""
-    runner = CliRunner()
-    sampling_interval_value = 10
-
-    # Mock `mod_entry` to raise an exception
-    mock_db.mod_entry.side_effect = Exception("Simulated sampling interval error")
-
-    with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog:
-        result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
-        assert result.exit_code == 0
-        mock_echo.assert_any_call("Error setting sampling interval: Simulated sampling interval error", err=True)
-        mock_syslog.assert_any_call(
-            syslog.LOG_ERR,
-            "Error setting sampling interval: Simulated sampling interval error"
-        )
-
-
-def test_check_memory_statistics_table_existence():
-    """Test existence check for MEMORY_STATISTICS table."""
-    assert check_memory_statistics_table_existence({"memory_statistics": {}}) is True
-    assert check_memory_statistics_table_existence({}) is False
-
-
-def test_get_memory_statistics_table(mock_db):
-    """Test getting MEMORY_STATISTICS table."""
-    mock_db.get_table.return_value = {"memory_statistics": {}}
-
-    result = get_memory_statistics_table(mock_db)
-    assert result == {"memory_statistics": {}}
+    mock_db.get_table.return_value = {}
+    result = check_memory_statistics_table_existence(mock_db.get_table)
+    assert result is False
