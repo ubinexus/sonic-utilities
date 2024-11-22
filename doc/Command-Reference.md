@@ -5127,12 +5127,12 @@ The show interfaces flap command provides detailed insights into interface event
 
 - Usage:
   ```
-  show interfaces history
+  show interfaces flap
   ```
 
 - Example:
   ```
-  admin@sonic:~$ show interfaces flap Ethernet4
+  admin@sonic:~$ show interfaces flap
   Interface       Last Link Down          Flap Count  
   ---------       -------------------     ----------  
   Ethernet0       2024-11-21 14:32:12     5  
