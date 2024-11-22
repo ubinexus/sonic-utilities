@@ -2,7 +2,7 @@ from unittest.mock import patch
 from click.testing import CliRunner
 import syslog
 from config.memory_statistics import MAX_RETENTION_PERIOD, MIN_RETENTION_PERIOD
-from memory_statistics import (
+from config.memory_statistics import (
     memory_statistics_retention_period,
     memory_statistics_sampling_interval,
     check_memory_statistics_table_existence
