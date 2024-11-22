@@ -5121,6 +5121,25 @@ This command is to display the link-training status of the selected interfaces. 
     Ethernet8      trained          on      up       up
   ```
 
+**show interfaces history**
+
+The show interfaces history command provides detailed insights into interface events, including the timestamp of the last link down event and the total flap count (number of times the link has gone up and down). This helps in diagnosing stability and connectivity issues.
+
+- Usage:
+  ```
+  show interfaces history
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces errors Ethernet4
+  Interface       Last Link Down          Flap Count  
+  ---------       -------------------     ----------  
+  Ethernet0       2024-11-21 14:32:12     5  
+  Ethernet4       2024-11-20 08:15:04     2  
+  Ethernet8       2024-11-19 23:45:16     8  
+  ```
+
 **show interfaces mpls**
 
 This command is used to display the configured MPLS state for the list of configured interfaces.
