@@ -281,7 +281,7 @@ def display_statistics(ctx: click.Context, from_time: str, to_time: str) -> None
         "from": from_time,
         "to": to_time
     }
-    
+
     try:
         response = send_data("memory_statistics_command_request_handler", request_data)
         if isinstance(response, Dict2Obj):

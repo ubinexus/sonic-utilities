@@ -5,7 +5,6 @@ import json
 from unittest import mock
 from click.testing import CliRunner
 from dataclasses import dataclass
-from utilities_common.db import Db
 import show.memory_statistics
 
 from show.memory_statistics import (
@@ -179,3 +178,4 @@ class TestMemoryStatistics:
 
 if __name__ == '__main__':
     pytest.main([__file__])
+
