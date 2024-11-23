@@ -7,6 +7,7 @@ from click.testing import CliRunner
 from dataclasses import dataclass
 import show.memory_statistics
 
+
 from show.memory_statistics import (
     Config,
     SonicDBConnector,
