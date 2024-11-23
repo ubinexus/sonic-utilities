@@ -9,13 +9,13 @@ from utilities_common.db import Db
 import show.memory_statistics
 
 from show.memory_statistics import (
-    Config, 
-    SonicDBConnector, 
+    Config,
+    SonicDBConnector,
     SocketManager,
     Dict2Obj,
-    cli,
     show
 )
+
 
 @dataclass
 class MockDb:
@@ -30,6 +30,7 @@ class MockDb:
         if table_name not in self.data:
             self.data[table_name] = {}
         self.data[table_name][key] = values
+
 
 class TestMemoryStatistics:
     @classmethod
@@ -84,7 +85,7 @@ class TestMemoryStatistics:
                 'sampling_interval': '1'
             }
         }
-        
+
         db_connector = SonicDBConnector()
         config = db_connector.get_memory_statistics_config()
 
@@ -97,7 +98,7 @@ class TestMemoryStatistics:
         """Test SocketManager connection handling"""
         socket_manager = SocketManager()
         socket_manager.connect()
-        
+
         mock_socket.assert_called_once()
         mock_socket.return_value.connect.assert_called_once_with(Config.SOCKET_PATH)
 
@@ -145,7 +146,7 @@ class TestMemoryStatistics:
                 'retention_period': '7',
                 'sampling_interval': '1'
             }
-            
+
             result = runner.invoke(show, ['memory-stats', '--config'])
             assert result.exit_code == 0
             assert 'Enabled' in result.output
@@ -159,7 +160,7 @@ class TestMemoryStatistics:
 
         with mock.patch('socket.socket') as mock_socket:
             mock_socket.return_value.connect.side_effect = socket.error("Connection refused")
-            
+
             result = runner.invoke(show, ['memory-stats'])
             assert result.exit_code != 0
             assert "Error" in result.output
@@ -178,4 +179,3 @@ class TestMemoryStatistics:
 
 if __name__ == '__main__':
     pytest.main([__file__])
-    

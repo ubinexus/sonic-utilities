@@ -13,19 +13,21 @@ from swsscommon.swsscommon import ConfigDBConnector
 @dataclass
 class Config:
     SOCKET_PATH: str = '/var/run/dbus/memstats.socket'
-    SOCKET_TIMEOUT: int = 30  
-    BUFFER_SIZE: int = 8192  
+    SOCKET_TIMEOUT: int = 30
+    BUFFER_SIZE: int = 8192
     MAX_RETRIES: int = 3
-    RETRY_DELAY: float = 1.0 
+    RETRY_DELAY: float = 1.0
     DEFAULT_CONFIG = {
         "enabled": "false",
         "retention_period": "Unknown",
         "sampling_interval": "Unknown"
     }
 
+
 class ConnectionError(Exception):
     """Custom exception for connection-related errors."""
     pass
+
 
 class Dict2Obj:
     """Converts dictionaries or lists into objects with attribute-style access."""
@@ -87,9 +89,10 @@ class SonicDBConnector:
         """
         try:
             config = self.config_db.get_table('MEMORY_STATISTICS')
+
             if not config or 'memory_statistics' not in config:
-                syslog.syslog(syslog.LOG_WARNING, 
-                            "Memory statistics configuration not found in config DB")
+                syslog.syslog(syslog.LOG_WARNING,
+                              "Memory statistics configuration not found in config DB")
                 return Config.DEFAULT_CONFIG
             return config['memory_statistics']
         except Exception as e:
@@ -167,12 +170,12 @@ class SocketManager:
 def send_data(command: str, data: Dict[str, Any], quiet: bool = False) -> Dict2Obj:
     """Sends a command and data to the memory statistics service."""
     socket_manager = SocketManager()
-    
+
     try:
         socket_manager.connect()
         request = {"command": command, "data": data}
         socket_manager.sock.sendall(json.dumps(request).encode('utf-8'))
-        
+
         response = socket_manager.receive_all()
         if not response:
             raise ConnectionError("No response received from memory statistics service")
@@ -220,6 +223,7 @@ def validate_command(command: str, valid_commands: list) -> None:
         error_msg = f"Error: Invalid command '{command}'."
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise click.UsageError(error_msg)
+
 
 @click.group()
 def show():
@@ -327,4 +331,3 @@ if __name__ == '__main__':
             syslog.syslog(syslog.LOG_ERR, error_msg)
             raise click.UsageError(error_msg)
     main()
-    
