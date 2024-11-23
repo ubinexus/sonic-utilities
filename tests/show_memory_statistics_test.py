@@ -176,5 +176,6 @@ class TestMemoryStatistics:
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
 
+
 if __name__ == '__main__':
     pytest.main([__file__])
