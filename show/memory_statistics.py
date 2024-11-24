@@ -13,21 +13,19 @@ from swsscommon.swsscommon import ConfigDBConnector
 @dataclass
 class Config:
     SOCKET_PATH: str = '/var/run/dbus/memstats.socket'
-    SOCKET_TIMEOUT: int = 30
-    BUFFER_SIZE: int = 8192
+    SOCKET_TIMEOUT: int = 30  
+    BUFFER_SIZE: int = 8192  
     MAX_RETRIES: int = 3
-    RETRY_DELAY: float = 1.0
+    RETRY_DELAY: float = 1.0 
     DEFAULT_CONFIG = {
         "enabled": "false",
         "retention_period": "Unknown",
         "sampling_interval": "Unknown"
     }
 
-
 class ConnectionError(Exception):
     """Custom exception for connection-related errors."""
     pass
-
 
 class Dict2Obj:
     """Converts dictionaries or lists into objects with attribute-style access."""
@@ -89,10 +87,9 @@ class SonicDBConnector:
         """
         try:
             config = self.config_db.get_table('MEMORY_STATISTICS')
-
             if not config or 'memory_statistics' not in config:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "Memory statistics configuration not found in config DB")
+                syslog.syslog(syslog.LOG_WARNING, 
+                            "Memory statistics configuration not found in config DB")
                 return Config.DEFAULT_CONFIG
             return config['memory_statistics']
         except Exception as e:
@@ -170,12 +167,12 @@ class SocketManager:
 def send_data(command: str, data: Dict[str, Any], quiet: bool = False) -> Dict2Obj:
     """Sends a command and data to the memory statistics service."""
     socket_manager = SocketManager()
-
+    
     try:
         socket_manager.connect()
         request = {"command": command, "data": data}
         socket_manager.sock.sendall(json.dumps(request).encode('utf-8'))
-
+        
         response = socket_manager.receive_all()
         if not response:
             raise ConnectionError("No response received from memory statistics service")
@@ -224,7 +221,6 @@ def validate_command(command: str, valid_commands: list) -> None:
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise click.UsageError(error_msg)
 
-
 @click.group()
 def show():
     """Show commands for memory statistics."""
@@ -232,11 +228,12 @@ def show():
 
 
 @show.command(name="memory-stats")
-@click.option('--from', 'from_time', help='Start time for memory statistics (e.g., "15 hours ago", "7 days ago")')
-@click.option('--to', 'to_time', help='End time for memory statistics (e.g., "now")')
+@click.option('--from', 'from_time', help='Start time for memory statistics (e.g., "15 hours ago", "7 days ago", "ISO Format")')
+@click.option('--to', 'to_time', help='End time for memory statistics (e.g., "now", "ISO Format")')
+@click.option('--select', 'select_metric', help='Show statistics for specific metric (e.g., total_memory, used_memory)')
 @click.option('--config', 'show_config', is_flag=True, help='Show memory statistics configuration')
 @click.pass_context
-def memory_stats(ctx: click.Context, from_time: str, to_time: str, show_config: bool) -> None:
+def memory_stats(ctx: click.Context, from_time: str, to_time: str, select_metric: str, show_config: bool) -> None:
     """Displays memory statistics or configuration."""
     try:
         if show_config:
@@ -247,7 +244,7 @@ def memory_stats(ctx: click.Context, from_time: str, to_time: str, show_config: 
                 click.echo(f"Error initializing database connection: {str(e)}", err=True)
                 sys.exit(1)
         else:
-            display_statistics(ctx, from_time, to_time)
+            display_statistics(ctx, from_time, to_time, select_metric)
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
@@ -273,15 +270,15 @@ def display_config(db_connector: SonicDBConnector) -> None:
         raise click.ClickException(error_msg)
 
 
-def display_statistics(ctx: click.Context, from_time: str, to_time: str) -> None:
+def display_statistics(ctx: click.Context, from_time: str, to_time: str, select_metric: str) -> None:
     """Retrieves and displays memory statistics."""
     request_data = {
         "type": "system",
-        "metric_name": None,
+        "metric_name": select_metric,
         "from": from_time,
         "to": to_time
     }
-
+    
     try:
         response = send_data("memory_statistics_command_request_handler", request_data)
         if isinstance(response, Dict2Obj):
