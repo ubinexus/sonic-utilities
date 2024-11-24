@@ -247,7 +247,6 @@ def show():
     '--config', 'show_config', is_flag=True,
     help='Show memory statistics configuration'
 )
-
 @click.pass_context
 def memory_stats(ctx: click.Context, from_time: str, to_time: str, select_metric: str, show_config: bool) -> None:
     """Displays memory statistics or configuration."""
