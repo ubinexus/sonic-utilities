@@ -296,7 +296,7 @@ def test_invalid_command():
     """Test CLI handling of invalid commands."""
     runner = CliRunner()
     result = runner.invoke(cli, ['invalid-command'])
-    
+
     assert result.exit_code != 0
     assert "No such command" in result.output
 
@@ -314,9 +314,9 @@ def test_invalid_json_response(mock_socket_manager):
     with pytest.raises(ValueError, match="Failed to parse server response"):
         send_data("memory_statistics_command_request_handler", {})
 
+
 def test_valid_response(mock_socket_manager):
     """Test valid socket response handling."""
     response = send_data("memory_statistics_command_request_handler", {})
-    
     assert response['status'] is True
     assert response['data'] == "Sample memory data output"
