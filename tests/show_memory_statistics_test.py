@@ -186,7 +186,7 @@ import pytest
 import json
 from unittest.mock import patch
 from click.testing import CliRunner
-from show.memory_statistics import cli,send_data  # Replace 'my_cli_tool' with your actual module name
+from show.memory_statistics import cli, send_data  # Replace 'my_cli_tool' with your actual module name
 
 # Mock configuration data for tests
 MEMORY_STATS_CONFIG = {
@@ -197,6 +197,7 @@ MEMORY_STATS_CONFIG = {
     }
 }
 
+
 @pytest.fixture
 def mock_config_db():
     """Mock SONiC ConfigDB connection and data retrieval."""
@@ -205,6 +206,7 @@ def mock_config_db():
         mock_instance.connect.return_value = None
         mock_instance.get_table.return_value = MEMORY_STATS_CONFIG
         yield mock_instance
+
 
 @pytest.fixture
 def mock_socket_manager():
@@ -221,7 +223,7 @@ def mock_socket_manager():
 # def test_show_memory_stats_config(mock_config_db):
 #     runner = CliRunner()
 #     result = runner.invoke(cli, ['show', 'memory-stats', '--config'])
-    
+
 #     assert result.exit_code == 0
 #     assert "Enabled: true" in result.output  # Ensure correct enabled value
 #     assert "Retention Time (days): 15" in result.output
@@ -235,11 +237,13 @@ def mock_socket_manager():
 #     assert response.status == True
 #     assert response.data == "Sample memory data output"
 
+
 def test_socket_connection_failure():
     """Test socket connection failure handling."""
     with patch('my_cli_tool.SocketManager.connect', side_effect=ConnectionError("Connection failed")):
         with pytest.raises(ConnectionError):
             send_data("memory_statistics_command_request_handler", {})
+
 
 def test_invalid_command():
     """Test CLI with an invalid command."""
@@ -249,12 +253,14 @@ def test_invalid_command():
     assert result.exit_code != 0
     assert "Error: Invalid command" in result.output
 
+
 def test_missing_socket_response(mock_socket_manager):
     """Test handling of empty socket responses."""
     mock_socket_manager.receive_all.return_value = ""
 
     with pytest.raises(ConnectionError, match="No response received from memory statistics service"):
         send_data("memory_statistics_command_request_handler", {})
+
 
 def test_invalid_json_response(mock_socket_manager):
     """Test handling of invalid JSON responses from socket."""
