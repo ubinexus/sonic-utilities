@@ -1,4 +1,5 @@
-from unittest.mock import patch
+import pytest
+from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 import syslog
 from config.memory_statistics import MAX_RETENTION_PERIOD, MIN_RETENTION_PERIOD
@@ -7,6 +8,11 @@ from config.memory_statistics import (
     memory_statistics_sampling_interval,
     check_memory_statistics_table_existence
 )
+
+# Fixture for mock_db
+@pytest.fixture
+def mock_db():
+    return MagicMock()
 
 
 # Test for setting the retention period
@@ -40,7 +46,6 @@ def test_memory_statistics_retention_period_invalid(mock_db):
             f"Error: Retention period must be between {MIN_RETENTION_PERIOD} "
             f"and {MAX_RETENTION_PERIOD}.", err=True
         )
-
         mock_syslog.assert_any_call(
             syslog.LOG_ERR,
             f"Error: Retention period must be between {MIN_RETENTION_PERIOD} and "
@@ -66,7 +71,6 @@ def test_memory_statistics_sampling_interval(mock_db):
             syslog.LOG_INFO,
             f"Sampling interval set to {sampling_interval_value} successfully."
         )
-
         assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
@@ -74,5 +78,5 @@ def test_memory_statistics_sampling_interval(mock_db):
 def test_check_memory_statistics_table_existence(mock_db):
     """Test checking the existence of MEMORY_STATISTICS table."""
     mock_db.get_table.return_value = {"memory_statistics": {"enabled": "true"}}
-    result = check_memory_statistics_table_existence(mock_db.get_table)
+    result = check_memory_statistics_table_existence(mock_db.get_table.return_value)
     assert result is True

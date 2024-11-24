@@ -32,7 +32,6 @@ def memory_statistics_retention_period(retention_period):
 
     # Assuming mock_db.mod_entry is used for storing values in the database
     try:
-        # Mock DB interaction (replace with actual logic)
         mock_db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"retention_period": retention_period})
         click.echo(f"Retention period set to {retention_period} successfully.")
         syslog.syslog(syslog.LOG_INFO, f"Retention period set to {retention_period} successfully.")
@@ -62,7 +61,6 @@ def memory_statistics_sampling_interval(sampling_interval):
         return
 
     try:
-        # Mock DB interaction (replace with actual logic)
         mock_db.mod_entry("MEMORY_STATISTICS", "memory_statistics", {"sampling_interval": sampling_interval})
         click.echo(f"Sampling interval set to {sampling_interval} successfully.")
         syslog.syslog(syslog.LOG_INFO, f"Sampling interval set to {sampling_interval} successfully.")
