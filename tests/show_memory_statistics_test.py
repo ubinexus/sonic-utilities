@@ -392,14 +392,12 @@ class TestSonicDBConnector(unittest.TestCase):
         SonicDBConnector()
         mock_config_db.return_value.connect.assert_called_once()
 
-
     @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
     def test_connection_failure(self, mock_config_db):
         """Test database connection failure"""
         mock_config_db.return_value.connect.side_effect = Exception("Connection failed")
         with self.assertRaises(ConnectionError):
             SonicDBConnector()
-
 
     @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
     def test_get_memory_statistics_config(self, mock_config_db):
@@ -415,7 +413,6 @@ class TestSonicDBConnector(unittest.TestCase):
         connector = SonicDBConnector()
         config = connector.get_memory_statistics_config()
         self.assertEqual(config, test_config['memory_statistics'])
-
 
     @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
     def test_get_default_config(self, mock_config_db):
