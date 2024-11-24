@@ -186,7 +186,7 @@ import pytest
 import json
 from unittest.mock import patch
 from click.testing import CliRunner
-from show.memory_statistics import cli, send_data  # Replace 'my_cli_tool' with your actual module name
+from show.memory_statistics import cli, send_data  # Correct module import
 
 # Mock configuration data for tests
 MEMORY_STATS_CONFIG = {
@@ -210,8 +210,7 @@ def mock_config_db():
 
 @pytest.fixture
 def mock_socket_manager():
-    """Mock SocketManager for socket communication."""
-    with patch('my_cli_tool.SocketManager') as mock_socket:
+    with patch('show.memory_statistics.SocketManager') as mock_socket:  # Updated path
         mock_instance = mock_socket.return_value
         mock_instance.connect.return_value = None
         mock_instance.receive_all.return_value = json.dumps({
@@ -219,23 +218,6 @@ def mock_socket_manager():
             "data": "Sample memory data output"
         })
         yield mock_instance
-
-# def test_show_memory_stats_config(mock_config_db):
-#     runner = CliRunner()
-#     result = runner.invoke(cli, ['show', 'memory-stats', '--config'])
-
-#     assert result.exit_code == 0
-#     assert "Enabled: true" in result.output  # Ensure correct enabled value
-#     assert "Retention Time (days): 15" in result.output
-#     assert "Sampling Interval (minutes): 5" in result.output
-
-# def test_send_data_success(mock_socket_manager):
-#     """Test successful socket communication with valid response."""
-#     command_data = {"type": "system", "metric_name": "total_memory"}
-#     response = send_data("memory_statistics_command_request_handler", command_data)
-
-#     assert response.status == True
-#     assert response.data == "Sample memory data output"
 
 
 def test_socket_connection_failure():
@@ -246,12 +228,10 @@ def test_socket_connection_failure():
 
 
 def test_invalid_command():
-    """Test CLI with an invalid command."""
     runner = CliRunner()
     result = runner.invoke(cli, ['invalid-command'])
-
     assert result.exit_code != 0
-    assert "Error: Invalid command" in result.output
+    assert "No such command" in result.output  # Updated assertion
 
 
 def test_missing_socket_response(mock_socket_manager):
@@ -268,10 +248,3 @@ def test_invalid_json_response(mock_socket_manager):
 
     with pytest.raises(ValueError, match="Failed to parse server response"):
         send_data("memory_statistics_command_request_handler", {})
-# def test_cli_show_memory_stats(mock_socket_manager):
-#     """Test the 'show memory-stats' CLI command for statistics retrieval."""
-#     runner = CliRunner()
-#     result = runner.invoke(cli, ['show', 'memory-stats'])
-#     assert result.exit_code == 0
-#     assert "Memory Statistics" in result.output
-#     assert "Sample memory data output" in result.output
