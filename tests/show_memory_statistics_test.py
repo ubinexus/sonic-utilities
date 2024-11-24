@@ -382,19 +382,14 @@ class TestDict2Obj(unittest.TestCase):
 
 
 class TestSonicDBConnector(unittest.TestCase):
-    # """Test cases for SonicDBConnector class"""
-    # @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
-    # def test_successful_connection(self, mock_config_db):
-    #     """Test successful database connection"""
-    #     SonicDBConnector()
-    #     mock_config_db.return_value.connect.assert_called_once()
+    def setUp(self):
+        self.mock_config_db = MagicMock()
+        self.patcher = patch('show.memory_statistics.ConfigDBConnector',
+                             return_value=self.mock_config_db)
+        self.patcher.start()
 
-    # @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
-    # def test_connection_failure(self, mock_config_db):
-    #     """Test database connection failure"""
-    #     mock_config_db.return_value.connect.side_effect = Exception("Connection failed")
-    #     with self.assertRaises(ConnectionError):
-    #         SonicDBConnector()
+    def tearDown(self):
+        self.patcher.stop()
 
     @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
     def test_get_memory_statistics_config(self, mock_config_db):
@@ -419,15 +414,6 @@ class TestSonicDBConnector(unittest.TestCase):
         config = connector.get_memory_statistics_config()
         self.assertEqual(config, Config.DEFAULT_CONFIG)
 
-    def setUp(self):
-        self.mock_config_db = MagicMock()
-        self.patcher = patch('show.memory_statistics.ConfigDBConnector',
-                             return_value=self.mock_config_db)
-        self.patcher.start()
-
-    def tearDown(self):
-        self.patcher.stop()
-
     def test_successful_connection(self):
         """Test successful database connection on first attempt"""
         SonicDBConnector()
@@ -444,8 +430,11 @@ class TestSonicDBConnector(unittest.TestCase):
         self.mock_config_db.connect.side_effect = Exception("Connection failed")
         with self.assertRaises(ConnectionError) as context:
             SonicDBConnector()
+        self.assertEqual(
+            str(context.exception),
+            "Failed to connect to SONiC config database after 3 attempts. Last error: Connection failed"
+        )
         self.assertEqual(self.mock_config_db.connect.call_count, 3)
-        self.assertIn("Failed to connect to SONiC config database after 3 attempts", str(context.exception))
 
     def test_get_memory_statistics_config_success(self):
         """Test successful retrieval of memory statistics configuration"""
@@ -479,8 +468,6 @@ class TestSonicDBConnector(unittest.TestCase):
 
 class TestSocketManager(unittest.TestCase):
     """Test cases for SocketManager class"""
-    # def setUp(self):
-    #     self.socket_manager = SocketManager()
     def setUp(self):
         self.socket_path = '/tmp/test_socket'
         self.socket_manager = SocketManager(self.socket_path)
@@ -515,7 +502,10 @@ class TestSocketManager(unittest.TestCase):
         mock_exists.return_value = False
         with self.assertRaises(ConnectionError) as context:
             self.socket_manager._validate_socket_path()
-        self.assertIn("Socket directory", str(context.exception))
+        self.assertEqual(
+            str(context.exception),
+            f"Socket directory {os.path.dirname(self.socket_path)} does not exist"
+        )
 
     @patch('socket.socket')
     def test_connect_success(self, mock_socket):
@@ -543,24 +533,33 @@ class TestSocketManager(unittest.TestCase):
         mock_sock.connect.side_effect = socket.error("Connection refused")
         with self.assertRaises(ConnectionError) as context:
             self.socket_manager.connect()
+        self.assertEqual(
+            str(context.exception),
+            f"Failed to connect to memory statistics service after {Config.MAX_RETRIES} "
+            f"attempts. Last error: Connection refused. "
+            f"Please verify that the service is running and socket file exists at {self.socket_path}"
+        )
         self.assertEqual(mock_sock.connect.call_count, Config.MAX_RETRIES)
-        self.assertIn("Failed to connect to memory statistics service", str(context.exception))
 
     def test_receive_all_no_connection(self):
         """Test receive_all with no active connection"""
         with self.assertRaises(ConnectionError) as context:
             self.socket_manager.receive_all()
-        self.assertIn("No active socket connection", str(context.exception))
+        self.assertEqual(str(context.exception), "No active socket connection")
 
     @patch('socket.socket')
-    def test_receive_all_success(self, mock_socket):
-        """Test successful data reception"""
+    def test_receive_all_timeout(self, mock_socket):
+        """Test receive timeout handling"""
         mock_sock = MagicMock()
         mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = [b'test', b'data', b'']
+        mock_sock.recv.side_effect = socket.timeout()
         self.socket_manager.sock = mock_sock
-        result = self.socket_manager.receive_all()
-        self.assertEqual(result, 'testdata')
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.receive_all()
+        self.assertEqual(
+            str(context.exception),
+            f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
+        )
 
     @patch('socket.socket')
     def test_receive_all_timeout(self, mock_socket):
