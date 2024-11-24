@@ -173,21 +173,21 @@ class SonicDBConnector:
         """Initialize the database connector with retry mechanism."""
         self.config_db = ConfigDBConnector()
         self.connect_with_retry()
-        
+
     def connect_with_retry(self, max_retries: int = 3, retry_delay: float = 1.0) -> None:
         """
         Attempts to connect to the database with a retry mechanism.
-        
+
         Args:
             max_retries: Maximum number of connection attempts
             retry_delay: Delay between retries in seconds
-        
+
         Raises:
             ConnectionError: If connection fails after all retries
         """
         retries = 0
         last_error = None
-        
+
         while retries < max_retries:
             try:
                 self.config_db.connect()
@@ -197,29 +197,32 @@ class SonicDBConnector:
                 last_error = e
                 retries += 1
                 if retries < max_retries:
-                    syslog.syslog(syslog.LOG_WARNING, 
-                        f"Failed to connect to database (attempt {retries}/{max_retries}): {str(e)}")
+                    syslog.syslog(syslog.LOG_WARNING,
+                                  f"Failed to connect to database (attempt {retries}/{max_retries}): {str(e)}")
                     time.sleep(retry_delay)
-        
-        error_msg = f"Failed to connect to SONiC config database after {max_retries} attempts. Last error: {str(last_error)}"
+
+        error_msg = (
+            f"Failed to connect to SONiC config database after {max_retries} attempts. "
+            f"Last error: {str(last_error)}"
+        )
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise ConnectionError(error_msg)
 
     def get_memory_statistics_config(self) -> Dict[str, str]:
         """
         Retrieves memory statistics configuration with error handling.
-        
+
         Returns:
             Dict containing configuration values or default config
-        
+
         Raises:
             RuntimeError: If there's an error retrieving the configuration
         """
         try:
             config = self.config_db.get_table('MEMORY_STATISTICS')
             if not config or 'memory_statistics' not in config:
-                syslog.syslog(syslog.LOG_WARNING, 
-                    "Memory statistics configuration not found, using defaults")
+                syslog.syslog(syslog.LOG_WARNING,
+                              "Memory statistics configuration not found, using defaults")
                 return Config.DEFAULT_CONFIG
             return config['memory_statistics']
         except Exception as e:
@@ -252,7 +255,7 @@ class SocketManager:
             try:
                 if self.sock:
                     self.close()
-                    
+
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.settimeout(Config.SOCKET_TIMEOUT)
                 self.sock.connect(self.socket_path)
@@ -262,8 +265,8 @@ class SocketManager:
                 last_error = e
                 retries += 1
                 if retries < Config.MAX_RETRIES:
-                    syslog.syslog(syslog.LOG_WARNING, 
-                        f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {str(e)}")
+                    syslog.syslog(syslog.LOG_WARNING,
+                                  f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {str(e)}")
                     time.sleep(Config.RETRY_DELAY)
                 self.close()
 
@@ -302,7 +305,7 @@ class SocketManager:
         """Sends data with improved error handling."""
         if not self.sock:
             raise ConnectionError("No active socket connection")
-            
+
         try:
             self.sock.sendall(data.encode('utf-8'))
         except socket.error as e:
