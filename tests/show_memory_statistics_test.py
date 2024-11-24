@@ -435,7 +435,7 @@ class TestSonicDBConnector(unittest.TestCase):
             "Failed to connect to SONiC config database after 3 attempts. Last error: Connection failed"
         )
         self.assertEqual(self.mock_config_db.connect.call_count, 3)
-
+        
     def test_get_memory_statistics_config_success(self):
         """Test successful retrieval of memory statistics configuration"""
         test_config = {
@@ -548,6 +548,16 @@ class TestSocketManager(unittest.TestCase):
         self.assertEqual(str(context.exception), "No active socket connection")
 
     @patch('socket.socket')
+    def test_receive_all_success(self, mock_socket):
+        """Test successful data reception"""
+        mock_sock = MagicMock()
+        mock_socket.return_value = mock_sock
+        mock_sock.recv.side_effect = [b'test', b'data', b'']
+        self.socket_manager.sock = mock_sock
+        result = self.socket_manager.receive_all()
+        self.assertEqual(result, 'testdata')
+
+    @patch('socket.socket')
     def test_receive_all_timeout(self, mock_socket):
         """Test receive timeout handling"""
         mock_sock = MagicMock()
@@ -560,17 +570,6 @@ class TestSocketManager(unittest.TestCase):
             str(context.exception),
             f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
         )
-
-    @patch('socket.socket')
-    def test_receive_all_timeout(self, mock_socket):
-        """Test receive timeout handling"""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.timeout()
-        self.socket_manager.sock = mock_sock
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.receive_all()
-        self.assertIn("Socket operation timed out", str(context.exception))
 
     def test_close_success(self):
         """Test successful socket closure"""
