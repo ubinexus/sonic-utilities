@@ -329,26 +329,22 @@
 
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 import socket
 import json
 from click.testing import CliRunner
 
 from show.memory_statistics import (
-    Config, 
+    Config,
     Dict2Obj,
     SonicDBConnector,
     SocketManager,
-    send_data,
-    display_config,
-    display_statistics,
     cli
 )
 
 
 class TestConfig(unittest.TestCase):
     """Test cases for Config class"""
-    
     def test_default_values(self):
         """Test if Config class has correct default values"""
         self.assertEqual(Config.SOCKET_PATH, '/var/run/dbus/memstats.socket')
@@ -363,7 +359,6 @@ class TestConfig(unittest.TestCase):
 
 class TestDict2Obj(unittest.TestCase):
     """Test cases for Dict2Obj class"""
-
     def test_dict_conversion(self):
         """Test dictionary to object conversion"""
         test_dict = {
@@ -391,11 +386,10 @@ class TestDict2Obj(unittest.TestCase):
 
 class TestSonicDBConnector(unittest.TestCase):
     """Test cases for SonicDBConnector class"""
-
     @patch('memory_statistics.ConfigDBConnector')
     def test_successful_connection(self, mock_config_db):
         """Test successful database connection"""
-        connector = SonicDBConnector()
+        SonicDBConnector()
         mock_config_db.return_value.connect.assert_called_once()
 
     @patch('memory_statistics.ConfigDBConnector')
@@ -431,7 +425,6 @@ class TestSonicDBConnector(unittest.TestCase):
 
 class TestSocketManager(unittest.TestCase):
     """Test cases for SocketManager class"""
-
     def setUp(self):
         self.socket_manager = SocketManager()
 
@@ -468,7 +461,6 @@ class TestSocketManager(unittest.TestCase):
 
 class TestCLICommands(unittest.TestCase):
     """Test cases for CLI commands"""
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -507,7 +499,6 @@ class TestCLICommands(unittest.TestCase):
 
 class TestIntegration(unittest.TestCase):
     """Integration tests"""
-
     @patch('memory_statistics.SocketManager')
     @patch('memory_statistics.SonicDBConnector')
     def test_end_to_end_flow(self, mock_db_connector, mock_socket_manager):
@@ -530,7 +521,6 @@ class TestIntegration(unittest.TestCase):
         # Test CLI command
         runner = CliRunner()
         result = runner.invoke(cli, ['show', 'memory-stats', '--select', 'total_memory'])
-        
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Memory Statistics', result.output)
 
