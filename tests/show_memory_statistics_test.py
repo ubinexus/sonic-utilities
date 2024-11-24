@@ -428,14 +428,12 @@ class TestSocketManager(unittest.TestCase):
     def setUp(self):
         self.socket_manager = SocketManager()
 
-
     @patch('socket.socket')
     def test_successful_connection(self, mock_socket):
         """Test successful socket connection"""
         mock_socket.return_value.connect.return_value = None
         self.socket_manager.connect()
         mock_socket.assert_called_with(socket.AF_UNIX, socket.SOCK_STREAM)
-
 
     @patch('socket.socket')
     def test_connection_retry(self, mock_socket):
@@ -446,7 +444,6 @@ class TestSocketManager(unittest.TestCase):
         ]
         self.socket_manager.connect()
         self.assertEqual(mock_socket.return_value.connect.call_count, 2)
-
 
     @patch('socket.socket')
     def test_connection_failure_max_retries(self, mock_socket):
@@ -482,7 +479,6 @@ class TestCLICommands(unittest.TestCase):
         self.assertIn('Enabled', result.output)
         self.assertIn('Retention Time', result.output)
         self.assertIn('Sampling Interval', result.output)
-
 
     @patch('show.memory_statistics.send_data')  # Fixed import path
     def test_show_statistics(self, mock_send_data):
