@@ -4,6 +4,7 @@ import json
 import click
 import syslog
 import time
+import os
 from typing import Dict, Any, Union
 from dataclasses import dataclass
 from difflib import get_close_matches
@@ -71,27 +72,154 @@ class Dict2Obj:
         return f"<{self.__class__.__name__} {self.to_dict()}>"
 
 
+# class SonicDBConnector:
+#     """Handles interactions with SONiC's configuration database."""
+#     def __init__(self) -> None:
+#         self.config_db = ConfigDBConnector()
+#         try:
+#             self.config_db.connect()
+#         except Exception as e:
+#             error_msg = f"Failed to connect to SONiC config database: {str(e)}"
+#             syslog.syslog(syslog.LOG_ERR, error_msg)
+#             raise ConnectionError(error_msg)
+
+#     def get_memory_statistics_config(self) -> Dict[str, str]:
+#         """
+#         Retrieves memory statistics configuration from SONiC config DB.
+#         Returns a dictionary with configuration values.
+#         """
+#         try:
+#             config = self.config_db.get_table('MEMORY_STATISTICS')
+#             if not config or 'memory_statistics' not in config:
+#                 syslog.syslog(syslog.LOG_WARNING,
+#                               "Memory statistics configuration not found in config DB")
+#                 return Config.DEFAULT_CONFIG
+#             return config['memory_statistics']
+#         except Exception as e:
+#             error_msg = f"Error retrieving memory statistics configuration: {str(e)}"
+#             syslog.syslog(syslog.LOG_ERR, error_msg)
+#             raise RuntimeError(error_msg)
+
+
+# class SocketManager:
+#     """Manages socket connections with retry mechanism."""
+#     def __init__(self, socket_path: str = Config.SOCKET_PATH):
+#         self.socket_path = socket_path
+#         self.sock = None
+
+#     def connect(self) -> None:
+#         """Establishes socket connection with retry mechanism."""
+#         retries = 0
+#         last_error = None
+
+#         while retries < Config.MAX_RETRIES:
+#             try:
+#                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+#                 self.sock.settimeout(Config.SOCKET_TIMEOUT)
+#                 self.sock.connect(self.socket_path)
+#                 return
+#             except socket.error as e:
+#                 last_error = e
+#                 retries += 1
+#                 if retries < Config.MAX_RETRIES:
+#                     time.sleep(Config.RETRY_DELAY)
+#                 self.close()
+
+#         error_msg = (
+#             f"Failed to connect to memory statistics service after {Config.MAX_RETRIES} "
+#             f"attempts. Last error: {str(last_error)}. "
+#             "Please verify that the service is running and the socket file exists."
+#         )
+#         syslog.syslog(syslog.LOG_ERR, error_msg)
+#         raise ConnectionError(error_msg)
+
+#     def receive_all(self) -> str:
+#         """Receives all data from socket using chunked receiving."""
+#         if not self.sock:
+#             raise ConnectionError("No active socket connection")
+
+#         chunks = []
+#         while True:
+#             try:
+#                 chunk = self.sock.recv(Config.BUFFER_SIZE)
+#                 if not chunk:
+#                     break
+#                 chunks.append(chunk)
+#             except socket.timeout:
+#                 error_msg = f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
+#                 syslog.syslog(syslog.LOG_ERR, error_msg)
+#                 raise ConnectionError(error_msg)
+#             except socket.error as e:
+#                 error_msg = f"Socket error during receive: {str(e)}"
+#                 syslog.syslog(syslog.LOG_ERR, error_msg)
+#                 raise ConnectionError(error_msg)
+
+#         return b''.join(chunks).decode('utf-8')
+
+#     def close(self) -> None:
+#         """Closes the socket connection."""
+#         if self.sock:
+#             try:
+#                 self.sock.close()
+#             except Exception as e:
+#                 syslog.syslog(syslog.LOG_WARNING, f"Error closing socket: {str(e)}")
+#             finally:
+#                 self.sock = None
+
+
 class SonicDBConnector:
-    """Handles interactions with SONiC's configuration database."""
+    """Handles interactions with SONiC's configuration database with improved connection handling."""
     def __init__(self) -> None:
+        """Initialize the database connector with retry mechanism."""
         self.config_db = ConfigDBConnector()
-        try:
-            self.config_db.connect()
-        except Exception as e:
-            error_msg = f"Failed to connect to SONiC config database: {str(e)}"
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            raise ConnectionError(error_msg)
+        self.connect_with_retry()
+        
+    def connect_with_retry(self, max_retries: int = 3, retry_delay: float = 1.0) -> None:
+        """
+        Attempts to connect to the database with a retry mechanism.
+        
+        Args:
+            max_retries: Maximum number of connection attempts
+            retry_delay: Delay between retries in seconds
+        
+        Raises:
+            ConnectionError: If connection fails after all retries
+        """
+        retries = 0
+        last_error = None
+        
+        while retries < max_retries:
+            try:
+                self.config_db.connect()
+                syslog.syslog(syslog.LOG_INFO, "Successfully connected to SONiC config database")
+                return
+            except Exception as e:
+                last_error = e
+                retries += 1
+                if retries < max_retries:
+                    syslog.syslog(syslog.LOG_WARNING, 
+                        f"Failed to connect to database (attempt {retries}/{max_retries}): {str(e)}")
+                    time.sleep(retry_delay)
+        
+        error_msg = f"Failed to connect to SONiC config database after {max_retries} attempts. Last error: {str(last_error)}"
+        syslog.syslog(syslog.LOG_ERR, error_msg)
+        raise ConnectionError(error_msg)
 
     def get_memory_statistics_config(self) -> Dict[str, str]:
         """
-        Retrieves memory statistics configuration from SONiC config DB.
-        Returns a dictionary with configuration values.
+        Retrieves memory statistics configuration with error handling.
+        
+        Returns:
+            Dict containing configuration values or default config
+        
+        Raises:
+            RuntimeError: If there's an error retrieving the configuration
         """
         try:
             config = self.config_db.get_table('MEMORY_STATISTICS')
             if not config or 'memory_statistics' not in config:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "Memory statistics configuration not found in config DB")
+                syslog.syslog(syslog.LOG_WARNING, 
+                    "Memory statistics configuration not found, using defaults")
                 return Config.DEFAULT_CONFIG
             return config['memory_statistics']
         except Exception as e:
@@ -101,39 +229,54 @@ class SonicDBConnector:
 
 
 class SocketManager:
-    """Manages socket connections with retry mechanism."""
+    """Manages Unix domain socket connections with improved reliability."""
     def __init__(self, socket_path: str = Config.SOCKET_PATH):
         self.socket_path = socket_path
         self.sock = None
+        self._validate_socket_path()
+
+    def _validate_socket_path(self) -> None:
+        """Validates the socket path exists or can be created."""
+        socket_dir = os.path.dirname(self.socket_path)
+        if not os.path.exists(socket_dir):
+            error_msg = f"Socket directory {socket_dir} does not exist"
+            syslog.syslog(syslog.LOG_ERR, error_msg)
+            raise ConnectionError(error_msg)
 
     def connect(self) -> None:
-        """Establishes socket connection with retry mechanism."""
+        """Establishes socket connection with improved error handling."""
         retries = 0
         last_error = None
 
         while retries < Config.MAX_RETRIES:
             try:
+                if self.sock:
+                    self.close()
+                    
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.settimeout(Config.SOCKET_TIMEOUT)
                 self.sock.connect(self.socket_path)
+                syslog.syslog(syslog.LOG_INFO, "Successfully connected to memory statistics service")
                 return
             except socket.error as e:
                 last_error = e
                 retries += 1
                 if retries < Config.MAX_RETRIES:
+                    syslog.syslog(syslog.LOG_WARNING, 
+                        f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {str(e)}")
                     time.sleep(Config.RETRY_DELAY)
                 self.close()
 
         error_msg = (
             f"Failed to connect to memory statistics service after {Config.MAX_RETRIES} "
             f"attempts. Last error: {str(last_error)}. "
-            "Please verify that the service is running and the socket file exists."
+            f"Please verify that the service is running and socket file exists at {self.socket_path}"
         )
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise ConnectionError(error_msg)
 
     def receive_all(self) -> str:
-        """Receives all data from socket using chunked receiving."""
+        """Receives all data with improved error handling."""
         if not self.sock:
             raise ConnectionError("No active socket connection")
 
@@ -155,8 +298,20 @@ class SocketManager:
 
         return b''.join(chunks).decode('utf-8')
 
+    def send(self, data: str) -> None:
+        """Sends data with improved error handling."""
+        if not self.sock:
+            raise ConnectionError("No active socket connection")
+            
+        try:
+            self.sock.sendall(data.encode('utf-8'))
+        except socket.error as e:
+            error_msg = f"Failed to send data: {str(e)}"
+            syslog.syslog(syslog.LOG_ERR, error_msg)
+            raise ConnectionError(error_msg)
+
     def close(self) -> None:
-        """Closes the socket connection."""
+        """Closes the socket connection safely."""
         if self.sock:
             try:
                 self.sock.close()
