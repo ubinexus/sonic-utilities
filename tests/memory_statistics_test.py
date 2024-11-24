@@ -22,11 +22,14 @@ def test_memory_statistics_retention_period(mock_db):
     runner = CliRunner()
     retention_period_value = 20  # Within valid range
 
-    with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog, patch("config.memory_statistics.db") as mock_db_module:
+    with patch("click.echo") as mock_echo, \
+        patch("syslog.syslog") as mock_syslog, \
+            patch("config.memory_statistics.db") as mock_db_module:
+
         # Ensure the mock_db is being passed correctly
         mock_db_module.return_value = mock_db  # This ensures the mock_db is used in the function
         result = runner.invoke(memory_statistics_retention_period, [str(retention_period_value)])
-        
+
         assert result.exit_code == 0
         mock_echo.assert_any_call(f"Retention period set to {retention_period_value} successfully.")
         mock_db.mod_entry.assert_called_once_with(
@@ -67,7 +70,7 @@ def test_memory_statistics_sampling_interval(mock_db):
         # Ensure the mock_db is being passed correctly
         mock_db_module.return_value = mock_db  # This ensures the mock_db is used in the function
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
-        
+
         assert result.exit_code == 0
         mock_echo.assert_any_call(f"Sampling interval set to {sampling_interval_value} successfully.")
         mock_db.mod_entry.assert_called_once_with(
