@@ -435,7 +435,7 @@ class TestSonicDBConnector(unittest.TestCase):
             "Failed to connect to SONiC config database after 3 attempts. Last error: Connection failed"
         )
         self.assertEqual(self.mock_config_db.connect.call_count, 3)
-        
+
     def test_get_memory_statistics_config_success(self):
         """Test successful retrieval of memory statistics configuration"""
         test_config = {
