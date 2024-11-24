@@ -182,11 +182,79 @@
 #     pytest.main([__file__])
 
 
+# import pytest
+# import json
+# from unittest.mock import patch
+# from click.testing import CliRunner
+# from show.memory_statistics import cli, send_data  # Correct module import
+
+# # Mock configuration data for tests
+# MEMORY_STATS_CONFIG = {
+#     "memory_statistics": {
+#         "enabled": "true",
+#         "sampling_interval": "5",
+#         "retention_period": "15"
+#     }
+# }
+
+
+# @pytest.fixture
+# def mock_config_db():
+#     """Mock SONiC ConfigDB connection and data retrieval."""
+#     with patch('my_cli_tool.ConfigDBConnector') as mock_connector:
+#         mock_instance = mock_connector.return_value
+#         mock_instance.connect.return_value = None
+#         mock_instance.get_table.return_value = MEMORY_STATS_CONFIG
+#         yield mock_instance
+
+
+# @pytest.fixture
+# def mock_socket_manager():
+#     with patch('show.memory_statistics.SocketManager') as mock_socket:  # Updated path
+#         mock_instance = mock_socket.return_value
+#         mock_instance.connect.return_value = None
+#         mock_instance.receive_all.return_value = json.dumps({
+#             "status": True,
+#             "data": "Sample memory data output"
+#         })
+#         yield mock_instance
+
+
+# def test_socket_connection_failure():
+#     """Test socket connection failure handling."""
+#     with patch('my_cli_tool.SocketManager.connect', side_effect=ConnectionError("Connection failed")):
+#         with pytest.raises(ConnectionError):
+#             send_data("memory_statistics_command_request_handler", {})
+
+
+# def test_invalid_command():
+#     runner = CliRunner()
+#     result = runner.invoke(cli, ['invalid-command'])
+#     assert result.exit_code != 0
+#     assert "No such command" in result.output  # Updated assertion
+
+
+# def test_missing_socket_response(mock_socket_manager):
+#     """Test handling of empty socket responses."""
+#     mock_socket_manager.receive_all.return_value = ""
+
+#     with pytest.raises(ConnectionError, match="No response received from memory statistics service"):
+#         send_data("memory_statistics_command_request_handler", {})
+
+
+# def test_invalid_json_response(mock_socket_manager):
+#     """Test handling of invalid JSON responses from socket."""
+#     mock_socket_manager.receive_all.return_value = "Invalid JSON"
+
+#     with pytest.raises(ValueError, match="Failed to parse server response"):
+#         send_data("memory_statistics_command_request_handler", {})
+
+
 import pytest
 import json
 from unittest.mock import patch
 from click.testing import CliRunner
-from show.memory_statistics import cli, send_data  # Correct module import
+from show.memory_statistics import cli, send_data
 
 # Mock configuration data for tests
 MEMORY_STATS_CONFIG = {
@@ -197,20 +265,19 @@ MEMORY_STATS_CONFIG = {
     }
 }
 
-
 @pytest.fixture
 def mock_config_db():
     """Mock SONiC ConfigDB connection and data retrieval."""
-    with patch('my_cli_tool.ConfigDBConnector') as mock_connector:
+    with patch('show.memory_statistics.ConfigDBConnector') as mock_connector:
         mock_instance = mock_connector.return_value
         mock_instance.connect.return_value = None
         mock_instance.get_table.return_value = MEMORY_STATS_CONFIG
         yield mock_instance
 
-
 @pytest.fixture
 def mock_socket_manager():
-    with patch('show.memory_statistics.SocketManager') as mock_socket:  # Updated path
+    """Mock SocketManager class for successful responses."""
+    with patch('show.memory_statistics.SocketManager') as mock_socket:
         mock_instance = mock_socket.return_value
         mock_instance.connect.return_value = None
         mock_instance.receive_all.return_value = json.dumps({
@@ -219,32 +286,37 @@ def mock_socket_manager():
         })
         yield mock_instance
 
-
 def test_socket_connection_failure():
-    """Test socket connection failure handling."""
-    with patch('my_cli_tool.SocketManager.connect', side_effect=ConnectionError("Connection failed")):
-        with pytest.raises(ConnectionError):
+    """Test handling of socket connection failures."""
+    with patch('show.memory_statistics.SocketManager.connect', side_effect=ConnectionError("Connection failed")):
+        with pytest.raises(ConnectionError, match="Connection failed"):
             send_data("memory_statistics_command_request_handler", {})
 
-
 def test_invalid_command():
+    """Test CLI handling of invalid commands."""
     runner = CliRunner()
     result = runner.invoke(cli, ['invalid-command'])
+    
     assert result.exit_code != 0
-    assert "No such command" in result.output  # Updated assertion
-
+    assert "No such command" in result.output
 
 def test_missing_socket_response(mock_socket_manager):
-    """Test handling of empty socket responses."""
+    """Test handling when no response is received from the socket."""
     mock_socket_manager.receive_all.return_value = ""
 
     with pytest.raises(ConnectionError, match="No response received from memory statistics service"):
         send_data("memory_statistics_command_request_handler", {})
 
-
 def test_invalid_json_response(mock_socket_manager):
-    """Test handling of invalid JSON responses from socket."""
+    """Test handling of invalid JSON responses from the socket."""
     mock_socket_manager.receive_all.return_value = "Invalid JSON"
 
     with pytest.raises(ValueError, match="Failed to parse server response"):
         send_data("memory_statistics_command_request_handler", {})
+
+def test_valid_response(mock_socket_manager):
+    """Test valid socket response handling."""
+    response = send_data("memory_statistics_command_request_handler", {})
+    
+    assert response['status'] is True
+    assert response['data'] == "Sample memory data output"
