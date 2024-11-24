@@ -327,10 +327,6 @@
 #     assert response['status'] is True
 #     assert response['data'] == "Sample memory data output"
 
-
-
-
-
 import unittest
 from unittest.mock import patch, MagicMock
 import socket
@@ -341,7 +337,6 @@ from show.memory_statistics import (
     Dict2Obj,
     SonicDBConnector,
     SocketManager,
-    cli
 )
 
 
@@ -387,12 +382,12 @@ class TestDict2Obj(unittest.TestCase):
 
 
 class TestSonicDBConnector(unittest.TestCase):
-    """Test cases for SonicDBConnector class"""
-    @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
-    def test_successful_connection(self, mock_config_db):
-        """Test successful database connection"""
-        SonicDBConnector()
-        mock_config_db.return_value.connect.assert_called_once()
+    # """Test cases for SonicDBConnector class"""
+    # @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
+    # def test_successful_connection(self, mock_config_db):
+    #     """Test successful database connection"""
+    #     SonicDBConnector()
+    #     mock_config_db.return_value.connect.assert_called_once()
 
     # @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
     # def test_connection_failure(self, mock_config_db):
@@ -426,22 +421,22 @@ class TestSonicDBConnector(unittest.TestCase):
 
     def setUp(self):
         self.mock_config_db = MagicMock()
-        self.patcher = patch('show.memory_statistics.ConfigDBConnector', 
-                           return_value=self.mock_config_db)
+        self.patcher = patch('show.memory_statistics.ConfigDBConnector',
+                             return_value=self.mock_config_db)
         self.patcher.start()
-        
+
     def tearDown(self):
         self.patcher.stop()
 
     def test_successful_connection(self):
         """Test successful database connection on first attempt"""
-        connector = SonicDBConnector()
+        SonicDBConnector()
         self.mock_config_db.connect.assert_called_once()
 
     def test_connection_retry_success(self):
         """Test successful connection after initial failures"""
         self.mock_config_db.connect.side_effect = [Exception("First try"), Exception("Second try"), None]
-        connector = SonicDBConnector()
+        SonicDBConnector()
         self.assertEqual(self.mock_config_db.connect.call_count, 3)
 
     def test_connection_failure_max_retries(self):
@@ -678,7 +673,7 @@ if __name__ == '__main__':
 #         self.patcher = patch('show.memory_statistics.ConfigDBConnector',
 #                            return_value=self.mock_config_db)
 #         self.patcher.start()
-        
+
 #     def tearDown(self):
 #         self.patcher.stop()
 
