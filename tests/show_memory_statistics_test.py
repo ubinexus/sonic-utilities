@@ -265,6 +265,7 @@ MEMORY_STATS_CONFIG = {
     }
 }
 
+
 @pytest.fixture
 def mock_config_db():
     """Mock SONiC ConfigDB connection and data retrieval."""
@@ -273,6 +274,7 @@ def mock_config_db():
         mock_instance.connect.return_value = None
         mock_instance.get_table.return_value = MEMORY_STATS_CONFIG
         yield mock_instance
+
 
 @pytest.fixture
 def mock_socket_manager():
@@ -286,11 +288,13 @@ def mock_socket_manager():
         })
         yield mock_instance
 
+
 def test_socket_connection_failure():
     """Test handling of socket connection failures."""
     with patch('show.memory_statistics.SocketManager.connect', side_effect=ConnectionError("Connection failed")):
         with pytest.raises(ConnectionError, match="Connection failed"):
             send_data("memory_statistics_command_request_handler", {})
+
 
 def test_invalid_command():
     """Test CLI handling of invalid commands."""
@@ -300,12 +304,14 @@ def test_invalid_command():
     assert result.exit_code != 0
     assert "No such command" in result.output
 
+
 def test_missing_socket_response(mock_socket_manager):
     """Test handling when no response is received from the socket."""
     mock_socket_manager.receive_all.return_value = ""
 
     with pytest.raises(ConnectionError, match="No response received from memory statistics service"):
         send_data("memory_statistics_command_request_handler", {})
+
 
 def test_invalid_json_response(mock_socket_manager):
     """Test handling of invalid JSON responses from the socket."""
