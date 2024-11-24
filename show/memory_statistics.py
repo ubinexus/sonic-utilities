@@ -23,9 +23,11 @@ class Config:
         "sampling_interval": "Unknown"
     }
 
+
 class ConnectionError(Exception):
     """Custom exception for connection-related errors."""
     pass
+
 
 class Dict2Obj:
     """Converts dictionaries or lists into objects with attribute-style access."""
@@ -221,6 +223,7 @@ def validate_command(command: str, valid_commands: list) -> None:
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise click.UsageError(error_msg)
 
+
 @click.group()
 def show():
     """Show commands for memory statistics."""
@@ -244,6 +247,7 @@ def show():
     '--config', 'show_config', is_flag=True,
     help='Show memory statistics configuration'
 )
+
 @click.pass_context
 def memory_stats(ctx: click.Context, from_time: str, to_time: str, select_metric: str, show_config: bool) -> None:
     """Displays memory statistics or configuration."""
@@ -266,7 +270,6 @@ def display_config(db_connector: SonicDBConnector) -> None:
     """Displays memory statistics configuration."""
     try:
         config = db_connector.get_memory_statistics_config()
-
         enabled = format_field_value("enabled", config.get("enabled", "Unknown"))
         retention = format_field_value("retention_period", config.get("retention_period", "Unknown"))
         sampling = format_field_value("sampling_interval", config.get("sampling_interval", "Unknown"))

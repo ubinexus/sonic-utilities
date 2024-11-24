@@ -222,7 +222,7 @@
 #     """Test the 'show memory-stats --config' command."""
 #     runner = CliRunner()
 #     result = runner.invoke(cli, ['show', 'memory-stats', '--config'])
-    
+
 #     assert result.exit_code == 0
 #     assert "Enabled" in result.output
 #     assert "Retention Time (days)" in result.output
@@ -234,7 +234,7 @@
 #     """Test successful socket communication with valid response."""
 #     command_data = {"type": "system", "metric_name": "total_memory"}
 #     response = send_data("memory_statistics_command_request_handler", command_data)
-    
+
 #     assert response.status == True
 #     assert response.data == "Sample memory data output"
 
@@ -248,29 +248,27 @@
 #     """Test CLI with an invalid command."""
 #     runner = CliRunner()
 #     result = runner.invoke(cli, ['invalid-command'])
-    
+
 #     assert result.exit_code != 0
 #     assert "Error: Invalid command" in result.output
 
 # def test_missing_socket_response(mock_socket_manager):
 #     """Test handling of empty socket responses."""
 #     mock_socket_manager.receive_all.return_value = ""
-    
+
 #     with pytest.raises(ConnectionError, match="No response received from memory statistics service"):
 #         send_data("memory_statistics_command_request_handler", {})
 
 # def test_invalid_json_response(mock_socket_manager):
 #     """Test handling of invalid JSON responses from socket."""
 #     mock_socket_manager.receive_all.return_value = "Invalid JSON"
-    
+
 #     with pytest.raises(ValueError, match="Failed to parse server response"):
 #         send_data("memory_statistics_command_request_handler", {})
-
 # def test_cli_show_memory_stats(mock_socket_manager):
 #     """Test the 'show memory-stats' CLI command for statistics retrieval."""
 #     runner = CliRunner()
 #     result = runner.invoke(cli, ['show', 'memory-stats'])
-    
 #     assert result.exit_code == 0
 #     assert "Memory Statistics" in result.output
 #     assert "Sample memory data output" in result.output
