@@ -1,75 +1,75 @@
-import sys
-import socket
-import json
-import click
-import syslog
-import time
-import os
-from typing import Dict, Any, Union
-from dataclasses import dataclass
-from difflib import get_close_matches
-from swsscommon.swsscommon import ConfigDBConnector
+# import sys
+# import socket
+# import json
+# import click
+# import syslog
+# import time
+# import os
+# from typing import Dict, Any, Union
+# from dataclasses import dataclass
+# from difflib import get_close_matches
+# from swsscommon.swsscommon import ConfigDBConnector
 
 
-@dataclass
-class Config:
-    SOCKET_PATH: str = '/var/run/dbus/memstats.socket'
-    SOCKET_TIMEOUT: int = 30
-    BUFFER_SIZE: int = 8192
-    MAX_RETRIES: int = 3
-    RETRY_DELAY: float = 1.0
-    DEFAULT_CONFIG = {
-        "enabled": "false",
-        "retention_period": "Unknown",
-        "sampling_interval": "Unknown"
-    }
+# @dataclass
+# class Config:
+#     SOCKET_PATH: str = '/var/run/dbus/memstats.socket'
+#     SOCKET_TIMEOUT: int = 30
+#     BUFFER_SIZE: int = 8192
+#     MAX_RETRIES: int = 3
+#     RETRY_DELAY: float = 1.0
+#     DEFAULT_CONFIG = {
+#         "enabled": "false",
+#         "retention_period": "Unknown",
+#         "sampling_interval": "Unknown"
+#     }
 
 
-class ConnectionError(Exception):
-    """Custom exception for connection-related errors."""
-    pass
+# class ConnectionError(Exception):
+#     """Custom exception for connection-related errors."""
+#     pass
 
 
-class Dict2Obj:
-    """Converts dictionaries or lists into objects with attribute-style access."""
-    def __init__(self, d: Union[Dict[str, Any], list]) -> None:
-        if not isinstance(d, (dict, list)):
-            raise ValueError("Input should be a dictionary or a list")
+# class Dict2Obj:
+#     """Converts dictionaries or lists into objects with attribute-style access."""
+#     def __init__(self, d: Union[Dict[str, Any], list]) -> None:
+#         if not isinstance(d, (dict, list)):
+#             raise ValueError("Input should be a dictionary or a list")
 
-        if isinstance(d, dict):
-            for key, value in d.items():
-                if isinstance(value, (list, tuple)):
-                    setattr(
-                        self,
-                        key,
-                        [Dict2Obj(x) if isinstance(x, dict) else x for x in value],
-                    )
-                else:
-                    setattr(
-                        self, key, Dict2Obj(value) if isinstance(value, dict) else value
-                    )
-        elif isinstance(d, list):
-            self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
+#         if isinstance(d, dict):
+#             for key, value in d.items():
+#                 if isinstance(value, (list, tuple)):
+#                     setattr(
+#                         self,
+#                         key,
+#                         [Dict2Obj(x) if isinstance(x, dict) else x for x in value],
+#                     )
+#                 else:
+#                     setattr(
+#                         self, key, Dict2Obj(value) if isinstance(value, dict) else value
+#                     )
+#         elif isinstance(d, list):
+#             self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Converts the object back to a dictionary format."""
-        result = {}
-        if hasattr(self, "items"):
-            return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
+#     def to_dict(self) -> Dict[str, Any]:
+#         """Converts the object back to a dictionary format."""
+#         result = {}
+#         if hasattr(self, "items"):
+#             return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
 
-        for key in self.__dict__:
-            value = getattr(self, key)
-            if isinstance(value, Dict2Obj):
-                result[key] = value.to_dict()
-            elif isinstance(value, list):
-                result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
-            else:
-                result[key] = value
-        return result
+#         for key in self.__dict__:
+#             value = getattr(self, key)
+#             if isinstance(value, Dict2Obj):
+#                 result[key] = value.to_dict()
+#             elif isinstance(value, list):
+#                 result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
+#             else:
+#                 result[key] = value
+#         return result
 
-    def __repr__(self) -> str:
-        """Provides a string representation of the object for debugging."""
-        return f"<{self.__class__.__name__} {self.to_dict()}>"
+#     def __repr__(self) -> str:
+#         """Provides a string representation of the object for debugging."""
+#         return f"<{self.__class__.__name__} {self.to_dict()}>"
 
 
 # class SonicDBConnector:
@@ -166,22 +166,93 @@ class Dict2Obj:
 #             finally:
 #                 self.sock = None
 
+import sys
+import socket
+import json
+import click
+import syslog
+import time
+import os
+from typing import Dict, Any, Union
+from dataclasses import dataclass
+from difflib import get_close_matches
+from swsscommon import swsscommon
+
+
+class Config:
+    SOCKET_PATH = '/var/run/dbus/memstats.socket'
+    SOCKET_TIMEOUT = 30
+    BUFFER_SIZE = 8192
+    MAX_RETRIES = 3
+    RETRY_DELAY = 1.0
+    DEFAULT_CONFIG = {
+        "enabled": "false",
+        "retention_period": "Unknown",
+        "sampling_interval": "Unknown"
+    }
+
+
+class ConnectionError(Exception):
+    """Custom exception for connection-related errors."""
+    pass
+
+
+class Dict2Obj:
+    """Converts dictionaries or lists into objects with attribute-style access."""
+    def __init__(self, d: Union[Dict[str, Any], list]) -> None:
+        if not isinstance(d, (dict, list)):
+            raise ValueError("Input should be a dictionary or a list")
+
+        if isinstance(d, dict):
+            for key, value in d.items():
+                if isinstance(value, (list, tuple)):
+                    setattr(
+                        self,
+                        key,
+                        [Dict2Obj(x) if isinstance(x, dict) else x for x in value],
+                    )
+                else:
+                    setattr(
+                        self, key, Dict2Obj(value) if isinstance(value, dict) else value
+                    )
+        elif isinstance(d, list):
+            self.items = [Dict2Obj(x) if isinstance(x, dict) else x for x in d]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the object back to a dictionary format."""
+        result = {}
+        if hasattr(self, "items"):
+            return [x.to_dict() if isinstance(x, Dict2Obj) else x for x in self.items]
+
+        for key in self.__dict__:
+            value = getattr(self, key)
+            if isinstance(value, Dict2Obj):
+                result[key] = value.to_dict()
+            elif isinstance(value, list):
+                result[key] = [v.to_dict() if isinstance(v, Dict2Obj) else v for v in value]
+            else:
+                result[key] = value
+        return result
+
+    def __repr__(self) -> str:
+        """Provides a string representation of the object for debugging."""
+        return f"<{self.__class__.__name__} {self.to_dict()}>"
+
 
 class SonicDBConnector:
-    """Handles interactions with SONiC's configuration database with improved connection handling."""
-    def __init__(self) -> None:
-        """Initialize the database connector with retry mechanism."""
-        self.config_db = ConfigDBConnector()
+    def __init__(self):
+        """Initialize the database connector"""
+        self.config_db = swsscommon.ConfigDBConnector()
         self.connect_with_retry()
 
-    def connect_with_retry(self, max_retries: int = 3, retry_delay: float = 1.0) -> None:
+    def connect_with_retry(self, max_retries: int = Config.MAX_RETRIES, retry_delay: float = Config.RETRY_DELAY) -> None:
         """
         Attempts to connect to the database with a retry mechanism.
-
+        
         Args:
             max_retries: Maximum number of connection attempts
             retry_delay: Delay between retries in seconds
-
+        
         Raises:
             ConnectionError: If connection fails after all retries
         """
@@ -194,46 +265,21 @@ class SonicDBConnector:
                 syslog.syslog(syslog.LOG_INFO, "Successfully connected to SONiC config database")
                 return
             except Exception as e:
-                last_error = e
+                last_error = str(e)  # Convert exception to string here
                 retries += 1
                 if retries < max_retries:
                     syslog.syslog(syslog.LOG_WARNING,
-                                  f"Failed to connect to database (attempt {retries}/{max_retries}): {str(e)}")
+                                f"Failed to connect to database (attempt {retries}/{max_retries}): {last_error}")
                     time.sleep(retry_delay)
 
-        error_msg = (
-            f"Failed to connect to SONiC config database after {max_retries} attempts. "
-            f"Last error: {str(last_error)}"
-        )
+        error_msg = f"Failed to connect to SONiC config database after {max_retries} attempts. Last error: {last_error}"
         syslog.syslog(syslog.LOG_ERR, error_msg)
         raise ConnectionError(error_msg)
 
-    def get_memory_statistics_config(self) -> Dict[str, str]:
-        """
-        Retrieves memory statistics configuration with error handling.
-
-        Returns:
-            Dict containing configuration values or default config
-
-        Raises:
-            RuntimeError: If there's an error retrieving the configuration
-        """
-        try:
-            config = self.config_db.get_table('MEMORY_STATISTICS')
-            if not config or 'memory_statistics' not in config:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "Memory statistics configuration not found, using defaults")
-                return Config.DEFAULT_CONFIG
-            return config['memory_statistics']
-        except Exception as e:
-            error_msg = f"Error retrieving memory statistics configuration: {str(e)}"
-            syslog.syslog(syslog.LOG_ERR, error_msg)
-            raise RuntimeError(error_msg)
-
 
 class SocketManager:
-    """Manages Unix domain socket connections with improved reliability."""
     def __init__(self, socket_path: str = Config.SOCKET_PATH):
+        """Initialize the socket manager"""
         self.socket_path = socket_path
         self.sock = None
         self._validate_socket_path()
@@ -262,17 +308,17 @@ class SocketManager:
                 syslog.syslog(syslog.LOG_INFO, "Successfully connected to memory statistics service")
                 return
             except socket.error as e:
-                last_error = e
+                last_error = str(e)  # Convert exception to string here
                 retries += 1
                 if retries < Config.MAX_RETRIES:
                     syslog.syslog(syslog.LOG_WARNING,
-                                  f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {str(e)}")
+                                f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {last_error}")
                     time.sleep(Config.RETRY_DELAY)
                 self.close()
 
         error_msg = (
             f"Failed to connect to memory statistics service after {Config.MAX_RETRIES} "
-            f"attempts. Last error: {str(last_error)}. "
+            f"attempts. Last error: {last_error}. "
             f"Please verify that the service is running and socket file exists at {self.socket_path}"
         )
         syslog.syslog(syslog.LOG_ERR, error_msg)
@@ -284,42 +330,26 @@ class SocketManager:
             raise ConnectionError("No active socket connection")
 
         chunks = []
-        while True:
-            try:
+        try:
+            while True:
                 chunk = self.sock.recv(Config.BUFFER_SIZE)
                 if not chunk:
                     break
-                chunks.append(chunk)
-            except socket.timeout:
-                error_msg = f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
-                syslog.syslog(syslog.LOG_ERR, error_msg)
-                raise ConnectionError(error_msg)
-            except socket.error as e:
-                error_msg = f"Socket error during receive: {str(e)}"
-                syslog.syslog(syslog.LOG_ERR, error_msg)
-                raise ConnectionError(error_msg)
-
-        return b''.join(chunks).decode('utf-8')
-
-    def send(self, data: str) -> None:
-        """Sends data with improved error handling."""
-        if not self.sock:
-            raise ConnectionError("No active socket connection")
-
-        try:
-            self.sock.sendall(data.encode('utf-8'))
-        except socket.error as e:
-            error_msg = f"Failed to send data: {str(e)}"
+                chunks.append(chunk.decode('utf-8'))  # Decode bytes to string
+        except socket.timeout:
+            error_msg = f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
             syslog.syslog(syslog.LOG_ERR, error_msg)
             raise ConnectionError(error_msg)
 
+        return ''.join(chunks)
+
     def close(self) -> None:
-        """Closes the socket connection safely."""
+        """Closes the socket connection."""
         if self.sock:
             try:
                 self.sock.close()
             except Exception as e:
-                syslog.syslog(syslog.LOG_WARNING, f"Error closing socket: {str(e)}")
+                syslog.syslog(syslog.LOG_WARNING, f"Error while closing socket: {str(e)}")
             finally:
                 self.sock = None
 
