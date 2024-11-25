@@ -2,12 +2,19 @@ import unittest
 from unittest.mock import patch, MagicMock
 import socket
 import os
+import click
+from click.testing import CliRunner
 
 from show.memory_statistics import (
     Config,
     Dict2Obj,
     SonicDBConnector,
     SocketManager,
+    format_field_value,
+    clean_and_print,
+    cli,
+    validate_command,
+    main
 )
 
 
@@ -50,6 +57,24 @@ class TestDict2Obj(unittest.TestCase):
         """Test invalid input handling"""
         with self.assertRaises(ValueError):
             Dict2Obj("invalid")
+
+    def test_to_dict_conversion(self):
+        """Test converting object back to dictionary"""
+        test_dict = {
+            "name": "test",
+            "nested": {"key": "value"},
+            "list": [{"item": 1}, {"item": 2}]
+        }
+        obj = Dict2Obj(test_dict)
+        result = obj.to_dict()
+        self.assertEqual(result, test_dict)
+
+    def test_repr_method(self):
+        """Test string representation of Dict2Obj"""
+        test_dict = {"name": "test"}
+        obj = Dict2Obj(test_dict)
+        expected_repr = "<Dict2Obj {'name': 'test'}>"
+        self.assertEqual(repr(obj), expected_repr)
 
 
 class TestSonicDBConnector(unittest.TestCase):
@@ -95,17 +120,6 @@ class TestSonicDBConnector(unittest.TestCase):
         self.mock_config_db.connect.side_effect = [Exception("First try"), Exception("Second try"), None]
         SonicDBConnector()
         self.assertEqual(self.mock_config_db.connect.call_count, 3)
-
-    # def test_connection_failure_max_retries(self):
-    #     """Test connection failure after max retries"""
-    #     self.mock_config_db.connect.side_effect = Exception("Connection failed")
-    #     with self.assertRaises(ConnectionError) as context:
-    #         SonicDBConnector()
-    #     self.assertEqual(
-    #         str(context.exception),
-    #         "Failed to connect to SONiC config database after 3 attempts. Last error: Connection failed"
-    #     )
-    #     self.assertEqual(self.mock_config_db.connect.call_count, 3)
 
     def test_get_memory_statistics_config_success(self):
         """Test successful retrieval of memory statistics configuration"""
@@ -167,16 +181,16 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager._validate_socket_path()
         mock_exists.assert_called_once_with(os.path.dirname(self.socket_path))
 
-    # @patch('os.path.exists')
-    # def test_validate_socket_path_failure(self, mock_exists):
-    #     """Test socket path validation failure"""
-    #     mock_exists.return_value = False
-    #     with self.assertRaises(ConnectionError) as context:
-    #         self.socket_manager._validate_socket_path()
-    #     self.assertEqual(
-    #         str(context.exception),
-    #         f"Socket directory {os.path.dirname(self.socket_path)} does not exist"
-    #     )
+    @patch('os.path.exists')
+    def test_validate_socket_path_failure(self, mock_exists):
+        """Test socket path validation failure"""
+        mock_exists.return_value = False
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager._validate_socket_path()
+        self.assertEqual(
+            str(context.exception),
+            f"Socket directory {os.path.dirname(self.socket_path)} does not exist"
+        )
 
     @patch('socket.socket')
     def test_connect_success(self, mock_socket):
@@ -196,28 +210,6 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager.connect()
         self.assertEqual(mock_sock.connect.call_count, 3)
 
-    # @patch('socket.socket')
-    # def test_connect_failure_max_retries(self, mock_socket):
-    #     """Test connection failure after max retries"""
-    #     mock_sock = MagicMock()
-    #     mock_socket.return_value = mock_sock
-    #     mock_sock.connect.side_effect = socket.error("Connection refused")
-    #     with self.assertRaises(ConnectionError) as context:
-    #         self.socket_manager.connect()
-    #     self.assertEqual(
-    #         str(context.exception),
-    #         f"Failed to connect to memory statistics service after {Config.MAX_RETRIES} "
-    #         f"attempts. Last error: Connection refused. "
-    #         f"Please verify that the service is running and socket file exists at {self.socket_path}"
-    #     )
-    #     self.assertEqual(mock_sock.connect.call_count, Config.MAX_RETRIES)
-
-    # def test_receive_all_no_connection(self):
-    #     """Test receive_all with no active connection"""
-    #     with self.assertRaises(ConnectionError) as context:
-    #         self.socket_manager.receive_all()
-    #     self.assertEqual(str(context.exception), "No active socket connection")
-
     @patch('socket.socket')
     def test_receive_all_success(self, mock_socket):
         """Test successful data reception"""
@@ -227,20 +219,6 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager.sock = mock_sock
         result = self.socket_manager.receive_all()
         self.assertEqual(result, 'testdata')
-
-    # @patch('socket.socket')
-    # def test_receive_all_timeout(self, mock_socket):
-    #     """Test receive timeout handling"""
-    #     mock_sock = MagicMock()
-    #     mock_socket.return_value = mock_sock
-    #     mock_sock.recv.side_effect = socket.timeout()
-    #     self.socket_manager.sock = mock_sock
-    #     with self.assertRaises(ConnectionError) as context:
-    #         self.socket_manager.receive_all()
-    #     self.assertEqual(
-    #         str(context.exception),
-    #         f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
-    #     )
 
     def test_close_success(self):
         """Test successful socket closure"""
@@ -257,6 +235,122 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager.sock = mock_sock
         self.socket_manager.close()
         self.assertIsNone(self.socket_manager.sock)
+
+    @patch('socket.socket')
+    def test_send_data_success(self, mock_socket):
+        """Test successful data sending"""
+        mock_sock = MagicMock()
+        self.socket_manager.sock = mock_sock
+        test_data = "test message"
+        self.socket_manager.send(test_data)
+        mock_sock.sendall.assert_called_with(test_data.encode('utf-8'))
+
+    @patch('socket.socket')
+    def test_send_data_no_connection(self, mock_socket):
+        """Test sending data without active connection"""
+        self.socket_manager.sock = None
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.send("test")
+        self.assertEqual(str(context.exception), "No active socket connection")
+
+    @patch('socket.socket')
+    def test_send_data_error(self, mock_socket):
+        """Test sending data with socket error"""
+        mock_sock = MagicMock()
+        mock_sock.sendall.side_effect = socket.error("Send error")
+        self.socket_manager.sock = mock_sock
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.send("test")
+        self.assertIn("Failed to send data", str(context.exception))
+
+class TestCLICommands(unittest.TestCase):
+    """Test cases for CLI commands"""
+    def setUp(self):
+        self.runner = CliRunner()
+        self.ctx = click.Context(click.Command('test'))
+
+    def test_validate_command_valid(self):
+        """Test command validation with valid command"""
+        valid_commands = ['show', 'config']
+        # Should not raise an exception
+        validate_command('show', valid_commands)
+
+    def test_validate_command_invalid_with_suggestion(self):
+        """Test command validation with invalid command but close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError) as context:
+            validate_command('shw', valid_commands)
+        self.assertIn("Did you mean 'show'", str(context.exception))
+
+    def test_validate_command_invalid_no_suggestion(self):
+        """Test command validation with invalid command and no close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError) as context:
+            validate_command('xyz', valid_commands)
+        self.assertIn("Invalid command 'xyz'", str(context.exception))
+
+    @patch('show.memory_statistics.SonicDBConnector')
+    def test_display_config_success(self, mock_db):
+        """Test successful configuration display"""
+        mock_db.get_memory_statistics_config.return_value = {
+            "enabled": "true",
+            "retention_period": "7",
+            "sampling_interval": "5"
+        }
+        with self.runner.isolated_filesystem():
+            result = self.runner.invoke(cli, ['show', 'memory-stats', '--show-config'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn("Configuration Field", result.output)
+
+    @patch('show.memory_statistics.send_data')
+    def test_display_statistics_success(self, mock_send):
+        """Test successful statistics display"""
+        mock_response = Dict2Obj({
+            "status": True,
+            "data": "Memory Usage: 50%"
+        })
+        mock_send.return_value = mock_response
+        
+        with self.runner.isolated_filesystem():
+            result = self.runner.invoke(cli, [
+                'show', 
+                'memory-stats',
+                '--from-time', '2024-01-01',
+                '--to-time', '2024-01-02',
+                '--select-metric', 'usage'
+            ])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn("Memory Statistics", result.output)
+
+    def test_format_field_value(self):
+        """Test field value formatting"""
+        self.assertEqual(format_field_value("enabled", "true"), "True")
+        self.assertEqual(format_field_value("enabled", "false"), "False")
+        self.assertEqual(format_field_value("retention_period", "Unknown"), "Not configured")
+        self.assertEqual(format_field_value("sampling_interval", "5"), "5")
+
+    def test_clean_and_print(self):
+        """Test data cleaning and printing"""
+        test_data = {
+            "data": "Memory Usage: 50%\nSwap Usage: 10%"
+        }
+        with patch('builtins.print') as mock_print:
+            clean_and_print(test_data)
+            mock_print.assert_called_with("Memory Statistics:\nMemory Usage: 50%\nSwap Usage: 10%")
+
+    def test_clean_and_print_invalid_data(self):
+        """Test clean_and_print with invalid data"""
+        with patch('builtins.print') as mock_print:
+            clean_and_print("invalid data")
+            mock_print.assert_called_with("Error: Invalid data format received")
+
+    @patch('sys.argv')
+    def test_main_invalid_command(self, mock_argv):
+        """Test main function with invalid command"""
+        mock_argv.__getitem__.return_value = ['invalid']
+        with self.assertRaises(click.UsageError) as context:
+            main()
+        self.assertIn("Invalid command 'invalid'", str(context.exception))
 
 
 if __name__ == '__main__':
