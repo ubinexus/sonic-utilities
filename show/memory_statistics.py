@@ -174,7 +174,6 @@ import syslog
 import time
 import os
 from typing import Dict, Any, Union
-from dataclasses import dataclass
 from difflib import get_close_matches
 from swsscommon import swsscommon
 
@@ -245,14 +244,15 @@ class SonicDBConnector:
         self.config_db = swsscommon.ConfigDBConnector()
         self.connect_with_retry()
 
-    def connect_with_retry(self, max_retries: int = Config.MAX_RETRIES, retry_delay: float = Config.RETRY_DELAY) -> None:
+    def connect_with_retry(self, max_retries: int = Config.MAX_RETRIES, 
+                           retry_delay: float = Config.RETRY_DELAY) -> None:
         """
         Attempts to connect to the database with a retry mechanism.
-        
+
         Args:
             max_retries: Maximum number of connection attempts
             retry_delay: Delay between retries in seconds
-        
+
         Raises:
             ConnectionError: If connection fails after all retries
         """
@@ -269,7 +269,7 @@ class SonicDBConnector:
                 retries += 1
                 if retries < max_retries:
                     syslog.syslog(syslog.LOG_WARNING,
-                                f"Failed to connect to database (attempt {retries}/{max_retries}): {last_error}")
+                                  f"Failed to connect to database (attempt {retries}/{max_retries}): {last_error}")
                     time.sleep(retry_delay)
 
         error_msg = f"Failed to connect to SONiC config database after {max_retries} attempts. Last error: {last_error}"
@@ -312,7 +312,7 @@ class SocketManager:
                 retries += 1
                 if retries < Config.MAX_RETRIES:
                     syslog.syslog(syslog.LOG_WARNING,
-                                f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {last_error}")
+                                  f"Failed to connect to socket (attempt {retries}/{Config.MAX_RETRIES}): {last_error}")
                     time.sleep(Config.RETRY_DELAY)
                 self.close()
 
