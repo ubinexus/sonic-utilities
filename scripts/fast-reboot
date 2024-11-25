@@ -578,6 +578,9 @@ function check_conflict_boot_in_fw_update() {
         "warm-reboot")
             FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/warm_fw_au_task"
             ;;
+        "express-reboot")
+            FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/express_fw_au_task"
+            ;;
     esac
     FW_AU_TASK_FILE=$(compgen -G ${FW_AU_TASK_FILE_REGEX}) || true
     if [[ -n "${FW_AU_TASK_FILE}" ]] && [[ ! -f "${FW_AU_TASK_FILE_EXP}" ]]; then
