@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
+from datetime import datetime, timedelta
 import socket
 import os
 import click
@@ -263,6 +264,7 @@ class TestSocketManager(unittest.TestCase):
             self.socket_manager.send("test")
         self.assertIn("Failed to send data", str(context.exception))
 
+
 class TestCLICommands(unittest.TestCase):
     """Test cases for CLI commands"""
     def setUp(self):
@@ -310,10 +312,10 @@ class TestCLICommands(unittest.TestCase):
             "data": "Memory Usage: 50%"
         })
         mock_send.return_value = mock_response
-        
+
         with self.runner.isolated_filesystem():
             result = self.runner.invoke(cli, [
-                'show', 
+                'show',
                 'memory-stats',
                 '--from-time', '2024-01-01',
                 '--to-time', '2024-01-02',
@@ -351,6 +353,139 @@ class TestCLICommands(unittest.TestCase):
         with self.assertRaises(click.UsageError) as context:
             main()
         self.assertIn("Invalid command 'invalid'", str(context.exception))
+
+
+class TestMemoryStatsCLI(unittest.TestCase):
+    def setUp(self):
+        self.runner = CliRunner()
+        self.maxDiff = None
+        
+    def test_show_memory_stats_basic(self):
+        """Test basic memory stats command without arguments"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.get_memory_statistics.return_value = {
+                'total_memory': '15.29GB',
+                'used_memory': '10.66GB',
+                'free_memory': '948.67MB',
+                'available_memory': '2.88GB',
+                'cached_memory': '3.62GB',
+                'buffers_memory': '91.59MB',
+                'shared_memory': '1.43GB'
+            }
+            
+            result = self.runner.invoke(cli, ['show', 'memory-stats'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('Memory Statistics:', result.output)
+            self.assertIn('total_memory', result.output)
+            self.assertIn('15.29GB', result.output)
+
+    def test_show_memory_stats_with_time_range(self):
+        """Test memory stats command with time range arguments"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.get_memory_statistics_by_time_range.return_value = {
+                'total_memory': ['15.29GB'] * 13,
+                'used_memory': ['10.16GB', '10.63GB', '8.66GB'] + ['10.32GB'] * 10,
+                'free_memory': ['1.51GB'] * 13,
+                'timestamps': [
+                    '14:34', '14:44', '14:54', '15:04', '15:14',
+                    '15:24', '15:34', '15:44', '15:54', '16:04',
+                    '16:14'
+                ]
+            }
+            
+            result = self.runner.invoke(cli, [
+                'show', 'memory-stats',
+                '--from', '100 minutes ago',
+                '--to', 'now'
+            ])
+            
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('Analysis Period:', result.output)
+            self.assertIn('Interval: 10 Minutes', result.output)
+
+    def test_show_memory_stats_with_metric_selection(self):
+        """Test memory stats command with specific metric selection"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.get_memory_statistics_by_metric.return_value = {
+                'total_memory': ['15.29GB'] * 13
+            }
+            
+            result = self.runner.invoke(cli, [
+                'show', 'memory-stats',
+                '--from', '100 minutes ago',
+                '--to', 'now',
+                '--select', 'total_memory'
+            ])
+            
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('total_memory', result.output)
+            self.assertIn('15.29GB', result.output)
+
+    def test_show_config_error(self):
+        """Test config command when database connection fails"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.side_effect = Exception(
+                "Sonic database config file doesn't exist at /var/run/redis/sonic-db/database_config.json"
+            )
+            
+            result = self.runner.invoke(cli, ['show', 'memory-stats', '--config'])
+            self.assertEqual(result.exit_code, 1)
+            self.assertIn('Error initializing database connection', result.output)
+
+    def test_time_range_validation(self):
+        """Test validation of time range parameters"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            result = self.runner.invoke(cli, [
+                'show', 'memory-stats',
+                '--from', 'invalid time',
+                '--to', 'now'
+            ])
+            self.assertNotEqual(result.exit_code, 0)
+            self.assertIn('Error', result.output.lower())
+
+    def test_memory_stats_data_formatting(self):
+        """Test proper formatting of memory statistics output"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.get_memory_statistics.return_value = {
+                'total_memory': '15.29GB',
+                'used_memory': '10.66GB',
+                'free_memory': '948.67MB'
+            }
+            
+            result = self.runner.invoke(cli, ['show', 'memory-stats'])
+            self.assertEqual(result.exit_code, 0)
+            
+            # Check for proper table formatting
+            self.assertIn('Metric', result.output)
+            self.assertIn('Current Value', result.output)
+            self.assertIn('High Value', result.output)
+            self.assertIn('Low Value', result.output)
+
+    def test_handle_empty_data(self):
+        """Test handling of empty data response"""
+        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
+            mock_db.get_memory_statistics.return_value = {}
+            
+            result = self.runner.invoke(cli, ['show', 'memory-stats'])
+            self.assertNotEqual(result.exit_code, 0)
+            self.assertIn('No data available', result.output.lower())
+
+    def test_parse_time_relative(self):
+        """Test parsing of relative time inputs"""
+        def mock_parse_time(time_str):
+            if time_str == '100 minutes ago':
+                return datetime.now() - timedelta(minutes=100)
+            elif time_str == 'now':
+                return datetime.now()
+            raise ValueError(f"Invalid time format: {time_str}")
+            
+        with patch('show.memory_statistics.parse_time', side_effect=mock_parse_time):
+            result = self.runner.invoke(cli, [
+                'show', 'memory-stats',
+                '--from', '100 minutes ago',
+                '--to', 'now'
+            ])
+            self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == '__main__':
