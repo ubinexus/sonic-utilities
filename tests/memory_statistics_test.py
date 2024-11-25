@@ -36,7 +36,8 @@
 #             "MEMORY_STATISTICS", "memory_statistics",
 #             {"retention_period": retention_period_value}
 #         )
-#         mock_syslog.assert_any_call(syslog.LOG_INFO, f"Retention period set to {retention_period_value} successfully.")
+#         mock_syslog.assert_any_call(syslog.LOG_INFO,
+#  f"Retention period set to {retention_period_value} successfully.")
 #         assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 

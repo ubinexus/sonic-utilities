@@ -44,7 +44,8 @@
 
 
 # # Function to set sampling interval
-# @memory_statistics.command(name="sampling-interval", short_help="Configure the sampling interval for Memory Statistics")
+# @memory_statistics.command(name="sampling-interval",
+# short_help="Configure the sampling interval for Memory Statistics")
 # @click.argument('sampling_interval', metavar='<sampling_interval>', required=True, type=int)
 # def memory_statistics_sampling_interval(sampling_interval):
 #     """Set the sampling interval for Memory Statistics"""
@@ -97,6 +98,7 @@ def log_to_syslog(message, level=syslog.LOG_INFO):
     syslog.openlog("memory_statistics", syslog.LOG_PID | syslog.LOG_CONS, syslog.LOG_USER)
     syslog.syslog(level, message)
 
+
 def update_memory_statistics_status(status, db):
     """Updates the status of the memory statistics feature in the config DB."""
     try:
@@ -110,6 +112,7 @@ def update_memory_statistics_status(status, db):
         click.echo(error_msg, err=True)
         log_to_syslog(error_msg, syslog.LOG_ERR)  # Log error to syslog
         return False, error_msg  # Failure: return False and the error message
+
 
 @click.command()
 def memory_statistics_enable():
@@ -127,6 +130,7 @@ def memory_statistics_enable():
         click.echo(reminder_msg)
         log_to_syslog(reminder_msg)  # Log to syslog
 
+
 @click.command()
 def memory_statistics_disable():
     """Disable memory statistics."""
@@ -142,6 +146,7 @@ def memory_statistics_disable():
         reminder_msg = "Reminder: Please run 'config save' to persist changes."
         click.echo(reminder_msg)
         log_to_syslog(reminder_msg)  # Log to syslog
+
 
 @click.command()
 @click.argument("retention_period", type=int, required=False, default=DEFAULT_RETENTION_PERIOD)
@@ -165,6 +170,7 @@ def memory_statistics_retention_period(retention_period):
         click.echo(error_msg, err=True)
         log_to_syslog(error_msg, syslog.LOG_ERR)  # Log error to syslog
 
+
 @click.command()
 @click.argument("sampling_interval", type=int, required=False, default=DEFAULT_SAMPLING_INTERVAL)
 def memory_statistics_sampling_interval(sampling_interval):
@@ -186,6 +192,7 @@ def memory_statistics_sampling_interval(sampling_interval):
         error_msg = f"Error setting sampling interval: {e}"
         click.echo(error_msg, err=True)
         log_to_syslog(error_msg, syslog.LOG_ERR)  # Log error to syslog
+
 
 def get_memory_statistics_table(db):
     """Retrieve MEMORY_STATISTICS table from config DB."""
