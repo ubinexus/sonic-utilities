@@ -72,7 +72,7 @@ def test_memory_statistics_sampling_interval(mock_db):
         patch("config.memory_statistics.db") as mock_db_module
     ):
 
-            # Ensure the mock_db is being passed correctly
+        # Ensure the mock_db is being passed correctly
         mock_db_module.return_value = mock_db  # This ensures the mock_db is used in the function
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
 
