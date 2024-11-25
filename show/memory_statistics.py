@@ -244,7 +244,7 @@ class SonicDBConnector:
         self.config_db = swsscommon.ConfigDBConnector()
         self.connect_with_retry()
 
-    def connect_with_retry(self, max_retries: int = Config.MAX_RETRIES, 
+    def connect_with_retry(self, max_retries: int = Config.MAX_RETRIES,
                            retry_delay: float = Config.RETRY_DELAY) -> None:
         """
         Attempts to connect to the database with a retry mechanism.
