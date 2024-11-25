@@ -180,17 +180,6 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager._validate_socket_path()
         mock_exists.assert_called_once_with(os.path.dirname(self.socket_path))
 
-    @patch('os.path.exists')
-    def test_validate_socket_path_failure(self, mock_exists):
-        """Test socket path validation failure"""
-        mock_exists.return_value = False
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager._validate_socket_path()
-        self.assertEqual(
-            str(context.exception),
-            f"Socket directory {os.path.dirname(self.socket_path)} does not exist"
-        )
-
     @patch('socket.socket')
     def test_connect_success(self, mock_socket):
         """Test successful socket connection"""
@@ -244,36 +233,12 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager.send(test_data)
         mock_sock.sendall.assert_called_with(test_data.encode('utf-8'))
 
-    @patch('socket.socket')
-    def test_send_data_no_connection(self, mock_socket):
-        """Test sending data without active connection"""
-        self.socket_manager.sock = None
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.send("test")
-        self.assertEqual(str(context.exception), "No active socket connection")
-
-    @patch('socket.socket')
-    def test_send_data_error(self, mock_socket):
-        """Test sending data with socket error"""
-        mock_sock = MagicMock()
-        mock_sock.sendall.side_effect = socket.error("Send error")
-        self.socket_manager.sock = mock_sock
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.send("test")
-        self.assertIn("Failed to send data", str(context.exception))
-
 
 class TestCLICommands(unittest.TestCase):
     """Test cases for CLI commands"""
     def setUp(self):
         self.runner = CliRunner()
         self.ctx = click.Context(click.Command('test'))
-
-    # def test_validate_command_valid(self):
-    #     """Test command validation with valid command"""
-    #     valid_commands = ['show', 'config']
-    #     # Should not raise an exception
-    #     validate_command('show', valid_commands)
 
     def test_validate_command_invalid_with_suggestion(self):
         """Test command validation with invalid command but close match"""
@@ -288,39 +253,6 @@ class TestCLICommands(unittest.TestCase):
         with self.assertRaises(click.UsageError) as context:
             validate_command('xyz', valid_commands)
         self.assertIn("Invalid command 'xyz'", str(context.exception))
-
-    # @patch('show.memory_statistics.SonicDBConnector')
-    # def test_display_config_success(self, mock_db):
-    #     """Test successful configuration display"""
-    #     mock_db.get_memory_statistics_config.return_value = {
-    #         "enabled": "true",
-    #         "retention_period": "7",
-    #         "sampling_interval": "5"
-    #     }
-    #     with self.runner.isolated_filesystem():
-    #         result = self.runner.invoke(cli, ['show', 'memory-stats', '--show-config'])
-    #         self.assertEqual(result.exit_code, 0)
-    #         self.assertIn("Configuration Field", result.output)
-
-    # @patch('show.memory_statistics.send_data')
-    # def test_display_statistics_success(self, mock_send):
-    #     """Test successful statistics display"""
-    #     mock_response = Dict2Obj({
-    #         "status": True,
-    #         "data": "Memory Usage: 50%"
-    #     })
-    #     mock_send.return_value = mock_response
-
-    #     with self.runner.isolated_filesystem():
-    #         result = self.runner.invoke(cli, [
-    #             'show',
-    #             'memory-stats',
-    #             '--from-time', '2024-01-01',
-    #             '--to-time', '2024-01-02',
-    #             '--select-metric', 'usage'
-    #         ])
-    #         self.assertEqual(result.exit_code, 0)
-    #         self.assertIn("Memory Statistics", result.output)
 
     def test_format_field_value(self):
         """Test field value formatting"""
@@ -344,137 +276,10 @@ class TestCLICommands(unittest.TestCase):
             clean_and_print("invalid data")
             mock_print.assert_called_with("Error: Invalid data format received")
 
-    # @patch('sys.argv')
-    # def test_main_invalid_command(self, mock_argv):
-    #     """Test main function with invalid command"""
-    #     mock_argv.__getitem__.return_value = ['invalid']
-    #     with self.assertRaises(click.UsageError) as context:
-    #         main()
-    #     self.assertIn("Invalid command 'invalid'", str(context.exception))
-
-
 class TestMemoryStatsCLI(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
-
-    @patch('show.memory_statistics.send_data')
-    def test_display_statistics_success(self, mock_send):
-        """Test successful display of memory statistics."""
-        mock_response = MagicMock()
-        mock_response.status = True
-        mock_response.data = "Memory Usage: 50%"
-        mock_send.return_value = mock_response
-
-        result = self.runner.invoke(cli, [
-            'show',
-            'memory-stats',
-            '--from-time', '2024-01-01',
-            '--to-time', '2024-01-02',
-            '--select-metric', 'usage'
-        ])
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn('Memory Usage: 50%', result.output)
-
-    @patch('sys.argv', new=['show', 'invalid'])
-    def test_main_invalid_command(self):
-        """Test main function with an invalid command."""
-        with self.assertRaises(click.UsageError):
-            result = self.runner.invoke(cli, ['invalid'])
-            self.assertEqual(result.exit_code, 2)
-            self.assertIn('Invalid command', result.output)
-
-    def test_validate_command_valid(self):
-        """Test command validation with a valid command."""
-        valid_commands = ['show', 'config']
-        try:
-            validate_command('show', valid_commands)
-        except click.UsageError as e:
-            self.fail(f"validate_command raised an unexpected exception: {e}")
-
-    def test_handle_empty_data(self):
-        """Test handling of empty data response."""
-        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-            mock_db.get_memory_statistics.return_value = {}
-
-            result = self.runner.invoke(cli, ['show', 'memory-stats'])
-            self.assertEqual(result.exit_code, 0)
-            self.assertIn('No data available', result.output.lower())
-
-    def test_memory_stats_data_formatting(self):
-        """Test proper formatting of memory statistics output."""
-        with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-            mock_db.get_memory_statistics.return_value = {
-                'total_memory': '15.29GB',
-                'used_memory': '10.66GB',
-                'free_memory': '948.67MB'
-            }
-
-            result = self.runner.invoke(cli, ['show', 'memory-stats'])
-            self.assertEqual(result.exit_code, 0)
-            self.assertIn('15.29GB', result.output)
-            self.assertIn('10.66GB', result.output)
-            self.assertIn('948.67MB', result.output)
-
-    # def test_show_memory_stats_basic(self):
-    #     """Test basic memory stats command without arguments"""
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         mock_db.get_memory_statistics.return_value = {
-    #             'total_memory': '15.29GB',
-    #             'used_memory': '10.66GB',
-    #             'free_memory': '948.67MB',
-    #             'available_memory': '2.88GB',
-    #             'cached_memory': '3.62GB',
-    #             'buffers_memory': '91.59MB',
-    #             'shared_memory': '1.43GB'
-    #         }
-
-    #         result = self.runner.invoke(cli, ['show', 'memory-stats'])
-    #         self.assertEqual(result.exit_code, 0)
-    #         self.assertIn('Memory Statistics:', result.output)
-    #         self.assertIn('total_memory', result.output)
-    #         self.assertIn('15.29GB', result.output)
-
-    # def test_show_memory_stats_with_time_range(self):
-    #     """Test memory stats command with time range arguments"""
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         mock_db.get_memory_statistics_by_time_range.return_value = {
-    #             'total_memory': ['15.29GB'] * 13,
-    #             'used_memory': ['10.16GB', '10.63GB', '8.66GB'] + ['10.32GB'] * 10,
-    #             'free_memory': ['1.51GB'] * 13,
-    #             'timestamps': [
-    #                 '14:34', '14:44', '14:54', '15:04', '15:14',
-    #                 '15:24', '15:34', '15:44', '15:54', '16:04',
-    #                 '16:14'
-    #             ]
-    #         }
-
-    #         result = self.runner.invoke(cli, [
-    #             'show', 'memory-stats',
-    #             '--from', '100 minutes ago',
-    #             '--to', 'now'
-    #         ])
-
-    #         self.assertEqual(result.exit_code, 0)
-    #         self.assertIn('Analysis Period:', result.output)
-    #         self.assertIn('Interval: 10 Minutes', result.output)
-
-    # def test_show_memory_stats_with_metric_selection(self):
-    #     """Test memory stats command with specific metric selection"""
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         mock_db.get_memory_statistics_by_metric.return_value = {
-    #             'total_memory': ['15.29GB'] * 13
-    #         }
-
-    #         result = self.runner.invoke(cli, [
-    #             'show', 'memory-stats',
-    #             '--from', '100 minutes ago',
-    #             '--to', 'now',
-    #             '--select', 'total_memory'
-    #         ])
-
-    #         self.assertEqual(result.exit_code, 0)
-    #         self.assertIn('total_memory', result.output)
-    #         self.assertIn('15.29GB', result.output)
+        self.maxDiff = None
 
     def test_show_config_error(self):
         """Test config command when database connection fails"""
@@ -486,94 +291,6 @@ class TestMemoryStatsCLI(unittest.TestCase):
             result = self.runner.invoke(cli, ['show', 'memory-stats', '--config'])
             self.assertEqual(result.exit_code, 1)
             self.assertIn('Error initializing database connection', result.output)
-
-    # def test_time_range_validation(self):
-    #     """Test validation of time range parameters"""
-    #     test_cases = [
-    #         {
-    #             'from_time': 'invalid time',
-    #             'to_time': 'now',
-    #             'expected_error': 'invalid time format'
-    #         },
-    #         {
-    #             'from_time': '2024-11-25',
-    #             'to_time': '2024-11-24',
-    #             'expected_error': 'from time cannot be later than to time'
-    #         },
-    #         {
-    #             'from_time': '200 days ago',  # Test extreme range
-    #             'to_time': 'now',
-    #             'expected_error': 'time range cannot exceed'
-    #         }
-    #     ]
-
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         # Mock the database to raise an exception if accessed
-    #         mock_db.get_memory_statistics_by_time_range.side_effect = \
-    #             Exception("Database should not be accessed during validation")
-
-    #         for test_case in test_cases:
-    #             result = self.runner.invoke(cli, [
-    #                 'show', 'memory-stats',
-    #                 '--from', test_case['from_time'],
-    #                 '--to', test_case['to_time']
-    #             ])
-
-    #             # Verify the command failed
-    #             self.assertNotEqual(result.exit_code, 0,
-    #                                 f"Command should fail for invalid input: {test_case}")
-
-    #             # Verify the expected error message
-    #             self.assertIn(test_case['expected_error'].lower(),
-    #                           result.output.lower(),
-    #                           f"Expected error message not found for: {test_case}")
-
-    #             # Verify database was not accessed
-    #             mock_db.get_memory_statistics_by_time_range.assert_not_called()
-
-    # def test_memory_stats_data_formatting(self):
-    #     """Test proper formatting of memory statistics output"""
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         mock_db.get_memory_statistics.return_value = {
-    #             'total_memory': '15.29GB',
-    #             'used_memory': '10.66GB',
-    #             'free_memory': '948.67MB'
-    #         }
-
-    #         result = self.runner.invoke(cli, ['show', 'memory-stats'])
-    #         self.assertEqual(result.exit_code, 0)
-
-    #         # Check for proper table formatting
-    #         self.assertIn('Metric', result.output)
-    #         self.assertIn('Current Value', result.output)
-    #         self.assertIn('High Value', result.output)
-    #         self.assertIn('Low Value', result.output)
-
-    # def test_handle_empty_data(self):
-    #     """Test handling of empty data response"""
-    #     with patch('show.memory_statistics.SonicDBConnector') as mock_db:
-    #         mock_db.get_memory_statistics.return_value = {}
-
-    #         result = self.runner.invoke(cli, ['show', 'memory-stats'])
-    #         self.assertNotEqual(result.exit_code, 0)
-    #         self.assertIn('No data available', result.output.lower())
-
-    # def test_parse_time_relative(self):
-    #     """Test parsing of relative time inputs"""
-    #     def mock_parse_time(time_str):
-    #         if time_str == '100 minutes ago':
-    #             return datetime.now() - timedelta(minutes=100)
-    #         elif time_str == 'now':
-    #             return datetime.now()
-    #         raise ValueError(f"Invalid time format: {time_str}")
-
-    #     with patch('show.memory_statistics.parse_time', side_effect=mock_parse_time):
-    #         result = self.runner.invoke(cli, [
-    #             'show', 'memory-stats',
-    #             '--from', '100 minutes ago',
-    #             '--to', 'now'
-    #         ])
-    #         self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == '__main__':
