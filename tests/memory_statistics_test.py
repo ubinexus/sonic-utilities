@@ -66,8 +66,13 @@ def test_memory_statistics_sampling_interval(mock_db):
     runner = CliRunner()
     sampling_interval_value = 10  # Within valid range
 
-    with patch("click.echo") as mock_echo, patch("syslog.syslog") as mock_syslog, patch("config.memory_statistics.db") as mock_db_module:
-        # Ensure the mock_db is being passed correctly
+    with (
+        patch("click.echo") as mock_echo,
+        patch("syslog.syslog") as mock_syslog,
+        patch("config.memory_statistics.db") as mock_db_module
+    ):
+
+            # Ensure the mock_db is being passed correctly
         mock_db_module.return_value = mock_db  # This ensures the mock_db is used in the function
         result = runner.invoke(memory_statistics_sampling_interval, [str(sampling_interval_value)])
 
@@ -77,7 +82,11 @@ def test_memory_statistics_sampling_interval(mock_db):
             "MEMORY_STATISTICS", "memory_statistics",
             {"sampling_interval": sampling_interval_value}
         )
-        mock_syslog.assert_any_call(syslog.LOG_INFO, f"Sampling interval set to {sampling_interval_value} successfully.")
+        mock_syslog.assert_any_call(
+            syslog.LOG_INFO,
+            f"Sampling interval set to {sampling_interval_value} successfully."
+        )
+
         assert "Save SONiC configuration using 'config save' to persist the changes." in result.output
 
 
