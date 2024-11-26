@@ -17,6 +17,7 @@ from show.memory_statistics import (
     validate_command,
 )
 
+
 @patch('syslog.syslog')
 @patch('click.echo')
 def test_display_config_success(self, mock_echo, mock_syslog):
@@ -24,8 +25,8 @@ def test_display_config_success(self, mock_echo, mock_syslog):
     # Create a mock SonicDBConnector
     mock_db_connector = MagicMock()
     mock_db_connector.get_memory_statistics_config.return_value = {
-        "enabled": "true", 
-        "retention_period": "7", 
+        "enabled": "true",
+        "retention_period": "7",
         "sampling_interval": "5"
     }
 
@@ -42,6 +43,7 @@ def test_display_config_success(self, mock_echo, mock_syslog):
     ]
     mock_echo.assert_has_calls(expected_calls)
     mock_syslog.assert_not_called()
+
 
 @patch('syslog.syslog')
 @patch('click.echo')
@@ -65,6 +67,7 @@ def test_display_config_default_values(self, mock_echo, mock_syslog):
     mock_echo.assert_has_calls(expected_calls)
     mock_syslog.assert_not_called()
 
+
 @patch('syslog.syslog')
 def test_display_config_exception(self, mock_syslog):
     """Test configuration display when an exception occurs"""
@@ -79,9 +82,10 @@ def test_display_config_exception(self, mock_syslog):
     # Check the error message and syslog
     self.assertIn("Failed to retrieve configuration: Database error", str(context.exception))
     mock_syslog.assert_called_once_with(
-        syslog.LOG_ERR, 
+        syslog.LOG_ERR,
         "Failed to retrieve configuration: Database error"
     )
+
 
 @patch('syslog.syslog')
 @patch('click.echo')
@@ -90,7 +94,7 @@ def test_display_config_partial_config(self, mock_echo, mock_syslog):
     # Create a mock SonicDBConnector
     mock_db_connector = MagicMock()
     mock_db_connector.get_memory_statistics_config.return_value = {
-        "enabled": "false", 
+        "enabled": "false",
         "retention_period": "Unknown"
     }
 
