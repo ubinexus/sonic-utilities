@@ -160,33 +160,3 @@ def pci_reattach_module(module_name):
     except Exception as e:
         log.log_error("Unexpected error occurred while detaching module {}: {}".format(module_name, e))
         return False
-
-
-def parse_args():
-    if len(sys.argv) < 3:
-        print("Usage: reboot_helper.py <command> <module_name> [reboot_type]")
-        sys.exit(EXIT_FAIL)
-
-    command = sys.argv[1]
-    module_name = sys.argv[2]
-
-    if command == "reboot":
-        if len(sys.argv) < 4:
-            print("Usage: reboot_helper.py reboot <module_name> <reboot_type>")
-            sys.exit(EXIT_FAIL)
-        reboot_type = sys.argv[3]
-        if not reboot_dpu(module_name, reboot_type):
-            sys.exit(EXIT_FAIL)
-    elif command == "pci_detach":
-        if not pci_detach_module(module_name):
-            sys.exit(EXIT_FAIL)
-    elif command == "pci_reattach":
-        if not pci_reattach_module(module_name):
-            sys.exit(EXIT_FAIL)
-    else:
-        print(f"Unknown command: {command}")
-        sys.exit(EXIT_FAIL)
-
-
-if __name__ == "__main__":
-    parse_args()
