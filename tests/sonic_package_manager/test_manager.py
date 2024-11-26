@@ -9,6 +9,11 @@ import sonic_package_manager
 from sonic_package_manager.errors import *
 from sonic_package_manager.version import Version
 
+@pytest.fixture(autouse=True)
+def mock_run_command():
+    with patch('sonic_package_manager.manager.run_command') as run_command:
+        yield run_command
+
 
 def test_installation_not_installed(package_manager):
     package_manager.install('test-package')
@@ -356,3 +361,31 @@ def test_manager_migration(package_manager, fake_db_for_migration):
         call('test-package-6=2.0.0')],
         any_order=True
     )
+
+
+def mock_get_docker_client(dockerd_sock):
+    class DockerClient:
+        def __init__(self, dockerd_sock):
+            class Image:
+                def __init__(self, image_id):
+                    self.image_id = image_id
+                
+                def save(self, named):
+                    return ["named: {}".format(named).encode()]
+
+            image = Image("dummy_id")
+            self.images = {
+                "Azure/docker-test-3:1.6.0": image,
+                "Azure/docker-test-6:2.0.0": image
+            }
+            self.dockerd_sock = dockerd_sock
+
+    return DockerClient(dockerd_sock)
+
+
+def test_manager_migration_dockerd(package_manager, fake_db_for_migration, mock_docker_api):
+    package_manager.install = Mock()
+    package_manager.get_docker_client = Mock(side_effect=mock_get_docker_client)
+    package_manager.migrate_packages(fake_db_for_migration, '/var/run/docker.sock')
+    package_manager.get_docker_client.assert_has_calls([
+        call('/var/run/docker.sock')], any_order=True)

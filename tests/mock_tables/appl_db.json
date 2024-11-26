@@ -1,19 +1,23 @@
 {
     "SFLOW_SESSION_TABLE:Ethernet0": {
         "admin_state": "up",
-        "sample_rate": "2500"
+        "sample_rate": "2500",
+        "sample_direction": "both"
     },
     "SFLOW_SESSION_TABLE:Ethernet4": {
         "admin_state": "up",
-        "sample_rate": "1000"
+        "sample_rate": "1000",
+        "sample_direction": "tx"
     },
     "SFLOW_SESSION_TABLE:Ethernet112": {
         "admin_state": "up",
-        "sample_rate": "1000"
+        "sample_rate": "1000",
+        "sample_direction": "both"
     },
     "SFLOW_SESSION_TABLE:Ethernet116": {
         "admin_state": "up",
-        "sample_rate": "5000"
+        "sample_rate": "5000",
+        "sample_direction": "rx"
     },
     "SFLOW_SESSION_TABLE:Ethernet8": {
         "BAD": "BAD"
@@ -75,7 +79,8 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "tpid": "0x8100",
-        "admin_status": "up"
+        "admin_status": "up",
+        "role": "Dpc"
     },
     "PORT_TABLE:Ethernet28": {
         "index": "7",
@@ -155,7 +160,7 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "tpid": "0x8100",
-        "fec": "rs",
+        "fec": "auto",
         "admin_status": "up"
     },
     "PORT_TABLE:Ethernet200": {
