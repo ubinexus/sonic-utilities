@@ -1,7 +1,7 @@
-import os
 import pytest
 from unittest import mock
 from utilities_common import chassis
+
 
 class TestChassis:
     @pytest.fixture
@@ -11,28 +11,28 @@ class TestChassis:
 
     def test_is_smartswitch(self, mock_device_info):
         mock_device_info.is_smartswitch = mock.Mock(return_value=True)
-        assert chassis.is_smartswitch() == True
+        assert chassis.is_smartswitch() == True  # noqa: E712
 
         mock_device_info.is_smartswitch = mock.Mock(return_value=False)
-        assert chassis.is_smartswitch() == False
+        assert chassis.is_smartswitch() == False  # noqa: E712
 
     def test_is_dpu(self, mock_device_info):
         mock_device_info.is_dpu = mock.Mock(return_value=True)
-        assert chassis.is_dpu() == True
+        assert chassis.is_dpu() == True  # noqa: E712
 
         mock_device_info.is_dpu = mock.Mock(return_value=False)
-        assert chassis.is_dpu() == False
+        assert chassis.is_dpu() == False  # noqa: E712
 
     def test_get_num_dpus(self, mock_device_info):
         mock_device_info.get_num_dpus = mock.Mock(return_value=4)
         assert chassis.get_num_dpus() == 4
 
         del mock_device_info.get_num_dpus
-        assert chassis.get_num_dpus() == False
+        assert chassis.get_num_dpus() == False  # noqa: E712
 
     def test_get_dpu_list(self, mock_device_info):
         mock_device_info.get_dpu_list = mock.Mock(return_value=['dpu1', 'dpu2'])
         assert chassis.get_dpu_list() == ['dpu1', 'dpu2']
 
         del mock_device_info.get_dpu_list
-        assert chassis.get_dpu_list() == False
+        assert chassis.get_dpu_list() == False  # noqa: E712
