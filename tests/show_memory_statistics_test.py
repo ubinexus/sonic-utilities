@@ -24,7 +24,7 @@ class TestMemoryStatisticsConfig:
         """Test successful configuration display"""
         # Mock syslog
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
 
@@ -54,7 +54,7 @@ class TestMemoryStatisticsConfig:
         """Test configuration display with default/missing values"""
         # Mock syslog
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
 
@@ -100,7 +100,7 @@ class TestMemoryStatisticsConfig:
         """Test configuration display with partial configuration"""
         # Mock syslog
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
 
