@@ -4,7 +4,6 @@
 #
 # Utility helper for reboot within SONiC
 
-import sys
 import sonic_platform
 from sonic_py_common import logger
 from utilities_common.chassis import is_smartswitch, get_dpu_list
