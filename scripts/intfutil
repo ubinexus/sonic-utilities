@@ -37,8 +37,6 @@ from sonic_py_common import multi_asic
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
 PORT_STATE_TABLE_PREFIX = "PORT_TABLE|"
 PORT_TRANSCEIVER_TABLE_PREFIX = "TRANSCEIVER_INFO|"
-PORT_TABLE_PREFIX = "PORT|"
-PORT_ROLE = "role"
 PORT_LANES_STATUS = "lanes"
 PORT_ALIAS = "alias"
 PORT_OPER_STATUS = "oper_status"
@@ -223,8 +221,6 @@ def port_optics_get(db, intf_name, type):
     Get optic type info for port
     """
     full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
-    port_id = PORT_TABLE_PREFIX + intf_name
-    port_role = db.get(db.CONFIG_DB, port_id, PORT_ROLE)
     optics_type = db.get(db.STATE_DB, full_table_id, type)
     if optics_type is None:
         if is_rj45_port(intf_name):
