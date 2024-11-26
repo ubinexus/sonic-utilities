@@ -18,6 +18,7 @@ from show.memory_statistics import (
     validate_command,
 )
 
+
 class TestMemoryStatisticsConfig:
     @pytest.fixture
     def mock_syslog(self, mocker):
@@ -49,7 +50,6 @@ class TestMemoryStatisticsConfig:
         mock_echo.assert_has_calls(expected_calls)
         mock_syslog.assert_not_called()
 
-
     @pytest.mark.usefixtures('mock_syslog')
     @patch('click.echo')
     def test_display_config_default_values(self, mock_echo, mock_syslog):
@@ -72,7 +72,6 @@ class TestMemoryStatisticsConfig:
         mock_echo.assert_has_calls(expected_calls)
         mock_syslog.assert_not_called()
 
-
     @pytest.mark.usefixtures('mock_syslog')
     def test_display_config_exception(self, mock_syslog):
         """Test configuration display when an exception occurs"""
@@ -90,7 +89,6 @@ class TestMemoryStatisticsConfig:
             syslog.LOG_ERR,
             "Failed to retrieve configuration: Database error"
         )
-
 
     @pytest.mark.usefixtures('mock_syslog')
     @patch('click.echo')
