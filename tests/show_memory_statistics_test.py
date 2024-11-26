@@ -26,10 +26,10 @@ class TestMemoryStatisticsConfig:
         """
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
-        
+
         # Mock syslog to prevent actual logging
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {
@@ -37,10 +37,10 @@ class TestMemoryStatisticsConfig:
             "retention_period": "7",
             "sampling_interval": "5"
         }
-        
+
         # Call the function
         display_config(mock_db_connector)
-        
+
         # Assert echo calls
         expected_calls = [
             call(f"{'Configuration Field':<30}{'Value'}"),
@@ -50,7 +50,7 @@ class TestMemoryStatisticsConfig:
             call(f"{'Sampling Interval (minutes)':<30}5")
         ]
         mock_echo.assert_has_calls(expected_calls, any_order=False)
-        
+
         # Ensure no syslog calls for successful configuration
         mock_syslog.assert_not_called()
 
@@ -60,20 +60,20 @@ class TestMemoryStatisticsConfig:
         """
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
-        
+
         # Mock syslog to prevent actual logging
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {
             "enabled": "false",
             "retention_period": "Unknown"
         }
-        
+
         # Call the function
         display_config(mock_db_connector)
-        
+
         # Assert echo calls
         expected_calls = [
             call(f"{'Configuration Field':<30}{'Value'}"),
@@ -83,7 +83,7 @@ class TestMemoryStatisticsConfig:
             call(f"{'Sampling Interval (minutes)':<30}Not configured")
         ]
         mock_echo.assert_has_calls(expected_calls, any_order=False)
-        
+
         # Ensure no syslog calls for partial configuration
         mock_syslog.assert_not_called()
 
@@ -93,17 +93,17 @@ class TestMemoryStatisticsConfig:
         """
         # Mock click.echo
         mock_echo = mocker.patch('click.echo')
-        
+
         # Mock syslog to prevent actual logging
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {}
 
         # Call the function
         display_config(mock_db_connector)
-        
+
         # Assert echo calls
         expected_calls = [
             call(f"{'Configuration Field':<30}{'Value'}"),
@@ -113,7 +113,7 @@ class TestMemoryStatisticsConfig:
             call(f"{'Sampling Interval (minutes)':<30}Not configured")
         ]
         mock_echo.assert_has_calls(expected_calls, any_order=False)
-        
+
         # Ensure no syslog calls for empty configuration
         mock_syslog.assert_not_called()
 
@@ -123,18 +123,18 @@ class TestMemoryStatisticsConfig:
         """
         # Mock syslog
         mock_syslog = mocker.patch('syslog.syslog')
-        
+
         # Create a mock SonicDBConnector that raises an exception
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.side_effect = Exception("Database error")
-        
+
         # Assert that a ClickException is raised
         with pytest.raises(click.ClickException) as excinfo:
             display_config(mock_db_connector)
-        
+
         # Check the error message
         assert "Failed to retrieve configuration: Database error" in str(excinfo.value)
-        
+
         # Verify syslog was called with the error
         mock_syslog.assert_called_once_with(
             syslog.LOG_ERR,
@@ -148,14 +148,15 @@ class TestMemoryStatisticsConfig:
         # Test enabled field
         assert format_field_value("enabled", "true") == "True"
         assert format_field_value("enabled", "false") == "False"
-        
+
         # Test other fields
         assert format_field_value("retention_period", "7") == "7"
         assert format_field_value("retention_period", "Unknown") == "Not configured"
-        
+
         # Test sampling interval
         assert format_field_value("sampling_interval", "5") == "5"
         assert format_field_value("sampling_interval", "Unknown") == "Not configured"
+
 
 # Additional setup for pytest
 def pytest_configure(config):
@@ -163,7 +164,7 @@ def pytest_configure(config):
     Allows plugins and fixtures to be configured for pytest.
     """
     config.addinivalue_line(
-        "markers", 
+        "markers",
         "unit: mark a test as a unit test."
     )
 
