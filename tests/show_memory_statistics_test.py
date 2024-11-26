@@ -20,14 +20,14 @@ from show.memory_statistics import (
 
 
 class TestMemoryStatisticsConfig:
-    @pytest.fixture
-    def mock_syslog(self, mocker):
-        return mocker.patch('syslog.syslog')
-
-    @pytest.mark.usefixtures('mock_syslog')
-    @patch('click.echo')
-    def test_display_config_success(self, mock_echo, mock_syslog):
+    def test_display_config_success(self, mocker):
         """Test successful configuration display"""
+        # Mock syslog
+        mock_syslog = mocker.patch('syslog.syslog')
+        
+        # Mock click.echo
+        mock_echo = mocker.patch('click.echo')
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {
@@ -50,10 +50,14 @@ class TestMemoryStatisticsConfig:
         mock_echo.assert_has_calls(expected_calls)
         mock_syslog.assert_not_called()
 
-    @pytest.mark.usefixtures('mock_syslog')
-    @patch('click.echo')
-    def test_display_config_default_values(self, mock_echo, mock_syslog):
+    def test_display_config_default_values(self, mocker):
         """Test configuration display with default/missing values"""
+        # Mock syslog
+        mock_syslog = mocker.patch('syslog.syslog')
+        
+        # Mock click.echo
+        mock_echo = mocker.patch('click.echo')
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {}
@@ -72,28 +76,34 @@ class TestMemoryStatisticsConfig:
         mock_echo.assert_has_calls(expected_calls)
         mock_syslog.assert_not_called()
 
-    @pytest.mark.usefixtures('mock_syslog')
-    def test_display_config_exception(self, mock_syslog):
+    def test_display_config_exception(self, mocker):
         """Test configuration display when an exception occurs"""
+        # Mock syslog
+        mock_syslog = mocker.patch('syslog.syslog')
+
         # Create a mock SonicDBConnector that raises an exception
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.side_effect = Exception("Database error")
 
         # Assert that a ClickException is raised
-        with self.assertRaises(click.ClickException) as context:
+        with pytest.raises(click.ClickException) as context:
             display_config(mock_db_connector)
 
         # Check the error message and syslog
-        self.assertIn("Failed to retrieve configuration: Database error", str(context.exception))
+        assert "Failed to retrieve configuration: Database error" in str(context.value)
         mock_syslog.assert_called_once_with(
             syslog.LOG_ERR,
             "Failed to retrieve configuration: Database error"
         )
 
-    @pytest.mark.usefixtures('mock_syslog')
-    @patch('click.echo')
-    def test_display_config_partial_config(self, mock_echo, mock_syslog):
+    def test_display_config_partial_config(self, mocker):
         """Test configuration display with partial configuration"""
+        # Mock syslog
+        mock_syslog = mocker.patch('syslog.syslog')
+        
+        # Mock click.echo
+        mock_echo = mocker.patch('click.echo')
+
         # Create a mock SonicDBConnector
         mock_db_connector = MagicMock()
         mock_db_connector.get_memory_statistics_config.return_value = {
@@ -114,7 +124,6 @@ class TestMemoryStatisticsConfig:
         ]
         mock_echo.assert_has_calls(expected_calls)
         mock_syslog.assert_not_called()
-
 
 class TestConfig(unittest.TestCase):
     """Test cases for Config class"""
