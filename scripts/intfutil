@@ -54,7 +54,7 @@ PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
 OPTICS_TYPE_RJ45 = RJ45_PORT_TYPE
-TYPE_DPC = 'Dpc'
+TYPE_DPC = 'DPU-NPU Data Port'
 PORT_LINK_TRAINING = 'link_training'
 PORT_LINK_TRAINING_STATUS = 'link_training_status'
 
