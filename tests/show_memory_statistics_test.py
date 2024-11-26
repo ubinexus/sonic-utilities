@@ -287,6 +287,7 @@ def pytest_configure(config):
 #         self.assertEqual(Config.DEFAULT_CONFIG["retention_period"], "Unknown")
 #         self.assertEqual(Config.DEFAULT_CONFIG["sampling_interval"], "Unknown")
 
+
 class TestDict2Obj(unittest.TestCase):
     """Test cases for Dict2Obj class"""
     def test_dict_conversion(self):
