@@ -54,6 +54,11 @@ class TestRebootHelper(object):
         result = reboot_helper.load_platform_chassis()
         assert not result
 
+    def test_load_platform_chassis_none(self, mock_platform_chassis):
+        mock_platform_chassis.get_chassis.return_value = None
+        result = reboot_helper.load_platform_chassis()
+        assert not result
+
     def test_load_and_verify_chassis_fail(self, mock_load_platform_chassis):
         mock_load_platform_chassis.return_value = False
         assert not reboot_helper.load_and_verify("DPU1")
@@ -95,6 +100,11 @@ class TestRebootHelper(object):
         mock_platform_chassis.reboot.return_value = True
         assert reboot_helper.reboot_dpu("DPU1", "DPU")
 
+    def test_reboot_dpu_no_reboot_method(self, mock_load_and_verify, mock_platform_chassis):
+        mock_load_and_verify.return_value = True
+        with patch('reboot_helper.hasattr', return_value=False):
+            assert not reboot_helper.reboot_dpu("DPU1", "DPU")
+
     def test_pci_detach_module_load_and_verify_fail(self, mock_load_and_verify):
         mock_load_and_verify.return_value = False
         assert not reboot_helper.pci_detach_module("DPU1")
@@ -104,6 +114,11 @@ class TestRebootHelper(object):
         mock_platform_chassis.pci_detach.return_value = True
         assert reboot_helper.pci_detach_module("DPU1")
 
+    def test_pci_detach_module_no_detach_method(self, mock_load_and_verify, mock_platform_chassis):
+        mock_load_and_verify.return_value = True
+        with patch('reboot_helper.hasattr', return_value=False):
+            assert not reboot_helper.pci_detach_module("DPU1")
+
     def test_pci_reattach_module_load_and_verify_fail(self, mock_load_and_verify):
         mock_load_and_verify.return_value = False
         assert not reboot_helper.pci_reattach_module("DPU1")
@@ -112,6 +127,11 @@ class TestRebootHelper(object):
         mock_load_and_verify.return_value = True
         mock_platform_chassis.pci_reattach.return_value = True
         assert reboot_helper.pci_reattach_module("DPU1")
+
+    def test_pci_reattach_module_no_reattach_method(self, mock_load_and_verify, mock_platform_chassis):
+        mock_load_and_verify.return_value = True
+        with patch('reboot_helper.hasattr', return_value=False):
+            assert not reboot_helper.pci_reattach_module("DPU1")
 
     def test_parse_args_reboot_command_fail(self, monkeypatch):
         # Simulate command-line arguments for reboot
