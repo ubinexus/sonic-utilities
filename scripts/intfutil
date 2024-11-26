@@ -231,8 +231,6 @@ def port_optics_get(db, intf_name, type):
             return OPTICS_TYPE_RJ45
         elif db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, multi_asic.PORT_ROLE) == multi_asic.DPU_CONNECT_PORT:
             return TYPE_DPC
-        elif port_role == TYPE_DPC:
-            return TYPE_DPC
         else:
             return "N/A"
     return optics_type
