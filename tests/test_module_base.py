@@ -21,6 +21,22 @@ class TestModuleHelper:
         with mock.patch('utilities_common.module_base.util.try_get') as mock_try_get:
             yield mock_try_get
 
+    @pytest.fixture
+    def mock_log_error(self):
+        with mock.patch('utilities_common.module_base.log.log_error') as mock_log_error:
+            yield mock_log_error
+
+    def test_init_success(self, mock_load_platform_chassis):
+        mock_load_platform_chassis.return_value = mock.MagicMock()
+        module_helper = ModuleHelper()
+        assert module_helper.platform_chassis is not None
+
+    def test_init_failure(self, mock_load_platform_chassis, mock_log_error):
+        mock_load_platform_chassis.return_value = None
+        module_helper = ModuleHelper()
+        mock_log_error.assert_called_once_with("Failed to load platform chassis")
+        assert module_helper.platform_chassis is None
+
     def test_reboot_module_success(self, mock_load_platform_chassis, mock_try_get):
         mock_try_get.return_value = True
         mock_load_platform_chassis.return_value.get_module_index.return_value = 1

@@ -24,7 +24,6 @@ class ModuleHelper:
         self.platform_chassis = util.load_platform_chassis()
         if not self.platform_chassis:
             log.log_error("Failed to load platform chassis")
-            return False
 
     def reboot_module(self, module_name, reboot_type):
         """
