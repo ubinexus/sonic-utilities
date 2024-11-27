@@ -314,16 +314,17 @@ class TestCLIEntryPoint(unittest.TestCase):
         mock_cli.assert_called_once()  # Ensure cli() is invoked
 
 
-class TestCLIEntryPoint(unittest.TestCase):
+class TestCLIEntryPoint2(unittest.TestCase):
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_show_memory_stats_valid(self, mock_stdout):
         """Test the valid 'show memory-stats' command."""
         args = ['show', 'memory-stats']
-        
+
         # Assuming the implementation uses SocketManager and SonicDBConnector to fetch stats
         with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
-            with patch.object(SonicDBConnector, 'fetch_config', return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
+            with patch.object(SonicDBConnector, 'fetch_config',
+                              return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
                 cli = CLIEntryPoint()
                 cli.main(args=args)
 
@@ -338,7 +339,7 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_show_memory_stats_with_time_range(self, mock_stdout):
         """Test the 'show memory-stats' command with --from and --to options."""
         args = ['show', 'memory-stats', '--from', '10 minutes ago', '--to', 'now']
-        
+
         with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
             cli = CLIEntryPoint()
             cli.main(args=args)
@@ -354,7 +355,7 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_show_memory_stats_with_select_option(self, mock_stdout):
         """Test the 'show memory-stats' command with --select option."""
         args = ['show', 'memory-stats', '--select', 'total_memory']
-        
+
         with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096}):
             cli = CLIEntryPoint()
             cli.main(args=args)
@@ -368,8 +369,9 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_show_memory_stats_config(self, mock_stdout):
         """Test the 'show memory-stats config' command."""
         args = ['show', 'memory-stats', 'config']
-        
-        with patch.object(SonicDBConnector, 'fetch_config', return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
+
+        with patch.object(SonicDBConnector, 'fetch_config',
+                          return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
             cli = CLIEntryPoint()
             cli.main(args=args)
 
@@ -392,7 +394,7 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_missing_required_argument(self, mock_stdout):
         """Test a missing required argument (e.g., 'show memory-stats' without subcommand)."""
         args = ['show', 'memory-stats']
-        
+
         with self.assertRaises(SystemExit):
             cli = CLIEntryPoint()
             cli.main(args=args)
@@ -401,7 +403,7 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_invalid_time_range(self, mock_stdout):
         """Test the 'show memory-stats' command with an invalid time range."""
         args = ['show', 'memory-stats', '--from', 'invalid_time', '--to', 'now']
-        
+
         with self.assertRaises(SystemExit):
             cli = CLIEntryPoint()
             cli.main(args=args)
@@ -410,7 +412,7 @@ class TestCLIEntryPoint(unittest.TestCase):
     def test_invalid_select_option(self, mock_stdout):
         """Test the 'show memory-stats' command with an invalid --select option."""
         args = ['show', 'memory-stats', '--select', 'invalid_metric']
-        
+
         with self.assertRaises(SystemExit):
             cli = CLIEntryPoint()
             cli.main(args=args)
@@ -430,25 +432,25 @@ class TestCLIEntryPoint(unittest.TestCase):
 
 
 class TestMemoryStatisticsCLI(unittest.TestCase):
-    
+
     @patch('show.memory_statistics.SocketManager.connect')
     @patch('show.memory_statistics.SocketManager.receive_all')
     def test_send_data_success(self, mock_receive_all, mock_connect):
         """Test successful data sending and response handling."""
         mock_receive_all.return_value = json.dumps({"status": True, "data": "OK"})
-        
+
         response = send_data("test_command", {"param": "value"})
         self.assertEqual(response.data, "OK")
         mock_connect.assert_called_once()
-    
+
     @patch('show.memory_statistics.SocketManager.connect')
     def test_send_data_connection_failure(self, mock_connect):
         """Test socket connection failure scenario."""
         mock_connect.side_effect = ConnectionError("Connection failed")
-        
+
         with self.assertRaises(ConnectionError):
             send_data("test_command", {"param": "value"})
-    
+
     @patch('show.memory_statistics.SonicDBConnector.get_memory_statistics_config')
     @patch('click.echo')
     def test_display_config_success(self, mock_echo, mock_get_config):
@@ -458,7 +460,7 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
             "sampling_interval": "5",
             "retention_period": "15"
         }
-        
+
         db_connector = Mock()
         display_config(db_connector)
         mock_echo.assert_any_call("Enabled                         true")
@@ -473,7 +475,7 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
     def test_display_statistics_success(self, mock_echo, mock_send_data):
         """Test display_statistics with valid data."""
         mock_send_data.return_value = Dict2Obj({"items": [{"metric": "usage", "value": 50}]})
-        
+
         ctx = MagicMock()
         display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
         mock_echo.assert_called()
@@ -482,7 +484,7 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
     def test_display_statistics_no_response(self, mock_send_data):
         """Test display_statistics with no response."""
         mock_send_data.side_effect = click.ClickException("No data")
-        
+
         ctx = MagicMock()
         with self.assertRaises(click.ClickException):
             display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
