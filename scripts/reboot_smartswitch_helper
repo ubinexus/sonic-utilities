@@ -67,7 +67,7 @@ function pci_detach_module()
 {
     local DPU_NAME=$1
     local DPU_BUS_INFO=$2
-    python3 -c "from reboot_helper import pci_detach_module; pci_detach_module('${DPU_NAME}')"
+    python3 -c "from utilities_common.module_base import ModuleHelper; ModuleHelper.pci_detach_module('${DPU_NAME}')"
     if [ $? -ne 0 ]; then
         log_message "Error: PCI detach vendor API is not available"
         echo 1 > /sys/bus/pci/devices/${DPU_BUS_INFO}/remove
@@ -79,7 +79,7 @@ function pci_reattach_module()
 {
     local DPU_NAME=$1
     local DPU_BUS_INFO=$2
-    python3 -c "from reboot_helper import pci_reattach_module; pci_reattach_module('${DPU_NAME}')"
+    python3 -c "from utilties_common.module_base import ModuleHelper; ModuleHelper.pci_reattach_module('${DPU_NAME}')"
     if [ $? -ne 0 ]; then
         log_message "Error: PCI reattach vendor API is not available"
         echo 1 > /sys/bus/pci/rescan
@@ -91,7 +91,7 @@ function reboot_dpu_platform()
 {
     local DPU_NAME=$1
     local REBOOT_TYPE=$2
-    python3 -c "import reboot_helper; reboot_helper.reboot_dpu('${DPU_NAME}', '${REBOOT_TYPE}')"
+    python3 -c "rom utilties_common.module_base import ModuleHelper; ModuleHelper.reboot_module('${DPU_NAME}', '${REBOOT_TYPE}')"
 }
 
 # Function to wait for DPU reboot status
@@ -105,8 +105,7 @@ function wait_for_dpu_reboot_status()
         exit $EXIT_ERROR
     fi
 
-    local dpu_halt_services_timeou
-    dpu_halt_services_timeout=$(jq -r '.dpu_halt_services_timeout' "$PLATFORM_JSON_PATH" 2>/dev/null)
+    local dpu_halt_services_timeout=$(jq -r '.dpu_halt_services_timeout' "$PLATFORM_JSON_PATH" 2>/dev/null)
     if [ $? -ne 0 ]; then
         log_message "Error: Failed to retrieve dpu_halt_services_timeout from ${PLATFORM_JSON_PATH}"
         return ${EXIT_ERROR}
@@ -169,11 +168,10 @@ function reboot_dpu()
     gnmi_reboot_dpu "${DPU_NAME}"
     if [ $? -ne 0 ]; then
         log_message "Error: Failed to send gnoi command to reboot DPU ${DPU_NAME}"
-        return ${EXIT_ERROR}
     fi
 
-    DPU_BUS_INFO=$(jq -r --arg DPU_NAME "${DPU_NAME}" '.DPUS[] | select(has($DPU_NAME)) | .[$DPU_NAME].bus_info' "$PLATFORM_JSON_PATH")
-    if [ -z "$DPU_BUS_INFO" ]; then
+    local DPU_BUS_INFO=$(jq -r --arg DPU_NAME "$DPU_NAME" '.DPUS[$DPU_NAME].bus_info' "$PLATFORM_JSON_PATH")
+    if [ -z "$DPU_BUS_INFO" ] || [ "$DPU_BUS_INFO" = "null" ]; then
         log_message "Error: Failed to retrieve bus info for DPU ${DPU_NAME}"
         return ${EXIT_ERROR}
     fi
@@ -181,19 +179,19 @@ function reboot_dpu()
     # Update STATE_DB and handle PCIe removal and rescan
     sonic-db-cli STATE_DB set "PCIE_DETACH_INFO|${DPU_NAME}" '{"dpu_id": "'${DPU_INDEX}'", "dpu_state": "detaching", "bus_info": "'${DPU_BUS_INFO}'"}'
 
-    pci_detach_module "${DPU_NAME} ${DPU_BUS_INFO}"
+    pci_detach_module ${DPU_NAME} ${DPU_BUS_INFO}
     if [ $? -ne 0 ]; then
         log_message "Error: Failed to detach PCI module for DPU ${DPU_NAME}"
         return ${EXIT_ERROR}
     fi
 
-    reboot_dpu_platform "${DPU_NAME}"
+    reboot_dpu_platform ${DPU_NAME}
     if [ $? -ne 0 ]; then
         log_message "Error: Failed to send platform command to reboot DPU ${DPU_NAME}"
         return ${EXIT_ERROR}
     fi
 
-    pci_reattach_module "${DPU_NAME} ${DPU_BUS_INFO}"
+    pci_reattach_module ${DPU_NAME} ${DPU_BUS_INFO}
 
     sonic-db-cli STATE_DB del "PCIE_DETACH_INFO|${DPU_NAME}"
 }
