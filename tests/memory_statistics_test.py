@@ -4,7 +4,7 @@ import socket
 import os
 import click
 from click.testing import CliRunner
-# import syslog
+import syslog
 # import pytest
 
 from show.memory_statistics import (
@@ -12,132 +12,13 @@ from show.memory_statistics import (
     Dict2Obj,
     SonicDBConnector,
     SocketManager,
+    main,
+    show,
     format_field_value,
-    # display_config,
     clean_and_print,
     validate_command,
 )
 
-
-# class TestMemoryStatisticsConfig(unittest.TestCase):
-#     def test_display_config_success(self, mocker):
-#         """Test successful configuration display"""
-#         # Mock syslog
-#         mock_syslog = mocker.patch('syslog.syslog')
-
-#         # Mock click.echo
-#         mock_echo = mocker.patch('click.echo')
-
-#         # Create a mock SonicDBConnector
-#         mock_db_connector = MagicMock()
-#         mock_db_connector.get_memory_statistics_config.return_value = {
-#             "enabled": "true",
-#             "retention_period": "7",
-#             "sampling_interval": "5"
-#         }
-
-#         # Call the function
-#         display_config(mock_db_connector)
-
-#         # Assert echo calls
-#         expected_calls = [
-#             call(f"{'Configuration Field':<30}{'Value'}"),
-#             call("-" * 50),
-#             call(f"{'Enabled':<30}True"),
-#             call(f"{'Retention Time (days)':<30}7"),
-#             call(f"{'Sampling Interval (minutes)':<30}5")
-#         ]
-#         mock_echo.assert_has_calls(expected_calls)
-#         mock_syslog.assert_not_called()
-
-#     def test_display_config_default_values(self, mocker):
-#         """Test configuration display with default/missing values"""
-#         # Mock syslog
-#         mock_syslog = mocker.patch('syslog.syslog')
-
-#         # Mock click.echo
-#         mock_echo = mocker.patch('click.echo')
-
-#         # Create a mock SonicDBConnector
-#         mock_db_connector = MagicMock()
-#         mock_db_connector.get_memory_statistics_config.return_value = {}
-
-#         # Call the function
-#         display_config(mock_db_connector)
-
-#         # Assert echo calls
-#         expected_calls = [
-#             call(f"{'Configuration Field':<30}{'Value'}"),
-#             call("-" * 50),
-#             call(f"{'Enabled':<30}Not configured"),
-#             call(f"{'Retention Time (days)':<30}Not configured"),
-#             call(f"{'Sampling Interval (minutes)':<30}Not configured")
-#         ]
-#         mock_echo.assert_has_calls(expected_calls)
-#         mock_syslog.assert_not_called()
-
-#     def test_display_config_exception(self, mocker):
-#         """Test configuration display when an exception occurs"""
-#         # Mock syslog
-#         mock_syslog = mocker.patch('syslog.syslog')
-
-#         # Create a mock SonicDBConnector that raises an exception
-#         mock_db_connector = MagicMock()
-#         mock_db_connector.get_memory_statistics_config.side_effect = Exception("Database error")
-
-#         # Assert that a ClickException is raised
-#         with pytest.raises(click.ClickException) as context:
-#             display_config(mock_db_connector)
-
-#         # Check the error message and syslog
-#         assert "Failed to retrieve configuration: Database error" in str(context.value)
-#         mock_syslog.assert_called_once_with(
-#             syslog.LOG_ERR,
-#             "Failed to retrieve configuration: Database error"
-#         )
-
-#     def test_display_config_partial_config(self, mocker):
-#         """Test configuration display with partial configuration"""
-#         # Mock syslog
-#         mock_syslog = mocker.patch('syslog.syslog')
-
-#         # Mock click.echo
-#         mock_echo = mocker.patch('click.echo')
-
-#         # Create a mock SonicDBConnector
-#         mock_db_connector = MagicMock()
-#         mock_db_connector.get_memory_statistics_config.return_value = {
-#             "enabled": "false",
-#             "retention_period": "Unknown"
-#         }
-
-#         # Call the function
-#         display_config(mock_db_connector)
-
-#         # Assert echo calls
-#         expected_calls = [
-#             call(f"{'Configuration Field':<30}{'Value'}"),
-#             call("-" * 50),
-#             call(f"{'Enabled':<30}False"),
-#             call(f"{'Retention Time (days)':<30}Not configured"),
-#             call(f"{'Sampling Interval (minutes)':<30}Not configured")
-#         ]
-#         mock_echo.assert_has_calls(expected_calls)
-#         mock_syslog.assert_not_called()
-
-# class TestConfig(unittest.TestCase):
-#     """Test cases for Config class"""
-#     def test_default_values(self):
-#         """Test if Config class has correct default values"""
-#         self.assertEqual(Config.SOCKET_PATH, '/var/run/dbus/memstats.socket')
-#         self.assertEqual(Config.SOCKET_TIMEOUT, 30)
-#         self.assertEqual(Config.BUFFER_SIZE, 8192)
-#         self.assertEqual(Config.MAX_RETRIES, 3)
-#         self.assertEqual(Config.RETRY_DELAY, 1.0)
-#         ab
-#         self.assertEqual(Config.DEFAULT_CONFIG["enabled"], "false")
-#         self.assertEqual(Config.DEFAULT_CONFIG["retention_period"], "Unknown")
-#         self.assertEqual(Config.DEFAULT_CONFIG["sampling_interval"], "Unknown")
 
 class TestDict2Obj(unittest.TestCase):
     """Test cases for Dict2Obj class"""
@@ -383,6 +264,47 @@ class TestCLICommands(unittest.TestCase):
         with patch('builtins.print') as mock_print:
             clean_and_print("invalid data")
             mock_print.assert_called_with("Error: Invalid data format received")
+
+class TestCLIEntryPoint(unittest.TestCase):
+
+    @patch('sys.argv', ['memory_statistics.py', 'show'])
+    @patch('show.memory_statistics.cli')
+    def test_main_valid_command(self, mock_cli):
+        """Test main() with a valid 'show' command."""
+        mock_cli.add_command = MagicMock()
+        mock_cli.return_value = None
+
+        try:
+            main()
+        except SystemExit:
+            pass  # CLI might call sys.exit()
+
+        mock_cli.add_command.assert_called_once_with(show)
+        mock_cli.assert_called_once()  # Ensure cli() is invoked
+
+    @patch('sys.argv', ['memory_statistics.py', 'invalid_command'])
+    @patch('syslog.syslog')
+    def test_main_invalid_command(self, mock_syslog):
+        """Test main() with an invalid command."""
+        with self.assertRaises(click.UsageError) as context:
+            main()
+
+        self.assertIn("Error: Invalid command", str(context.exception))
+        mock_syslog.assert_called_once_with(
+            syslog.LOG_ERR, "Error: Invalid command 'invalid_command'."
+        )
+
+    @patch('sys.argv', ['memory_statistics.py'])
+    @patch('show.memory_statistics.cli')
+    def test_main_no_command(self, mock_cli):
+        """Test main() with no command-line arguments."""
+        try:
+            main()
+        except SystemExit:
+            pass  # CLI might call sys.exit()
+
+        mock_cli.add_command.assert_called_once_with(show)
+        mock_cli.assert_called_once()  # Ensure cli() is invoked
 
 
 if __name__ == '__main__':
