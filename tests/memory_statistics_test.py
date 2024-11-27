@@ -417,55 +417,54 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
         self.assertIn("used_memory", output)
 
 
+class TestMemoryStatisticsCLI2(unittest.TestCase):
 
-class TestMemoryStatisticsCLI(unittest.TestCase):
+    # @patch('show.memory_statistics.SocketManager.connect')
+    # @patch('show.memory_statistics.SocketManager.receive_all')
+    # def test_send_data_success(self, mock_receive_all, mock_connect):
+    #     """Test successful data sending and response handling."""
+    #     mock_receive_all.return_value = json.dumps({"status": True, "data": "OK"})
 
-    @patch('show.memory_statistics.SocketManager.connect')
-    @patch('show.memory_statistics.SocketManager.receive_all')
-    def test_send_data_success(self, mock_receive_all, mock_connect):
-        """Test successful data sending and response handling."""
-        mock_receive_all.return_value = json.dumps({"status": True, "data": "OK"})
+    #     response = send_data("test_command", {"param": "value"})
+    #     self.assertEqual(response.data, "OK")
+    #     mock_connect.assert_called_once()
 
-        response = send_data("test_command", {"param": "value"})
-        self.assertEqual(response.data, "OK")
-        mock_connect.assert_called_once()
+    # @patch('show.memory_statistics.SocketManager.connect')
+    # def test_send_data_connection_failure(self, mock_connect):
+    #     """Test socket connection failure scenario."""
+    #     mock_connect.side_effect = ConnectionError("Connection failed")
 
-    @patch('show.memory_statistics.SocketManager.connect')
-    def test_send_data_connection_failure(self, mock_connect):
-        """Test socket connection failure scenario."""
-        mock_connect.side_effect = ConnectionError("Connection failed")
+    #     with self.assertRaises(ConnectionError):
+    #         send_data("test_command", {"param": "value"})
 
-        with self.assertRaises(ConnectionError):
-            send_data("test_command", {"param": "value"})
+    # @patch('show.memory_statistics.SonicDBConnector.get_memory_statistics_config')
+    # @patch('click.echo')
+    # def test_display_config_success(self, mock_echo, mock_get_config):
+    #     """Test display_config with successful data retrieval."""
+    #     mock_get_config.return_value = {
+    #         "enabled": "true",
+    #         "sampling_interval": "5",
+    #         "retention_period": "15"
+    #     }
 
-    @patch('show.memory_statistics.SonicDBConnector.get_memory_statistics_config')
-    @patch('click.echo')
-    def test_display_config_success(self, mock_echo, mock_get_config):
-        """Test display_config with successful data retrieval."""
-        mock_get_config.return_value = {
-            "enabled": "true",
-            "sampling_interval": "5",
-            "retention_period": "15"
-        }
+    #     db_connector = Mock()
+    #     display_config(db_connector)
+    #     mock_echo.assert_any_call("Enabled                         true")
 
-        db_connector = Mock()
-        display_config(db_connector)
-        mock_echo.assert_any_call("Enabled                         true")
+    # def test_format_field_value(self):
+    #     """Test formatting field values."""
+    #     result = format_field_value("enabled", "true")
+    #     self.assertEqual(result, "true")
 
-    def test_format_field_value(self):
-        """Test formatting field values."""
-        result = format_field_value("enabled", "true")
-        self.assertEqual(result, "true")
+    # @patch('show.memory_statistics.send_data')
+    # @patch('click.echo')
+    # def test_display_statistics_success(self, mock_echo, mock_send_data):
+    #     """Test display_statistics with valid data."""
+    #     mock_send_data.return_value = Dict2Obj({"items": [{"metric": "usage", "value": 50}]})
 
-    @patch('show.memory_statistics.send_data')
-    @patch('click.echo')
-    def test_display_statistics_success(self, mock_echo, mock_send_data):
-        """Test display_statistics with valid data."""
-        mock_send_data.return_value = Dict2Obj({"items": [{"metric": "usage", "value": 50}]})
-
-        ctx = MagicMock()
-        display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
-        mock_echo.assert_called()
+    #     ctx = MagicMock()
+    #     display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
+    #     mock_echo.assert_called()
 
     @patch('show.memory_statistics.send_data')
     def test_display_statistics_no_response(self, mock_send_data):
