@@ -4,7 +4,6 @@ import socket
 import os
 import click
 from click.testing import CliRunner
-from io import StringIO
 # import syslog
 # import pytest
 
