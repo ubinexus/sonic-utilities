@@ -333,7 +333,8 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
     @patch('sys.argv', new=['main.py', 'show', 'memory-stats', '--from', '10 minutes ago', '--to', 'now'])
     def test_show_memory_stats_with_time_range(self, mock_stdout):
         """Test the 'show memory-stats' command with --from and --to options."""
-        with patch('show.memory_statistics.SocketManager.get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
+        with patch('show.memory_statistics.SocketManager.get_memory_stats',
+                   return_value={'total_memory': 4096, 'used_memory': 2048}):
             main()
 
         output = mock_stdout.getvalue()
@@ -356,7 +357,8 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
     @patch('sys.argv', new=['main.py', 'show', 'memory-stats', 'config'])
     def test_show_memory_stats_config(self, mock_stdout):
         """Test the 'show memory-stats config' command."""
-        with patch('show.memory_statistics.SonicDBConnector.fetch_config', return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
+        with patch('show.memory_statistics.SonicDBConnector.fetch_config',
+                   return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
             main()
 
         output = mock_stdout.getvalue()
@@ -406,7 +408,8 @@ class TestMemoryStatisticsCLI(unittest.TestCase):
     @patch('sys.argv', new=['main.py', 'show', 'memory-stats'])
     def test_show_memory_stats_no_args(self, mock_stdout):
         """Test the 'show memory-stats' command with no options."""
-        with patch('show.memory_statistics.SocketManager.get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
+        with patch('show.memory_statistics.SocketManager.get_memory_stats',
+                   return_value={'total_memory': 4096, 'used_memory': 2048}):
             main()
 
         output = mock_stdout.getvalue()
