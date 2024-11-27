@@ -265,6 +265,7 @@ class TestCLICommands(unittest.TestCase):
             clean_and_print("invalid data")
             mock_print.assert_called_with("Error: Invalid data format received")
 
+
 class TestCLIEntryPoint(unittest.TestCase):
 
     @patch('sys.argv', ['memory_statistics.py', 'show'])
