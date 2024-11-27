@@ -296,7 +296,7 @@ class TestCLIEntryPoint(unittest.TestCase):
         )
 
     @patch('sys.argv', ['memory_statistics.py'])
-    @patch('show.memory_statistics.cli')
+    @patch('show.memory.statistics.cli')
     def test_main_no_command(self, mock_cli):
         """Test main() with no command-line arguments."""
         try:
