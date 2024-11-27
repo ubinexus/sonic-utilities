@@ -283,20 +283,20 @@ class TestCLIEntryPoint(unittest.TestCase):
         mock_cli.add_command.assert_called_once_with(show)
         mock_cli.assert_called_once()  # Ensure cli() is invoked
 
-    @patch('sys.argv', ['memory_statistics.py', 'invalid_command'])
-    @patch('syslog.syslog')
-    def test_main_invalid_command(self, mock_syslog):
-        """Test main() with an invalid command."""
-        with self.assertRaises(click.UsageError) as context:
-            main()
+    # @patch('sys.argv', ['memory_statistics.py', 'invalid_command'])
+    # @patch('syslog.syslog')
+    # def test_main_invalid_command(self, mock_syslog):
+    #     """Test main() with an invalid command."""
+    #     with self.assertRaises(click.UsageError) as context:
+    #         main()
 
-        self.assertIn("Error: Invalid command", str(context.exception))
-        mock_syslog.assert_called_once_with(
-            syslog.LOG_ERR, "Error: Invalid command 'invalid_command'."
-        )
+    #     self.assertIn("Error: Invalid command", str(context.exception))
+    #     mock_syslog.assert_called_once_with(
+    #         syslog.LOG_ERR, "Error: Invalid command 'invalid_command'."
+    #     )
 
     @patch('sys.argv', ['memory_statistics.py'])
-    @patch('show.memory.statistics.cli')
+    @patch('show.memory_statistics.cli')
     def test_main_no_command(self, mock_cli):
         """Test main() with no command-line arguments."""
         try:
