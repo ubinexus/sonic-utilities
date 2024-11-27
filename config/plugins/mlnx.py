@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2017-2021 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2017-2024 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -163,40 +163,6 @@ def _abort_if_false(ctx, param, value):
 def mlnx():
     """ Mellanox platform configuration tasks """
     pass
-
-
-# 'sniffer' group
-@mlnx.group()
-def sniffer():
-    """ Utility for managing Mellanox SDK/PRM sniffer """
-    pass
-
-
-# 'sdk' subgroup
-@sniffer.group()
-def sdk():
-    """SDK Sniffer - Command Line to enable/disable SDK sniffer"""
-    pass
-
-
-@sdk.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='Swss service will be restarted, continue?')
-def enable():
-    """Enable SDK Sniffer"""
-    click.echo("Enabling SDK sniffer")
-    sdk_sniffer_enable()
-    click.echo("Note: the sniffer file may exhaust the space on /var/log, please disable it when you are done with this sniffering.")
-
-
-@sdk.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='Swss service will be restarted, continue?')
-def disable():
-    """Disable SDK Sniffer"""
-    click.echo("Disabling SDK sniffer")
-    sdk_sniffer_disable()
-
 
 def sdk_sniffer_enable():
     """Enable SDK Sniffer"""
