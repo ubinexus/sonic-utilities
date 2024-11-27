@@ -4,7 +4,7 @@ import socket
 import os
 import click
 from click.testing import CliRunner
-import syslog
+# import syslog
 # import pytest
 
 from show.memory_statistics import (
