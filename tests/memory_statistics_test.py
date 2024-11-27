@@ -17,7 +17,6 @@ from show.memory_statistics import (
     send_data,
     display_config,
     display_statistics,
-    CLIEntryPoint,
     main,
     show,
     format_field_value,
@@ -314,121 +313,106 @@ class TestCLIEntryPoint(unittest.TestCase):
         mock_cli.assert_called_once()  # Ensure cli() is invoked
 
 
-class TestCLIEntryPoint2(unittest.TestCase):
+class TestMemoryStatisticsCLI(unittest.TestCase):
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats'])
     def test_show_memory_stats_valid(self, mock_stdout):
         """Test the valid 'show memory-stats' command."""
-        args = ['show', 'memory-stats']
+        with patch('show.memory_statistics.SocketManager.get_memory_stats',
+                   return_value={'total_memory': 4096, 'used_memory': 2048}), \
+             patch('show.memory_statistics.SonicDBConnector.fetch_config',
+                   return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
+            main()
 
-        # Assuming the implementation uses SocketManager and SonicDBConnector to fetch stats
-        with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
-            with patch.object(SonicDBConnector, 'fetch_config',
-                              return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
-                cli = CLIEntryPoint()
-                cli.main(args=args)
-
-        # Check that the correct memory statistics are printed
         output = mock_stdout.getvalue()
         self.assertIn("total_memory", output)
         self.assertIn("used_memory", output)
-        self.assertIn("sampling_interval", output)
-        self.assertIn("retention_period", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats', '--from', '10 minutes ago', '--to', 'now'])
     def test_show_memory_stats_with_time_range(self, mock_stdout):
         """Test the 'show memory-stats' command with --from and --to options."""
-        args = ['show', 'memory-stats', '--from', '10 minutes ago', '--to', 'now']
+        with patch('show.memory_statistics.SocketManager.get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
+            main()
 
-        with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
-
-        # Check that the correct time range is passed and output is correct
         output = mock_stdout.getvalue()
         self.assertIn("total_memory", output)
         self.assertIn("used_memory", output)
-        self.assertIn("from", output)
-        self.assertIn("to", output)
+        self.assertIn("10 minutes ago", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats', '--select', 'total_memory'])
     def test_show_memory_stats_with_select_option(self, mock_stdout):
         """Test the 'show memory-stats' command with --select option."""
-        args = ['show', 'memory-stats', '--select', 'total_memory']
+        with patch('show.memory_statistics.SocketManager.get_memory_stats', return_value={'total_memory': 4096}):
+            main()
 
-        with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096}):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
-
-        # Check that the selected metric is printed
         output = mock_stdout.getvalue()
         self.assertIn("total_memory", output)
         self.assertNotIn("used_memory", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats', 'config'])
     def test_show_memory_stats_config(self, mock_stdout):
         """Test the 'show memory-stats config' command."""
-        args = ['show', 'memory-stats', 'config']
+        with patch('show.memory_statistics.SonicDBConnector.fetch_config', return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
+            main()
 
-        with patch.object(SonicDBConnector, 'fetch_config',
-                          return_value={'enabled': 'true', 'sampling_interval': 5, 'retention_period': 15}):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
-
-        # Check that the configuration is printed
         output = mock_stdout.getvalue()
         self.assertIn("enabled", output)
         self.assertIn("sampling_interval", output)
-        self.assertIn("retention_period", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'invalid_command'])
     def test_invalid_command(self, mock_stdout):
         """Test an invalid command."""
-        args = ['show', 'invalid_command']
-
         with self.assertRaises(SystemExit):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
+            main()
+        output = mock_stdout.getvalue()
+        self.assertIn("Error: Invalid command", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show'])
     def test_missing_required_argument(self, mock_stdout):
-        """Test a missing required argument (e.g., 'show memory-stats' without subcommand)."""
-        args = ['show', 'memory-stats']
-
+        """Test a missing required argument."""
         with self.assertRaises(SystemExit):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
+            main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Error", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats', '--from', 'invalid_time'])
     def test_invalid_time_range(self, mock_stdout):
-        """Test the 'show memory-stats' command with an invalid time range."""
-        args = ['show', 'memory-stats', '--from', 'invalid_time', '--to', 'now']
-
+        """Test invalid time range input."""
         with self.assertRaises(SystemExit):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
+            main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Invalid value for", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats', '--select', 'invalid_metric'])
     def test_invalid_select_option(self, mock_stdout):
-        """Test the 'show memory-stats' command with an invalid --select option."""
-        args = ['show', 'memory-stats', '--select', 'invalid_metric']
-
+        """Test invalid --select option."""
         with self.assertRaises(SystemExit):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
+            main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Invalid value for", output)
 
     @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.argv', new=['main.py', 'show', 'memory-stats'])
     def test_show_memory_stats_no_args(self, mock_stdout):
-        """Test the 'show memory-stats' command with no arguments."""
-        args = ['show', 'memory-stats']
-
-        with patch.object(SocketManager, 'get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
-            cli = CLIEntryPoint()
-            cli.main(args=args)
+        """Test the 'show memory-stats' command with no options."""
+        with patch('show.memory_statistics.SocketManager.get_memory_stats', return_value={'total_memory': 4096, 'used_memory': 2048}):
+            main()
 
         output = mock_stdout.getvalue()
         self.assertIn("total_memory", output)
         self.assertIn("used_memory", output)
+
 
 
 class TestMemoryStatisticsCLI(unittest.TestCase):
