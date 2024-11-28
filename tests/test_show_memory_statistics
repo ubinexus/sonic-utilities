@@ -9,7 +9,7 @@ import pytest
 import json
 from unittest.mock import Mock
 
-from show.show_memory_statistics import (
+from show.memory_statistics import (
     Config,
     Dict2Obj,
     SonicDBConnector,
@@ -311,7 +311,6 @@ class TestMemoryStatisticsCLI2(unittest.TestCase):
         ctx = MagicMock()
         with self.assertRaises(click.ClickException):
             display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
-
 
 class TestSocketManager:
     def test_to_dict_method_with_list_of_dict2obj(self):
