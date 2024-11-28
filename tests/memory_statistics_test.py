@@ -7,8 +7,6 @@ from click.testing import CliRunner
 import syslog
 import pytest
 import json
-import syslog
-import os
 from unittest.mock import Mock
 
 from show.memory_statistics import (
@@ -146,7 +144,7 @@ class TestSonicDBConnector(unittest.TestCase):
         self.assertIn("Error retrieving memory statistics configuration", str(context.exception))
 
 
-class TestSocketManager(unittest.TestCase):
+class TestSocketManager1(unittest.TestCase):
     """Test cases for SocketManager class"""
     def setUp(self):
         self.socket_path = '/tmp/test_socket'
@@ -478,13 +476,167 @@ class TestMemoryStatisticsCLI2(unittest.TestCase):
             display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
 
 
+# class TestSocketManager:
+#     def test_to_dict_method_with_list_of_dict2obj(self):
+#         """Test to_dict method with a list of Dict2Obj instances."""
+#         class TestDict2Obj(Dict2Obj):
+#             def to_dict(self):
+#                 return {"test_key": "test_value"}
+
+#         test_obj = Dict2Obj({"items": [TestDict2Obj({"key": "value"}), "plain_value"]})
+#         result = test_obj.to_dict()
+#         assert result == [{"test_key": "test_value"}, "plain_value"]
+
+#     @patch('syslog.syslog')
+#     def test_validate_socket_path_non_existent_directory(self, mock_syslog):
+#         """Test _validate_socket_path when socket directory does not exist."""
+#         with patch('os.path.exists', return_value=False):
+#             with pytest.raises(ConnectionError) as excinfo:
+#                 socket_manager = SocketManager()
+#                 socket_manager.socket_path = '/non/existent/path/socket'
+#                 socket_manager._validate_socket_path()
+
+#         assert "Socket directory /non/existent/path does not exist" in str(excinfo.value)
+#         mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+#                                             "Socket directory /non/existent/path does not exist")
+
+#     @patch('socket.socket')
+#     @patch('time.sleep')
+#     @patch('syslog.syslog')
+#     def test_connect_max_retries_exceeded(self, mock_syslog, mock_sleep, mock_socket):
+#         """Test connect method when max retries are exceeded."""
+#         Mock()
+#         mock_socket.side_effect = socket.error("Connection failed")
+
+#         with patch.object(Config, 'MAX_RETRIES', 3), \
+#              patch.object(Config, 'RETRY_DELAY', 0.1), \
+#              pytest.raises(ConnectionError) as excinfo:
+#             socket_manager = SocketManager()
+#             socket_manager.connect()
+
+#         assert f"Failed to connect to memory statistics service after 3 attempts" in str(excinfo.value)
+#         assert mock_socket.call_count == 3
+#         assert mock_sleep.call_count == 3
+#         mock_syslog.assert_called()
+
+#     def test_receive_all_no_active_socket(self):
+#         """Test receive_all method when no active socket connection exists."""
+#         socket_manager = SocketManager()
+#         socket_manager.sock = None
+
+#         with pytest.raises(ConnectionError) as excinfo:
+#             socket_manager.receive_all()
+
+#         assert "No active socket connection" in str(excinfo.value)
+
+#     @patch('socket.socket')
+#     def test_receive_all_socket_timeout(self, mock_socket):
+#         """Test receive_all method with socket timeout."""
+#         mock_socket_instance = Mock()
+#         mock_socket_instance.recv.side_effect = socket.timeout()
+
+#         with patch.object(Config, 'SOCKET_TIMEOUT', 5), \
+#              patch.object(Config, 'BUFFER_SIZE', 1024), \
+#              pytest.raises(ConnectionError) as excinfo:
+#             socket_manager = SocketManager()
+#             socket_manager.sock = mock_socket_instance
+#             socket_manager.receive_all()
+
+#         assert f"Socket operation timed out after 5 seconds" in str(excinfo.value)
+
+#     def test_send_no_active_socket(self):
+#         """Test send method when no active socket connection exists."""
+#         socket_manager = SocketManager()
+#         socket_manager.sock = None
+
+#         with pytest.raises(ConnectionError) as excinfo:
+#             socket_manager.send("test data")
+
+#         assert "No active socket connection" in str(excinfo.value)
+
+#     @patch('socket.socket')
+#     def test_send_socket_error(self, mock_socket):
+#         """Test send method with socket send error."""
+#         mock_socket_instance = Mock()
+#         mock_socket_instance.sendall.side_effect = socket.error("Send failed")
+
+#         with pytest.raises(ConnectionError) as excinfo:
+#             socket_manager = SocketManager()
+#             socket_manager.sock = mock_socket_instance
+#             socket_manager.send("test data")
+
+#         assert "Failed to send data: Send failed" in str(excinfo.value)
+
+# def test_send_data_no_response():
+#     """Test send_data function when no response is received."""
+#     with patch('socket.socket') as mock_socket, \
+#          patch.object(SocketManager, 'receive_all', return_value='') as mock_receive:
+#         with pytest.raises(ConnectionError) as excinfo:
+#             send_data("test_command", {"key": "value"})
+
+#         assert "No response received from memory statistics service" in str(excinfo.value)
+
+# def test_send_data_json_decode_error():
+#     """Test send_data function with invalid JSON response."""
+#     with patch('socket.socket'), \
+#          patch.object(SocketManager, 'receive_all', return_value='invalid json'):
+#         with pytest.raises(ValueError) as excinfo:
+#             send_data("test_command", {"key": "value"})
+
+#         assert "Failed to parse server response" in str(excinfo.value)
+
+# def test_send_data_invalid_response_format():
+#     """Test send_data function with invalid response format."""
+#     with patch('socket.socket'), \
+#          patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
+#         with pytest.raises(ValueError) as excinfo:
+#             send_data("test_command", {"key": "value"})
+
+#         assert "Invalid response format from server" in str(excinfo.value)
+
+# def test_send_data_server_error_response():
+#     """Test send_data function with server error response."""
+#     error_response = json.dumps({"status": False, "msg": "Server error"})
+#     with patch('socket.socket'), \
+#          patch.object(SocketManager, 'receive_all', return_value=error_response):
+#         with pytest.raises(RuntimeError) as excinfo:
+#             send_data("test_command", {"key": "value"})
+
+#         assert "Server error" in str(excinfo.value)
+
+# @patch('click.echo')
+# def test_display_config_exception(mock_echo):
+#     """Test display_config function with database connection error."""
+#     mock_db_connector = Mock()
+#     mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
+
+#     with patch('syslog.syslog') as mock_syslog, \
+#          pytest.raises(click.ClickException) as excinfo:
+#         display_config(mock_db_connector)
+
+#     assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
+#     mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+#                                          "Failed to retrieve configuration: DB Error")
+
+# def test_main_invalid_command():
+#     """Test main function with an invalid command."""
+#     with patch('sys.argv', ['script.py', 'invalid_command']), \
+#          patch('syslog.syslog') as mock_syslog, \
+#          pytest.raises(click.UsageError) as excinfo:
+#         main()
+
+#     assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
+#     mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+#                                          "Error: Invalid command 'invalid_command'.")
+
+
 class TestSocketManager:
     def test_to_dict_method_with_list_of_dict2obj(self):
         """Test to_dict method with a list of Dict2Obj instances."""
         class TestDict2Obj(Dict2Obj):
             def to_dict(self):
                 return {"test_key": "test_value"}
-        
+
         test_obj = Dict2Obj({"items": [TestDict2Obj({"key": "value"}), "plain_value"]})
         result = test_obj.to_dict()
         assert result == [{"test_key": "test_value"}, "plain_value"]
@@ -497,7 +649,7 @@ class TestSocketManager:
                 socket_manager = SocketManager()
                 socket_manager.socket_path = '/non/existent/path/socket'
                 socket_manager._validate_socket_path()
-        
+
         assert "Socket directory /non/existent/path does not exist" in str(excinfo.value)
         mock_syslog.assert_called_once_with(syslog.LOG_ERR, 
                                             "Socket directory /non/existent/path does not exist")
@@ -507,16 +659,15 @@ class TestSocketManager:
     @patch('syslog.syslog')
     def test_connect_max_retries_exceeded(self, mock_syslog, mock_sleep, mock_socket):
         """Test connect method when max retries are exceeded."""
-        mock_socket_instance = Mock()
         mock_socket.side_effect = socket.error("Connection failed")
-        
+
         with patch.object(Config, 'MAX_RETRIES', 3), \
-             patch.object(Config, 'RETRY_DELAY', 0.1), \
-             pytest.raises(ConnectionError) as excinfo:
-            socket_manager = SocketManager()
-            socket_manager.connect()
-        
-        assert f"Failed to connect to memory statistics service after 3 attempts" in str(excinfo.value)
+             patch.object(Config, 'RETRY_DELAY', 0.1):
+            with pytest.raises(ConnectionError) as excinfo:
+                socket_manager = SocketManager()
+                socket_manager.connect()
+
+        assert "Failed to connect to memory statistics service after 3 attempts" in str(excinfo.value)
         assert mock_socket.call_count == 3
         assert mock_sleep.call_count == 3
         mock_syslog.assert_called()
@@ -525,10 +676,10 @@ class TestSocketManager:
         """Test receive_all method when no active socket connection exists."""
         socket_manager = SocketManager()
         socket_manager.sock = None
-        
+
         with pytest.raises(ConnectionError) as excinfo:
             socket_manager.receive_all()
-        
+
         assert "No active socket connection" in str(excinfo.value)
 
     @patch('socket.socket')
@@ -536,24 +687,24 @@ class TestSocketManager:
         """Test receive_all method with socket timeout."""
         mock_socket_instance = Mock()
         mock_socket_instance.recv.side_effect = socket.timeout()
-        
+
         with patch.object(Config, 'SOCKET_TIMEOUT', 5), \
-             patch.object(Config, 'BUFFER_SIZE', 1024), \
-             pytest.raises(ConnectionError) as excinfo:
-            socket_manager = SocketManager()
-            socket_manager.sock = mock_socket_instance
-            socket_manager.receive_all()
-        
-        assert f"Socket operation timed out after 5 seconds" in str(excinfo.value)
+             patch.object(Config, 'BUFFER_SIZE', 1024):
+            with pytest.raises(ConnectionError) as excinfo:
+                socket_manager = SocketManager()
+                socket_manager.sock = mock_socket_instance
+                socket_manager.receive_all()
+
+        assert "Socket operation timed out after 5 seconds" in str(excinfo.value)
 
     def test_send_no_active_socket(self):
         """Test send method when no active socket connection exists."""
         socket_manager = SocketManager()
         socket_manager.sock = None
-        
+
         with pytest.raises(ConnectionError) as excinfo:
             socket_manager.send("test data")
-        
+
         assert "No active socket connection" in str(excinfo.value)
 
     @patch('socket.socket')
@@ -561,21 +712,21 @@ class TestSocketManager:
         """Test send method with socket send error."""
         mock_socket_instance = Mock()
         mock_socket_instance.sendall.side_effect = socket.error("Send failed")
-        
+
         with pytest.raises(ConnectionError) as excinfo:
             socket_manager = SocketManager()
             socket_manager.sock = mock_socket_instance
             socket_manager.send("test data")
-        
+
         assert "Failed to send data: Send failed" in str(excinfo.value)
 
 def test_send_data_no_response():
     """Test send_data function when no response is received."""
-    with patch('socket.socket') as mock_socket, \
-         patch.object(SocketManager, 'receive_all', return_value='') as mock_receive:
+    with patch('socket.socket'), \
+         patch.object(SocketManager, 'receive_all', return_value=''):
         with pytest.raises(ConnectionError) as excinfo:
             send_data("test_command", {"key": "value"})
-        
+
         assert "No response received from memory statistics service" in str(excinfo.value)
 
 def test_send_data_json_decode_error():
@@ -584,7 +735,7 @@ def test_send_data_json_decode_error():
          patch.object(SocketManager, 'receive_all', return_value='invalid json'):
         with pytest.raises(ValueError) as excinfo:
             send_data("test_command", {"key": "value"})
-        
+
         assert "Failed to parse server response" in str(excinfo.value)
 
 def test_send_data_invalid_response_format():
@@ -593,7 +744,7 @@ def test_send_data_invalid_response_format():
          patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
         with pytest.raises(ValueError) as excinfo:
             send_data("test_command", {"key": "value"})
-        
+
         assert "Invalid response format from server" in str(excinfo.value)
 
 def test_send_data_server_error_response():
@@ -603,7 +754,7 @@ def test_send_data_server_error_response():
          patch.object(SocketManager, 'receive_all', return_value=error_response):
         with pytest.raises(RuntimeError) as excinfo:
             send_data("test_command", {"key": "value"})
-        
+
         assert "Server error" in str(excinfo.value)
 
 @patch('click.echo')
@@ -611,25 +762,25 @@ def test_display_config_exception(mock_echo):
     """Test display_config function with database connection error."""
     mock_db_connector = Mock()
     mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
-    
-    with patch('syslog.syslog') as mock_syslog, \
-         pytest.raises(click.ClickException) as excinfo:
-        display_config(mock_db_connector)
-    
-    assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
-    mock_syslog.assert_called_once_with(syslog.LOG_ERR, 
-                                         "Failed to retrieve configuration: DB Error")
+
+    with patch('syslog.syslog') as mock_syslog:
+        with pytest.raises(click.ClickException) as excinfo:
+            display_config(mock_db_connector)
+
+        assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
+        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+                                            "Failed to retrieve configuration: DB Error")
 
 def test_main_invalid_command():
     """Test main function with an invalid command."""
     with patch('sys.argv', ['script.py', 'invalid_command']), \
-         patch('syslog.syslog') as mock_syslog, \
-         pytest.raises(click.UsageError) as excinfo:
-        main()
-    
-    assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
-    mock_syslog.assert_called_once_with(syslog.LOG_ERR, 
-                                         "Error: Invalid command 'invalid_command'.")
+         patch('syslog.syslog') as mock_syslog:
+        with pytest.raises(click.UsageError) as excinfo:
+            main()
+
+        assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
+        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+                                            "Error: Invalid command 'invalid_command'.")
 
 
 if __name__ == '__main__':
