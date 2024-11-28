@@ -11,7 +11,7 @@ import syslog
 import os
 from unittest.mock import Mock
 
-from show.show_memory_statistics import (
+from show.show_memory_statistics.py import (
     Config,
     Dict2Obj,
     SonicDBConnector,
