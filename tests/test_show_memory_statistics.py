@@ -288,7 +288,6 @@ class TestCLIEntryPoint(unittest.TestCase):
         mock_cli.add_command.assert_called_once_with(show)
         mock_cli.assert_called_once()  # Ensure cli() is invoked
 
-
     @patch('sys.argv', ['memory_statistics.py'])
     @patch('show.memory_statistics.cli')
     def test_main_no_command(self, mock_cli):
@@ -312,6 +311,7 @@ class TestMemoryStatisticsCLI2(unittest.TestCase):
         with self.assertRaises(click.ClickException):
             display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
 
+
 class TestSocketManager:
     def test_to_dict_method_with_list_of_dict2obj(self):
         """Test to_dict method with a list of Dict2Obj instances."""
@@ -333,7 +333,7 @@ class TestSocketManager:
                 socket_manager._validate_socket_path()
 
         assert "Socket directory /non/existent/path does not exist" in str(excinfo.value)
-        mock_syslog.assert_called_once_with(syslog.LOG_ERR, 
+        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
                                             "Socket directory /non/existent/path does not exist")
 
     @patch('socket.socket')
@@ -402,6 +402,7 @@ class TestSocketManager:
 
         assert "Failed to send data: Send failed" in str(excinfo.value)
 
+
 def test_send_data_no_response():
     """Test send_data function when no response is received."""
     with patch('socket.socket'), \
@@ -410,6 +411,7 @@ def test_send_data_no_response():
             send_data("test_command", {"key": "value"})
 
         assert "No response received from memory statistics service" in str(excinfo.value)
+
 
 def test_send_data_json_decode_error():
     """Test send_data function with invalid JSON response."""
@@ -420,6 +422,7 @@ def test_send_data_json_decode_error():
 
         assert "Failed to parse server response" in str(excinfo.value)
 
+
 def test_send_data_invalid_response_format():
     """Test send_data function with invalid response format."""
     with patch('socket.socket'), \
@@ -428,6 +431,7 @@ def test_send_data_invalid_response_format():
             send_data("test_command", {"key": "value"})
 
         assert "Invalid response format from server" in str(excinfo.value)
+
 
 def test_send_data_server_error_response():
     """Test send_data function with server error response."""
@@ -438,6 +442,7 @@ def test_send_data_server_error_response():
             send_data("test_command", {"key": "value"})
 
         assert "Server error" in str(excinfo.value)
+
 
 @patch('click.echo')
 def test_display_config_exception(mock_echo):
@@ -452,6 +457,7 @@ def test_display_config_exception(mock_echo):
         assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
         mock_syslog.assert_called_once_with(syslog.LOG_ERR,
                                             "Failed to retrieve configuration: DB Error")
+
 
 def test_main_invalid_command():
     """Test main function with an invalid command."""
