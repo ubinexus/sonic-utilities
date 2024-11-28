@@ -2,7 +2,7 @@ import sys
 import pytest
 from unittest import mock
 from utilities_common.util_base import UtilHelper
-from utilities_common.module_base import ModuleHelper, INVALID_MODULE_INDEX
+from utilities_common.module import ModuleHelper, INVALID_MODULE_INDEX
 
 sys.modules['sonic_platform'] = mock.MagicMock()
 
