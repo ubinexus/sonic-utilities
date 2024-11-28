@@ -91,7 +91,7 @@ function reboot_dpu_platform()
 {
     local DPU_NAME=$1
     local REBOOT_TYPE=$2
-    python3 -c "rom utilties_common.module_base import ModuleHelper; ModuleHelper.reboot_module('${DPU_NAME}', '${REBOOT_TYPE}')"
+    python3 -c "from utilities_common.module_base import ModuleHelper; ModuleHelper.reboot_module('${DPU_NAME}', '${REBOOT_TYPE}')"
 }
 
 # Function to wait for DPU reboot status
