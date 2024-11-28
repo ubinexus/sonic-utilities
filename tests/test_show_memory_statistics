@@ -9,7 +9,7 @@ import pytest
 import json
 from unittest.mock import Mock
 
-from show.memory_statistics import (
+from show.show_memory_statistics import (
     Config,
     Dict2Obj,
     SonicDBConnector,
