@@ -338,27 +338,6 @@ class TestSocketManager:
                 syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
             )
 
-    # def test_send_data_invalid_response_format(self):
-    #     """Test send_data function with invalid response format."""
-    #     with patch('socket.socket'), \
-    #             patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
-    #         with pytest.raises(ValueError) as excinfo:
-    #             send_data("test_command", {"key": "value"})
-
-    #         assert "Invalid response format from server" in str(excinfo.value)
-
-    # def test_main_invalid_command(self):
-    #     """Test main function with an invalid command."""
-    #     with patch('sys.argv', ['script.py', 'invalid_command']), \
-    #             patch('syslog.syslog') as mock_syslog:
-    #         with pytest.raises(click.UsageError) as excinfo:
-    #             main()
-
-    #         assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
-    #         mock_syslog.assert_called_once_with(
-    #             syslog.LOG_ERR, "Error: Invalid command 'invalid_command'."
-    #         )
-
 
 if __name__ == '__main__':
     unittest.main()
