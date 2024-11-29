@@ -6,7 +6,6 @@ import click
 from click.testing import CliRunner
 import syslog
 import pytest
-import json
 from unittest.mock import Mock
 
 from show.memory_statistics import (
@@ -14,7 +13,6 @@ from show.memory_statistics import (
     Dict2Obj,
     SonicDBConnector,
     SocketManager,
-    send_data,
     display_config,
     display_statistics,
     main,
@@ -80,7 +78,7 @@ class TestSonicDBConnector(unittest.TestCase):
     def tearDown(self):
         self.patcher.stop()
 
-    @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
+    @patch('show.memory_statistics.ConfigDBConnector')
     def test_get_memory_statistics_config(self, mock_config_db):
         """Test retrieving memory statistics configuration"""
         test_config = {
@@ -95,7 +93,7 @@ class TestSonicDBConnector(unittest.TestCase):
         config = connector.get_memory_statistics_config()
         self.assertEqual(config, test_config['memory_statistics'])
 
-    @patch('show.memory_statistics.ConfigDBConnector')  # Fixed import path
+    @patch('show.memory_statistics.ConfigDBConnector')
     def test_get_default_config(self, mock_config_db):
         """Test retrieving default configuration when none exists"""
         mock_config_db.return_value.get_table.return_value = {}
@@ -144,7 +142,7 @@ class TestSonicDBConnector(unittest.TestCase):
         self.assertIn("Error retrieving memory statistics configuration", str(context.exception))
 
 
-class TestSocketManager1(unittest.TestCase):
+class TestSocketManager(unittest.TestCase):
     """Test cases for SocketManager class"""
     def setUp(self):
         self.socket_path = '/tmp/test_socket'
@@ -227,6 +225,31 @@ class TestSocketManager1(unittest.TestCase):
         self.socket_manager.send(test_data)
         mock_sock.sendall.assert_called_with(test_data.encode('utf-8'))
 
+    def test_to_dict_method_with_list_of_dict2obj(self):
+        """Test to_dict method with a list of Dict2Obj instances."""
+        class TestDict2Obj(Dict2Obj):
+            def to_dict(self):
+                return {"test_key": "test_value"}
+
+        test_obj = Dict2Obj({"items": [TestDict2Obj({"key": "value"}), "plain_value"]})
+        result = test_obj.to_dict()
+        assert result == [{"test_key": "test_value"}, "plain_value"]
+
+    @patch('click.echo')
+    def test_display_config_exception(self, mock_echo):
+        """Test display_config function with database connection error."""
+        mock_db_connector = Mock()
+        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
+
+        with patch('syslog.syslog') as mock_syslog:
+            with pytest.raises(click.ClickException) as excinfo:
+                display_config(mock_db_connector)
+
+            assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
+            mock_syslog.assert_called_once_with(
+                syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
+            )
+
 
 class TestCLICommands(unittest.TestCase):
     """Test cases for CLI commands"""
@@ -270,6 +293,15 @@ class TestCLICommands(unittest.TestCase):
             clean_and_print("invalid data")
             mock_print.assert_called_with("Error: Invalid data format received")
 
+    @patch('show.memory_statistics.send_data')
+    def test_display_statistics_no_response(self, mock_send_data):
+        """Test display_statistics with no response."""
+        mock_send_data.side_effect = click.ClickException("No data")
+
+        ctx = MagicMock()
+        with self.assertRaises(click.ClickException):
+            display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
+
 
 class TestCLIEntryPoint(unittest.TestCase):
 
@@ -283,10 +315,10 @@ class TestCLIEntryPoint(unittest.TestCase):
         try:
             main()
         except SystemExit:
-            pass  # CLI might call sys.exit()
+            pass
 
         mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()  # Ensure cli() is invoked
+        mock_cli.assert_called_once()
 
     @patch('sys.argv', ['memory_statistics.py'])
     @patch('show.memory_statistics.cli')
@@ -295,48 +327,10 @@ class TestCLIEntryPoint(unittest.TestCase):
         try:
             main()
         except SystemExit:
-            pass  # CLI might call sys.exit()
+            pass
 
         mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()  # Ensure cli() is invoked
-
-
-class TestMemoryStatisticsCLI2(unittest.TestCase):
-
-    @patch('show.memory_statistics.send_data')
-    def test_display_statistics_no_response(self, mock_send_data):
-        """Test display_statistics with no response."""
-        mock_send_data.side_effect = click.ClickException("No data")
-
-        ctx = MagicMock()
-        with self.assertRaises(click.ClickException):
-            display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
-
-class TestSocketManager:
-    def test_to_dict_method_with_list_of_dict2obj(self):
-        """Test to_dict method with a list of Dict2Obj instances."""
-        class TestDict2Obj(Dict2Obj):
-            def to_dict(self):
-                return {"test_key": "test_value"}
-
-        test_obj = Dict2Obj({"items": [TestDict2Obj({"key": "value"}), "plain_value"]})
-        result = test_obj.to_dict()
-        assert result == [{"test_key": "test_value"}, "plain_value"]
-
-    @patch('click.echo')
-    def test_display_config_exception(self, mock_echo):
-        """Test display_config function with database connection error."""
-        mock_db_connector = Mock()
-        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
-
-        with patch('syslog.syslog') as mock_syslog:
-            with pytest.raises(click.ClickException) as excinfo:
-                display_config(mock_db_connector)
-
-            assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
-            mock_syslog.assert_called_once_with(
-                syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
-            )
+        mock_cli.assert_called_once()
 
 
 if __name__ == '__main__':
