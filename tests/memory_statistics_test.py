@@ -651,7 +651,7 @@ class TestSocketManager:
                 socket_manager._validate_socket_path()
 
         assert "Socket directory /non/existent/path does not exist" in str(excinfo.value)
-        mock_syslog.assert_called_once_with(syslog.LOG_ERR, 
+        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
                                             "Socket directory /non/existent/path does not exist")
 
     @patch('socket.socket')
@@ -720,67 +720,100 @@ class TestSocketManager:
 
         assert "Failed to send data: Send failed" in str(excinfo.value)
 
-def test_send_data_no_response():
-    """Test send_data function when no response is received."""
-    with patch('socket.socket'), \
-         patch.object(SocketManager, 'receive_all', return_value=''):
-        with pytest.raises(ConnectionError) as excinfo:
-            send_data("test_command", {"key": "value"})
 
-        assert "No response received from memory statistics service" in str(excinfo.value)
+    def test_send_data_no_response():
+        """Test send_data function when no response is received."""
+        with patch('socket.socket'), \
+            patch.object(SocketManager, 'receive_all', return_value=''):
+            with pytest.raises(ConnectionError) as excinfo:
+                send_data("test_command", {"key": "value"})
 
-def test_send_data_json_decode_error():
-    """Test send_data function with invalid JSON response."""
-    with patch('socket.socket'), \
-         patch.object(SocketManager, 'receive_all', return_value='invalid json'):
-        with pytest.raises(ValueError) as excinfo:
-            send_data("test_command", {"key": "value"})
+            assert "No response received from memory statistics service" in str(excinfo.value)
 
-        assert "Failed to parse server response" in str(excinfo.value)
 
-def test_send_data_invalid_response_format():
-    """Test send_data function with invalid response format."""
-    with patch('socket.socket'), \
-         patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
-        with pytest.raises(ValueError) as excinfo:
-            send_data("test_command", {"key": "value"})
+    def test_send_data_json_decode_error():
+        """Test send_data function with invalid JSON response."""
+        with patch('socket.socket'), \
+            patch.object(SocketManager, 'receive_all', return_value='invalid json'):
+            with pytest.raises(ValueError) as excinfo:
+                send_data("test_command", {"key": "value"})
 
-        assert "Invalid response format from server" in str(excinfo.value)
+            assert "Failed to parse server response" in str(excinfo.value)
 
-def test_send_data_server_error_response():
-    """Test send_data function with server error response."""
-    error_response = json.dumps({"status": False, "msg": "Server error"})
-    with patch('socket.socket'), \
-         patch.object(SocketManager, 'receive_all', return_value=error_response):
-        with pytest.raises(RuntimeError) as excinfo:
-            send_data("test_command", {"key": "value"})
 
-        assert "Server error" in str(excinfo.value)
+    # def test_send_data_invalid_response_format():
+    #     """Test send_data function with invalid response format."""
+    #     with patch('socket.socket'), \
+    #         patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
+    #         with pytest.raises(ValueError) as excinfo:
+    #             send_data(
+    #                 "test_command", {"key": "value"}
+    # )
 
-@patch('click.echo')
-def test_display_config_exception(mock_echo):
-    """Test display_config function with database connection error."""
-    mock_db_connector = Mock()
-    mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
+    #         assert "Invalid response format from server" in str(excinfo.value)
 
-    with patch('syslog.syslog') as mock_syslog:
-        with pytest.raises(click.ClickException) as excinfo:
-            display_config(mock_db_connector)
 
-        assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
-        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
-                                            "Failed to retrieve configuration: DB Error")
+    def test_send_data_server_error_response():
+        """Test send_data function with server error response."""
+        error_response = json.dumps({"status": False, "msg": "Server error"})
+        with patch('socket.socket'), \
+            patch.object(SocketManager, 'receive_all', return_value=error_response):
+            with pytest.raises(RuntimeError) as excinfo:
+                send_data("test_command", {"key": "value"})
 
-def test_main_invalid_command():
-    """Test main function with an invalid command."""
-    with patch('sys.argv', ['script.py', 'invalid_command']), \
-         patch('syslog.syslog') as mock_syslog:
-        with pytest.raises(click.UsageError) as excinfo:
-            main()
+            assert "Server error" in str(excinfo.value)
 
-        assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
-        mock_syslog.assert_called_once_with(syslog.LOG_ERR,
-                                            "Error: Invalid command 'invalid_command'.")
+    @patch('click.echo')
+    def test_display_config_exception(mock_echo):
+        """Test display_config function with database connection error."""
+        mock_db_connector = Mock()
+        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
+
+        with patch('syslog.syslog') as mock_syslog:
+            with pytest.raises(click.ClickException) as excinfo:
+                display_config(mock_db_connector)
+
+            assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
+            mock_syslog.assert_called_once_with(syslog.LOG_ERR,
+                                                "Failed to retrieve configuration: DB Error")
+
+    # def test_main_invalid_command():
+    #     """Test main function with an invalid command."""
+    #     with patch('sys.argv', ['script.py', 'invalid_command']), \
+    #         patch('syslog.syslog') as mock_syslog:
+    #         with pytest.raises(click.UsageError) as excinfo:
+    #             main()
+
+    #             assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
+    #             mock_syslog.assert_called_once_with(
+    #                 syslog.LOG_ERR,
+    #                 "Error: Invalid command 'invalid_command'."
+    #             )
+
+
+    def test_send_data_invalid_response_format():
+        """Test send_data function with invalid response format."""
+        with patch('socket.socket'), \
+            patch.object(SocketManager, 'receive_all', return_value='[1, 2, 3]'):
+            with pytest.raises(ValueError) as excinfo:
+                send_data(
+                    "test_command", {"key": "value"}
+                )
+
+            assert "Invalid response format from server" in str(excinfo.value)
+
+    def test_main_invalid_command():
+        """Test main function with an invalid command."""
+        with patch('sys.argv', ['script.py', 'invalid_command']), \
+            patch('syslog.syslog') as mock_syslog:
+            with pytest.raises(click.UsageError) as excinfo:
+                main()
+
+            assert "Error: Invalid command 'invalid_command'" in str(excinfo.value)
+            mock_syslog.assert_called_once_with(
+                syslog.LOG_ERR,
+                "Error: Invalid command 'invalid_command'."
+            )
 
 
 if __name__ == '__main__':
