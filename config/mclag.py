@@ -266,6 +266,19 @@ def config_mclag_session_timeout(ctx, domain_id, time_in_secs):
     db.mod_entry('MCLAG_DOMAIN', domain_id, fvs)
 
 
+def is_portchannel_present_in_db(db, portchannel_name):
+    """Check if Portchannel is present in Config DB
+    """
+
+    # Return True if Portchannel name exists in the CONFIG_DB
+    portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
+    if portchannel_list is None:
+        return False
+    if portchannel_name in portchannel_list:
+        return True
+    return False
+
+
 #mclag interface config
 @mclag.group('member')
 @click.pass_context
@@ -289,6 +302,8 @@ def add_mclag_member(ctx, domain_id, portchannel_names):
         if ADHOC_VALIDATION:
             if is_portchannel_name_valid(portchannel_name) != True:
                 ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'" .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+            if is_portchannel_present_in_db(db, portchannel_name) is False:
+                ctx.fail("{} is not present.".format(portchannel_name))
         try:
             db.set_entry('MCLAG_INTERFACE', (domain_id, portchannel_name), {'if_type':"PortChannel"} )
         except ValueError as e:
