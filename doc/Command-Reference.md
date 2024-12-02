@@ -5136,19 +5136,19 @@ The show interface errors command provides detailed statistics and error counter
   Port Errors                        Count           Last timestamp(UTC)
   ---------------------------------- -----           -------------------
   oper_error_status                  5442            2024-11-02 04:00:05
-  mac_local_fault_count              2               2024-11-02 04:00:05
-  fec_sync_loss_count                2               2024-11-02 04:00:05
-  fec_alignment_loss_count           2               2024-11-02 04:00:05
-  high_ser_error_count               2               2024-11-02 04:00:05
-  high ber_error_count               2               2024-11-02 04:00:05
-  data_unit_crc_error_count          2               2024-11-02 04:00:05
-  data_unit_misalignment_error_count 2               2024-11-02 04:00:05
-  signal_local_error_count           2               2024-11-02 04:00:05
-  mac_remote_fault_count             2               2024-11-02 04:00:50
-  crc_rate_count                     2               2024-11-02 04:00:50
-  data_unit_size_count               2               2024-11-02 04:00:50
-  code_group_error_count             0               Never
-  no_rx_reachability_count           0               Never
+  mac_local_fault                    2               2024-11-02 04:00:05
+  fec_sync_loss                      2               2024-11-02 04:00:05
+  fec_alignment_loss                 2               2024-11-02 04:00:05
+  high_ser_error                     2               2024-11-02 04:00:05
+  high ber_error                     2               2024-11-02 04:00:05
+  data_unit_crc_error                2               2024-11-02 04:00:05
+  data_unit_misalignment_error       2               2024-11-02 04:00:05
+  signal_local_error                 2               2024-11-02 04:00:05
+  mac_remote_fault                   2               2024-11-02 04:00:50
+  crc_rate                           2               2024-11-02 04:00:50
+  data_unit_size                     2               2024-11-02 04:00:50
+  code_group_error                   0               Never
+  no_rx_reachability                 0               Never
   ```
 
 
