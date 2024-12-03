@@ -148,35 +148,37 @@ class TestSocketManager(unittest.TestCase):
         self.socket_path = '/tmp/test_socket'
         self.socket_manager = SocketManager(self.socket_path)
 
+    @patch('syslog.syslog')
     @patch('socket.socket')
-    def test_receive_all_timeout_error(self, mock_socket):
-        """Test handling of socket.timeout during receive_all"""
+    def test_socket_timeout_error(self, mock_socket, mock_syslog):
+        """Test socket timeout during data reception."""
         mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
         mock_sock.recv.side_effect = socket.timeout
+        mock_socket.return_value = mock_sock
         self.socket_manager.sock = mock_sock
 
-        with self.assertRaises(ConnectionError) as context:
+        with self.assertRaises(ConnectionError) as cm:
             self.socket_manager.receive_all()
 
         error_msg = f"Socket operation timed out after {Config.SOCKET_TIMEOUT} seconds"
-        self.assertIn("Socket operation timed out", str(context.exception))
+        self.assertIn(error_msg, str(cm.exception))
+        mock_syslog.assert_called_with(syslog.LOG_ERR, error_msg)
 
+    @patch('syslog.syslog')
     @patch('socket.socket')
-    def test_receive_all_socket_error(self, mock_socket):
-        """Test handling of socket.error during receive_all"""
+    def test_socket_error_during_receive(self, mock_socket, mock_syslog):
+        """Test socket error during data reception."""
         mock_sock = MagicMock()
+        mock_sock.recv.side_effect = socket.error("Test error")
         mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.error("Test socket error")
         self.socket_manager.sock = mock_sock
 
-        with self.assertRaises(ConnectionError) as context:
+        with self.assertRaises(ConnectionError) as cm:
             self.socket_manager.receive_all()
-
-        error_msg = "Socket error during receive: Test socket error"
-        self.assertIn("Socket error during receive", str(context.exception))
-
-# Other existing test cases here...
+        
+        error_msg = "Socket error during receive: Test error"
+        self.assertIn(error_msg, str(cm.exception))
+        mock_syslog.assert_called_with(syslog.LOG_ERR, error_msg)
 
 if __name__ == '__main__':
     unittest.main()
