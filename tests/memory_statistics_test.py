@@ -175,7 +175,7 @@ class TestSocketManager(unittest.TestCase):
 
         with self.assertRaises(ConnectionError) as cm:
             self.socket_manager.receive_all()
-        
+
         error_msg = "Socket error during receive: Test error"
         self.assertIn(error_msg, str(cm.exception))
         mock_syslog.assert_called_with(syslog.LOG_ERR, error_msg)
