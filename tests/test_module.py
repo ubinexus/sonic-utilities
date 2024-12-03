@@ -31,6 +31,27 @@ class TestModuleHelper:
         with mock.patch('utilities_common.module.log.log_error') as mock_log_error:
             yield mock_log_error
 
+    def test_try_get_args_success(self):
+        def mock_callback(arg):
+            return arg
+
+        result = module_helper.try_get_args(mock_callback, "test_arg")
+        assert result == "test_arg"
+
+    def test_try_get_args_none_return(self):
+        def mock_callback(arg):
+            return None
+
+        result = module_helper.try_get_args(mock_callback, "test_arg", default="default_value")
+        assert result == "default_value"
+
+    def test_try_get_args_not_implemented_error(self):
+        def mock_callback(arg):
+            raise NotImplementedError
+
+        result = module_helper.try_get_args(mock_callback, "test_arg", default="default_value")
+        assert result == "default_value"
+
     def test_init_success(self, mock_load_platform_chassis):
         mock_load_platform_chassis.return_value = mock.MagicMock()
         module_helper = ModuleHelper()

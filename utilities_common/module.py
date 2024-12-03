@@ -64,7 +64,7 @@ class ModuleHelper:
             return False
 
         log.log_info("Rebooting module {} with reboot_type {}...".format(module_name, reboot_type))
-        status = self.try_get_args(self.platform_chassis.get_module(module_index).reboot, reboot_type, False)
+        status = self.try_get_args(self.platform_chassis.get_module(module_index).reboot, reboot_type, default=False)
         if not status:
             log.log_error("Reboot status for module {}: {}".format(module_name, status))
             return False
@@ -91,7 +91,7 @@ class ModuleHelper:
             return False
 
         log.log_info("Detaching module {}...".format(module_name))
-        status = util.try_get(self.platform_chassis.get_module(module_index).pci_detach, False)
+        status = util.try_get(self.platform_chassis.get_module(module_index).pci_detach, default=False)
         if not status:
             log.log_error("PCI detach status for module {}: {}".format(module_name, status))
             return False
@@ -118,7 +118,7 @@ class ModuleHelper:
             return False
 
         log.log_info("Rescanning module {}...".format(module_name))
-        status = util.try_get(self.platform_chassis.get_module(module_index).pci_reattach, False)
+        status = util.try_get(self.platform_chassis.get_module(module_index).pci_reattach, default=False)
         if not status:
             log.log_error("PCI rescan status for module {}: {}".format(module_name, status))
             return False

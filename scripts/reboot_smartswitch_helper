@@ -91,11 +91,7 @@ function reboot_dpu_platform()
 {
     local DPU_NAME=$1
     local REBOOT_TYPE=$2
-    python3 -c "
-    from utilities_common.module import ModuleHelper
-    helper = ModuleHelper()
-    helper.reboot_module('${DPU_NAME}', '${REBOOT_TYPE}')
-    "
+    python3 -c "from utilities_common.module import ModuleHelper; helper = ModuleHelper(); helper.reboot_module('${DPU_NAME}', '${REBOOT_TYPE}')"
 }
 
 # Function to wait for DPU reboot status
@@ -189,7 +185,7 @@ function reboot_dpu()
         return ${EXIT_ERROR}
     fi
 
-    reboot_dpu_platform ${DPU_NAME}
+    reboot_dpu_platform ${DPU_NAME} ${REBOOT_TYPE}
     if [ $? -ne 0 ]; then
         log_message "Error: Failed to send platform command to reboot DPU ${DPU_NAME}"
         return ${EXIT_ERROR}
