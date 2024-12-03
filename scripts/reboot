@@ -249,6 +249,13 @@ if [[ $smart_switch_result -ne 0 ]]; then
     exit $smart_switch_result
 fi
 
+# On a smartswitch, complete the DPU reboot and exit
+is_smartswitch=$(is_smartswitch)
+if [ "$is_smartswitch" == "True" ] && [ "$REBOOT_DPU" == "yes" ]; then
+    exit $smart_switch_result
+fi
+fi
+
 check_conflict_boot_in_fw_update
 
 setup_reboot_variables
