@@ -164,7 +164,7 @@ class SocketManager:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.settimeout(Config.SOCKET_TIMEOUT)
                 self.sock.connect(self.socket_path)
-                syslog.syslog(syslog.LOG_INFO, "Successfully  connected to memory statistics service")
+                syslog.syslog(syslog.LOG_INFO, "Successfully connected to memory statistics service")
                 return
             except socket.error as e:
                 last_error = e
@@ -329,7 +329,7 @@ def memory_stats(ctx: click.Context, from_time: str, to_time: str, select_metric
 
 
 def display_config(db_connector: SonicDBConnector) -> None:
-    """Displays memory statistics configuration."""
+    """Displays memory statistics configuration. """
     try:
         config = db_connector.get_memory_statistics_config()
         enabled = format_field_value("enabled", config.get("enabled", "Unknown"))
