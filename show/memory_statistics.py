@@ -329,7 +329,7 @@ def memory_stats(ctx: click.Context, from_time: str, to_time: str, select_metric
 
 
 def display_config(db_connector: SonicDBConnector) -> None:
-    """Displays memory statistics configuration. """
+    """ Displays memory statistics configuration. """
     try:
         config = db_connector.get_memory_statistics_config()
         enabled = format_field_value("enabled", config.get("enabled", "Unknown"))
