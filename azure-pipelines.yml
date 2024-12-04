@@ -84,6 +84,7 @@ stages:
         sudo dpkg -i libyang_1.0.73_amd64.deb
         sudo dpkg -i libyang-cpp_1.0.73_amd64.deb
         sudo dpkg -i python3-yang_1.0.73_amd64.deb
+        sudo dpkg -i libprotobuf*.deb
       workingDirectory: $(Pipeline.Workspace)/target/debs/bullseye/
       displayName: 'Install Debian dependencies'
 
@@ -104,6 +105,27 @@ stages:
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install swss-common dependencies'
 
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: sonic-net.sonic-dash-api
+        artifact: sonic-dash-api
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        patterns: |
+          libdashapi*.deb
+      displayName: "Download dash api"
+
+    - script: |
+        set -xe
+        sudo apt-get update
+        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libdashapi_*.deb
+      workingDirectory: $(Pipeline.Workspace)/
+      displayName: 'Install libdashapi libraries'
+
     - script: |
         set -xe
         sudo pip3 install swsssdk-2.0.1-py3-none-any.whl
@@ -121,7 +143,7 @@ stages:
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
         sudo apt-add-repository https://packages.microsoft.com/debian/11/prod
         sudo apt-get update
-        sudo apt-get install -y dotnet-sdk-5.0
+        sudo apt-get install -y dotnet-sdk-8.0
       displayName: "Install .NET CORE"
 
     - script: |

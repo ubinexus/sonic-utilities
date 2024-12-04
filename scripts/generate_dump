@@ -1082,18 +1082,24 @@ save_file() {
     fi
 
     if $do_gzip; then
-        gz_path="${gz_path}.gz"
-        tar_path="${tar_path}.gz"
-        if $NOOP; then
+        if [ ! -d "$path" ]; then
+          gz_path="${gz_path}.gz"
+          tar_path="${tar_path}.gz"
+
+          if $NOOP; then
             echo "gzip -c $orig_path > $gz_path"
-        else
+          else
             gzip -c $orig_path > $gz_path
-        fi
-    else
-        if $NOOP; then
-            echo "cp $orig_path $gz_path"
+          fi
         else
-            cp $orig_path $gz_path
+          gz_path="${gz_path}.tar.gz"
+          tar_path="${tar_path}.tar.gz"
+
+          if $NOOP; then
+              echo "tar -czvf $gz_path -C $(dirname $orig_path) $(basename $orig_path)"
+          else
+              tar -czvf "$gz_path" -C "$(dirname "$orig_path")" "$(basename "$orig_path")"
+          fi
         fi
     fi
 
@@ -1240,6 +1246,18 @@ collect_mellanox() {
             ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
         fi
     fi
+
+    # collect the sdk dump
+    local sdk_dbg_folder="/var/log/sdk_dbg"
+    for file in $(find $sdk_dbg_folder -name "sx_sdk_*")
+    do
+        if [[ $file != *.gz ]]
+        then
+            save_file $file sai_sdk_dump true
+        else
+            save_file $file sai_sdk_dump false
+        fi
+    done
 
     # run 'hw-management-generate-dump.sh' script and save the result file
     HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
@@ -1613,7 +1631,7 @@ collect_cisco_8000() {
 }
 
 ##############################################################################
-# collect_innovium
+# collect_marvell_teralynx
 # Globals:
 #   None
 # Arguments:
@@ -1621,7 +1639,7 @@ collect_cisco_8000() {
 # Retuens:
 #   None
 ##############################################################################
-collect_innovium() {
+collect_marvell_teralynx() {
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile'" "show_techsupport_op_ifcs.log"
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile_iSAI'" "show_techsupport_op_iSAI.log"
 }
@@ -1674,6 +1692,45 @@ collect_nvidia_bluefield() {
     else
       echo "Platform dump script $DUMP_FILE does not exist"
     fi
+}
+
+###############################################################################
+# Collect Pensando specific information
+# Globals:
+#  MKDIR
+#  V
+#  NOOP
+#  RM
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_pensando() {
+    trap 'handle_error $? $LINENO' ERR
+    platform=$(grep 'onie_platform=' /host/machine.conf | cut -d '=' -f 2)
+    pipeline=`cat /usr/share/sonic/device/${platform}/default_pipeline`
+    if [ ${pipeline} = "polaris" ]; then
+        dpu_container_name="polaris"
+    else
+        dpu_container_name="dpu"
+    fi
+    local dpu_dump_folder="/root/dpu_dump"
+    $MKDIR $V -p $dpu_dump_folder
+    if $NOOP; then
+        echo "docker exec ${dpu_container_name} /nic/tools/collect_techsupport.sh"
+    else
+        output=$(docker exec ${dpu_container_name} /nic/tools/collect_techsupport.sh 2>&1)
+        if echo "${output}" | grep -q "Techsupport collected at"; then
+            file_path=$(echo "${output}" | grep -oP '(?<=Techsupport collected at ).*')
+            file_name=$(basename "${file_path}")
+            copy_from_docker ${dpu_container_name} ${file_path} ${dpu_dump_folder}
+            save_file ${dpu_dump_folder}/${file_name} ${dpu_container_name}_techsupport false
+        else
+            echo "Failed to collect ${dpu_container_name} container techsupport..."
+        fi
+    fi
+    $RM $V -rf $dpu_dump_folder
 }
 
 ###############################################################################
@@ -2034,6 +2091,12 @@ main() {
     fi
     wait
 
+ 	save_cmd "stpctl all" "stp.log"
+    save_cmd "show spanning_tree" "stp.show"
+    save_cmd "show spanning_tree statistics" "stp.stats"
+    save_cmd "show spanning_tree bpdu_guard" "stp.bg"
+    save_cmd "show spanning_tree root_guard" "stp.rg"
+
     save_cmd "ps aux" "ps.aux" &
     save_cmd "top -b -n 1" "top" &
     save_cmd "free" "free" &
@@ -2102,12 +2165,16 @@ main() {
         collect_nvidia_bluefield
     fi
 
-    if [ "$asic" = "innovium" ]; then
-        collect_innovium
+    if [ "$asic" = "marvell-teralynx" ]; then
+        collect_marvell_teralynx
     fi
 
     if [ "$asic" = "marvell" ]; then
         collect_marvell
+    fi
+
+    if [ "$asic" = "pensando" ]; then
+        collect_pensando
     fi
 
 
@@ -2168,6 +2235,9 @@ finalize() {
         else
             echo "WARNING: gzip operation appears to have failed." >&2
         fi
+        # sometimes gzip takes more than 20 sec to finish, causing file time create validation
+        # to fail. touching the tarfile created to refresh modify time.
+        touch ${TARFILE}
     fi
 
     # Invoke the TechSupport Cleanup Hook
