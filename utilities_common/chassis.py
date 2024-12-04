@@ -27,8 +27,12 @@ def is_dpu():
 
 
 def get_num_dpus():
-    return hasattr(device_info, 'get_num_dpus') and device_info.get_num_dpus()
+    if hasattr(device_info, 'get_num_dpus'):
+        return device_info.get_num_dpus()
+    return 0
 
 
 def get_dpu_list():
-    return hasattr(device_info, 'get_dpu_list') and device_info.get_dpu_list()
+    if hasattr(device_info, 'get_dpu_list'):
+        return device_info.get_dpu_list()
+    return []

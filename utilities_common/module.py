@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 #
-# module_base.py
+# module.py
 #
 # Utility helper for modules within SONiC
 
-from sonic_py_common import logger
+from sonic_py_common import syslogger
 from utilities_common.util_base import UtilHelper
 
-SYSLOG_IDENTIFIER = "module_base"
+SYSLOG_IDENTIFIER = "module"
 NOT_AVAILABLE = 'N/A'
 INVALID_MODULE_INDEX = -1
 
@@ -15,7 +15,7 @@ INVALID_MODULE_INDEX = -1
 util = UtilHelper()
 
 # Global logger instance
-log = logger.Logger(SYSLOG_IDENTIFIER)
+log = syslogger.SysLogger(SYSLOG_IDENTIFIER)
 
 
 class ModuleHelper:
@@ -54,7 +54,8 @@ class ModuleHelper:
         Returns:
             bool: True if the reboot command was successfully sent, False otherwise.
         """
-        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name, default=INVALID_MODULE_INDEX)
+        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name,
+                                         default=INVALID_MODULE_INDEX)
         if module_index < 0:
             log.log_error("Unable to get module-index for {}". format(module_name))
             return False
@@ -81,7 +82,8 @@ class ModuleHelper:
         Returns:
             bool: True if the detach command was successfully sent, False otherwise.
         """
-        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name, default=INVALID_MODULE_INDEX)
+        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name,
+                                         default=INVALID_MODULE_INDEX)
         if module_index < 0:
             log.log_error("Unable to get module-index for {}". format(module_name))
             return False
@@ -108,7 +110,8 @@ class ModuleHelper:
         Returns:
             bool: True if the rescan command was successfully sent, False otherwise.
         """
-        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name, default=INVALID_MODULE_INDEX)
+        module_index = self.try_get_args(self.platform_chassis.get_module_index, module_name,
+                                         default=INVALID_MODULE_INDEX)
         if module_index < 0:
             log.log_error("Unable to get module-index for {}". format(module_name))
             return False
