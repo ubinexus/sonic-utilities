@@ -164,7 +164,7 @@ class SocketManager:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.settimeout(Config.SOCKET_TIMEOUT)
                 self.sock.connect(self.socket_path)
-                syslog.syslog(syslog.LOG_INFO, "Successfully connected to memory statistics service")
+                syslog.syslog(syslog.LOG_INFO, "Successfully  connected to memory statistics service")
                 return
             except socket.error as e:
                 last_error = e
