@@ -1,5 +1,4 @@
 import os
-import json
 from sonic_py_common import device_info
 
 def get_chassis_local_interfaces():
