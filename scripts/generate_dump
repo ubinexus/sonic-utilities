@@ -1082,18 +1082,24 @@ save_file() {
     fi
 
     if $do_gzip; then
-        gz_path="${gz_path}.gz"
-        tar_path="${tar_path}.gz"
-        if $NOOP; then
+        if [ ! -d "$path" ]; then
+          gz_path="${gz_path}.gz"
+          tar_path="${tar_path}.gz"
+
+          if $NOOP; then
             echo "gzip -c $orig_path > $gz_path"
-        else
+          else
             gzip -c $orig_path > $gz_path
-        fi
-    else
-        if $NOOP; then
-            echo "cp $orig_path $gz_path"
+          fi
         else
-            cp $orig_path $gz_path
+          gz_path="${gz_path}.tar.gz"
+          tar_path="${tar_path}.tar.gz"
+
+          if $NOOP; then
+              echo "tar -czvf $gz_path -C $(dirname $orig_path) $(basename $orig_path)"
+          else
+              tar -czvf "$gz_path" -C "$(dirname "$orig_path")" "$(basename "$orig_path")"
+          fi
         fi
     fi
 
@@ -1625,7 +1631,7 @@ collect_cisco_8000() {
 }
 
 ##############################################################################
-# collect_innovium
+# collect_marvell_teralynx
 # Globals:
 #   None
 # Arguments:
@@ -1633,7 +1639,7 @@ collect_cisco_8000() {
 # Retuens:
 #   None
 ##############################################################################
-collect_innovium() {
+collect_marvell_teralynx() {
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile'" "show_techsupport_op_ifcs.log"
     save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile_iSAI'" "show_techsupport_op_iSAI.log"
 }
@@ -2085,6 +2091,12 @@ main() {
     fi
     wait
 
+ 	save_cmd "stpctl all" "stp.log"
+    save_cmd "show spanning_tree" "stp.show"
+    save_cmd "show spanning_tree statistics" "stp.stats"
+    save_cmd "show spanning_tree bpdu_guard" "stp.bg"
+    save_cmd "show spanning_tree root_guard" "stp.rg"
+
     save_cmd "ps aux" "ps.aux" &
     save_cmd "top -b -n 1" "top" &
     save_cmd "free" "free" &
@@ -2153,8 +2165,8 @@ main() {
         collect_nvidia_bluefield
     fi
 
-    if [ "$asic" = "innovium" ]; then
-        collect_innovium
+    if [ "$asic" = "marvell-teralynx" ]; then
+        collect_marvell_teralynx
     fi
 
     if [ "$asic" = "marvell" ]; then
@@ -2223,6 +2235,9 @@ finalize() {
         else
             echo "WARNING: gzip operation appears to have failed." >&2
         fi
+        # sometimes gzip takes more than 20 sec to finish, causing file time create validation
+        # to fail. touching the tarfile created to refresh modify time.
+        touch ${TARFILE}
     fi
 
     # Invoke the TechSupport Cleanup Hook
