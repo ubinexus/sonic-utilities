@@ -50,7 +50,7 @@ stages:
         set -ex
         sudo apt-get update
         sudo apt-get install -y python3-pip
-        pip3 install requests==2.31.0
+        sudo pip3 install requests==2.31.0
         sudo apt-get install -y python3-protobuf
       displayName: "Install dependencies"
 
@@ -128,12 +128,12 @@ stages:
 
     - script: |
         set -xe
-        pip3 install swsssdk-2.0.1-py3-none-any.whl
-        pip3 install sonic_py_common-1.0-py3-none-any.whl
-        pip3 install sonic_yang_mgmt-1.0-py3-none-any.whl
-        pip3 install sonic_yang_models-1.0-py3-none-any.whl
-        pip3 install sonic_config_engine-1.0-py3-none-any.whl
-        pip3 install sonic_platform_common-1.0-py3-none-any.whl
+        sudo pip3 install swsssdk-2.0.1-py3-none-any.whl
+        sudo pip3 install sonic_py_common-1.0-py3-none-any.whl
+        sudo pip3 install sonic_yang_mgmt-1.0-py3-none-any.whl
+        sudo pip3 install sonic_yang_models-1.0-py3-none-any.whl
+        sudo pip3 install sonic_config_engine-1.0-py3-none-any.whl
+        sudo pip3 install sonic_platform_common-1.0-py3-none-any.whl
       workingDirectory: $(Pipeline.Workspace)/target/python-wheels/bookworm/
       displayName: 'Install Python dependencies'
 
