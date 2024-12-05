@@ -741,7 +741,6 @@ def check_routes(namespace):
         rt_asic_miss = filter_out_standalone_tunnel_routes(namespace, rt_asic_miss)
         rt_asic_miss = filter_out_soc_ip_routes(namespace, rt_asic_miss)
 
-
         # Check APPL-DB INTF_TABLE with ASIC table route entries
         intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
 
@@ -860,7 +859,6 @@ def main():
                 return ret, res
         else:
             return ret, res
-
 
 
 if __name__ == "__main__":
