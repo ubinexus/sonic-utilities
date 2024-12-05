@@ -147,7 +147,9 @@ stages:
       displayName: "Install .NET CORE"
 
     - script: |
-        python3 setup.py test
+        sudo pip3 install ".[testing]"
+        sudo pip3 uninstall --yes sonic-utilities
+        pytest
       displayName: 'Test Python 3'
 
     - task: PublishTestResults@2
@@ -167,7 +169,7 @@ stages:
 
     - script: |
         set -e
-        python3 setup.py bdist_wheel
+        python3 -m build -n
       displayName: 'Build Python 3 wheel'
 
     - publish: '$(System.DefaultWorkingDirectory)/dist/'
