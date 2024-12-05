@@ -169,9 +169,9 @@ stages:
 
     - script: |
         set -e
-        python3 -m build -n
+        python3 setup.py bdist_wheel
       displayName: 'Build Python 3 wheel'
 
     - publish: '$(System.DefaultWorkingDirectory)/dist/'
       artifact: wheels
-      displayName: "Publish Python wheels"
+      displayName: "oublish Python wheels"
