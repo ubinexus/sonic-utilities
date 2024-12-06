@@ -61,7 +61,7 @@ class TestDict2Obj(unittest.TestCase):
         self.assertEqual(result, test_dict)
 
     def test_repr_method(self):
-        """Test string representation of Dict2Obj"""
+        """Test string representation of Dict2Obj """
         test_dict = {"name": "test"}
         obj = Dict2Obj(test_dict)
         expected_repr = "<Dict2Obj {'name': 'test'}>"
