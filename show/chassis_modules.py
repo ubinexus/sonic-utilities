@@ -38,7 +38,7 @@ def status(db, chassis_module_name):
     header = ['Name', 'Description', 'Physical-Slot', 'Oper-Status', 'Admin-Status', 'Serial']
     chassis_cfg_table = db.cfgdb.get_table('CHASSIS_MODULE')
 
-    state_db = SonicV2Connector(host="127.0.0.1", port="6379")
+    state_db = SonicV2Connector(host="127.0.0.1")
     state_db.connect(state_db.STATE_DB)
 
     key_pattern = CHASSIS_MODULE_INFO_TABLE + '|*'

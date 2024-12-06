@@ -27,7 +27,7 @@ def get_all_dpus():
     try:
         # Convert the entries in the list to uppercase
         return [dpu.upper() for dpu in device_info.get_dpu_list()]
-    except Exception as e:
+    except:
         return []
 
 
