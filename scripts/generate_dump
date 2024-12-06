@@ -527,8 +527,8 @@ save_bgp_neighbor() {
     if [ ! -z "$neighbor_list_v4" ]; then
         v4_cmd="vtysh "
         for word in $neighbor_list_v4; do
-            v4_cmd="${v4_cmd} $ns -Ec 'show bgp ip neighbors $word advertised-routes' "
-            v4_cmd="${v4_cmd} $ns -Ec 'show bgp ip neighbors $word routes' "
+            v4_cmd="${v4_cmd} $ns -Ec 'show bgp ipv4 neighbors $word advertised-routes' "
+            v4_cmd="${v4_cmd} $ns -Ec 'show bgp ipv4 neighbors $word routes' "
         done
         save_cmd "$v4_cmd" "ip.bgp.neigh.adv.rcv.routes"
     fi
@@ -554,8 +554,8 @@ save_bgp_neighbor() {
         for vrf in $vrf_list; do
             neighbor_list=`${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp vrf $vrf neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'"`
             for word in $neighbor_list; do
-                vrf_cmd="${vrf_cmd} $nc -Ec 'show ip bgp vrf $vrf neighbors $word advertised-routes' "
-                vrf_cmd="${vrf_cmd} $nc -Ec 'show ip bgp vrf $vrf neighbors $word routes' "
+                vrf_cmd="${vrf_cmd} $ns -Ec 'show ip bgp vrf $vrf neighbors $word advertised-routes' "
+                vrf_cmd="${vrf_cmd} $ns -Ec 'show ip bgp vrf $vrf neighbors $word routes' "
             done
         done
         save_cmd "$vrf_cmd" "ip.bgp.neigh.vrf.adv.rcv.routes"
