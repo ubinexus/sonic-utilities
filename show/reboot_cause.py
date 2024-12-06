@@ -6,8 +6,9 @@ import click
 from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 import utilities_common.cli as clicommon
-from utilities_common.chassis import is_smartswitch, get_all_options
+from utilities_common.chassis import is_smartswitch, get_all_dpu_options
 
+CHASSIS_SERVER_PORT = 6380
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
 
@@ -35,7 +36,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
 
     try:
         if use_chassis_db:
-            rdb = SonicV2Connector(host='redis_chassis.server', port=6380)
+            rdb = SonicV2Connector(host='redis_chassis.server', port=CHASSIS_SERVER_PORT)
             rdb.connect(rdb.CHASSIS_STATE_DB)
             table_keys = rdb.keys(rdb.CHASSIS_STATE_DB, prefix+'*')
         else:
@@ -69,7 +70,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
                     if not entry['device'] in d:
                         d.append(entry['device'])
                         append = True
-            r.append(entry['device'] if 'device' in entry else "SWITCH")
+            r.append(entry['device'] if 'device' in entry else "NPU")
 
         name = tk.split('|')[-1]
         if "|" in name:
@@ -82,7 +83,7 @@ def fetch_data_from_db(module_name, fetch_history=False, use_chassis_db=False):
             table.append(r)
         elif fetch_history:
             r.append(entry['comment'] if 'comment' in entry else "")
-            if module_name is None or module_name == 'all' or module_name.startswith('SWITCH') or \
+            if module_name is None or module_name == 'all' or \
                'device' in entry and module_name == entry['device']:
                 table.append(r)
 
@@ -101,7 +102,7 @@ def fetch_reboot_cause_from_db(module_name):
     reboot_time = reboot_cause_dict.get("time", "N/A")
     reboot_user = reboot_cause_dict.get("user", "N/A")
 
-    r.append("SWITCH")
+    r.append("NPU")
     r.append(reboot_gen_time if reboot_gen_time else "")
     r.append(reboot_cause if reboot_cause else "")
     r.append(reboot_time if reboot_time else "")
@@ -112,14 +113,14 @@ def fetch_reboot_cause_from_db(module_name):
     return table
 
 
-# Function to fetch reboot cause history data from database
+# Function to fetch reboot cause history data from database REBOOT_CAUSE table
 def fetch_reboot_cause_history_from_db(module_name):
     if module_name == "all":
         # Combine data from both Redis containers for "all" modules
         data_switch = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
         data_dpu = fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
         return data_switch + data_dpu
-    elif module_name is None or module_name == "SWITCH":
+    elif module_name is None:
         return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=False)
     else:
         return fetch_data_from_db(module_name, fetch_history=True, use_chassis_db=True)
@@ -179,7 +180,7 @@ def all():
 @click.argument(
         'module_name',
         required=False,
-        type=click.Choice(get_all_options(), case_sensitive=False) if is_smartswitch() else None
+        type=click.Choice(get_all_dpu_options(), case_sensitive=False) if is_smartswitch() else None
         )
 def history(module_name=None):
     """Show history of reboot-cause"""

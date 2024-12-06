@@ -720,7 +720,6 @@ CLI Extensions Applicable to Smartswtich
   - show reboot-cause all
   - show reboot-cause history all
   - show reboot-cause history DPUx
-  - show reboot-cause history SWITCH
 ```
 **show reboot-cause all**
 
@@ -736,7 +735,7 @@ This command displays the cause of the previous reboot for the Switch and the DP
   root@MtFuji:~$  show reboot-cause all
   Device    Name                 Cause                      Time    User
   --------  -------------------  ----------                 ------  ------
-  SWITCH    2024_07_24_20_43_22  Power Loss                 N/A     N/A
+  NPU       2024_07_24_20_43_22  Power Loss                 N/A     N/A
   DPU2      2024_07_24_20_43_22  Software causes (Reboot)   N/A     N/A
   DPU1      2024_07_24_20_43_22  Software causes (Reboot)   N/A     N/A
   ```
@@ -774,8 +773,8 @@ This command displays the history of the previous reboots up to 10 entry of the 
   root@MtFuji:~# show reboot-cause history all
   Device    Name                 Cause                                      Time                             User    Comment
   --------  -------------------  -----------------------------------------  -------------------------------  ------  -------
-  SWITCH    2024_07_23_23_06_57  Kernel Panic                               Tue Jul 23 11:02:27 PM UTC 2024  N/A     N/A
-  SWITCH    2024_07_23_11_21_32  Power Loss                                 N/A                              N/A     Unknown
+  NPU       2024_07_23_23_06_57  Kernel Panic                               Tue Jul 23 11:02:27 PM UTC 2024  N/A     N/A
+  NPU       2024_07_23_11_21_32  Power Loss                                 N/A                              N/A     Unknown
   ```
 
 **show reboot-cause history DPU1**
@@ -795,23 +794,6 @@ This command displays the history of the previous reboots up to 10 entry of DPU1
   DPU1      DPU1    Software causes (Hardware watchdog reset)  N/A     N/A     N/A
   ```
 
-**show reboot-cause history SWITCH**
-
-This command displays the history of the previous reboots up to 10 entry of the SWITCH
-
-- Usage:
-  ```
-  show reboot-cause history SWITCH
-  ```
-
-- Example:
-  ```
-  root@MtFuji:~# show reboot-cause history SWITCH
-  Device    Name                 Cause         Time                             User    Comment
-  --------  -------------------  ------------  -------------------------------  ------  ----------
-  SWITCH    2024_07_23_23_06_57  Kernel Panic  Tue Jul 23 11:02:27 PM UTC 2024  N/A     N/A
-  SWITCH    2024_07_23_09_51_35  Power Loss    N/A                              N/A     First boot
-  ```
 
 **show uptime**
 

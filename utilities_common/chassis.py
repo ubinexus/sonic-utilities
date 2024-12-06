@@ -24,7 +24,11 @@ def is_smartswitch():
 
 # utility to get dpu module name list
 def get_all_dpus():
-    return device_info.get_dpu_list()
+    try:
+        # Convert the entries in the list to uppercase
+        return [dpu.upper() for dpu in device_info.get_dpu_list()]
+    except Exception as e:
+        return []
 
 
 # utility to get dpu module name list and all
@@ -33,15 +37,5 @@ def get_all_dpu_options():
 
     # Add 'all' and 'SWITCH' to the list
     dpu_list += ['all']
-
-    return dpu_list
-
-
-# utility to get dpu module name list and "all, SWITCH"
-def get_all_options():
-    dpu_list = get_all_dpus()
-
-    # Add 'all' and 'SWITCH' to the list
-    dpu_list += ['all', 'SWITCH']
 
     return dpu_list

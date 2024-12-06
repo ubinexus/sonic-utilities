@@ -79,19 +79,13 @@ Name                 Cause        Time                          User    Comment
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["all"])
         print(result.output)
 
-    # Test 'show reboot-cause history SWITCH'
-    def test_reboot_cause_history_switch(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["SWITCH"])
-        print(result.output)
-
     # Test 'show reboot-cause history DPU0'
     def test_reboot_cause_history_dpu(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
         print(result.output)
 
-    # Test 'get_all_options' function
+    # Test 'get_all_dpu_options' function
     def test_get_all_options(self):
         # Mock is_smartswitch to return True
         with mock.patch("sonic_py_common.device_info.is_smartswitch", return_value=True):
@@ -107,9 +101,9 @@ Name                 Cause        Time                          User    Comment
                     # Mock json.load to return parsed JSON content from the mocked file
                     with mock.patch("json.load", return_value=json.loads(mock_platform_data)):
 
-                        # Import the actual get_all_options function and invoke it
-                        from show.reboot_cause import get_all_options
-                        dpu_list = get_all_options()
+                        # Import the actual get_all_dpu_options function and invoke it
+                        from show.reboot_cause import get_all_dpu_options
+                        dpu_list = get_all_dpu_options()
                         print(dpu_list)
 
     # Test 'show reboot-cause all on smartswitch'
@@ -129,8 +123,6 @@ Name                 Cause        Time                          User    Comment
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
                 print(result.output)
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["all"])
-                print(result.output)
-                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["SWITCH"])
                 print(result.output)
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
                 print(result.output)
@@ -152,8 +144,6 @@ Name                 Cause        Time                          User    Comment
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["all"], [])
                 print(result.output)
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["all"])
-                print(result.output)
-                result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["SWITCH"])
                 print(result.output)
                 result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], ["DPU0"])
                 print(result.output)
