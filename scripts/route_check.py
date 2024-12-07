@@ -348,6 +348,7 @@ def is_suppress_fib_pending_enabled(namespace):
 
     return state == 'enabled'
 
+
 def fetch_routes(cmd):
     """
     Fetch routes using the given command.
@@ -710,6 +711,7 @@ def filter_out_vlan_neigh_route_miss(namespace, rt_appl_miss, rt_asic_miss):
 
     return rt_appl_miss, rt_asic_miss
 
+
 def check_routes_for_namespace(namespace):
     """
     Process a Single Namespace:
@@ -749,7 +751,6 @@ def check_routes_for_namespace(namespace):
     rt_asic_miss = filter_out_vnet_routes(namespace, rt_asic_miss)
     rt_asic_miss = filter_out_standalone_tunnel_routes(namespace, rt_asic_miss)
     rt_asic_miss = filter_out_soc_ip_routes(namespace, rt_asic_miss)
-
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
@@ -793,12 +794,11 @@ def check_routes_for_namespace(namespace):
         if results:
             if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
                 print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR{} but all "
-                                  "routes in APPL_DB and ASIC_DB are in sync".format(namespace))
+                              "routes in APPL_DB and ASIC_DB are in sync".format(namespace))
                 if is_suppress_fib_pending_enabled(namespace):
                     mitigate_installed_not_offloaded_frr_routes(namespace, rt_frr_miss, rt_appl)
 
     return results, adds, deletes
-
 
 
 def check_routes(namespace):
