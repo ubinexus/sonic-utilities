@@ -2,6 +2,8 @@ import click
 from swsssdk import ConfigDBConnector
 import utilities_common.cli as clicommon
 
+CFG_TACACS_SERVER_MAX_NUM = 8
+
 def add_table_kv(table, entry, key, val):
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -176,6 +178,15 @@ tacacs.add_command(passkey)
 default.add_command(passkey)
 
 
+def tacacs_server_config_num_get(config_db, ctx):
+    tacacs_server_table = config_db.get_table('TACPLUS_SERVER')
+    num = len(list(tacacs_server_table))
+    if num >= CFG_TACACS_SERVER_MAX_NUM:
+        ctx.fail("tacacs server reached max size({})".format(CFG_TACACS_SERVER_MAX_NUM))
+        return False
+    return True
+
+
 # cmd: tacacs add <ip_address> --timeout SECOND --key SECRET --type TYPE --port PORT --pri PRIORITY
 @click.command()
 @click.argument('address', metavar='<ip_address>')
@@ -185,14 +196,19 @@ default.add_command(passkey)
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
 @click.option('-p', '--pri', help="Priority, default 1", type=click.IntRange(1, 64), default=1)
 @click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
-def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
+@click.pass_context
+def add(ctx, address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     """Specify a TACACS+ server"""
     if not clicommon.is_ipaddress(address):
-        click.echo('Invalid ip address')
+        ctx.fail('Invalid ip address')
         return
 
     config_db = ConfigDBConnector()
     config_db.connect()
+    
+    if (False == tacacs_server_config_num_get(config_db, ctx)):
+        return
+            
     old_data = config_db.get_entry('TACPLUS_SERVER', address)
     if old_data != {}:
         click.echo('server %s already exists' % address)
