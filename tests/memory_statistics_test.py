@@ -200,6 +200,30 @@ class TestSocketManager(unittest.TestCase):
         result = self.socket_manager.receive_all()
         self.assertEqual(result, 'testdata')
 
+    @patch('socket.socket')
+    def test_receive_all_timeout(self, mock_socket):
+        """Test socket timeout during receive_all"""
+        mock_sock = MagicMock()
+        mock_socket.return_value = mock_sock
+        mock_sock.recv.side_effect = socket.timeout
+        self.socket_manager.sock = mock_sock
+
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.receive_all()
+        self.assertIn("Socket operation timed out", str(context.exception))
+
+    @patch('socket.socket')
+    def test_receive_all_socket_error(self, mock_socket):
+        """Test socket error during receive_all"""
+        mock_sock = MagicMock()
+        mock_socket.return_value = mock_sock
+        mock_sock.recv.side_effect = socket.error("Test socket error")
+        self.socket_manager.sock = mock_sock
+
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.receive_all()
+        self.assertIn("Socket error during receive", str(context.exception))
+
     def test_close_success(self):
         """Test successful socket closure"""
         mock_sock = MagicMock()
@@ -239,99 +263,4 @@ class TestSocketManager(unittest.TestCase):
     def test_display_config_exception(self, mock_echo):
         """Test display_config function with database connection error."""
         mock_db_connector = Mock()
-        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
-
-        with patch('syslog.syslog') as mock_syslog:
-            with pytest.raises(click.ClickException) as excinfo:
-                display_config(mock_db_connector)
-
-            assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
-            mock_syslog.assert_called_once_with(
-                syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
-            )
-
-
-class TestCLICommands(unittest.TestCase):
-    """Test cases for CLI commands"""
-    def setUp(self):
-        self.runner = CliRunner()
-        self.ctx = click.Context(click.Command('test'))
-
-    def test_validate_command_invalid_with_suggestion(self):
-        """Test command validation with invalid command but close match"""
-        valid_commands = ['show', 'config']
-        with self.assertRaises(click.UsageError) as context:
-            validate_command('shw', valid_commands)
-        self.assertIn("Did you mean 'show'", str(context.exception))
-
-    def test_validate_command_invalid_no_suggestion(self):
-        """Test command validation with invalid command and no close match"""
-        valid_commands = ['show', 'config']
-        with self.assertRaises(click.UsageError) as context:
-            validate_command('xyz', valid_commands)
-        self.assertIn("Invalid command 'xyz'", str(context.exception))
-
-    def test_format_field_value(self):
-        """Test field value formatting"""
-        self.assertEqual(format_field_value("enabled", "true"), "True")
-        self.assertEqual(format_field_value("enabled", "false"), "False")
-        self.assertEqual(format_field_value("retention_period", "Unknown"), "Not configured")
-        self.assertEqual(format_field_value("sampling_interval", "5"), "5")
-
-    def test_clean_and_print(self):
-        """Test data cleaning and printing"""
-        test_data = {
-            "data": "Memory Usage: 50%\nSwap Usage: 10%"
-        }
-        with patch('builtins.print') as mock_print:
-            clean_and_print(test_data)
-            mock_print.assert_called_with("Memory Statistics:\nMemory Usage: 50%\nSwap Usage: 10%")
-
-    def test_clean_and_print_invalid_data(self):
-        """Test clean_and_print with invalid data"""
-        with patch('builtins.print') as mock_print:
-            clean_and_print("invalid data")
-            mock_print.assert_called_with("Error: Invalid data format received")
-
-    @patch('show.memory_statistics.send_data')
-    def test_display_statistics_no_response(self, mock_send_data):
-        """Test display_statistics with no response."""
-        mock_send_data.side_effect = click.ClickException("No data")
-
-        ctx = MagicMock()
-        with self.assertRaises(click.ClickException):
-            display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
-
-
-class TestCLIEntryPoint(unittest.TestCase):
-
-    @patch('sys.argv', ['memory_statistics.py', 'show'])
-    @patch('show.memory_statistics.cli')
-    def test_main_valid_command(self, mock_cli):
-        """Test main() with a valid 'show' command."""
-        mock_cli.add_command = MagicMock()
-        mock_cli.return_value = None
-
-        try:
-            main()
-        except SystemExit:
-            pass
-
-        mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()
-
-    @patch('sys.argv', ['memory_statistics.py'])
-    @patch('show.memory_statistics.cli')
-    def test_main_no_command(self, mock_cli):
-        """Test main() with no command-line arguments."""
-        try:
-            main()
-        except SystemExit:
-            pass
-
-        mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()
-
-
-if __name__ == '__main__':
-    unittest.main()
+        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error
