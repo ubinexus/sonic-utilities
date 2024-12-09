@@ -272,6 +272,7 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         return
     if len(old_data) == TACACS_MAXSERVERS:
         click.echo(f'tacacs server reached max size {TACACS_MAXSERVERS}')
+        return
     else:
         data = {
             'tcp_port': str(port),
