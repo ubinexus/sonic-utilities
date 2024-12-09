@@ -9,6 +9,7 @@ import utilities_common.cli as clicommon
 
 ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
+TACACS_MAXSERVERS = 8
 RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
 
@@ -265,9 +266,12 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
 
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    old_data = config_db.get_entry('TACPLUS_SERVER', address)
-    if old_data != {}:
+    old_data = config_db.get_table('TACPLUS_SERVER')
+    if address in old_data :
         click.echo('server %s already exists' % address)
+        return
+    if len(old_data) == TACACS_MAXSERVERS:
+        click.echo(f'tacacs server reached max size {TACACS_MAXSERVERS}')
     else:
         data = {
             'tcp_port': str(port),
