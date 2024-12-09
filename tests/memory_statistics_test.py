@@ -14,7 +14,6 @@ from show.memory_statistics import (
     SonicDBConnector,
     SocketManager,
     display_config,
-    display_statistics,
     main,
     show,
     format_field_value,
