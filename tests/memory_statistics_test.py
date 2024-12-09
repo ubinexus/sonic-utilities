@@ -177,6 +177,7 @@ class TestSocketManager(unittest.TestCase):
         """Test successful socket connection"""
         mock_sock = MagicMock()
         mock_socket.return_value = mock_sock
+        mock_sock.connect.side_effect = None
         self.socket_manager.connect()
         mock_sock.settimeout.assert_called_with(Config.SOCKET_TIMEOUT)
         mock_sock.connect.assert_called_with(self.socket_path)
@@ -199,30 +200,6 @@ class TestSocketManager(unittest.TestCase):
         self.socket_manager.sock = mock_sock
         result = self.socket_manager.receive_all()
         self.assertEqual(result, 'testdata')
-
-    @patch('socket.socket')
-    def test_receive_all_timeout(self, mock_socket):
-        """Test socket timeout during receive_all"""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.timeout
-        self.socket_manager.sock = mock_sock
-
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.receive_all()
-        self.assertIn("Socket operation timed out", str(context.exception))
-
-    @patch('socket.socket')
-    def test_receive_all_socket_error(self, mock_socket):
-        """Test socket error during receive_all"""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.error("Test socket error")
-        self.socket_manager.sock = mock_sock
-
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.receive_all()
-        self.assertIn("Socket error during receive", str(context.exception))
 
     def test_close_success(self):
         """Test successful socket closure"""
@@ -263,4 +240,70 @@ class TestSocketManager(unittest.TestCase):
     def test_display_config_exception(self, mock_echo):
         """Test display_config function with database connection error."""
         mock_db_connector = Mock()
-        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error
+        mock_db_connector.get_memory_statistics_config.side_effect = Exception("DB Error")
+
+        with patch('syslog.syslog') as mock_syslog:
+            with pytest.raises(click.ClickException) as excinfo:
+                display_config(mock_db_connector)
+
+            assert "Failed to retrieve configuration: DB Error" in str(excinfo.value)
+            mock_syslog.assert_called_once_with(
+                syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
+            )
+
+    @patch('socket.socket')
+    def test_receive_all_timeout_error(self, mock_socket):
+        """Test receive_all method with a timeout error."""
+        mock_sock = MagicMock()
+        mock_socket.return_value = mock_sock
+        mock_sock.recv.side_effect = socket.timeout
+        self.socket_manager.sock = mock_sock
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.receive_all()
+        self.assertIn("Socket operation timed out after", str(context.exception))
+
+    @patch('socket.socket')
+    def test_receive_all_socket_error(self, mock_socket):
+        """Test receive_all method with socket error."""
+        mock_sock = MagicMock()
+        mock_socket.return_value = mock_sock
+        mock_sock.recv.side_effect = socket.error
+        self.socket_manager.sock = mock_sock
+        with self.assertRaises(ConnectionError) as context:
+            self.socket_manager.receive_all()
+        self.assertIn("Socket error occurred during receive", str(context.exception))
+
+    def test_clean_and_print_success(self):
+        """Test clean_and_print function."""
+        with patch('sys.stdout', new_callable=MagicMock()) as mock_stdout:
+            clean_and_print("test message")
+            mock_stdout.write.assert_called_with("test message\n")
+
+    def test_format_field_value(self):
+        """Test format_field_value function."""
+        formatted_value = format_field_value("test_value")
+        self.assertEqual(formatted_value, "test_value")
+
+    @patch('click.echo')
+    def test_display_statistics(self, mock_echo):
+        """Test display_statistics function."""
+        mock_data = {
+            "used_memory": "50MB",
+            "free_memory": "50MB"
+        }
+        display_statistics(mock_data)
+        mock_echo.assert_called_with(f"Used Memory: 50MB\nFree Memory: 50MB\n")
+
+    @patch('syslog.syslog')
+    @patch('click.echo')
+    def test_main(self, mock_echo, mock_syslog):
+        """Test main function."""
+        runner = CliRunner()
+        result = runner.invoke(main)
+        assert result.exit_code == 0
+        mock_syslog.assert_called_once_with(syslog.LOG_INFO, "Displaying memory statistics.")
+        mock_echo.assert_called_with("Memory Statistics are being shown...\n")
+
+
+if __name__ == "__main__":
+    unittest.main()
