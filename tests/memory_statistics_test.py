@@ -271,22 +271,26 @@ class TestCLICommands(unittest.TestCase):
 
     def test_format_field_value_valid(self):
         """Test formatting field values"""
-        result = format_field_value('value')
-        self.assertEqual(result, 'value')
+        formatted_value = format_field_value('value')
+        self.assertEqual(formatted_value, 'expected_value')
 
     def test_clean_and_print_success(self):
         """Test cleaning and printing of message"""
         with patch('click.echo') as mock_echo:
-            clean_and_print('Hello, world!')
+            clean_and_print()
             mock_echo.assert_called_once_with('Hello, world!')
 
     def test_main(self):
         """Test main CLI command"""
+        runner = CliRunner()
+
         with patch('sys.exit') as mock_exit:
-            with patch('show.memory_statistics.CliRunner.invoke') as mock_invoke:
-                mock_invoke.return_value = MagicMock(exit_code=0)
-                main()
-                mock_exit.assert_called_once_with(0)
+            result = runner.invoke(main)  # Run the main function with CliRunner
+            mock_exit.assert_called_once_with(0)  # Assert that sys.exit(0) was called
+            
+            # Optionally, check the output if needed
+            self.assertEqual(result.exit_code, 0)  # Ensure the exit code is 0
+            self.assertIn('Expected Output', result.output) 
 
     @patch("show.memory_statistics.show.show_memory_statistics")
     def test_show(self, mock_show_memory_statistics):
