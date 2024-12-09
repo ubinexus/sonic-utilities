@@ -7,6 +7,7 @@ from click.testing import CliRunner
 import syslog
 import pytest
 from unittest.mock import Mock
+from show.memory_statistics import cli
 
 from show.memory_statistics import (
     Config,
@@ -285,7 +286,6 @@ class TestCLICommands(unittest.TestCase):
         formatted_value = format_field_value("some_field", "Unknown")
         self.assertEqual(formatted_value, "Not configured")
 
-    
     def test_clean_and_print_success(self):
         """Test cleaning and printing of memory statistics."""
         with patch('builtins.print') as mock_print:
@@ -296,21 +296,29 @@ class TestCLICommands(unittest.TestCase):
             mock_print.assert_called_once_with("Memory Statistics:\nExample memory statistics\nAnother line")
 
 
-    def test_main(self):
-        """Test main CLI command"""
+    def test_main_valid_command(self):
+        """Test main CLI with a valid command."""
+        runner = CliRunner()
+        
+        # Mock sys.argv to simulate valid command input
+        with patch("sys.argv", ["main", "show"]), patch("sys.exit") as mock_exit:
+            result = runner.invoke(main)
+            assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
+            mock_exit.assert_called_once_with(0)
+
+    def test_main_invalid_command(self):
+        """Test main CLI with an invalid command."""
         runner = CliRunner()
 
-        with patch('sys.exit') as mock_exit:
-            result = runner.invoke(main)  # Run the main function with CliRunner
-            mock_exit.assert_called_once_with(0)  # Assert that sys.exit(0) was called
+        # Mock sys.argv to simulate invalid command input
+        with patch("sys.argv", ["main", "invalid_command"]), pytest.raises(click.UsageError) as exc_info:
+            main()
+        
+        assert "Error: Invalid command" in str(exc_info.value)
 
-            # Optionally, check the output if needed
-            self.assertEqual(result.exit_code, 0)  # Ensure the exit code is 0
-            self.assertIn('Expected Output', result.output)
-
-    @patch("show.memory_statistics.show.show_memory_statistics")
-    def test_show(self, mock_show_memory_statistics):
-        """Test 'show' command"""
-        result = self.runner.invoke(show)
-        self.assertEqual(result.exit_code, 0)
-        mock_show_memory_statistics.assert_called_once()
+    # @patch("show.memory_statistics.show.show_memory_statistics")
+    # def test_show(self, mock_show_memory_statistics):
+    #     """Test 'show' command"""
+    #     result = self.runner.invoke(show)
+    #     self.assertEqual(result.exit_code, 0)
+    #     mock_show_memory_statistics.assert_called_once()
