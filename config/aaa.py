@@ -267,12 +267,11 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     old_data = config_db.get_table('TACPLUS_SERVER')
+    ctx = click.get_current_context()
     if address in old_data :
-        click.echo('server %s already exists' % address)
-        return
+        ctx.fail('server %s already exists' % address)
     if len(old_data) == TACACS_MAXSERVERS:
-        click.echo(f'tacacs server reached max size {TACACS_MAXSERVERS}')
-        return
+        ctx.fail(f'tacacs server reached max size {TACACS_MAXSERVERS}')
     else:
         data = {
             'tcp_port': str(port),
@@ -289,7 +288,6 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         try:
             config_db.set_entry('TACPLUS_SERVER', address, data)
         except ValueError as e:
-            ctx = click.get_current_context()
             ctx.fail("Invalid ip address. Error: {}".format(e))
 tacacs.add_command(add)
 
