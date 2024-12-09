@@ -287,10 +287,10 @@ class TestCLICommands(unittest.TestCase):
         with patch('sys.exit') as mock_exit:
             result = runner.invoke(main)  # Run the main function with CliRunner
             mock_exit.assert_called_once_with(0)  # Assert that sys.exit(0) was called
-            
+
             # Optionally, check the output if needed
             self.assertEqual(result.exit_code, 0)  # Ensure the exit code is 0
-            self.assertIn('Expected Output', result.output) 
+            self.assertIn('Expected Output', result.output)
 
     @patch("show.memory_statistics.show.show_memory_statistics")
     def test_show(self, mock_show_memory_statistics):
