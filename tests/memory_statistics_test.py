@@ -7,7 +7,7 @@ from click.testing import CliRunner
 import syslog
 import pytest
 from unittest.mock import Mock
-from show.memory_statistics import cli
+# from show.memory_statistics import cli
 
 from show.memory_statistics import (
     Config,
@@ -295,11 +295,10 @@ class TestCLICommands(unittest.TestCase):
             # Verify the print output
             mock_print.assert_called_once_with("Memory Statistics:\nExample memory statistics\nAnother line")
 
-
     def test_main_valid_command(self):
         """Test main CLI with a valid command."""
         runner = CliRunner()
-        
+
         # Mock sys.argv to simulate valid command input
         with patch("sys.argv", ["main", "show"]), patch("sys.exit") as mock_exit:
             result = runner.invoke(main)
@@ -308,12 +307,11 @@ class TestCLICommands(unittest.TestCase):
 
     def test_main_invalid_command(self):
         """Test main CLI with an invalid command."""
-        runner = CliRunner()
 
         # Mock sys.argv to simulate invalid command input
         with patch("sys.argv", ["main", "invalid_command"]), pytest.raises(click.UsageError) as exc_info:
             main()
-        
+
         assert "Error: Invalid command" in str(exc_info.value)
 
     # @patch("show.memory_statistics.show.show_memory_statistics")
