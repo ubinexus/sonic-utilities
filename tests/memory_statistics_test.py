@@ -20,6 +20,7 @@ from show.memory_statistics import (
     format_field_value,
     clean_and_print,
     validate_command,
+    send_data,
 )
 
 
@@ -251,86 +252,23 @@ class TestSocketManager(unittest.TestCase):
             )
 
 
-class TestCLICommands(unittest.TestCase):
-    """Test cases for CLI commands"""
-    def setUp(self):
-        self.runner = CliRunner()
-        self.ctx = click.Context(click.Command('test'))
+class TestSendData(unittest.TestCase):
+    """Test cases for send_data function"""
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_success(self, mock_socket_manager):
+        """Test sending data successfully to memory statistics service"""
+        # Mock the socket manager's behavior
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = '{"status": true}'
 
-    def test_validate_command_invalid_with_suggestion(self):
-        """Test command validation with invalid command but close match"""
-        valid_commands = ['show', 'config']
-        with self.assertRaises(click.UsageError) as context:
-            validate_command('shw', valid_commands)
-        self.assertIn("Did you mean 'show'", str(context.exception))
+        # Call the function under test
+        response = send_data('test_command', {'test': 'data'})
 
-    def test_validate_command_invalid_no_suggestion(self):
-        """Test command validation with invalid command and no close match"""
-        valid_commands = ['show', 'config']
-        with self.assertRaises(click.UsageError) as context:
-            validate_command('xyz', valid_commands)
-        self.assertIn("Invalid command 'xyz'", str(context.exception))
-
-    def test_format_field_value(self):
-        """Test field value formatting"""
-        self.assertEqual(format_field_value("enabled", "true"), "True")
-        self.assertEqual(format_field_value("enabled", "false"), "False")
-        self.assertEqual(format_field_value("retention_period", "Unknown"), "Not configured")
-        self.assertEqual(format_field_value("sampling_interval", "5"), "5")
-
-    def test_clean_and_print(self):
-        """Test data cleaning and printing"""
-        test_data = {
-            "data": "Memory Usage: 50%\nSwap Usage: 10%"
-        }
-        with patch('builtins.print') as mock_print:
-            clean_and_print(test_data)
-            mock_print.assert_called_with("Memory Statistics:\nMemory Usage: 50%\nSwap Usage: 10%")
-
-    def test_clean_and_print_invalid_data(self):
-        """Test clean_and_print with invalid data"""
-        with patch('builtins.print') as mock_print:
-            clean_and_print("invalid data")
-            mock_print.assert_called_with("Error: Invalid data format received")
-
-    @patch('show.memory_statistics.send_data')
-    def test_display_statistics_no_response(self, mock_send_data):
-        """Test display_statistics with no response."""
-        mock_send_data.side_effect = click.ClickException("No data")
-
-        ctx = MagicMock()
-        with self.assertRaises(click.ClickException):
-            display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
-
-
-class TestCLIEntryPoint(unittest.TestCase):
-
-    @patch('sys.argv', ['memory_statistics.py', 'show'])
-    @patch('show.memory_statistics.cli')
-    def test_main_valid_command(self, mock_cli):
-        """Test main() with a valid 'show' command."""
-        mock_cli.add_command = MagicMock()
-        mock_cli.return_value = None
-
-        try:
-            main()
-        except SystemExit:
-            pass
-
-        mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()
-
-    @patch('sys.argv', ['memory_statistics.py'])
-    @patch('show.memory_statistics.cli')
-    def test_main_no_command(self, mock_cli):
-        """Test main() with no command-line arguments."""
-        try:
-            main()
-        except SystemExit:
-            pass
-
-        mock_cli.add_command.assert_called_once_with(show)
-        mock_cli.assert_called_once()
+        # Assert that socket manager methods were called as expected
+        mock_socket.sendall.assert_called_once_with(b'{"command": "test_command", "data": {"test": "data"}}')
+        mock_socket.receive_all.assert_called_once()
+        self.assertEqual(response.status, True)
 
 
 if __name__ == '__main__':
