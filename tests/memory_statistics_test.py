@@ -270,15 +270,31 @@ class TestCLICommands(unittest.TestCase):
             validate_command('unknown', valid_commands)
 
     def test_format_field_value_valid(self):
-        """Test formatting field values"""
-        formatted_value = format_field_value('value')
-        self.assertEqual(formatted_value, 'expected_value')
+        """Test formatting field values."""
+        # Call the function with the correct order of arguments
+        formatted_value = format_field_value("enabled", "true")
+        # Assert the formatted output
+        self.assertEqual(formatted_value, "True")
 
+        formatted_value = format_field_value("enabled", "false")
+        self.assertEqual(formatted_value, "False")
+
+        formatted_value = format_field_value("enabled", "unknown")
+        self.assertEqual(formatted_value, "False")
+
+        formatted_value = format_field_value("some_field", "Unknown")
+        self.assertEqual(formatted_value, "Not configured")
+
+    
     def test_clean_and_print_success(self):
-        """Test cleaning and printing of message"""
-        with patch('click.echo') as mock_echo:
-            clean_and_print()
-            mock_echo.assert_called_once_with('Hello, world!')
+        """Test cleaning and printing of memory statistics."""
+        with patch('builtins.print') as mock_print:
+            # Provide the required dictionary input
+            test_data = {"data": "Example memory statistics\nAnother line"}
+            clean_and_print(test_data)
+            # Verify the print output
+            mock_print.assert_called_once_with("Memory Statistics:\nExample memory statistics\nAnother line")
+
 
     def test_main(self):
         """Test main CLI command"""
