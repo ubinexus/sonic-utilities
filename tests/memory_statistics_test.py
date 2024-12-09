@@ -275,7 +275,7 @@ class TestSocketManager(unittest.TestCase):
         """Test clean_and_print function."""
         with patch('sys.stdout', new_callable=MagicMock()) as mock_stdout:
             clean_and_print("test message")
-            mock_stdout.write.assert_called_with("test message\n")
+            mock_stdout.write.assert_called_once_with("test message\n")
 
     def test_format_field_value(self):
         """Test format_field_value function."""
