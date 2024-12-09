@@ -16,10 +16,8 @@ from show.memory_statistics import (
     display_config,
     display_statistics,
     main,
-    show,
     format_field_value,
     clean_and_print,
-    validate_command,
 )
 
 
