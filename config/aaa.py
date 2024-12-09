@@ -515,11 +515,11 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
     config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     old_data = config_db.get_table('RADIUS_SERVER')
+    ctx = click.get_current_context()
     if address in old_data :
-        click.echo('server %s already exists' % address)
-        return
+        ctx.fail('server %s already exists' % address)
     if len(old_data) == RADIUS_MAXSERVERS:
-        click.echo('Maximum of %d can be configured' % RADIUS_MAXSERVERS)
+        ctx.fail('Maximum of %d can be configured' % RADIUS_MAXSERVERS)
     else:
         data = {
             'auth_port': str(auth_port),
@@ -544,14 +544,13 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
                     source_interface == "eth0"):
                     data['src_intf'] = source_interface
                 else:
-                    click.echo('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/Vlan<id>/Loopback<id>/eth0)')
+                    ctx.fail('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/Vlan<id>/Loopback<id>/eth0)')
         else:
             if source_interface:
                 data['src_intf'] = source_interface
         try:
             config_db.set_entry('RADIUS_SERVER', address, data)
         except ValueError as e:
-            ctx = click.get_current_context()
             ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 radius.add_command(add)
 
