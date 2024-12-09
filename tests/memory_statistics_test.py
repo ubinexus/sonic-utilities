@@ -20,7 +20,6 @@ from show.memory_statistics import (
     format_field_value,
     clean_and_print,
     validate_command,
-    send_data,
 )
 
 
@@ -252,24 +251,47 @@ class TestSocketManager(unittest.TestCase):
             )
 
 
-class TestSendData(unittest.TestCase):
-    """Test cases for send_data function"""
-    @patch('show.memory_statistics.SocketManager')
-    def test_send_data_success(self, mock_socket_manager):
-        """Test sending data successfully to memory statistics service"""
-        # Mock the socket manager's behavior
-        mock_socket = MagicMock()
-        mock_socket_manager.return_value = mock_socket
-        mock_socket.receive_all.return_value = '{"status": true}'
+class TestCLICommands(unittest.TestCase):
+    """Test cases for CLI commands"""
+    def setUp(self):
+        self.runner = CliRunner()
+        self.ctx = click.Context(click.Command('test'))
 
-        # Call the function under test
-        response = send_data('test_command', {'test': 'data'})
+    def test_validate_command_invalid_with_suggestion(self):
+        """Test command validation with invalid command but close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError) as context:
+            validate_command('shw', valid_commands)
+        self.assertIn("Did you mean 'show'", str(context.exception))
 
-        # Assert that socket manager methods were called as expected
-        mock_socket.sendall.assert_called_once_with(b'{"command": "test_command", "data": {"test": "data"}}')
-        mock_socket.receive_all.assert_called_once()
-        self.assertEqual(response.status, True)
+    def test_validate_command_invalid_no_suggestion(self):
+        """Test command validation with no close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError):
+            validate_command('unknown', valid_commands)
 
+    def test_format_field_value_valid(self):
+        """Test formatting field values"""
+        result = format_field_value('value')
+        self.assertEqual(result, 'value')
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_clean_and_print_success(self):
+        """Test cleaning and printing of message"""
+        with patch('click.echo') as mock_echo:
+            clean_and_print('Hello, world!')
+            mock_echo.assert_called_once_with('Hello, world!')
+
+    def test_main(self):
+        """Test main CLI command"""
+        with patch('sys.exit') as mock_exit:
+            with patch('show.memory_statistics.CliRunner.invoke') as mock_invoke:
+                mock_invoke.return_value = MagicMock(exit_code=0)
+                main()
+                mock_exit.assert_called_once_with(0)
+
+    @patch("show.memory_statistics.show.show_memory_statistics")
+    def test_show(self, mock_show_memory_statistics):
+        """Test 'show' command"""
+        result = self.runner.invoke(show)
+        self.assertEqual(result.exit_code, 0)
+        mock_show_memory_statistics.assert_called_once()
