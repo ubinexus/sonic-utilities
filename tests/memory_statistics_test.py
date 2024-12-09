@@ -292,7 +292,7 @@ class TestSocketManager(unittest.TestCase):
             "free_memory": "50MB"
         }
         display_statistics(mock_data)
-        mock_echo.assert_called_with(f"Used Memory: 50MB\nFree Memory: 50MB\n")
+        mock_echo.assert_called_with("Used Memory: 50MB\nFree Memory: 50MB\n")
 
     @patch('syslog.syslog')
     @patch('click.echo')
