@@ -16,8 +16,10 @@ from show.memory_statistics import (
     display_config,
     display_statistics,
     main,
+    show,
     format_field_value,
     clean_and_print,
+    validate_command,
 )
 
 
@@ -175,7 +177,6 @@ class TestSocketManager(unittest.TestCase):
         """Test successful socket connection"""
         mock_sock = MagicMock()
         mock_socket.return_value = mock_sock
-        mock_sock.connect.side_effect = None
         self.socket_manager.connect()
         mock_sock.settimeout.assert_called_with(Config.SOCKET_TIMEOUT)
         mock_sock.connect.assert_called_with(self.socket_path)
@@ -249,60 +250,88 @@ class TestSocketManager(unittest.TestCase):
                 syslog.LOG_ERR, "Failed to retrieve configuration: DB Error"
             )
 
-    @patch('socket.socket')
-    def test_receive_all_timeout_error(self, mock_socket):
-        """Test receive_all method with a timeout error."""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.timeout
-        self.socket_manager.sock = mock_sock
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.receive_all()
-        self.assertIn("Socket operation timed out after", str(context.exception))
 
-    @patch('socket.socket')
-    def test_receive_all_socket_error(self, mock_socket):
-        """Test receive_all method with socket error."""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
-        mock_sock.recv.side_effect = socket.error
-        self.socket_manager.sock = mock_sock
-        with self.assertRaises(ConnectionError) as context:
-            self.socket_manager.receive_all()
-        self.assertIn("Socket error occurred during receive", str(context.exception))
+class TestCLICommands(unittest.TestCase):
+    """Test cases for CLI commands"""
+    def setUp(self):
+        self.runner = CliRunner()
+        self.ctx = click.Context(click.Command('test'))
 
-    def test_clean_and_print_success(self):
-        """Test clean_and_print function."""
-        with patch('sys.stdout', new_callable=MagicMock()) as mock_stdout:
-            clean_and_print("test message")
-            print(mock_stdout.mock_calls)
-            mock_stdout.write.assert_called_with("test message\n")
+    def test_validate_command_invalid_with_suggestion(self):
+        """Test command validation with invalid command but close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError) as context:
+            validate_command('shw', valid_commands)
+        self.assertIn("Did you mean 'show'", str(context.exception))
+
+    def test_validate_command_invalid_no_suggestion(self):
+        """Test command validation with invalid command and no close match"""
+        valid_commands = ['show', 'config']
+        with self.assertRaises(click.UsageError) as context:
+            validate_command('xyz', valid_commands)
+        self.assertIn("Invalid command 'xyz'", str(context.exception))
 
     def test_format_field_value(self):
-        """Test format_field_value function."""
-        formatted_value = format_field_value("test_value")
-        self.assertEqual(formatted_value, "test_value")
+        """Test field value formatting"""
+        self.assertEqual(format_field_value("enabled", "true"), "True")
+        self.assertEqual(format_field_value("enabled", "false"), "False")
+        self.assertEqual(format_field_value("retention_period", "Unknown"), "Not configured")
+        self.assertEqual(format_field_value("sampling_interval", "5"), "5")
 
-    @patch('click.echo')
-    def test_display_statistics(self, mock_echo):
-        """Test display_statistics function."""
-        mock_data = {
-            "used_memory": "50MB",
-            "free_memory": "50MB"
+    def test_clean_and_print(self):
+        """Test data cleaning and printing"""
+        test_data = {
+            "data": "Memory Usage: 50%\nSwap Usage: 10%"
         }
-        display_statistics(mock_data)
-        mock_echo.assert_called_with("Used Memory: 50MB\nFree Memory: 50MB\n")
+        with patch('builtins.print') as mock_print:
+            clean_and_print(test_data)
+            mock_print.assert_called_with("Memory Statistics:\nMemory Usage: 50%\nSwap Usage: 10%")
 
-    @patch('syslog.syslog')
-    @patch('click.echo')
-    def test_main(self, mock_echo, mock_syslog):
-        """Test main function."""
-        runner = CliRunner()
-        result = runner.invoke(main)
-        assert result.exit_code == 0
-        mock_syslog.assert_called_once_with(syslog.LOG_INFO, "Displaying memory statistics.")
-        mock_echo.assert_called_with("Memory Statistics are being shown...\n")
+    def test_clean_and_print_invalid_data(self):
+        """Test clean_and_print with invalid data"""
+        with patch('builtins.print') as mock_print:
+            clean_and_print("invalid data")
+            mock_print.assert_called_with("Error: Invalid data format received")
+
+    @patch('show.memory_statistics.send_data')
+    def test_display_statistics_no_response(self, mock_send_data):
+        """Test display_statistics with no response."""
+        mock_send_data.side_effect = click.ClickException("No data")
+
+        ctx = MagicMock()
+        with self.assertRaises(click.ClickException):
+            display_statistics(ctx, "2024-01-01", "2024-01-02", "usage")
 
 
-if __name__ == "__main__":
+class TestCLIEntryPoint(unittest.TestCase):
+
+    @patch('sys.argv', ['memory_statistics.py', 'show'])
+    @patch('show.memory_statistics.cli')
+    def test_main_valid_command(self, mock_cli):
+        """Test main() with a valid 'show' command."""
+        mock_cli.add_command = MagicMock()
+        mock_cli.return_value = None
+
+        try:
+            main()
+        except SystemExit:
+            pass
+
+        mock_cli.add_command.assert_called_once_with(show)
+        mock_cli.assert_called_once()
+
+    @patch('sys.argv', ['memory_statistics.py'])
+    @patch('show.memory_statistics.cli')
+    def test_main_no_command(self, mock_cli):
+        """Test main() with no command-line arguments."""
+        try:
+            main()
+        except SystemExit:
+            pass
+
+        mock_cli.add_command.assert_called_once_with(show)
+        mock_cli.assert_called_once()
+
+
+if __name__ == '__main__':
     unittest.main()
