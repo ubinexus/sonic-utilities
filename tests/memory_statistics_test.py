@@ -315,13 +315,18 @@ class TestSendData(unittest.TestCase):
     @patch('show.memory_statistics.SocketManager')
     def test_send_data_no_response(self, mock_socket_manager):
         """Test no response received from the server."""
+        # Mock the SocketManager instance
         mock_socket = MagicMock()
         mock_socket_manager.return_value = mock_socket
+
+        # Simulate no response from the server
         mock_socket.receive_all.return_value = ""
 
+        # Ensure a ConnectionError is raised with the expected message
         with self.assertRaises(ConnectionError) as context:
             send_data("test_command", {"key": "value"})
-        self.assertIn("No response received", str(context.exception))
+        self.assertIn("No response received from memory statistics service", str(context.exception))
+
 
     @patch('show.memory_statistics.SocketManager')
     def test_send_data_json_parse_error(self, mock_socket_manager):
