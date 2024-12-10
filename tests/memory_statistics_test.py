@@ -6,10 +6,9 @@ import click
 from click.testing import CliRunner
 import syslog
 import pytest
-
+import json
 from unittest.mock import Mock
 # from show.memory_statistics import cli
-
 from show.memory_statistics import (
     Config,
     Dict2Obj,
@@ -295,9 +294,10 @@ class TestCLICommands(unittest.TestCase):
             # Verify the print output
             mock_print.assert_called_once_with("Memory Statistics:\nExample memory statistics\nAnother line")
 
+
 class TestSendData(unittest.TestCase):
     """Test cases for the send_data function."""
-    
+
     @patch('show.memory_statistics.SocketManager')
     def test_send_data_success(self, mock_socket_manager):
         """Test successful execution of send_data."""
