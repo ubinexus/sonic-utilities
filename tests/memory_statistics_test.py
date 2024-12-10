@@ -16,7 +16,6 @@ from show.memory_statistics import (
     SocketManager,
     display_config,
     main,
-    show,
     format_field_value,
     clean_and_print,
     validate_command,
