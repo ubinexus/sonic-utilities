@@ -327,7 +327,6 @@ class TestSendData(unittest.TestCase):
             send_data("test_command", {"key": "value"})
         self.assertIn("No response received from memory statistics service", str(context.exception))
 
-
     @patch('show.memory_statistics.SocketManager')
     def test_send_data_json_parse_error(self, mock_socket_manager):
         """Test JSON parsing error from server response."""
