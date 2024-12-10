@@ -860,8 +860,8 @@ class TestGoldenConfig(object):
         # golden_config_db.json.test has no namespace
         import db_migrator
         dbmgtr = db_migrator.DBMigrator("asic0")
-        config = json.dumps(dbmgtr.config_src_data)
-        assert 'SONiC-Golden-Config' not in config
+        result = json.dumps(dbmgtr.config_src_data)
+        assert 'SONiC-Golden-Config' not in result
 
 class TestGoldenConfigInvalid(object):
     @classmethod
