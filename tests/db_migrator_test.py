@@ -857,9 +857,11 @@ class TestGoldenConfig(object):
         assert hostname == 'SONiC-Golden-Config'
 
     def test_golden_config_ns(self):
+        # golden_config_db.json.test has no namespace
         import db_migrator
         dbmgtr = db_migrator.DBMigrator("asic0")
-        assert dbmgtr.config_src_data is None
+        config = json.dumps(dbmgtr.config_src_data)
+        assert 'SONiC-Golden-Config' not in config
 
 class TestGoldenConfigInvalid(object):
     @classmethod
