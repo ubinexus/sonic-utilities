@@ -307,7 +307,6 @@ class TestCLICommands(unittest.TestCase):
         assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
         assert "Expected output from show command" in result.output
 
-
     def test_main_invalid_command(self):
         """Test main CLI with an invalid command."""
         # Mock `sys.argv` to simulate an invalid command
