@@ -6,12 +6,14 @@ import click
 from click.testing import CliRunner
 import syslog
 import pytest
+
 from unittest.mock import Mock
 # from show.memory_statistics import cli
 
 from show.memory_statistics import (
     Config,
     Dict2Obj,
+    send_data,
     SonicDBConnector,
     SocketManager,
     display_config,
@@ -292,6 +294,85 @@ class TestCLICommands(unittest.TestCase):
             clean_and_print(test_data)
             # Verify the print output
             mock_print.assert_called_once_with("Memory Statistics:\nExample memory statistics\nAnother line")
+
+class TestSendData(unittest.TestCase):
+    """Test cases for the send_data function."""
+    
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_success(self, mock_socket_manager):
+        """Test successful execution of send_data."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = json.dumps({
+            "status": True,
+            "data": {"key": "value"}
+        })
+
+        result = send_data("test_command", {"key": "value"})
+        self.assertTrue(result.status)
+        self.assertEqual(result.data.key, "value")
+
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_no_response(self, mock_socket_manager):
+        """Test no response received from the server."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = ""
+
+        with self.assertRaises(ConnectionError) as context:
+            send_data("test_command", {"key": "value"})
+        self.assertIn("No response received", str(context.exception))
+
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_json_parse_error(self, mock_socket_manager):
+        """Test JSON parsing error from server response."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = "Invalid JSON"
+
+        with patch('syslog.syslog') as mock_syslog:
+            with self.assertRaises(ValueError) as context:
+                send_data("test_command", {"key": "value"})
+            self.assertIn("Failed to parse server response", str(context.exception))
+            mock_syslog.assert_called_once()
+
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_invalid_response_format(self, mock_socket_manager):
+        """Test invalid response format (not a dictionary)."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = json.dumps(["not", "a", "dict"])
+
+        with self.assertRaises(ValueError) as context:
+            send_data("test_command", {"key": "value"})
+        self.assertIn("Invalid response format from server", str(context.exception))
+
+    @patch('show.memory_statistics.SocketManager')
+    def test_send_data_failure_status(self, mock_socket_manager):
+        """Test response with failure status."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = json.dumps({
+            "status": False,
+            "msg": "Simulated error"
+        })
+
+        with self.assertRaises(RuntimeError) as context:
+            send_data("test_command", {"key": "value"})
+        self.assertIn("Simulated error", str(context.exception))
+
+    @patch('show.memory_statistics.SocketManager')
+    @patch('click.echo')
+    def test_send_data_quiet_mode(self, mock_click_echo, mock_socket_manager):
+        """Test send_data in quiet mode, ensuring no output on error."""
+        mock_socket = MagicMock()
+        mock_socket_manager.return_value = mock_socket
+        mock_socket.receive_all.return_value = ""
+
+        with self.assertRaises(ConnectionError):
+            send_data("test_command", {"key": "value"}, quiet=True)
+        mock_click_echo.assert_not_called()
+
 
     # def test_main_valid_command(self):
     #     """Test main CLI with a valid command."""
