@@ -302,11 +302,10 @@ class TestCLICommands(unittest.TestCase):
         with patch("sys.argv", ["main", "show"]), patch("sys.exit") as mock_exit:
             # Pass the correct prog_name explicitly
             result = runner.invoke(main, ["show"], prog_name="main")
-            
+
         # Validate the result
         assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
         assert "Expected output from show command" in result.output
-
 
     def test_main_invalid_command(self):
         """Test main CLI with an invalid command."""
@@ -314,7 +313,7 @@ class TestCLICommands(unittest.TestCase):
         with patch("sys.argv", ["main", "invalid_command"]):
             with pytest.raises(click.UsageError) as exc_info:
                 main()
-        
+
         # Verify the error message
         assert "Error: Invalid command 'invalid_command'." in str(exc_info.value)
 
