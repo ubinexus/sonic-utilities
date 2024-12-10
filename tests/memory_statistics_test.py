@@ -300,18 +300,23 @@ class TestCLICommands(unittest.TestCase):
 
         # Mock sys.argv to simulate valid command input
         with patch("sys.argv", ["main", "show"]), patch("sys.exit") as mock_exit:
-            result = runner.invoke(main)
-            assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
-            mock_exit.assert_called_once_with(0)
+            # Pass the correct prog_name explicitly
+            result = runner.invoke(main, ["show"], prog_name="main")
+            
+        # Validate the result
+        assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
+        assert "Expected output from show command" in result.output
+
 
     def test_main_invalid_command(self):
         """Test main CLI with an invalid command."""
-
-        # Mock sys.argv to simulate invalid command input
-        with patch("sys.argv", ["main", "invalid_command"]), pytest.raises(click.UsageError) as exc_info:
-            main()
-
-        assert "Error: Invalid command" in str(exc_info.value)
+        # Mock `sys.argv` to simulate an invalid command
+        with patch("sys.argv", ["main", "invalid_command"]):
+            with pytest.raises(click.UsageError) as exc_info:
+                main()
+        
+        # Verify the error message
+        assert "Error: Invalid command 'invalid_command'." in str(exc_info.value)
 
     # @patch("show.memory_statistics.show.show_memory_statistics")
     # def test_show(self, mock_show_memory_statistics):
