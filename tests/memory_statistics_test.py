@@ -373,7 +373,6 @@ class TestSendData(unittest.TestCase):
             send_data("test_command", {"key": "value"}, quiet=True)
         mock_click_echo.assert_not_called()
 
-
     # def test_main_valid_command(self):
     #     """Test main CLI with a valid command."""
     #     runner = CliRunner()
