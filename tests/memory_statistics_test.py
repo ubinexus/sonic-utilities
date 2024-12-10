@@ -299,13 +299,14 @@ class TestCLICommands(unittest.TestCase):
         runner = CliRunner()
 
         # Mock sys.argv to simulate valid command input
-        with patch("sys.argv", ["main", "show"]), patch("sys.exit") as mock_exit:
+        with patch("sys.argv", ["main", "show"]):
             # Pass the correct prog_name explicitly
             result = runner.invoke(main, ["show"], prog_name="main")
 
         # Validate the result
         assert result.exit_code == 0, f"Unexpected exit code: {result.exit_code}. Output: {result.output}"
         assert "Expected output from show command" in result.output
+
 
     def test_main_invalid_command(self):
         """Test main CLI with an invalid command."""
