@@ -2117,13 +2117,13 @@ def generate_sysinfo(cur_config, config_input, ns=None):
 
     # Reuse current config's mac and platform. Generate if absent
     if cur_device_metadata is not None:
-        mac = cur_device_metadata.get('localhost', {}).get('mac').rstrip('\n')
-        platform = cur_device_metadata.get('localhost', {}).get('platform').rstrip('\n')
+        mac = cur_device_metadata.get('localhost', {}).get('mac')
+        platform = cur_device_metadata.get('localhost', {}).get('platform')
 
     if not mac:
         if ns:
-            asic_role = device_metadata.get('localhost', {}).get('sub_role').rstrip('\n')
-            switch_type = device_metadata.get('localhost', {}).get('switch_type').rstrip('\n')
+            asic_role = device_metadata.get('localhost', {}).get('sub_role')
+            switch_type = device_metadata.get('localhost', {}).get('switch_type')
 
             if ((switch_type is not None and switch_type.lower() == "chassis-packet") or
                     (asic_role is not None and asic_role.lower() == "backend")):
@@ -2136,8 +2136,8 @@ def generate_sysinfo(cur_config, config_input, ns=None):
     if not platform:
         platform = device_info.get_platform()
 
-    device_metadata['localhost']['mac'] = mac
-    device_metadata['localhost']['platform'] = platform
+    device_metadata['localhost']['mac'] = mac.rstrip('\n')
+    device_metadata['localhost']['platform'] = platform.rstrip('\n')
 
     return
 
