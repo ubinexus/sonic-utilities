@@ -16,7 +16,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="40000,30000"))
@@ -24,7 +24,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "xyz"}}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -32,7 +32,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
 
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -40,7 +40,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/speed", "op": "add", "value": "234"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -48,7 +48,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/speed", "op": "add", "value": "235"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -60,7 +60,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -75,7 +75,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="123,234"))
@@ -90,13 +90,13 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     def test_port_config_update_validator_remove(self):
         patch_element = {"path": "/PORT/Ethernet3", "op": "remove"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
 
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="rs, fc"))
@@ -104,7 +104,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "asf"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="rs, fc"))
@@ -119,7 +119,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="rs, fc"))
@@ -131,7 +131,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="rs, fc"))
@@ -146,7 +146,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value="rs, fc"))
@@ -154,7 +154,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "rs"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
 
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value=""))
@@ -162,7 +162,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"fec": "rs"}}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == True
+                port_config_update_validator(scope, patch_element) is True
     
     @patch("generic_config_updater.field_operation_validators.read_statedb_entry",
            mock.Mock(return_value=""))
@@ -170,7 +170,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "rsf"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                port_config_update_validator(scope, patch_element) == False
+                port_config_update_validator(scope, patch_element) is False
     
     @patch("generic_config_updater.field_operation_validators.get_asic_name",
            mock.Mock(return_value="unknown"))
@@ -182,7 +182,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == False
+                rdma_config_update_validator(scope, patch_element) is False
         
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -201,7 +201,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == False
+                rdma_config_update_validator(scope, patch_element) is False
     
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -216,7 +216,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PFC_WD/Ethernet8/detection_time", "op": "remove"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == True
+                rdma_config_update_validator(scope, patch_element) is True
 
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -239,7 +239,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == True
+                rdma_config_update_validator(scope, patch_element) is True
    
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -254,7 +254,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         patch_element = {"path": "/PFC_WD/Ethernet8", "op": "remove"}
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == True
+                rdma_config_update_validator(scope, patch_element) is True
     
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -272,7 +272,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == False
+                rdma_config_update_validator(scope, patch_element) is False
     
     @patch("sonic_py_common.device_info.get_sonic_version_info",
            mock.Mock(return_value={"build_version": "SONiC.20220530"}))
@@ -291,7 +291,7 @@ class TestValidateFieldOperation(unittest.TestCase):
         }
         for scope in ["localhost", "asic0"]:
             assert generic_config_updater.field_operation_validators.\
-                rdma_config_update_validator(scope, patch_element) == False
+                rdma_config_update_validator(scope, patch_element) is False
     
     def test_validate_field_operation_illegal__pfcwd(self):
         old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
