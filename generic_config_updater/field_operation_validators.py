@@ -34,7 +34,7 @@ def get_asic_name(scope):
             get_hwsku_cmds = ["sonic-cfggen", "-d", "-v", "DEVICE_METADATA.localhost.hwsku"]
         else:
             get_hwsku_cmds = ["sonic-cfggen", "-d", "-n", scope, "-v", "DEVICE_METADATA.localhost.hwsku"]
-        proc = subprocess.Popen(get_hwsku_cmds, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(get_hwsku_cmds, shell=False, universal_newlines=True, stdout=subprocess.PIPE)
         output, err = proc.communicate()
         hwsku = output.rstrip('\n')
         if asic_type == 'mellanox' or asic_type == 'vs':
