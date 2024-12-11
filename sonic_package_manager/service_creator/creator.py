@@ -257,7 +257,7 @@ class ServiceCreator:
         script_template = get_tmpl_path(DOCKER_CTL_SCRIPT_TEMPLATE)
         run_opt = []
         sonic_asic_platform = os.environ.get("CONFIGURED_PLATFORM")
-        if sonic_asic_platform == None:
+        if sonic_asic_platform is None:
             sonic_asic_platform = device_info.get_platform_info().get('asic_type', None)
 
         if container_spec['privileged']:
