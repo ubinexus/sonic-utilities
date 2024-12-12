@@ -373,8 +373,8 @@ def get_frr_routes_parallel(namespace):
         future_v4 = executor.submit(fetch_routes, v4_route_cmd)
         future_v6 = executor.submit(fetch_routes, v6_route_cmd)
 
-    v4_routes = future_v4.result()
-    v6_routes = future_v6.result()
+        v4_routes = future_v4.result()
+        v6_routes = future_v6.result()
 
     v4_routes.update(v6_routes)
     print_message(syslog.LOG_DEBUG, "FRR Routes: namespace={}, routes={}".format(namespace, v4_routes))
