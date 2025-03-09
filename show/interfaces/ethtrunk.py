@@ -57,15 +57,15 @@ class Teamshow(object):
                 continue
             self.teams.append(team_name)
 
-    def get_ethtrunk_status(self, port_channel_name):
+    def get_ethtrunk_status(self, eth_trunk_name):
         """
             Get eth trunk status from database.
         """
-        full_table_id = ETH_TRUNK_APPL_TABLE_PREFIX + port_channel_name
+        full_table_id = ETH_TRUNK_APPL_TABLE_PREFIX + eth_trunk_name
         return self.db.get(self.db.APPL_DB, full_table_id, ETH_TRUNK_STATUS_FIELD)
 
-    def get_ethtrunk_member_status(self, port_channel_name, port_name):
-        full_table_id = ETH_TRUNK_MEMBER_APPL_TABLE_PREFIX + port_channel_name + ":" + port_name
+    def get_ethtrunk_member_status(self, eth_trunk_name, port_name):
+        full_table_id = ETH_TRUNK_MEMBER_APPL_TABLE_PREFIX + eth_trunk_name + ":" + port_name
         return self.db.get(self.db.APPL_DB, full_table_id, ETH_TRUNK_MEMBER_STATUS_FIELD)
 
     def get_team_id(self, team):
