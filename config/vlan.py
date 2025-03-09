@@ -229,17 +229,25 @@ def add_vlan_member(db, vid, port, untagged):
             is_port = True
         elif clicommon.is_valid_portchannel(db.cfgdb, port):
             is_port = False
+        elif clicommon.is_valid_ethtrunk(db.cfgdb, port):
+            is_port = False
         else:
             ctx.fail("{} does not exist".format(port))
 
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-           (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
+           (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)) or \
+           (not is_port and clicommon.is_ethtrunk_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is a router interface!".format(port))
         
         portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
         if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is part of portchannel!".format(port))
+
+        ethtrunk_member_table = db.cfgdb.get_table('ETHTRUNK_MEMBER')
+
+        if (is_port and clicommon.interface_is_in_ethtrunk(ethtrunk_member_table, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is part of ethtrunk!".format(port))
 
         if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is already untagged member!".format(port))
