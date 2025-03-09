@@ -22,6 +22,7 @@ class Interface(Executor):
         self.ret_temp = dict()
         self.valid_cfg_tables = set(["INTERFACE", 
                                     "PORTCHANNEL_INTERFACE", 
+                                    "ETHTRUNK_INTERFACE", 
                                     "VLAN_INTERFACE",
                                     "LOOPBACK_INTERFACE",
                                     "VLAN_SUB_INTERFACE"])
@@ -104,6 +105,8 @@ class RIF(object):
             return PortRIF(intf_obj)
         elif intf_obj.intf_type == "PORTCHANNEL_INTERFACE":
             return LagRIF(intf_obj)
+        elif intf_obj.intf_type == "ETHTRUNK_INTERFACE":
+            return EthTrunkRIF(intf_obj)
         elif intf_obj.intf_type == "VLAN_INTERFACE":
             return VlanRIF(intf_obj)
         elif intf_obj.intf_type == "LOOPBACK_INTERFACE":
@@ -216,6 +219,21 @@ class LagRIF(RIF):
             exp_type = "SAI_ROUTER_INTERFACE_TYPE_PORT"
             self.sanity_check_rif_type(ret, rif_oids[-1], exp_type, "LAG")
 
+
+class EthTrunkRIF(RIF):
+    """
+    Handler for EthTrunk type Obj
+    """
+    def collect(self):
+        # Get port oid from port name
+        _, port_oid, _ = fetch_port_oid(self.intf.match_engine, self.intf.intf_name, self.intf.ns)
+        # Use Port oid to get the RIF
+        req, ret = self.fetch_rif_keys_using_port_oid(port_oid)
+        rif_oids = self.intf.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
+        if rif_oids:
+            # Sanity check to see if the TYPE is SAI_ROUTER_INTERFACE_TYPE_ETH_TRUNK
+            exp_type = "SAI_ROUTER_INTERFACE_TYPE_ETH_TRUNK"
+            self.sanity_check_rif_type(ret, rif_oids[-1], exp_type, "PORT")
 
 class SubIntfRif(RIF):
     """

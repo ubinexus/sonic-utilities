@@ -243,6 +243,15 @@ def is_valid_portchannel(config_db, port):
 
     return False
 
+def is_valid_ethtrunk(config_db, port):
+    """Check if port is in ETHTRUNK table"""
+
+    pc_table = config_db.get_table('ETHTRUNK')
+    if port in pc_table:
+        return True
+
+    return False
+
 def is_vlanid_in_range(vid):
     """Check if vlan id is valid or not"""
 
@@ -289,6 +298,14 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
+def interface_is_in_ethtrunk(ethtrunk_member_table, interface_name):
+    """ Check if an interface is part of ethtrunk """
+    for _,intf in ethtrunk_member_table:
+        if intf == interface_name:
+            return True
+
+    return False
+
 def is_port_router_interface(config_db, port):
     """Check if port is a router interface"""
 
@@ -304,6 +321,16 @@ def is_pc_router_interface(config_db, pc):
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
     for intf in pc_interface_table:
+        if pc == intf:
+            return True
+
+    return False
+
+def is_ethtrunk_router_interface(config_db, pc):
+    """Check if ethtrunk is a router interface"""
+
+    ethtrunk_interface_table = config_db.get_table('ETHTRUNK_INTERFACE')
+    for intf in ethtrunk_interface_table:
         if pc == intf:
             return True
 
@@ -597,6 +624,7 @@ def is_interface_in_config_db(config_db, interface_name):
     if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
         not interface_name in config_db.get_keys('INTERFACE') and
         not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name in config_db.get_keys('ETHTRUNK_INTERFACE') and
         not interface_name in config_db.get_keys('VLAN_SUB_INTERFACE') and
         not interface_name == 'null'):
             return False

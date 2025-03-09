@@ -38,6 +38,8 @@ def nat_interface_name_is_valid(interface_name):
         interface_dict = config_db.get_table('PORT')
     elif interface_name.startswith("PortChannel"):
         interface_dict = config_db.get_table('PORTCHANNEL')
+    elif interface_name.startswith("EthTrunk"):
+        interface_dict = config_db.get_table('ETHTRUNK')
     elif interface_name.startswith("Vlan"):
         interface_dict = config_db.get_table('VLAN')
     elif interface_name.startswith("Loopback"):
@@ -902,6 +904,8 @@ def add_interface(ctx, interface_name, nat_zone):
         interface_table_type = "INTERFACE"
     elif interface_name.startswith("PortChannel"):
         interface_table_type = "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("EthTrunk"):
+        interface_table_type = "ETHTRUNK_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_table_type = "VLAN_INTERFACE"
     elif interface_name.startswith("Loopback"):
@@ -932,6 +936,8 @@ def remove_interface(ctx, interface_name):
         interface_table_type = "INTERFACE"
     elif interface_name.startswith("PortChannel"):
         interface_table_type = "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("EthTrunk"):
+        interface_table_type = "ETHTRUNK_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_table_type = "VLAN_INTERFACE"
     elif interface_name.startswith("Loopback"):
@@ -954,7 +960,7 @@ def remove_interfaces(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'ETHTRUNK_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
     nat_config = {"nat_zone": "0"}
 
     for table_name in tables:

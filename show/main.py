@@ -385,6 +385,7 @@ def arp(ipaddress, iface, verbose):
     if iface is not None:
         if clicommon.get_interface_naming_mode() == "alias":
             if not ((iface.startswith("PortChannel")) or
+                    (iface.startswith("EthTrunk")) or
                     (iface.startswith("eth"))):
                 iface = iface_alias_converter.alias_to_name(iface)
 
@@ -1003,10 +1004,11 @@ def loopback_action():
     if_tbl = config_db.get_table('INTERFACE')
     vlan_if_tbl = config_db.get_table('VLAN_INTERFACE')
     po_if_tbl = config_db.get_table('PORTCHANNEL_INTERFACE')
+    ethtrunk_if_tbl = config_db.get_table('ETHTRUNKL_INTERFACE')
     sub_if_tbl = config_db.get_table('VLAN_SUB_INTERFACE')
 
     all_tables = {}
-    for tbl in [if_tbl, vlan_if_tbl, po_if_tbl, sub_if_tbl]:
+    for tbl in [if_tbl, vlan_if_tbl, po_if_tbl, ethtrunk_if_tbl, sub_if_tbl]:
         all_tables.update(tbl)
 
     if all_tables:
@@ -1166,7 +1168,7 @@ def link_local_mode(verbose):
     """show ipv6 link-local-mode"""
     header = ['Interface Name', 'Mode']
     body = []
-    tables = ['PORT', 'PORTCHANNEL', 'VLAN']
+    tables = ['PORT', 'PORTCHANNEL', 'ETHTRUNK', 'VLAN']
     config_db = ConfigDBConnector()
     config_db.connect()
     interface = ""
@@ -1176,6 +1178,8 @@ def link_local_mode(verbose):
             interface = "INTERFACE"
         elif table == "PORTCHANNEL":
             interface = "PORTCHANNEL_INTERFACE"
+        elif table == "ETHTRUNK":
+            interface = "ETHTRUNK_INTERFACE"
         elif table == "VLAN":
             interface = "VLAN_INTERFACE"
 
