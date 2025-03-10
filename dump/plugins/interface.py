@@ -10,7 +10,7 @@ from .executor import Executor
 class Interface(Executor):
     """
     Debug Dump Plugin for Interface Module.
-    Interface can be of Ethernet, PortChannel, Loopback, Vlan or SubInterface type
+    Interface can be of Ethernet, PortChannel, EthTrunk, Loopback, Vlan or SubInterface type
     Human readable intf string names are supported
     """
     ARG_NAME = "intf_name"

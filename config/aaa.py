@@ -532,12 +532,13 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
         if source_interface :
             if (source_interface.startswith("Ethernet") or \
                 source_interface.startswith("PortChannel") or \
+                source_interface.startswith("EthTrunk") or \
                 source_interface.startswith("Vlan") or \
                 source_interface.startswith("Loopback") or \
                 source_interface == "eth0"):
                 data['src_intf'] = source_interface
             else:
-                click.echo('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/Vlan<id>/Loopback<id>/eth0)')
+                click.echo('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/EthTrunk<id>/Vlan<id>/Loopback<id>/eth0)')
         config_db.set_entry('RADIUS_SERVER', address, data)
 radius.add_command(add)
 

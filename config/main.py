@@ -95,6 +95,13 @@ CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
+CFG_ETHTRUNK_PREFIX = "EthTrunk"
+CFG_ETHTRUNK_PREFIX_LEN = 11
+CFG_ETHTRUNK_NAME_TOTAL_LEN_MAX = 15
+CFG_ETHTRUNK_MAX_VAL = 9999
+CFG_ETHTRUNK_NO="<0-9999>"
+
+
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
@@ -288,7 +295,7 @@ def interface_alias_to_name(config_db, interface_alias):
                 return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
     # Interface alias not in port_dict, just return interface_alias, e.g.,
-    # portchannel is passed in as argument, which does not have an alias
+    # portchannel or ethtrunk is passed in as argument, which does not have an alias
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
 def interface_name_is_valid(config_db, interface_name):
@@ -305,6 +312,7 @@ def interface_name_is_valid(config_db, interface_name):
     config_db.connect()
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
+    eth_trunk_dict = config_db.get_table('ETHTRUNK')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
     loopback_dict = config_db.get_table('LOOPBACK_INTERFACE')
 
@@ -321,6 +329,10 @@ def interface_name_is_valid(config_db, interface_name):
         if port_channel_dict:
             for port_channel_name in port_channel_dict:
                 if interface_name == port_channel_name:
+                    return True
+        if eth_trunk_dict:
+            for eth_trunk_name in eth_trunk_dict:
+                if interface_name == eth_trunk_name:
                     return True
         if sub_port_intf_dict:
             for sub_port_intf_name in sub_port_intf_dict:
@@ -435,6 +447,46 @@ def is_port_member_of_this_portchannel(db, port_name, portchannel_name):
             return True
 
     return False
+
+def is_ethtrunk_name_valid(ethtrunk_name):
+    """Eth Trunk name validation
+    """
+
+    # Return True if Ethtrunk name is EthTrunkXXXX (XXXX can be 0-9999)
+    if ethtrunk_name[:CFG_ETHTRUNK_PREFIX_LEN] != CFG_ETHTRUNK_PREFIX :
+        return False
+    if (ethtrunk_name[CFG_ETHTRUNK_PREFIX_LEN:].isdigit() is False or
+          int(ethtrunk_name[CFG_ETHTRUNK_PREFIX_LEN:]) > CFG_ETHTRUNK_MAX_VAL) :
+        return False
+    if len(ethtrunk_name) > CFG_ETHTRUNK_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
+
+def is_ethtrunk_present_in_db(db, ethtrunk_name):
+    """Check if Ethtrunk is present in Config DB
+    """
+
+    # Return True if Ethtrunk name exists in the CONFIG_DB
+    ethtrunk_list = db.get_table(CFG_ETHTRUNK_PREFIX)
+    if ethtrunk_list is None:
+        return False
+    if ethtrunk_name in ethtrunk_list:
+        return True
+    return False
+
+def is_port_member_of_this_ethtrunk(db, port_name, ethtrunk_name):
+    """Check if a port is member of given ethtrunk
+    """
+    ethtrunk_list = db.get_table(CFG_ETHTRUNK_PREFIX)
+    if ethtrunk_list is None:
+        return False
+
+    for k,v in db.get_table('ETHTRUNK_MEMBER'):
+        if (k == ethtrunk_name) and (v == port_name):
+            return True
+
+    return False
+
 
 # Return the namespace where an interface belongs
 # The port name input could be in default mode or in alias mode.
@@ -938,6 +990,14 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
+def interface_is_in_ethtrunk(ethtrunk_member_table, interface_name):
+    """ Check if an interface is part of ethtrunk """
+    for _, intf in ethtrunk_member_table:
+        if intf == interface_name:
+            return True
+
+    return False
+
 def check_mirror_direction_config(v, direction):
     """ Check if port is already configured for mirror in same direction """
     if direction:
@@ -975,6 +1035,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     mirror_table = config_db.get_table('MIRROR_SESSION')
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    ethtrunk_member_table = config_db.get_table('ETHTRUNK_MEMBER')
 
     if dst_port:
         if not interface_name_is_valid(config_db, dst_port):
@@ -983,12 +1044,18 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
         if is_portchannel_present_in_db(config_db, dst_port):
             ctx.fail("Error: Destination Interface {} is not supported".format(dst_port))
 
+        if is_ethtrunk_present_in_db(config_db, dst_port):
+            ctx.fail("Error: Destination Interface {} is not supported".format(dst_port))
+
         if interface_is_in_vlan(vlan_member_table, dst_port):
             ctx.fail("Error: Destination Interface {} has vlan config".format(dst_port))
 
 
         if interface_is_in_portchannel(portchannel_member_table, dst_port):
             ctx.fail("Error: Destination Interface {} has portchannel config".format(dst_port))
+
+        if interface_is_in_ethtrunk(ethtrunk_member_table, dst_port):
+            ctx.fail("Error: Destination Interface {} has ethtrunk config".format(dst_port))
 
         if clicommon.is_port_router_interface(config_db, dst_port):
             ctx.fail("Error: Destination Interface {} is a L3 interface".format(dst_port))
@@ -1069,6 +1136,10 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
                     config_db = ctx.obj['config_db']
                     if not nh in config_db.get_keys('PORTCHANNEL'):
                         ctx.fail("portchannel does not exist.")
+                elif nh.startswith('EthTrunk'):
+                    config_db = ctx.obj['config_db']
+                    if not nh in config_db.get_keys('ETHTRUNK'):
+                        ctx.fail("ethtrunk does not exist.")
                 else:
                     ipaddress.ip_address(nh)
     except ValueError:
@@ -2129,6 +2200,12 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
                 ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
                 return
 
+        # Dont allow a port to be member of port channel if it is configured as a eth trunk member
+        for k,v in db.get_table('ETHTRUNK_MEMBER'):
+            if v == port_name:
+                ctx.fail("%s Interface configured as ETHTRUNK_MEMBER under eth trunk : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
+
         # Dont allow a port to be member of port channel if it is already member of a port channel
         for k,v in db.get_table('PORTCHANNEL_MEMBER'):
             if v == port_name:
@@ -2223,6 +2300,210 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     except JsonPatchConflict:
         ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
+#
+# 'ethtrunk' group ('config ethtrunk ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup)
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
+@click.pass_context
+@clicommon.pass_db
+def ethtrunk(db, ctx, namespace):
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
+
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
+    config_db.connect()
+    ctx.obj = {'db': config_db, 'namespace': str(namespace), 'db_wrap': db}
+
+@ethtrunk.command('add')
+@click.argument('ethtrunk_name', metavar='<ethtrunk_name>', required=True)
+@click.option('--fallback', default='false')
+@click.pass_context
+def add_ethtrunk(ctx, ethtrunk_name, mtu, backup):
+    """Add eth trunk"""
+    
+    fvs = {
+        'admin_status': 'up',
+        'mtu': str(mtu),
+    }
+
+    if backup != 'false':
+        fvs['backup'] = 'true'
+    
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if is_ethtrunk_name_valid(ethtrunk_name) != True:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                    .format(ethtrunk_name, CFG_ETHTRUNK_PREFIX, CFG_ETHTRUNK_NO))
+        if is_ethtrunk_present_in_db(db, ethtrunk_name):
+            ctx.fail("{} already exists!".format(ethtrunk_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+    try:
+        db.set_entry('ETHTRUNK', ethtrunk_name, fvs)
+    except ValueError:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'".format(ethtrunk_name, CFG_ETHTRUNK_PREFIX, CFG_ETHTRUNK_NO))
+ 
+@ethtrunk.command('del')
+@click.argument('ethtrunk_name', metavar='<ethtrunk_name>', required=True)
+@click.pass_context
+def remove_ethtrunk(ctx, ethtrunk_name):
+    """Remove eth trunk"""
+    
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if is_ethtrunk_name_valid(ethtrunk_name) != True:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                    .format(ethtrunk_name, CFG_ETHTRUNK_PREFIX, CFG_ETHTRUNK_NO))
+
+        # Don't proceed if the eth trunk does not exist
+        if is_ethtrunk_present_in_db(db, ethtrunk_name) is False:
+            ctx.fail("{} is not present.".format(ethtrunk_name))
+
+        # Dont let to remove eth trunk if vlan membership exists
+        for k,v in db.get_table('VLAN_MEMBER'): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if v == ethtrunk_name:
+                ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(ethtrunk_name, str(k)))
+
+        if len([(k, v) for k, v in db.get_table('ETHTRUNK_MEMBER') if k == ethtrunk_name]) != 0: # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("Error: Ethtrunk {} contains members. Remove members before deleting Ethtrunk!".format(ethtrunk_name))
+    
+    try:
+        db.set_entry('ETHTRUNK', ethtrunk_name, None)
+    except JsonPatchConflict:
+        ctx.fail("{} is not present.".format(ethtrunk_name))
+
+@ethtrunk.group(cls=clicommon.AbbreviationGroup, name='member')
+@click.pass_context
+def ethtrunk_member(ctx):
+    pass
+
+@ethtrunk_member.command('add')
+@click.argument('ethtrunk_name', metavar='<ethtrunk_name>', required=True)
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.pass_context
+def add_ethtrunk_member(ctx, ethtrunk_name, port_name):
+    """Add member to eth trunk"""
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    
+    if ADHOC_VALIDATION:
+        if clicommon.is_port_mirror_dst_port(db, port_name):
+            ctx.fail("{} is configured as mirror destination port".format(port_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        # Check if the member interface given by user is valid in the namespace.
+        if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+        # Dont proceed if the eth trunk name is not valid
+        if is_ethtrunk_name_valid(ethtrunk_name) is False:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                     .format(ethtrunk_name, CFG_ETHTRUNK_PREFIX, CFG_ETHTRUNK_NO))
+
+        # Dont proceed if the eth trunk does not exist
+        if is_ethtrunk_present_in_db(db, ethtrunk_name) is False:
+            ctx.fail("{} is not present.".format(ethtrunk_name))
+ 
+        # Don't allow a port to be member of eth trunk if it is configured with an IP address
+        for key,value in db.get_table('INTERFACE').items():
+            if type(key) == tuple:
+                continue
+            if key == port_name:
+                ctx.fail(" {} has ip address configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
+
+        for key in db.get_keys('VLAN_SUB_INTERFACE'):
+            if type(key) == tuple:
+                continue
+            intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
+            parent_intf = get_intf_longname(intf)
+            if parent_intf == port_name:
+                ctx.fail(" {} has subinterfaces configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        # Dont allow a port to be member of eth trunk if it is configured as a VLAN member
+        for k,v in db.get_table('VLAN_MEMBER'):
+            if v == port_name:
+                ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
+
+        # Dont allow a port to be member of eth trunk if it is configured as a port channel member
+        for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+            if v == port_name:
+                ctx.fail("%s Interface configured as PORTCHANNEL_MEMBER under port channel : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
+
+        # Dont allow a port to be member of eth trunk if it is already member of a eth trunk
+        for k,v in db.get_table('ETHTRUNK_MEMBER'):
+            if v == port_name:
+                ctx.fail("{} Interface is already member of {} ".format(v,k))    # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        # Dont allow a port to be member of eth trunk if its speed does not match with existing members
+        for k,v in db.get_table('ETHTRUNK_MEMBER'):
+            if k == ethtrunk_name:
+                member_port_entry = db.get_entry('PORT', v)
+                port_entry = db.get_entry('PORT', port_name)
+
+                if member_port_entry is not None and port_entry is not None:
+                    member_port_speed = member_port_entry.get(PORT_SPEED)
+
+                    port_speed = port_entry.get(PORT_SPEED) # TODO: MISSING CONSTRAINT IN YANG MODEL
+                    if member_port_speed != port_speed: 
+                        ctx.fail("Port speed of {} is different than the other members of the ethtrunk {}"
+                                 .format(port_name, ethtrunk_name))
+
+        # Don't allow a port to be a member of ethtrunk if already has ACL bindings
+        try:
+            acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace']) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if acl_bindings:
+                ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
+
+        # Don't allow a port to be a member of ethtrunk if already has PBH bindings
+        try:
+            pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if pbh_bindings:
+                ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
+
+    try:
+        db.set_entry('ETHTRUNK_MEMBER', (ethtrunk_name, port_name),
+                {'NULL': 'NULL'})
+    except ValueError:
+        ctx.fail("Ethtrunk or interface name is invalid or nonexistent")
+
+@ethtrunk_member.command('del')
+@click.argument('ethtrunk_name', metavar='<ethtrunk_name>', required=True)
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.pass_context
+def del_ethtrunk_member(ctx, ethtrunk_name, port_name):
+    """Remove member from ethtrunk"""
+    # Dont proceed if the eth trunk name is not valid
+    if is_ethtrunk_name_valid(ethtrunk_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(ethtrunk_name, CFG_ETHTRUNK_PREFIX, CFG_ETHTRUNK_NO))
+
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    if ADHOC_VALIDATION:
+        # Check if the member interface given by user is valid in the namespace.
+        if interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+        # Dont proceed if the eth trunk does not exist
+        if is_ethtrunk_present_in_db(db, ethtrunk_name) is False:
+            ctx.fail("{} is not present.".format(ethtrunk_name))
+
+        # Dont proceed if the the port is not an existing member of the eth trunk
+        if not is_port_member_of_this_ethtrunk(db, port_name, ethtrunk_name):
+            ctx.fail("{} is not a member of ethtrunk {}".format(port_name, ethtrunk_name))
+    
+    try:
+        db.set_entry('ETHTRUNK_MEMBER', ethtrunk_name + '|' + port_name, None)
+    except JsonPatchConflict:
+        ctx.fail("Invalid or nonexistent ethtrunk or interface. Please ensure existence of ethtrunk member.")
 
 #
 # 'mirror_session' group ('config mirror_session ...')
@@ -3877,6 +4158,11 @@ def startup(ctx, interface_name):
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
 
+    ethtrunk_list = config_db.get_table("ETHTRUNK")
+    for po_name in ethtrunk_list:
+        if po_name in intf_fs:
+            config_db.mod_entry("ETHTRUNK", po_name, {"admin_status": "up"})
+
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
     for sp_name in subport_list:
         if sp_name in intf_fs:
@@ -3916,6 +4202,11 @@ def shutdown(ctx, interface_name):
     for po_name in portchannel_list:
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
+
+    ethtrunk_list = config_db.get_table("ETHTRUNK")
+    for po_name in ethtrunk_list:
+        if po_name in intf_fs:
+            config_db.mod_entry("ETHTRUNK", po_name, {"admin_status": "down"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
     for sp_name in subport_list:
@@ -4345,6 +4636,12 @@ def add(ctx, interface_name, ip_addr, gw):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
 
+    ethtrunk_member_table = config_db.get_table('ETHTRUNK_MEMBER')
+
+    if interface_is_in_ethtrunk(ethtrunk_member_table, interface_name):
+        ctx.fail("{} is configured as a member of ethtrunk."
+                .format(interface_name))
+
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:
@@ -4375,7 +4672,7 @@ def add(ctx, interface_name, ip_addr, gw):
 
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/EthTrunk/Vlan/Loopback]")
     interface_entry = config_db.get_entry(table_name, interface_name)
     if len(interface_entry) == 0:
         if table_name == "VLAN_SUB_INTERFACE":
@@ -4413,7 +4710,7 @@ def remove(ctx, interface_name, ip_addr):
 
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/EthTrunk/Vlan/Loopback]")
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     # If we deleting the last IP entry of the interface, check whether a static route present for the RIF
     # before deleting the entry and also the RIF.
@@ -5152,12 +5449,14 @@ def enable_use_link_local_only(ctx, interface_name):
         interface_type = "INTERFACE"
     elif interface_name.startswith("PortChannel"):
         interface_type = "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("EthTrunk"):
+        interface_type = "ETHTRUNK_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_type = "VLAN_INTERFACE"
     else:
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/EthTrunk/Vlan]")
 
-    if (interface_type == "INTERFACE" ) or (interface_type == "PORTCHANNEL_INTERFACE"):
+    if (interface_type == "INTERFACE" ) or (interface_type == "PORTCHANNEL_INTERFACE") or (interface_type == "ETHTRUNK_INTERFACE"):
         if interface_name_is_valid(db, interface_name) is False:
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
@@ -5169,6 +5468,12 @@ def enable_use_link_local_only(ctx, interface_name):
 
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel. Cannot configure the IPv6 link local mode!"
+                .format(interface_name))
+
+    ethtrunk_member_table = db.get_table('ETHTRUNK_MEMBER')
+
+    if interface_is_in_ethtrunk(ethtrunk_member_table, interface_name):
+        ctx.fail("{} is configured as a member of ethtrunk. Cannot configure the IPv6 link local mode!"
                 .format(interface_name))
 
     vlan_member_table = db.get_table('VLAN_MEMBER')
@@ -5205,12 +5510,14 @@ def disable_use_link_local_only(ctx, interface_name):
         interface_type = "INTERFACE"
     elif interface_name.startswith("PortChannel"):
         interface_type = "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("EthTrunk"):
+        interface_type = "ETHTRUNK_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_type = "VLAN_INTERFACE"
     else:
-        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/EthTrunk/Vlan]")
 
-    if (interface_type == "INTERFACE" ) or (interface_type == "PORTCHANNEL_INTERFACE"):
+    if (interface_type == "INTERFACE" ) or (interface_type == "PORTCHANNEL_INTERFACE") or (interface_type == "ETHTRUNK_INTERFACE"):
         if interface_name_is_valid(db, interface_name) is False:
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
@@ -5222,6 +5529,12 @@ def disable_use_link_local_only(ctx, interface_name):
 
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel. Cannot configure the IPv6 link local mode!"
+                .format(interface_name))
+
+    ethtrunk_member_table = db.get_table('ETHTRUNK_MEMBER')
+
+    if interface_is_in_ethtrunk(ethtrunk_member_table, interface_name):
+        ctx.fail("{} is configured as a member of ethtrunk. Cannot configure the IPv6 link local mode!"
                 .format(interface_name))
 
     vlan_member_table = db.get_table('VLAN_MEMBER')
@@ -5369,6 +5682,7 @@ def add_route(ctx, command_str):
         if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+            not route['ifname'] in config_db.get_keys('ETHTRUNK_INTERFACE') and
             not route['ifname'] in config_db.get_keys('VLAN_SUB_INTERFACE') and
             not route['ifname'] == 'null'):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
@@ -6784,6 +7098,7 @@ def enable_link_local(ctx):
     config_db.connect()
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    ethtrunk_member_table = config_db.get_table('ETHTRUNK_MEMBER')
 
     mode = "enable"
 
@@ -6799,9 +7114,16 @@ def enable_link_local(ctx):
             continue
         set_ipv6_link_local_only_on_interface(config_db, portchannel_dict, 'PORTCHANNEL_INTERFACE', key, mode)
 
+    # Enable ipv6 link local on EthTrunks
+    ethtrunk_dict = config_db.get_table('ETHTRUNK')
+    for key in ethtrunk_dict.keys():
+        if interface_is_in_vlan(vlan_member_table, key):
+            continue
+        set_ipv6_link_local_only_on_interface(config_db, ethtrunk_dict, 'ETHTRUNK_INTERFACE', key, mode)
+
     port_dict = config_db.get_table('PORT')
     for key in port_dict.keys():
-        if interface_is_in_portchannel(portchannel_member_table, key) or interface_is_in_vlan(vlan_member_table, key):
+        if interface_is_in_portchannel(portchannel_member_table, key) or interface_is_in_ethtrunk(ethtrunk_member_table, key) or interface_is_in_vlan(vlan_member_table, key):
             continue
         set_ipv6_link_local_only_on_interface(config_db, port_dict, 'INTERFACE', key, mode)
 
@@ -6825,7 +7147,7 @@ def disable_link_local(ctx):
 
     mode = "disable"
 
-    tables = ['INTERFACE', 'VLAN_INTERFACE', 'PORTCHANNEL_INTERFACE']
+    tables = ['INTERFACE', 'VLAN_INTERFACE', 'PORTCHANNEL_INTERFACE', 'ETHTRUNK_INTERFACE']
 
     for table_type in tables:
         table_dict = config_db.get_table(table_type)
@@ -6944,6 +7266,12 @@ def add_subinterface(ctx, subinterface_name, vid):
         portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
         if interface_is_in_portchannel(portchannel_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
+                    .format(parent_intf))
+
+        # Validate if parent is ethtrunk member
+        ethtrunk_member_table = config_db.get_table('ETHTRUNK_MEMBER')
+        if interface_is_in_ethtrunk(ethtrunk_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is configured as a member of ethtrunk. Cannot configure subinterface"
                     .format(parent_intf))
 
         # Validate if parent is vlan member
