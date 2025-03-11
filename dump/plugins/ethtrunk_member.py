@@ -4,7 +4,7 @@ from .executor import Executor
 
 class Ethtrunk_Member(Executor):
     """
-    Debug Dump Plugin for EthTrunk/LAG Module
+    Debug Dump Plugin for EthTrunk Module
     """
     ARG_NAME = "ethtrunk_member"
 
@@ -26,7 +26,7 @@ class Ethtrunk_Member(Executor):
         self.ethtrunk_member_key = params_dict[Ethtrunk_Member.ARG_NAME]
         if "|" not in self.ethtrunk_member_key:
             return self.ret_temp
-        self.lag, self.port_name = self.ethtrunk_member_key.split("|", 1)
+        self.ethtrunk, self.port_name = self.ethtrunk_member_key.split("|", 1)
         self.ns = params_dict["namespace"]
         # CONFIG_DB
         self.init_ethtrunk_member_config_info()
@@ -44,7 +44,7 @@ class Ethtrunk_Member(Executor):
         return self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
     def init_ethtrunk_member_appl_info(self):
-        req = MatchRequest(db="APPL_DB", table="ETHTRUNK_MEMBER_TABLE", key_pattern=self.lag + ":" + self.port_name, ns=self.ns)
+        req = MatchRequest(db="APPL_DB", table="ETHTRUNK_MEMBER_TABLE", key_pattern=self.ethtrunk + ":" + self.port_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
         return self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
@@ -56,9 +56,9 @@ class Ethtrunk_Member(Executor):
     def init_ethtrunk_member_type_obj_asic_info(self):
         port_asic_obj = self.get_port_asic_obj(self.port_name)
         if not port_asic_obj:
-            self.ret_temp["ASIC_DB"]["tables_not_found"].extend(["ASIC_STATE:SAI_OBJECT_TYPE_ETHTRUNK_MEMBER"])
+            self.ret_temp["ASIC_DB"]["tables_not_found"].extend(["ASIC_STATE:SAI_OBJECT_TYPE_NEXT_HOP_GROUP"])
             return False
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_ETHTRUNK_MEMBER", key_pattern="*", field="SAI_ETHTRUNK_MEMBER_ATTR_PORT_ID",
+        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_NEXT_HOP_GROUP", key_pattern="*", field="SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_ID",
                            value=port_asic_obj, ns=self.ns)
         ret = self.match_engine.fetch(req)
         return self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])

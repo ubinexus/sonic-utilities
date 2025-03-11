@@ -2,7 +2,7 @@ from sonic_py_common.interface import get_interface_table_name, get_intf_longnam
 from sonic_py_common.multi_asic import DEFAULT_NAMESPACE
 from dump.match_infra import MatchRequest
 from dump.helper import create_template_dict, handle_error
-from dump.match_helper import fetch_port_oid, fetch_vlan_oid, fetch_lag_oid
+from dump.match_helper import fetch_port_oid, fetch_vlan_oid, fetch_lag_oid, fetch_ethtrunk_oid
 from swsscommon.swsscommon import SonicDBConfig
 from .executor import Executor
 
@@ -90,6 +90,7 @@ class Interface(Executor):
         2) PORTCHANNEL - SAI_OBJECT_TYPE_LAG oid
         3) VLAN - SAI_OBJECT_TYPE_VLAN
         4) SUB_INTERFACE - SAI_OBJECT_TYPE_PORT/SAI_OBJECT_TYPE_LAG & SAI_ROUTER_INTERFACE_ATTR_OUTER_VLAN_ID
+        5) ETHTRUNK - SAI_OBJECT_TYPE_NEXT_HOP_GROUP oid
         """
         rif_obj = RIF.initialize(self)
         rif_obj.collect()
@@ -225,15 +226,16 @@ class EthTrunkRIF(RIF):
     Handler for EthTrunk type Obj
     """
     def collect(self):
-        # Get port oid from port name
-        _, port_oid, _ = fetch_port_oid(self.intf.match_engine, self.intf.intf_name, self.intf.ns)
-        # Use Port oid to get the RIF
-        req, ret = self.fetch_rif_keys_using_port_oid(port_oid)
+        # Get ethtrunk oid from lag name 
+        ethtrunk_oid = fetch_ethtrunk_oid(self.intf.match_engine, self.intf.intf_name, self.intf.ns)
+        # Use vlan oid to get the RIF
+        req, ret = self.fetch_rif_keys_using_port_oid(ethtrunk_oid)
         rif_oids = self.intf.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         if rif_oids:
-            # Sanity check to see if the TYPE is SAI_ROUTER_INTERFACE_TYPE_ETH_TRUNK
-            exp_type = "SAI_ROUTER_INTERFACE_TYPE_ETH_TRUNK"
-            self.sanity_check_rif_type(ret, rif_oids[-1], exp_type, "PORT")
+            # Sanity check to see if the TYPE is SAI_ROUTER_INTERFACE_TYPE_PORT
+            exp_type = "SAI_ROUTER_INTERFACE_TYPE_PORT"
+            self.sanity_check_rif_type(ret, rif_oids[-1], exp_type, "ETHTRUNK")
+
 
 class SubIntfRif(RIF):
     """
