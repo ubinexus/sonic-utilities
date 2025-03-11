@@ -524,7 +524,7 @@ def get_port_namespace(port):
 def del_interface_bind_to_vrf(config_db, vrf_name):
     """del interface bind to vrf
     """
-    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'ETHTRUNK_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
@@ -2327,7 +2327,7 @@ def add_ethtrunk(ctx, ethtrunk_name, mtu, backup):
     
     fvs = {
         'admin_status': 'up',
-        'mtu': str(mtu),
+        'mtu': '9100',
     }
 
     if backup != 'false':
