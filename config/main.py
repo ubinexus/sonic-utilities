@@ -2016,11 +2016,12 @@ def portchannel(db, ctx, namespace):
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
+@click.option('--activebackup', default='false')
 @click.option('--fast-rate', default='false',
               type=click.Choice(['true', 'false'],
                                 case_sensitive=False))
 @click.pass_context
-def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
+def add_portchannel(ctx, portchannel_name, min_links, fallback, activebackup, fast_rate):
     """Add port channel"""
     
     fvs = {
@@ -2032,6 +2033,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
 
     if min_links != 0:
         fvs['min_links'] = str(min_links)
+    if activebackup == 'true':
+        fvs['activebackup'] = 'true'
     if fallback != 'false':
         fvs['fallback'] = 'true'
     
