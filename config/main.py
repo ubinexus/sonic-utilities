@@ -2016,8 +2016,10 @@ def portchannel(db, ctx, namespace):
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
-@click.option('--activebackup', default='false')
 @click.option('--fast-rate', default='false',
+              type=click.Choice(['true', 'false'],
+                                case_sensitive=False))
+@click.option('--activebackup', default='false',
               type=click.Choice(['true', 'false'],
                                 case_sensitive=False))
 @click.pass_context
