@@ -2015,6 +2015,7 @@ def portchannel(db, ctx, namespace):
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
+@click.option('--mtu', default=9100, type=click.IntRange(68,9216))
 @click.option('--fallback', default='false')
 @click.option('--fast-rate', default='false',
               type=click.Choice(['true', 'false'],
@@ -2023,18 +2024,19 @@ def portchannel(db, ctx, namespace):
               type=click.Choice(['true', 'false'],
                                 case_sensitive=False))
 @click.pass_context
-def add_portchannel(ctx, portchannel_name, min_links, fallback, activebackup, fast_rate):
+def add_portchannel(ctx, portchannel_name, min_links, mtu, fallback, fast_rate, activebackup):
     """Add port channel"""
     
     fvs = {
         'admin_status': 'up',
-        'mtu': '9100',
         'lacp_key': 'auto',
         'fast_rate': fast_rate.lower(),
     }
 
     if min_links != 0:
         fvs['min_links'] = str(min_links)
+    if mtu != 0:
+        fvs['mtu'] = str(mtu)
     if activebackup == 'true':
         fvs['activebackup'] = 'true'
     if fallback != 'false':
