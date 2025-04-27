@@ -2547,6 +2547,10 @@ def remove_portchannel(ctx, portchannel_name):
         if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0: # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
 
+        # Dont let to remove port channel if the portchannle is binding vrf
+        if is_interface_bind_to_vrf(db, portchannel_name) is True:
+            ctx.fail("Portchannel {} binds to vrf. Unbind to vrf before deleting Portchannel!".format(portchannel_name))
+
     try:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
     except JsonPatchConflict:
