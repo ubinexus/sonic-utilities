@@ -6930,6 +6930,8 @@ def add_subinterface(ctx, subinterface_name, vid):
     sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
     interface_alias = subinterface_name[:sub_intf_sep_idx]
     if ADHOC_VALIDATION:
+        if len(subinterface_name) > 15:
+            ctx.fail("{} is invalid subinterface name,the length of the name string cannot exceed 15".format(subinterface_name))
         if sub_intf_sep_idx == -1:
             ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
