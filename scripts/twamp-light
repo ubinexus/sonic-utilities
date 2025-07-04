@@ -158,7 +158,7 @@ class TwampLight(object):
         """
         output_summary = ''
         output_summary += "Time unit: Monitor Time/Timeout in second; Tx Interval/Stats Interval in millisecond\n"
-        sender_header = ("Name", "Status", "Sender IP:PORT", "Reflector IP:PORT",
+        sender_header = ("Name", "Status", "Local IP:PORT", "Remote IP:PORT",
                          "Packet Count", "Monitor Time", "Tx Interval", "Stats Interval", "Timeout")
 
         sender_data = []
@@ -183,7 +183,7 @@ class TwampLight(object):
         :return:
         """
         output_summary = ''
-        reflector_header = ("Name", "Status", "Sender IP:PORT", "Reflector IP:PORT")
+        reflector_header = ("Name", "Status", "Local IP:PORT", "Remote IP:PORT")
 
         reflector_data = []
         for key, val in self.get_session_db_info().items():
@@ -268,7 +268,7 @@ class TwampLight(object):
         :param session_name: Optional. Twamp-Light session name. Filter sessions by specified name.
         :return:
         """
-        statistics_header = ("Name", "Index", "Loss Count", "Loss Ratio")
+        statistics_header = ("Name", "Index", "TX", "RX", "Loss Count", "Loss Ratio")
         print("Latest two-way loss statistics:")
         statistics_data = []
         session_data = []
@@ -284,10 +284,10 @@ class TwampLight(object):
                 drop_packets = tx_packets - rx_packets
                 drop_ratio = drop_packets * 100 / tx_packets if tx_packets else 0
                 if insert_key:
-                    session_data.append([key, index, drop_packets, drop_ratio])
+                    session_data.append([key, index, tx_packets, rx_packets, drop_packets, drop_ratio])
                     insert_key = False
                 else:
-                    session_data.append(["", index, drop_packets, drop_ratio])
+                    session_data.append(["", index, tx_packets, rx_packets, drop_packets, drop_ratio])
             statistics_data += session_data
             session_data = []
         print(tabulate(statistics_data, headers=statistics_header, tablefmt="simple", missingval=""))
@@ -299,7 +299,7 @@ class TwampLight(object):
         :param session_name: Optional. Twamp-Light session name. Filter sessions by specified name.
         :return:
         """
-        statistics_header = ("Name", "Loss Count(AVG)", "Loss Count(MIN)", "Loss Count(MAX)", "Loss Ratio(AVG)", "Loss Ratio(MIN)", "Loss Ratio(MAX)")
+        statistics_header = ("Name", "Total TX", "Total RX" "Loss Count(AVG)", "Loss Count(MIN)", "Loss Count(MAX)", "Loss Ratio(AVG)", "Loss Ratio(MIN)", "Loss Ratio(MAX)")
         print("Total two-way loss statistics:")
         statistics_data = []
         for name, val in self.get_stats_db_info().items():
@@ -314,6 +314,7 @@ class TwampLight(object):
             min_drop_ratio = 0
             max_drop_ratio = 0
             total_tx_packets = 0
+            total_rx_packets = 0
             total_drop_packets = 0
             total_index = 0
             for index, stats_info in val.items():
@@ -324,6 +325,7 @@ class TwampLight(object):
                 rx_packets = int(stats_info.get("rx_packets", "0"))
                 drop_packets = tx_packets - rx_packets
                 total_tx_packets += tx_packets
+                total_rx_packets += rx_packets
                 total_drop_packets += drop_packets
                 if 1 == total_index:
                     min_drop_packets = drop_packets
@@ -342,7 +344,7 @@ class TwampLight(object):
                     max_drop_ratio = 0
             avg_drop_packets = total_drop_packets / total_index if total_index else 0
             avg_drop_ratio = total_drop_packets * 100 / total_tx_packets if total_tx_packets else 0
-            statistics_data.append([name,
+            statistics_data.append([name, total_tx_packets, total_rx_packets,
                                     avg_drop_packets, min_drop_packets, max_drop_packets,
                                     avg_drop_ratio, min_drop_ratio, max_drop_ratio])
 

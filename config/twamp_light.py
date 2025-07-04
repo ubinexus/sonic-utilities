@@ -1,6 +1,6 @@
 import click
 import utilities_common.cli as clicommon
-from swsscommon.swsscommon import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 import ipaddress
 
 from .utils import log
@@ -86,6 +86,29 @@ def validate_twamp_ip_port_cb(ctx, param, ip_port):
 
     return ip_addr, udp_port
 
+def max_twamp_session_count():
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(state_db.STATE_DB, False)
+    count = state_db.get(state_db.STATE_DB, "SWITCH_CAPABILITY|switch","MAX_TWAMP_SESSION_COUNT")
+    if count is None:
+        return -1
+    return int(count)
+
+def check_twamp_session_count(config_db, max_count):
+    if config_db is None:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+    sessions = config_db.get_keys(CFG_TWAMP_SESSION_TABLE_NAME)
+    if len(sessions) >= max_count:
+        return False
+    return True
+
+def validate_twamp_session_count(ctx, db):
+    max_count = max_twamp_session_count()
+    if max_count <= 0:
+        ctx.fail("Twamp session resource availability is not supported")
+    if not check_twamp_session_count(db.cfgdb, max_count):
+        ctx.fail("Twamp session resource availability is not enough, max count is {}".format(max_count))
 
 # TWAMP-Light Configuration ##################
 #
@@ -120,8 +143,8 @@ def twamp_light_sender_packet_count():
 #
 @twamp_light_sender_packet_count.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True, callback=validate_twamp_session_exist_cb)
-@click.argument('sender_ip_port', metavar='<sender_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
-@click.argument('reflector_ip_port', metavar='<reflector_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('local_ip_port', metavar='<local_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('remote_ip_port', metavar='<remote_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
 @click.argument('packet_count', metavar='<packet_count>',
                 required=True, type=click.IntRange(min=100, max=30000), default=100)
 @click.argument('tx_interval', metavar='<tx_interval>', required=True, type=click.Choice(['10', '100', '1000']),
@@ -133,20 +156,23 @@ def twamp_light_sender_packet_count():
 @click.option('--dscp', required=False, type=click.IntRange(min=0, max=63), help='DSCP Value')
 @click.option('--ttl', required=False, type=click.IntRange(min=1, max=255), help='TTL Value')
 @click.option('--timestamp-format', required=False, type=click.Choice(['ntp', 'ptp']), help='Timestamp Format')
+@click.option('--padding', required=False, type=click.IntRange(min=30, max=1000), default=128, help='Padding Value')
 @clicommon.pass_db
-def twamp_light_sender_packet_count_add(db, session_name, sender_ip_port, reflector_ip_port,
+def twamp_light_sender_packet_count_add(db, session_name, local_ip_port, remote_ip_port,
                                         packet_count, tx_interval, timeout, statistics_interval,
-                                        vrf, dscp, ttl, timestamp_format):
+                                        vrf, dscp, ttl, timestamp_format, padding):
     """ Add TWAMP-Light session-sender packet-count session """
 
     ctx = click.get_current_context()
 
     log.log_info("'twamp-light session-sender add packet-count {} {} {} {} {} {} {}' executing..."
-                 .format(session_name, sender_ip_port, reflector_ip_port,
+                 .format(session_name, local_ip_port, remote_ip_port,
                          packet_count, tx_interval, timeout, statistics_interval))
 
-    sender_ip, sender_udp_port = sender_ip_port
-    reflector_ip, reflector_udp_port = reflector_ip_port
+    validate_twamp_session_count(ctx, db)
+
+    local_ip, local_udp_port = local_ip_port
+    remote_ip, remote_udp_port = remote_ip_port
 
     if statistics_interval is None:
         statistics_interval = int(packet_count) * int(tx_interval) + int(timeout)*1000
@@ -157,10 +183,10 @@ def twamp_light_sender_packet_count_add(db, session_name, sender_ip_port, reflec
     fvs = {
             'mode': TWAMP_MODE_LIGHT,
             'role': TWAMP_ROLE_SENDER,
-            'src_ip': sender_ip,
-            'dst_ip': reflector_ip,
-            'src_udp_port': sender_udp_port,
-            'dst_udp_port': reflector_udp_port,
+            'src_ip': local_ip,
+            'dst_ip': remote_ip,
+            'src_udp_port': local_udp_port,
+            'dst_udp_port': remote_udp_port,
             'packet_count': packet_count,
             'tx_interval': tx_interval,
             'timeout': timeout,
@@ -175,6 +201,10 @@ def twamp_light_sender_packet_count_add(db, session_name, sender_ip_port, reflec
         fvs['ttl'] = ttl
     if timestamp_format is not None:
         fvs['timestamp_format'] = timestamp_format
+    if padding is not None:
+        fvs['padding_size'] = padding
+    else:
+        fvs['padding_size'] = 128
 
     db.cfgdb.set_entry(CFG_TWAMP_SESSION_TABLE_NAME, session_name, fvs)
 
@@ -193,8 +223,8 @@ def twamp_light_sender_continuous():
 #
 @twamp_light_sender_continuous.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True, callback=validate_twamp_session_exist_cb)
-@click.argument('sender_ip_port', metavar='<sender_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
-@click.argument('reflector_ip_port', metavar='<reflector_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('local_ip_port', metavar='<local_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('remote_ip_port', metavar='<remote_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
 @click.argument('monitor_time', metavar='<monitor_time>', required=True, type=click.INT, default=0)
 @click.argument('tx_interval', metavar='<tx_interval>', required=True, type=click.Choice(['10', '100', '1000']),
                 default='100')
@@ -205,20 +235,23 @@ def twamp_light_sender_continuous():
 @click.option('--dscp', required=False, type=click.IntRange(min=0, max=63), help='DSCP Value')
 @click.option('--ttl', required=False, type=click.IntRange(min=1, max=255), help='TTL Value')
 @click.option('--timestamp-format', required=False, type=click.Choice(['ntp', 'ptp']), help='Timestamp Format')
+@click.option('--padding', required=False, type=click.IntRange(min=30, max=1000), default=128, help='Padding Value')
 @clicommon.pass_db
-def twamp_light_sender_continuous_add(db, session_name, sender_ip_port, reflector_ip_port,
+def twamp_light_sender_continuous_add(db, session_name, local_ip_port, remote_ip_port,
                                       monitor_time, tx_interval, timeout, statistics_interval,
-                                      vrf, dscp, ttl, timestamp_format):
+                                      vrf, dscp, ttl, timestamp_format, padding):
     """ Add TWAMP-Light Session-Sender continuous session """
 
     ctx = click.get_current_context()
 
     log.log_info("'twamp-light session-sender add continuous {} {} {} {} {} {} {}' executing..."
-                 .format(session_name, sender_ip_port, reflector_ip_port,
+                 .format(session_name, local_ip_port, remote_ip_port,
                          monitor_time, tx_interval, timeout, statistics_interval))
 
-    sender_ip, sender_udp_port = sender_ip_port
-    reflector_ip, reflector_udp_port = reflector_ip_port
+    validate_twamp_session_count(ctx, db)
+    
+    local_ip, local_udp_port = local_ip_port
+    remote_ip, remote_udp_port = remote_ip_port
 
     if statistics_interval is None:
         if int(monitor_time) == 0:
@@ -232,10 +265,10 @@ def twamp_light_sender_continuous_add(db, session_name, sender_ip_port, reflecto
     fvs = {
             'mode': TWAMP_MODE_LIGHT,
             'role': TWAMP_ROLE_SENDER,
-            'src_ip': sender_ip,
-            'dst_ip': reflector_ip,
-            'src_udp_port': sender_udp_port,
-            'dst_udp_port': reflector_udp_port,
+            'src_ip': local_ip,
+            'dst_ip': remote_ip,
+            'src_udp_port': local_udp_port,
+            'dst_udp_port': remote_udp_port,
             'monitor_time': monitor_time,
             'tx_interval': tx_interval,
             'timeout': timeout,
@@ -250,6 +283,10 @@ def twamp_light_sender_continuous_add(db, session_name, sender_ip_port, reflecto
         fvs['ttl'] = ttl
     if timestamp_format is not None:
         fvs['timestamp_format'] = timestamp_format
+    if padding is not None:
+        fvs['padding_size'] = padding
+    else:
+        fvs['padding_size'] = 128
 
     db.cfgdb.set_entry(CFG_TWAMP_SESSION_TABLE_NAME, session_name, fvs)
 
@@ -310,30 +347,35 @@ def twamp_light_reflector():
 #
 @twamp_light_reflector.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True, callback=validate_twamp_session_exist_cb)
-@click.argument('sender_ip_port', metavar='<sender_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
-@click.argument('reflector_ip_port', metavar='<reflector_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('local_ip_port', metavar='<local_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
+@click.argument('remote_ip_port', metavar='<remote_ip:port>', required=True, callback=validate_twamp_ip_port_cb)
 @click.option('--vrf', required=False, help='VRF Name')
 @click.option('--dscp', required=False, type=click.IntRange(min=0, max=63), help='DSCP Value')
 @click.option('--ttl', required=False, type=click.IntRange(min=1, max=255), help='TTL Value')
 @click.option('--timestamp-format', required=False, type=click.Choice(['ntp', 'ptp']), help="Timestamp Format")
 @clicommon.pass_db
-def twamp_light_reflector_add(db, session_name, sender_ip_port, reflector_ip_port,
+def twamp_light_reflector_add(db, session_name, local_ip_port, remote_ip_port,
                               vrf, dscp, ttl, timestamp_format):
     """ Add TWAMP-Light session-reflector session """
-
+    
+    ctx = click.get_current_context()
+    
     log.log_info("'twamp-light add reflector {} {} {}' executing..."
-                 .format(session_name, sender_ip_port, reflector_ip_port))
+                 .format(session_name, local_ip_port, remote_ip_port))
 
-    sender_ip, sender_udp_port = sender_ip_port
-    reflector_ip, reflector_udp_port = reflector_ip_port
+
+    validate_twamp_session_count(ctx, db)
+
+    local_ip, local_udp_port = local_ip_port
+    remote_ip, remote_udp_port = remote_ip_port
 
     fvs = {
             'mode': TWAMP_MODE_LIGHT,
             'role': TWAMP_ROLE_REFLECTOR,
-            'src_ip': sender_ip,
-            'dst_ip': reflector_ip,
-            'src_udp_port': sender_udp_port,
-            'dst_udp_port': reflector_udp_port
+            'src_ip': local_ip,
+            'dst_ip': remote_ip,
+            'src_udp_port': local_udp_port,
+            'dst_udp_port': remote_udp_port
             }
 
     if vrf is not None:
