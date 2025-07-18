@@ -2,6 +2,7 @@ import click
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 import ipaddress
+import re
 
 from .utils import log
 
@@ -64,25 +65,51 @@ def validate_twamp_session_cb(ctx, param, name):
         return session_keys
 
 
+def twamp_ip_port_regex_match(ip_port):
+    # ipv4:{port}
+    ipv4_pattern = r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):?(\d+)?$'
+    # [IPV6]:{port}
+    ipv6_pattern = r'^\[([a-fA-F0-9:]+)\]:?(\d+)?$'
+    
+    ipv4_port_match = re.match(ipv4_pattern, ip_port)
+    if ipv4_port_match:
+        ipv4_addr = ipv4_port_match.group(1)
+        ipv4_port = ipv4_port_match.group(2)
+        return ipv4_addr, ipv4_port
+    else:
+        if ip_port.startswith('['):
+            ipv6_port_match = re.match(ipv6_pattern, ip_port)
+            if ipv6_port_match:
+                ipv6_addr = ipv6_port_match.group(1)
+                ipv6_port = ipv6_port_match.group(2)
+                return ipv6_addr, ipv6_port
+        else:
+            return ip_port, None
+    return None, None
+
 def validate_twamp_ip_port_cb(ctx, param, ip_port):
     """ Helper function to validate ip address and udp port """
-    if ip_port.count(':') == 1:
-        ip_addr, udp_port = ip_port.split(':')
+    
+    ip_addr, udp_port = twamp_ip_port_regex_match(ip_port)
+
+    if ip_addr is None:
+        raise click.UsageError('Invalid value for "<{}>": {}. Valid format in ipv4addr:\{udp_port\} or '
+                               '[ipv6addr]:\{udp_port\}'.format(param.name, ip_port))
+    try:
+        ipaddress.ip_interface(ip_addr)
+    except ValueError:
+        raise click.UsageError('Invalid value for "<{}>": {}. Valid format in ipv4addr or '
+                               '[ipv6addr]'.format(param.name, ip_addr))
+
+    if udp_port is not None:
         if check_twamp_udp_port(udp_port) is False:
             raise click.UsageError('Invalid value for "<{}>": {}. Valid udp port range in '
                                    '862|863|1025-65535'.format(param.name, udp_port))
     else:
-        ip_addr = ip_port
         if TWAMP_ROLE_SENDER in param.name.upper():
             udp_port = TWAMP_SESSION_DEFAULT_SENDER_UDP_PORT
         else:
             udp_port = TWAMP_SESSION_DEFAULT_REFLECTOR_UDP_PORT
-
-    try:
-        ipaddress.ip_interface(ip_addr)
-    except ValueError:
-        raise click.UsageError('Invalid value for "<{}>": {}. Valid format in IPv4_address or '
-                               'IPv4_address:udp_port'.format(param.name, ip_addr))
 
     return ip_addr, udp_port
 

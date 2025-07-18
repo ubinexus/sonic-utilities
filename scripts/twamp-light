@@ -10,6 +10,7 @@ import argparse
 import sys
 import time
 import os
+import ipaddress
 
 # mock the redis for unit test purposes #
 try: # pragma: no cover
@@ -150,6 +151,18 @@ class TwampLight(object):
     def get_stats_db_info(self):
         return self.stats_db_info
 
+    def ip_str_format(self, ip_str):
+        if ip_str == "":
+            return ""
+        try:
+            ip_addr = ipaddress.ip_address(ip_str)
+            if ip_addr.version == 6:
+                return "[{}]".format(ip_str)
+            else:
+                return ip_str
+        except ValueError:
+            return ""
+
     def display_sender_session(self, session_name):
         """
         Show twamp session configuration.
@@ -167,9 +180,12 @@ class TwampLight(object):
                 continue
             if val.get("role", "") != self.TWAMP_ROLE_SENDER:
                 continue
-
+            
+            src_ip = self.ip_str_format(val.get("src_ip", ""))
+            dst_ip = self.ip_str_format(val.get("dst_ip", ""))
+                
             sender_data.append([key, val.get("status", ""),
-                                "{}:{}".format(val.get("src_ip", ""), val.get("src_udp_port", "")), "{}:{}".format(val.get("dst_ip", ""), val.get("dst_udp_port", "")),
+                                "{}:{}".format(src_ip, val.get("src_udp_port", "")), "{}:{}".format(dst_ip, val.get("dst_udp_port", "")),
                                 val.get("packet_count", "-"), val.get("monitor_time", "-"), val.get("tx_interval", "-"), val.get("statistics_interval", ""), val.get("timeout", "")])
 
         output_summary += "TWAMP-Light Sender Sessions\n"
@@ -192,8 +208,11 @@ class TwampLight(object):
             if val.get("role", "") != self.TWAMP_ROLE_REFLECTOR:
                 continue
 
+            src_ip = self.ip_str_format(val.get("src_ip", ""))
+            dst_ip = self.ip_str_format(val.get("dst_ip", ""))
+            
             reflector_data.append([key, val.get("status", ""),
-                                   "{}:{}".format(val.get("src_ip", ""), val.get("src_udp_port", "")), "{}:{}".format(val.get("dst_ip", ""), val.get("dst_udp_port", ""))])
+                                   "{}:{}".format(src_ip, val.get("src_udp_port", "")), "{}:{}".format(dst_ip, val.get("dst_udp_port", ""))])
 
         output_summary += "TWAMP-Light Reflector Sessions\n"
         output_summary += tabulate(reflector_data, headers=reflector_header, tablefmt="simple", missingval="") + "\n"
@@ -299,7 +318,7 @@ class TwampLight(object):
         :param session_name: Optional. Twamp-Light session name. Filter sessions by specified name.
         :return:
         """
-        statistics_header = ("Name", "Total TX", "Total RX" "Loss Count(AVG)", "Loss Count(MIN)", "Loss Count(MAX)", "Loss Ratio(AVG)", "Loss Ratio(MIN)", "Loss Ratio(MAX)")
+        statistics_header = ("Name", "Total TX", "Total RX", "Loss Count(AVG)", "Loss Count(MIN)", "Loss Count(MAX)", "Loss Ratio(AVG)", "Loss Ratio(MIN)", "Loss Ratio(MAX)")
         print("Total two-way loss statistics:")
         statistics_data = []
         for name, val in self.get_stats_db_info().items():
