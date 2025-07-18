@@ -262,7 +262,7 @@ def twamp_light_sender_continuous():
 @click.option('--dscp', required=False, type=click.IntRange(min=0, max=63), help='DSCP Value')
 @click.option('--ttl', required=False, type=click.IntRange(min=1, max=255), help='TTL Value')
 @click.option('--timestamp-format', required=False, type=click.Choice(['ntp', 'ptp']), help='Timestamp Format')
-@click.option('--padding', required=False, type=click.IntRange(min=30, max=1000), default=128, help='Padding Value')
+@click.option('--padding', required=False, type=click.IntRange(min=32, max=1400), default=128, help='Padding Length')
 @clicommon.pass_db
 def twamp_light_sender_continuous_add(db, session_name, local_ip_port, remote_ip_port,
                                       monitor_time, tx_interval, timeout, statistics_interval,

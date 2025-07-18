@@ -172,7 +172,7 @@ class TwampLight(object):
         output_summary = ''
         output_summary += "Time unit: Monitor Time/Timeout in second; Tx Interval/Stats Interval in millisecond\n"
         sender_header = ("Name", "Status", "Local IP:PORT", "Remote IP:PORT",
-                         "Packet Count", "Monitor Time", "Tx Interval", "Stats Interval", "Timeout")
+                         "Packet Count", "Monitor Time", "Tx Interval", "Stats Interval", "Timeout", "Padding")
 
         sender_data = []
         for key, val in self.get_session_db_info().items():
@@ -186,7 +186,7 @@ class TwampLight(object):
                 
             sender_data.append([key, val.get("status", ""),
                                 "{}:{}".format(src_ip, val.get("src_udp_port", "")), "{}:{}".format(dst_ip, val.get("dst_udp_port", "")),
-                                val.get("packet_count", "-"), val.get("monitor_time", "-"), val.get("tx_interval", "-"), val.get("statistics_interval", ""), val.get("timeout", "")])
+                                val.get("packet_count", "-"), val.get("monitor_time", "-"), val.get("tx_interval", "-"), val.get("statistics_interval", ""), val.get("timeout", ""), val.get("padding_size", "")])
 
         output_summary += "TWAMP-Light Sender Sessions\n"
         output_summary += tabulate(sender_data, headers=sender_header, tablefmt="simple", missingval="") + "\n"
