@@ -2702,6 +2702,41 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     except JsonPatchConflict:
         ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
+def set_portchannel_mtu(ctx, portchannel_name, portchannel_mtu):
+
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    #查找接口是否存在
+    if is_portchannel_present_in_db(config_db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    #遍历成员接口，设置mtu
+    for k,v in config_db.get_table('PORTCHANNEL_MEMBER'):
+        if (k == portchannel_name):
+            current_port_config = config_db.get_entry("PORT", v)
+            current_port_config["mtu"] = portchannel_mtu
+            config_db.set_entry("PORT", v, current_port_config)
+    #设置PortChannel接口的mtu
+    current_config = config_db.get_entry("PORTCHANNEL", portchannel_name)
+    current_config["mtu"] = portchannel_mtu
+    config_db.set_entry("PORTCHANNEL", portchannel_name, current_config)
+
+#
+# 'mtu' subcommand
+#
+@portchannel.command()
+@click.pass_context
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('portchannel_mtu', metavar='<portchannel_mtu>', required=True, type=click.IntRange(68, 9216))
+def mtu(ctx, portchannel_name, portchannel_mtu):
+    """Set interface mtu"""
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    set_portchannel_mtu(ctx, portchannel_name, portchannel_mtu)
+
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='retry-count')
 @click.pass_context
 def portchannel_retry_count(ctx):
