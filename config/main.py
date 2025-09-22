@@ -6003,7 +6003,7 @@ def enable_use_link_local_only(ctx, interface_name):
 
     if interface_name.startswith("Ethernet"):
         interface_type = "INTERFACE"
-    elif interface_name.startswith("PortChannel"):
+    elif interface_name.startswith("Po"):
         interface_type = "PORTCHANNEL_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_type = "VLAN_INTERFACE"
@@ -6056,7 +6056,7 @@ def disable_use_link_local_only(ctx, interface_name):
     interface_type = ""
     if interface_name.startswith("Ethernet"):
         interface_type = "INTERFACE"
-    elif interface_name.startswith("PortChannel"):
+    elif interface_name.startswith("Po"):
         interface_type = "PORTCHANNEL_INTERFACE"
     elif interface_name.startswith("Vlan"):
         interface_type = "VLAN_INTERFACE"
