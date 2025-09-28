@@ -2709,13 +2709,15 @@ def set_portchannel_mtu(ctx, portchannel_name, portchannel_mtu):
     #查找接口是否存在
     if is_portchannel_present_in_db(config_db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
-
+    
+    #成员接口的mtu保持不变，在C++代码中直接让成员接口使用portchannel的mtu
     #遍历成员接口，设置mtu
-    for k,v in config_db.get_table('PORTCHANNEL_MEMBER'):
-        if (k == portchannel_name):
-            current_port_config = config_db.get_entry("PORT", v)
-            current_port_config["mtu"] = portchannel_mtu
-            config_db.set_entry("PORT", v, current_port_config)
+    #for k,v in config_db.get_table('PORTCHANNEL_MEMBER'):
+    #    if (k == portchannel_name):
+    #        current_port_config = config_db.get_entry("PORT", v)
+    #        current_port_config["mtu"] = portchannel_mtu
+    #        config_db.set_entry("PORT", v, current_port_config)
+    
     #设置PortChannel接口的mtu
     current_config = config_db.get_entry("PORTCHANNEL", portchannel_name)
     current_config["mtu"] = portchannel_mtu
