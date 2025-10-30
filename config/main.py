@@ -4983,6 +4983,15 @@ def _get_all_mgmtinterface_keys():
     return list(config_db.get_table('MGMT_INTERFACE').keys())
 
 
+def set_vlan_mtu(config_db, interface_name, interface_mtu):
+    #设置VLAN的mtu
+    current_config = config_db.get_entry("VLAN", interface_name)
+    if len(current_config) == 0:
+        return False
+    current_config["mtu"] = interface_mtu
+    config_db.set_entry("VLAN", interface_name, current_config)
+    return True
+
 #
 # 'mtu' subcommand
 #
@@ -5000,6 +5009,11 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    #设置VLAN的mtu
+    if "Vlan" in interface_name and \
+        set_vlan_mtu(config_db, interface_name, interface_mtu) == True:
+        return
 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
